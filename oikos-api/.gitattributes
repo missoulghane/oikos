@@ -1,0 +1,15 @@
+# Normalize line endings to LF for text files, regardless of the OS
+# checking them out (avoids noisy diffs between macOS/Linux/Windows).
+* text=auto eol=lf
+
+# Maven wrapper: the Unix launcher needs LF, the Windows one needs CRLF.
+/mvnw text eol=lf
+/mvnw.cmd text eol=crlf
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary archives: never diff/convert.
+*.jar binary
+*.war binary
+*.class binary

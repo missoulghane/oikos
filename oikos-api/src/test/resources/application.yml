@@ -1,0 +1,35 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:oikos-test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  mail:
+    host: localhost
+    port: 3025
+    username:
+    password:
+
+oikos:
+  security:
+    jwt:
+      secret: test-secret-key-for-jwt-signing-must-be-at-least-32-bytes-long
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-seconds: 1209600
+  mail:
+    from: no-reply@oikos.ma
+    verification-base-url: http://localhost:8080/api/v1/users/verify
+    verification-token-ttl-hours: 24
+    account-activation-base-url: http://localhost:5173/activate-account
+    password-reset-base-url: http://localhost:5173/reset-password
+    password-reset-token-ttl-hours: 1
+
+logging:
+  level:
+    com.architek.oikos: DEBUG

@@ -1,0 +1,57 @@
+server:
+  shutdown: graceful
+
+spring:
+  application:
+    name: oikos-api
+  profiles:
+    active: dev
+  jpa:
+    open-in-view: false
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:m.issoulghane@gmail.com}
+    password: ${MAIL_PASSWORD:oovc flco pllw ztpu}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+oikos:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:change-me-change-me-change-me-change-me-32bytes}
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-seconds: 1209600
+  mail:
+    from: ${MAIL_FROM:no-reply@oikos.ma}
+    verification-base-url: ${APP_VERIFICATION_BASE_URL:http://localhost:5173/verify-email}
+    verification-token-ttl-hours: 24
+    account-activation-base-url: ${APP_ACCOUNT_ACTIVATION_BASE_URL:http://localhost:5173/activate-account}
+    password-reset-base-url: ${APP_PASSWORD_RESET_BASE_URL:http://localhost:5173/reset-password}
+    password-reset-token-ttl-hours: 1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    # SMTP connectivity is not a signal the container orchestrator should
+    # act on: a slow/unavailable Gmail endpoint must not flip the overall
+    # /actuator/health to DOWN and take the whole app out of rotation
+    # (Docker healthcheck, Compose depends_on: service_healthy, k8s probes).
+    mail:
+      enabled: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

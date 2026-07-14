@@ -1,0 +1,108 @@
+package com.architek.oikos.property.web.controller;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import com.architek.oikos.auth.infrastructure.security.JwtService;
+import com.architek.oikos.property.application.dto.UnitView;
+import com.architek.oikos.property.application.port.in.AddUnitUseCase;
+import com.architek.oikos.property.application.port.in.GetUnitUseCase;
+import com.architek.oikos.property.application.port.in.ListUnitsByBuildingUseCase;
+import com.architek.oikos.property.domain.valueobject.BuildingId;
+import com.architek.oikos.property.domain.valueobject.UnitId;
+import com.architek.oikos.property.domain.valueobject.OwnershipStatus;
+import com.architek.oikos.property.domain.valueobject.UnitType;
+import com.architek.oikos.shared.domain.pagination.Page;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
+import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
+
+@WebMvcTest(controllers = UnitController.class)
+@Import(WebSecuritySliceTestConfiguration.class)
+class UnitControllerWebMvcTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @MockitoBean
+    private AddUnitUseCase addUnitUseCase;
+
+    @MockitoBean
+    private GetUnitUseCase getUnitUseCase;
+
+    @MockitoBean
+    private ListUnitsByBuildingUseCase listUnitsByBuildingUseCase;
+
+    private String bearerToken(String... authorities) {
+        return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
+    }
+
+    @Test
+    void anonymous_request_is_rejected_with_401() throws Exception {
+        mockMvc.perform(get("/api/v1/buildings/" + BuildingId.newId() + "/units"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void admin_can_list_units_of_an_building() throws Exception {
+        when(listUnitsByBuildingUseCase.listUnits(any())).thenReturn(Page.of(List.of(), 0, 20, 0));
+
+        mockMvc.perform(get("/api/v1/buildings/" + BuildingId.newId() + "/units")
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void admin_can_get_a_unit_by_id() throws Exception {
+        BuildingId buildingId = BuildingId.newId();
+        UnitId id = UnitId.newId();
+        when(getUnitUseCase.getUnit(any())).thenReturn(
+                new UnitView(id, buildingId, "A12", UnitType.APARTMENT, BigDecimal.TEN, OwnershipStatus.UNSOLD_DEVELOPER));
+
+        mockMvc.perform(get("/api/v1/units/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void admin_can_add_a_unit_to_an_building() throws Exception {
+        UnitId id = UnitId.newId();
+        when(addUnitUseCase.add(any())).thenReturn(id);
+
+        mockMvc.perform(post("/api/v1/buildings/" + BuildingId.newId() + "/units")
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"unitNumber":"A12","unitType":"APARTMENT","shares":150}
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void regular_user_is_forbidden_from_adding_a_unit() throws Exception {
+        mockMvc.perform(post("/api/v1/buildings/" + BuildingId.newId() + "/units")
+                        .header("Authorization", bearerToken("ROLE_USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"unitNumber":"A12","unitType":"APARTMENT","shares":150}
+                                """))
+                .andExpect(status().isForbidden());
+    }
+}
