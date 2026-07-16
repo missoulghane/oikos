@@ -2,6 +2,7 @@ package com.architek.oikos.property.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -47,5 +48,17 @@ class CreatePropertyServiceTest {
         verify(buildingRepository).save(buildingCaptor.capture());
         assertThat(buildingCaptor.getValue().getName()).isEqualTo("Batiment A");
         assertThat(buildingCaptor.getValue().getPropertyId()).isEqualTo(propertyCaptor.getValue().getId());
+    }
+
+    @Test
+    void creating_a_property_without_a_first_building_does_not_persist_a_building() {
+        when(propertyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreatePropertyCommand command = new CreatePropertyCommand("Copro Laumiere", "33 Avenue de Laumiere", null, null);
+
+        newService().create(command);
+
+        verify(propertyRepository).save(any());
+        verify(buildingRepository, never()).save(any());
     }
 }

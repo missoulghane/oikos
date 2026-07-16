@@ -13,9 +13,12 @@ import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 
 /**
- * Cree une property et son premier building dans la meme transaction:
- * la regle de gestion "une property doit posseder au moins un building" est
- * ainsi garantie des la creation, plutot que verifiee a posteriori.
+ * Cree une property et, si fourni, son premier building dans la meme
+ * transaction. Le premier building est optionnel au niveau de cette commande:
+ * un appelant peut creer une property seule (ex: inscription d'un property
+ * manager, voir PropertyProvisioningAdapter) et ajouter des buildings plus
+ * tard via AddBuildingUseCase. Le endpoint public POST /properties, lui,
+ * continue d'exiger un premier building via la validation de CreatePropertyRequest.
  */
 @Component
 public class CreatePropertyService implements CreatePropertyUseCase {
@@ -34,9 +37,11 @@ public class CreatePropertyService implements CreatePropertyUseCase {
         Property property = Property.create(PropertyId.newId(), command.name(), command.address());
         Property saved = propertyRepository.save(property);
 
-        Building building = Building.create(BuildingId.newId(), saved.getId(), command.firstBuildingName(),
-                command.firstBuildingFloorCount());
-        buildingRepository.save(building);
+        if (command.firstBuildingName() != null && !command.firstBuildingName().isBlank()) {
+            Building building = Building.create(BuildingId.newId(), saved.getId(), command.firstBuildingName(),
+                    command.firstBuildingFloorCount());
+            buildingRepository.save(building);
+        }
 
         return saved.getId();
     }

@@ -42,7 +42,11 @@ public final class User {
     }
 
     public static User register(UserId id, EntityId contactId, HashedPassword password, String login) {
-        return new User(id, contactId, password, login, Set.of(Role.ROLE_USER), false, true);
+        return register(id, contactId, password, login, Role.ROLE_USER);
+    }
+
+    public static User register(UserId id, EntityId contactId, HashedPassword password, String login, Role role) {
+        return new User(id, contactId, password, login, Set.of(role), false, true);
     }
 
     /**

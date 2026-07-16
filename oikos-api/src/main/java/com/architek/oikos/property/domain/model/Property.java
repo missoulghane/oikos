@@ -5,12 +5,13 @@ import java.util.Objects;
 import com.architek.oikos.property.domain.valueobject.PropertyId;
 
 /**
- * Entite racine representant la property geree. La regle "une property
- * doit posseder au moins un building" n'est pas verifiable au niveau de cet
- * agregat seul (probleme de l'oeuf et de la poule a la creation) : elle est
- * appliquee au niveau applicatif par une commande composite qui cree la
- * property et son premier building dans la meme transaction (voir
- * CreatePropertyService).
+ * Entite racine representant la property geree. Une property peut exister
+ * sans building (ex: inscription d'un property manager, voir
+ * PropertyProvisioningAdapter) ; des buildings peuvent lui etre rattaches
+ * plus tard via AddBuildingUseCase. Le endpoint public POST /properties
+ * continue neanmoins d'exiger un premier building a la creation (voir
+ * CreatePropertyRequest), par choix de ce point d'entree specifique et non
+ * par contrainte de cet agregat.
  * Immutable: toute mutation retourne une nouvelle instance. Semantique
  * d'entite: equals/hashCode se basent sur l'identite (id), pas sur les valeurs.
  */

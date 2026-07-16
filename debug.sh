@@ -1,0 +1,1 @@
+(cd oikos-api/ && ./mvnw spring-boot:run) & (cd oikos-web/ && npm run dev) &

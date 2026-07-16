@@ -5,5 +5,6 @@ public enum BoardRole {
     TREASURER,
     SECRETARY,
     MEMBER,
-    VOLUNTEER_MANAGER
+    VOLUNTEER_MANAGER,
+    PROPERTY_MANAGER
 }

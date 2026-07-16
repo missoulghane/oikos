@@ -61,7 +61,7 @@ class AuthenticationFlowIntegrationTest {
         String email = "flow-user@oikos.com";
         String password = "password123456";
 
-        mockMvc.perform(post("/api/v1/users/register")
+        mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"lastName":"Doe","firstName":"Jane","email":"%s","password":"%s"}
@@ -123,13 +123,52 @@ class AuthenticationFlowIntegrationTest {
     }
 
     @Test
+    void registers_a_property_manager_with_its_property_and_logs_in_after_verification() throws Exception {
+        String email = "flow-property-manager@oikos.com";
+        String password = "password123456";
+
+        mockMvc.perform(post("/api/v1/users/register-property-manager")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"lastName":"Doe","firstName":"Jane","email":"%s","password":"%s",
+                                "propertyName":"Residence A","propertyAddress":"1 rue de Paris"}
+                                """.formatted(email, password)))
+                .andExpect(status().isCreated());
+
+        var bodyCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(emailSenderPort).send(any(), any(), bodyCaptor.capture());
+        String token = extractToken(bodyCaptor.getValue());
+
+        mockMvc.perform(post("/api/v1/users/verify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"token":"%s"}
+                                """.formatted(token)))
+                .andExpect(status().isOk());
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"identifier":"%s","password":"%s"}
+                                """.formatted(email, password)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String accessToken = JsonPath.read(loginResult.getResponse().getContentAsString(), "$.accessToken");
+
+        mockMvc.perform(get("/api/v1/users/me").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email", is(email)))
+                .andExpect(jsonPath("$.roles", org.hamcrest.Matchers.hasItem("ROLE_PROPERTY_MANAGER")));
+    }
+
+    @Test
     void logs_in_with_login_email_or_phone_indifferently() throws Exception {
         String email = "multi-identifier-user@oikos.com";
         String phone = "0611223344";
         String login = "multi-id-login";
         String password = "password123456";
 
-        mockMvc.perform(post("/api/v1/users/register")
+        mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"lastName":"Doe","firstName":"Jane","email":"%s","phone":"%s","login":"%s","password":"%s"}
@@ -173,7 +212,7 @@ class AuthenticationFlowIntegrationTest {
         String oldPassword = "oldpassword123";
         String newPassword = "newpassword456";
 
-        mockMvc.perform(post("/api/v1/users/register")
+        mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"lastName":"Doe","firstName":"Jane","email":"%s","password":"%s"}
@@ -244,7 +283,7 @@ class AuthenticationFlowIntegrationTest {
         String email = "unverified-user@oikos.com";
         String password = "password123456";
 
-        mockMvc.perform(post("/api/v1/users/register")
+        mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"lastName":"Doe","firstName":"Jane","email":"%s","password":"%s"}
@@ -264,7 +303,7 @@ class AuthenticationFlowIntegrationTest {
         String email = "disabled-user@oikos.com";
         String password = "password123456";
 
-        MvcResult registerResult = mockMvc.perform(post("/api/v1/users/register")
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"lastName":"Doe","firstName":"Jane","email":"%s","password":"%s"}

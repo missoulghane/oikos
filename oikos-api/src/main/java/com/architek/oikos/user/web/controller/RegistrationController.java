@@ -14,15 +14,18 @@ import jakarta.validation.Valid;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 import com.architek.oikos.user.application.command.ActivateAccountCommand;
+import com.architek.oikos.user.application.command.RegisterPropertyManagerCommand;
 import com.architek.oikos.user.application.command.RegisterUserCommand;
 import com.architek.oikos.user.application.command.ResendVerificationCommand;
 import com.architek.oikos.user.application.command.VerifyAccountCommand;
 import com.architek.oikos.user.application.port.in.ActivateAccountUseCase;
+import com.architek.oikos.user.application.port.in.RegisterPropertyManagerUseCase;
 import com.architek.oikos.user.application.port.in.RegisterUserUseCase;
 import com.architek.oikos.user.application.port.in.ResendVerificationUseCase;
 import com.architek.oikos.user.application.port.in.VerifyAccountUseCase;
 import com.architek.oikos.user.domain.valueobject.UserId;
 import com.architek.oikos.user.web.request.ActivateAccountRequest;
+import com.architek.oikos.user.web.request.RegisterPropertyManagerRequest;
 import com.architek.oikos.user.web.request.RegisterUserRequest;
 import com.architek.oikos.user.web.request.ResendVerificationRequest;
 import com.architek.oikos.user.web.request.VerifyAccountRequest;
@@ -36,30 +39,49 @@ import com.architek.oikos.user.web.response.MessageResponse;
 public class RegistrationController {
 
     private final RegisterUserUseCase registerUserUseCase;
+    private final RegisterPropertyManagerUseCase registerPropertyManagerUseCase;
     private final VerifyAccountUseCase verifyAccountUseCase;
     private final ResendVerificationUseCase resendVerificationUseCase;
     private final ActivateAccountUseCase activateAccountUseCase;
 
     public RegistrationController(RegisterUserUseCase registerUserUseCase,
+                                   RegisterPropertyManagerUseCase registerPropertyManagerUseCase,
                                    VerifyAccountUseCase verifyAccountUseCase,
                                    ResendVerificationUseCase resendVerificationUseCase,
                                    ActivateAccountUseCase activateAccountUseCase) {
         this.registerUserUseCase = registerUserUseCase;
+        this.registerPropertyManagerUseCase = registerPropertyManagerUseCase;
         this.verifyAccountUseCase = verifyAccountUseCase;
         this.resendVerificationUseCase = resendVerificationUseCase;
         this.activateAccountUseCase = activateAccountUseCase;
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<Void> register(@Valid @RequestBody RegisterUserRequest request) {
+    @PostMapping("/register-property-user")
+    public ResponseEntity<Void> registerPropertyUser(@Valid @RequestBody RegisterUserRequest request) {
         RegisterUserCommand command = new RegisterUserCommand(
                 request.lastName(),
                 request.firstName(),
                 EmailVO.of(request.email()),
                 request.phone(),
                 request.login(),
-                RawPassword.of(request.password()));
+                RawPassword.of(request.password()),
+                request.role());
         UserId userId = registerUserUseCase.register(command);
+        return ResponseEntity.created(URI.create("/api/v1/users/" + userId)).build();
+    }
+
+    @PostMapping("/register-property-manager")
+    public ResponseEntity<Void> registerPropertyManager(@Valid @RequestBody RegisterPropertyManagerRequest request) {
+        RegisterPropertyManagerCommand command = new RegisterPropertyManagerCommand(
+                request.lastName(),
+                request.firstName(),
+                EmailVO.of(request.email()),
+                request.phone(),
+                request.login(),
+                RawPassword.of(request.password()),
+                request.propertyName(),
+                request.propertyAddress());
+        UserId userId = registerPropertyManagerUseCase.register(command);
         return ResponseEntity.created(URI.create("/api/v1/users/" + userId)).build();
     }
 
