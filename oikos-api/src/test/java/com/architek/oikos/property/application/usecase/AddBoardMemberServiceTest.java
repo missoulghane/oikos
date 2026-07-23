@@ -12,7 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.property.application.command.AddBoardMemberCommand;
-import com.architek.oikos.property.domain.exception.ContactAlreadyHasRoleException;
+import com.architek.oikos.property.domain.exception.PartyAlreadyHasRoleException;
 import com.architek.oikos.property.domain.exception.PropertyNotFoundException;
 import com.architek.oikos.property.domain.model.Property;
 import com.architek.oikos.property.domain.repository.PropertyRepository;
@@ -39,21 +39,21 @@ class AddBoardMemberServiceTest {
         PropertyId propertyId = PropertyId.newId();
         when(propertyRepository.findById(propertyId))
                 .thenReturn(Optional.of(Property.create(propertyId, "Copro", "Address")));
-        when(boardMemberRepository.existsByPropertyIdAndContactIdAndBoardRole(any(), any(), any())).thenReturn(false);
+        when(boardMemberRepository.existsByPropertyIdAndPartyIdAndBoardRole(any(), any(), any())).thenReturn(false);
         when(boardMemberRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         newService().add(new AddBoardMemberCommand(propertyId, EntityId.newId(), BoardRole.PRESIDENT));
     }
 
     @Test
-    void adding_the_same_role_twice_for_the_same_contact_and_property_is_rejected() {
+    void adding_the_same_role_twice_for_the_same_party_and_property_is_rejected() {
         PropertyId propertyId = PropertyId.newId();
         when(propertyRepository.findById(propertyId))
                 .thenReturn(Optional.of(Property.create(propertyId, "Copro", "Address")));
-        when(boardMemberRepository.existsByPropertyIdAndContactIdAndBoardRole(any(), any(), any())).thenReturn(true);
+        when(boardMemberRepository.existsByPropertyIdAndPartyIdAndBoardRole(any(), any(), any())).thenReturn(true);
 
         assertThatThrownBy(() -> newService().add(new AddBoardMemberCommand(propertyId, EntityId.newId(), BoardRole.PRESIDENT)))
-                .isInstanceOf(ContactAlreadyHasRoleException.class);
+                .isInstanceOf(PartyAlreadyHasRoleException.class);
     }
 
     @Test

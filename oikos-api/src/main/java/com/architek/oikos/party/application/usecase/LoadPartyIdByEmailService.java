@@ -1,27 +1,27 @@
-package com.architek.oikos.contact.application.usecase;
+package com.architek.oikos.party.application.usecase;
 
 import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.architek.oikos.contact.application.port.in.LoadContactIdByEmailUseCase;
-import com.architek.oikos.contact.domain.repository.ContactRepository;
-import com.architek.oikos.contact.domain.valueobject.ContactId;
+import com.architek.oikos.party.application.port.in.LoadPartyIdByEmailUseCase;
+import com.architek.oikos.party.domain.repository.PartyRepository;
+import com.architek.oikos.party.domain.valueobject.PartyId;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 
 @Component
-public class LoadContactIdByEmailService implements LoadContactIdByEmailUseCase {
+public class LoadPartyIdByEmailService implements LoadPartyIdByEmailUseCase {
 
-    private final ContactRepository contactRepository;
+    private final PartyRepository partyRepository;
 
-    public LoadContactIdByEmailService(ContactRepository contactRepository) {
-        this.contactRepository = contactRepository;
+    public LoadPartyIdByEmailService(PartyRepository partyRepository) {
+        this.partyRepository = partyRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<ContactId> loadByEmail(EmailVO email) {
-        return contactRepository.findByEmail(email).map(contact -> contact.getId());
+    public Optional<PartyId> loadByEmail(EmailVO email) {
+        return partyRepository.findByEmail(email).map(party -> party.getId());
     }
 }

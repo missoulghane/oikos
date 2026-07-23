@@ -45,17 +45,17 @@ class BoardMemberRepositoryAdapterDataJpaTest {
     }
 
     @Test
-    void existsByPropertyIdAndContactIdAndBoardRole_reflects_persisted_state() {
+    void existsByPropertyIdAndPartyIdAndBoardRole_reflects_persisted_state() {
         PropertyId propertyId = PropertyId.newId();
-        EntityId contactId = EntityId.newId();
-        assertThat(adapter.existsByPropertyIdAndContactIdAndBoardRole(propertyId, contactId, BoardRole.PRESIDENT))
+        EntityId partyId = EntityId.newId();
+        assertThat(adapter.existsByPropertyIdAndPartyIdAndBoardRole(propertyId, partyId, BoardRole.PRESIDENT))
                 .isFalse();
 
-        adapter.save(BoardMember.create(BoardMemberId.newId(), propertyId, contactId, BoardRole.PRESIDENT));
+        adapter.save(BoardMember.create(BoardMemberId.newId(), propertyId, partyId, BoardRole.PRESIDENT));
 
-        assertThat(adapter.existsByPropertyIdAndContactIdAndBoardRole(propertyId, contactId, BoardRole.PRESIDENT))
+        assertThat(adapter.existsByPropertyIdAndPartyIdAndBoardRole(propertyId, partyId, BoardRole.PRESIDENT))
                 .isTrue();
-        assertThat(adapter.existsByPropertyIdAndContactIdAndBoardRole(propertyId, contactId, BoardRole.TREASURER))
+        assertThat(adapter.existsByPropertyIdAndPartyIdAndBoardRole(propertyId, partyId, BoardRole.TREASURER))
                 .isFalse();
     }
 

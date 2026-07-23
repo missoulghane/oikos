@@ -1,11 +1,11 @@
-package com.architek.oikos.contact.domain.valueobject;
+package com.architek.oikos.party.domain.valueobject;
 
 /**
- * Optional list-filter axis for contact search: null means "no filter on this axis".
+ * Optional list-filter axis for party search: null means "no filter on this axis".
  */
-public record ContactSearchCriteria(String search) {
+public record PartySearchCriteria(String search) {
 
-    public static ContactSearchCriteria empty() {
-        return new ContactSearchCriteria(null);
+    public static PartySearchCriteria empty() {
+        return new PartySearchCriteria(null);
     }
 }

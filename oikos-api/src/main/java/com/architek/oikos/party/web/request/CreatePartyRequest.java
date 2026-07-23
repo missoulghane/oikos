@@ -1,12 +1,14 @@
-package com.architek.oikos.contact.web.request;
+package com.architek.oikos.party.web.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import com.architek.oikos.shared.domain.valueobject.PartyType;
 
-public record CreateContactRequest(
-        @NotBlank @Size(max = 100) String lastName,
-        @NotBlank @Size(max = 100) String firstName,
+public record CreatePartyRequest(
+        @NotBlank @Size(max = 200) String fullName,
+        @NotNull PartyType partyType,
         @NotBlank @Email @Size(max = 150) String email,
         @Size(max = 20) String phone) {
 }

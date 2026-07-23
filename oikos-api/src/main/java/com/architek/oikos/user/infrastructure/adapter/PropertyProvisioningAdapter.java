@@ -35,7 +35,7 @@ public class PropertyProvisioningAdapter implements PropertyProvisioningPort {
         PropertyId propertyId = createPropertyUseCase.create(new CreatePropertyCommand(
                 details.name(), details.address(), null, null));
 
-        addBoardMemberUseCase.add(new AddBoardMemberCommand(propertyId, details.managerContactId(), BoardRole.PROPERTY_MANAGER));
+        addBoardMemberUseCase.add(new AddBoardMemberCommand(propertyId, details.managerPartyId(), BoardRole.PROPERTY_MANAGER));
 
         return EntityId.of(propertyId.asUuid());
     }

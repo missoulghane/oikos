@@ -1,10 +1,10 @@
-package com.architek.oikos.contact.application.port.in;
+package com.architek.oikos.party.application.port.in;
 
-import com.architek.oikos.contact.application.dto.ContactView;
-import com.architek.oikos.contact.application.query.ListContactsQuery;
+import com.architek.oikos.party.application.dto.PartyView;
+import com.architek.oikos.party.application.query.ListPartiesQuery;
 import com.architek.oikos.shared.domain.pagination.Page;
 
-public interface ListContactsUseCase {
+public interface ListPartiesUseCase {
 
-    Page<ContactView> listContacts(ListContactsQuery query);
+    Page<PartyView> listParties(ListPartiesQuery query);
 }

@@ -7,5 +7,5 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * property manager, decoupled from the property feature's own command types
  * (rule 6: cross-feature access only through ports).
  */
-public record PropertyProvisioningDetails(String name, String address, EntityId managerContactId) {
+public record PropertyProvisioningDetails(String name, String address, EntityId managerPartyId) {
 }

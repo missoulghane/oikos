@@ -50,7 +50,7 @@ class RegistrationControllerWebMvcTest {
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"user@oikos.com","password":"password123"}
+                                {"fullName":"Jane Doe","email":"user@oikos.com","password":"password123"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/v1/users/" + userId));
@@ -64,7 +64,7 @@ class RegistrationControllerWebMvcTest {
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"user@oikos.com","password":"password123","role":"ROLE_PROPERTY_MANAGER"}
+                                {"fullName":"Jane Doe","email":"user@oikos.com","password":"password123","role":"ROLE_PROPERTY_MANAGER"}
                                 """))
                 .andExpect(status().isCreated());
     }
@@ -74,7 +74,7 @@ class RegistrationControllerWebMvcTest {
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"user@oikos.com","password":"password123","role":"NOT_A_ROLE"}
+                                {"fullName":"Jane Doe","email":"user@oikos.com","password":"password123","role":"NOT_A_ROLE"}
                                 """))
                 .andExpect(status().isBadRequest());
     }
@@ -84,7 +84,7 @@ class RegistrationControllerWebMvcTest {
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"not-an-email","password":"password123"}
+                                {"fullName":"Jane Doe","email":"not-an-email","password":"password123"}
                                 """))
                 .andExpect(status().isBadRequest());
     }
@@ -94,7 +94,7 @@ class RegistrationControllerWebMvcTest {
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"user@oikos.com","password":"short"}
+                                {"fullName":"Jane Doe","email":"user@oikos.com","password":"short"}
                                 """))
                 .andExpect(status().isBadRequest());
     }
@@ -107,7 +107,7 @@ class RegistrationControllerWebMvcTest {
         mockMvc.perform(post("/api/v1/users/register-property-manager")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"manager@oikos.com","password":"password123",
+                                {"fullName":"Jane Doe","email":"manager@oikos.com","password":"password123",
                                 "propertyName":"Residence A","propertyAddress":"1 rue de Paris"}
                                 """))
                 .andExpect(status().isCreated())
@@ -119,7 +119,7 @@ class RegistrationControllerWebMvcTest {
         mockMvc.perform(post("/api/v1/users/register-property-manager")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"manager@oikos.com","password":"password123"}
+                                {"fullName":"Jane Doe","email":"manager@oikos.com","password":"password123"}
                                 """))
                 .andExpect(status().isBadRequest());
     }

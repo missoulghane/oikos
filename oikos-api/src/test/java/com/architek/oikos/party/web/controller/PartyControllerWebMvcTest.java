@@ -1,4 +1,4 @@
-package com.architek.oikos.contact.web.controller;
+package com.architek.oikos.party.web.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -21,20 +21,21 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.auth.infrastructure.security.JwtService;
-import com.architek.oikos.contact.application.dto.ContactView;
-import com.architek.oikos.contact.application.port.in.CreateContactUseCase;
-import com.architek.oikos.contact.application.port.in.DeleteContactUseCase;
-import com.architek.oikos.contact.application.port.in.GetContactUseCase;
-import com.architek.oikos.contact.application.port.in.ListContactsUseCase;
-import com.architek.oikos.contact.application.port.in.UpdateContactUseCase;
-import com.architek.oikos.contact.domain.valueobject.ContactId;
+import com.architek.oikos.party.application.dto.PartyView;
+import com.architek.oikos.party.application.port.in.CreatePartyUseCase;
+import com.architek.oikos.party.application.port.in.DeletePartyUseCase;
+import com.architek.oikos.party.application.port.in.GetPartyUseCase;
+import com.architek.oikos.party.application.port.in.ListPartiesUseCase;
+import com.architek.oikos.party.application.port.in.UpdatePartyUseCase;
+import com.architek.oikos.party.domain.valueobject.PartyId;
+import com.architek.oikos.shared.domain.valueobject.PartyType;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
 
-@WebMvcTest(controllers = ContactController.class)
+@WebMvcTest(controllers = PartyController.class)
 @Import(WebSecuritySliceTestConfiguration.class)
-class ContactControllerWebMvcTest {
+class PartyControllerWebMvcTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -43,19 +44,19 @@ class ContactControllerWebMvcTest {
     private JwtService jwtService;
 
     @MockitoBean
-    private CreateContactUseCase createContactUseCase;
+    private CreatePartyUseCase createPartyUseCase;
 
     @MockitoBean
-    private GetContactUseCase getContactUseCase;
+    private GetPartyUseCase getPartyUseCase;
 
     @MockitoBean
-    private UpdateContactUseCase updateContactUseCase;
+    private UpdatePartyUseCase updatePartyUseCase;
 
     @MockitoBean
-    private ListContactsUseCase listContactsUseCase;
+    private ListPartiesUseCase listPartiesUseCase;
 
     @MockitoBean
-    private DeleteContactUseCase deleteContactUseCase;
+    private DeletePartyUseCase deletePartyUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
@@ -63,81 +64,81 @@ class ContactControllerWebMvcTest {
 
     @Test
     void anonymous_request_is_rejected_with_401() throws Exception {
-        mockMvc.perform(get("/api/v1/contacts")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/parties")).andExpect(status().isUnauthorized());
     }
 
     @Test
-    void regular_user_is_forbidden_from_listing_contacts() throws Exception {
-        mockMvc.perform(get("/api/v1/contacts").header("Authorization", bearerToken("ROLE_USER")))
+    void regular_user_is_forbidden_from_listing_parties() throws Exception {
+        mockMvc.perform(get("/api/v1/parties").header("Authorization", bearerToken("ROLE_USER")))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void admin_can_list_contacts() throws Exception {
-        when(listContactsUseCase.listContacts(any())).thenReturn(Page.of(List.of(), 0, 20, 0));
+    void admin_can_list_parties() throws Exception {
+        when(listPartiesUseCase.listParties(any())).thenReturn(Page.of(List.of(), 0, 20, 0));
 
-        mockMvc.perform(get("/api/v1/contacts").header("Authorization", bearerToken("ROLE_ADMIN")))
+        mockMvc.perform(get("/api/v1/parties").header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void admin_can_get_a_contact_by_id() throws Exception {
-        ContactId id = ContactId.newId();
-        when(getContactUseCase.getContact(any())).thenReturn(new ContactView(id, "Doe", "Jane", "jane@doe.com", null));
+    void admin_can_get_a_party_by_id() throws Exception {
+        PartyId id = PartyId.newId();
+        when(getPartyUseCase.getParty(any())).thenReturn(new PartyView(id, "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
 
-        mockMvc.perform(get("/api/v1/contacts/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
+        mockMvc.perform(get("/api/v1/parties/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void admin_can_create_a_contact_returns_201_with_location_header() throws Exception {
-        ContactId id = ContactId.newId();
-        when(createContactUseCase.create(any())).thenReturn(id);
+    void admin_can_create_a_party_returns_201_with_location_header() throws Exception {
+        PartyId id = PartyId.newId();
+        when(createPartyUseCase.create(any())).thenReturn(id);
 
-        mockMvc.perform(post("/api/v1/contacts")
+        mockMvc.perform(post("/api/v1/parties")
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"jane@doe.com"}
+                                {"fullName":"Jane Doe","partyType":"INDIVIDUAL","email":"jane@doe.com"}
                                 """))
                 .andExpect(status().isCreated());
     }
 
     @Test
-    void regular_user_is_forbidden_from_creating_a_contact() throws Exception {
-        mockMvc.perform(post("/api/v1/contacts")
+    void regular_user_is_forbidden_from_creating_a_party() throws Exception {
+        mockMvc.perform(post("/api/v1/parties")
                         .header("Authorization", bearerToken("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"jane@doe.com"}
+                                {"fullName":"Jane Doe","partyType":"INDIVIDUAL","email":"jane@doe.com"}
                                 """))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void admin_can_update_a_contact() throws Exception {
-        ContactId id = ContactId.newId();
-        when(updateContactUseCase.update(any())).thenReturn(new ContactView(id, "Smith", "Janet", "janet@smith.com", null));
+    void admin_can_update_a_party() throws Exception {
+        PartyId id = PartyId.newId();
+        when(updatePartyUseCase.update(any())).thenReturn(new PartyView(id, "Janet Smith", PartyType.COMPANY, "janet@smith.com", null));
 
-        mockMvc.perform(put("/api/v1/contacts/" + id)
+        mockMvc.perform(put("/api/v1/parties/" + id)
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Smith","firstName":"Janet","email":"janet@smith.com"}
+                                {"fullName":"Janet Smith","partyType":"COMPANY","email":"janet@smith.com"}
                                 """))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void admin_can_delete_a_contact() throws Exception {
-        mockMvc.perform(delete("/api/v1/contacts/" + ContactId.newId())
+    void admin_can_delete_a_party() throws Exception {
+        mockMvc.perform(delete("/api/v1/parties/" + PartyId.newId())
                         .header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    void regular_user_is_forbidden_from_deleting_a_contact() throws Exception {
-        mockMvc.perform(delete("/api/v1/contacts/" + ContactId.newId())
+    void regular_user_is_forbidden_from_deleting_a_party() throws Exception {
+        mockMvc.perform(delete("/api/v1/parties/" + PartyId.newId())
                         .header("Authorization", bearerToken("ROLE_USER")))
                 .andExpect(status().isForbidden());
     }

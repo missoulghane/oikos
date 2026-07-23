@@ -28,7 +28,7 @@ import com.architek.oikos.property.web.response.BoardMemberResponse;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
- * Rattachement des membres du syndic (via Contact) a une copropriété. 
+ * Rattachement des membres du syndic (via Party) a une copropriété. 
  */
 // Pour le moment aucune de gestion de droits (à mettre en place plus tard)
 @RestController
@@ -57,7 +57,7 @@ public class BoardMemberController {
     @PostMapping("/properties/{propertyId}/board-members")
     public ResponseEntity<Void> add(@PathVariable String propertyId, @Valid @RequestBody AddBoardMemberRequest request) {
         BoardMemberId id = addBoardMemberUseCase.add(new AddBoardMemberCommand(
-                PropertyId.of(propertyId), EntityId.of(request.contactId()), request.boardRole()));
+                PropertyId.of(propertyId), EntityId.of(request.partyId()), request.boardRole()));
         return ResponseEntity.created(URI.create("/api/v1/properties/" + propertyId + "/board-members/" + id)).build();
     }
 

@@ -51,7 +51,7 @@ public class UserMeController {
     @PatchMapping("/profile")
     public UserResponse updateProfile(Authentication authentication, @Valid @RequestBody UpdateProfileRequest request) {
         UpdateUserProfileCommand command = new UpdateUserProfileCommand(
-                currentUserId(authentication), request.lastName(), request.firstName(),
+                currentUserId(authentication), request.fullName(),
                 EmailVO.of(request.email()), request.phone());
         return UserResponse.from(updateUserProfileUseCase.updateProfile(command));
     }

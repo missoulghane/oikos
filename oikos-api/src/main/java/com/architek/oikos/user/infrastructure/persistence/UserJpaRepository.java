@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface UserJpaRepository extends JpaRepository<UserEntity, UUID>, JpaSpecificationExecutor<UserEntity> {
 
-    Optional<UserEntity> findByContactId(UUID contactId);
+    Optional<UserEntity> findByPartyId(UUID partyId);
 
     Optional<UserEntity> findByLogin(String login);
 

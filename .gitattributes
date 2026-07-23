@@ -1,0 +1,30 @@
+# =============================================================================
+# Root .gitattributes for the oikos monorepo.
+#
+# oikos-api/.gitattributes and oikos-web/.gitattributes refine these rules
+# for their own subtree (Maven wrapper launcher, web asset binaries, ...).
+# This file sets the repo-wide default for everything else (root-level
+# scripts and docs).
+# =============================================================================
+
+# Normalize line endings to LF for text files, regardless of the OS
+# checking them out (avoids noisy diffs between macOS/Linux/Windows).
+* text=auto eol=lf
+
+# Windows-specific scripts must keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Shell scripts always LF, even when checked out on Windows.
+*.sh text eol=lf
+
+# Common binary types: never diff/convert.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.jar binary

@@ -59,8 +59,7 @@ public class RegistrationController {
     @PostMapping("/register-property-user")
     public ResponseEntity<Void> registerPropertyUser(@Valid @RequestBody RegisterUserRequest request) {
         RegisterUserCommand command = new RegisterUserCommand(
-                request.lastName(),
-                request.firstName(),
+                request.fullName(),
                 EmailVO.of(request.email()),
                 request.phone(),
                 request.login(),
@@ -73,8 +72,7 @@ public class RegistrationController {
     @PostMapping("/register-property-manager")
     public ResponseEntity<Void> registerPropertyManager(@Valid @RequestBody RegisterPropertyManagerRequest request) {
         RegisterPropertyManagerCommand command = new RegisterPropertyManagerCommand(
-                request.lastName(),
-                request.firstName(),
+                request.fullName(),
                 EmailVO.of(request.email()),
                 request.phone(),
                 request.login(),

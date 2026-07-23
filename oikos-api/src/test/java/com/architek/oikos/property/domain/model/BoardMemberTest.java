@@ -14,11 +14,11 @@ class BoardMemberTest {
     @Test
     void create_builds_a_board_member_with_the_given_fields() {
         PropertyId propertyId = PropertyId.newId();
-        EntityId contactId = EntityId.newId();
-        BoardMember boardMember = BoardMember.create(BoardMemberId.newId(), propertyId, contactId, BoardRole.PRESIDENT);
+        EntityId partyId = EntityId.newId();
+        BoardMember boardMember = BoardMember.create(BoardMemberId.newId(), propertyId, partyId, BoardRole.PRESIDENT);
 
         assertThat(boardMember.getPropertyId()).isEqualTo(propertyId);
-        assertThat(boardMember.getContactId()).isEqualTo(contactId);
+        assertThat(boardMember.getPartyId()).isEqualTo(partyId);
         assertThat(boardMember.getBoardRole()).isEqualTo(BoardRole.PRESIDENT);
     }
 

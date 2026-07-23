@@ -16,11 +16,11 @@ class UnitOwnershipTest {
     @Test
     void create_builds_a_unit_ownership_with_the_given_fields() {
         UnitId unitId = UnitId.newId();
-        EntityId contactId = EntityId.newId();
-        UnitOwnership unitOwnership = UnitOwnership.create(UnitOwnershipId.newId(), unitId, contactId, OwnershipShare.of(BigDecimal.TEN));
+        EntityId partyId = EntityId.newId();
+        UnitOwnership unitOwnership = UnitOwnership.create(UnitOwnershipId.newId(), unitId, partyId, OwnershipShare.of(BigDecimal.TEN));
 
         assertThat(unitOwnership.getUnitId()).isEqualTo(unitId);
-        assertThat(unitOwnership.getContactId()).isEqualTo(contactId);
+        assertThat(unitOwnership.getPartyId()).isEqualTo(partyId);
         assertThat(unitOwnership.getOwnershipShare().value()).isEqualByComparingTo("10");
     }
 

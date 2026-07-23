@@ -1,0 +1,78 @@
+# =============================================================================
+# Root .gitignore for the oikos monorepo.
+#
+# oikos-api/.gitignore and oikos-web/.gitignore already cover their own
+# language-specific build artifacts (target/, node_modules/, dist/, ...).
+# This file only covers cross-cutting concerns that can show up anywhere in
+# the tree: OS-generated junk, editor/IDE files, local env files and logs.
+# =============================================================================
+
+### Environment / secrets ###
+.env
+.env.local
+.env.*.local
+*.local
+
+### Logs ###
+*.log
+logs/
+
+### Claude Code (personal, machine-specific overrides - settings.json stays shared) ###
+.claude/settings.local.json
+
+### Editors / IDE ###
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.iml
+*.swp
+*.swo
+*.swn
+
+### macOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+### Windows ###
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+### Linux ###
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+### Archives / temp files ###
+*.bak
+*.tmp
+*.temp
+*.orig

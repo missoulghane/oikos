@@ -1,12 +1,13 @@
-package com.architek.oikos.contact.application.dto;
+package com.architek.oikos.party.application.dto;
 
-import com.architek.oikos.contact.domain.model.Contact;
-import com.architek.oikos.contact.domain.valueobject.ContactId;
+import com.architek.oikos.party.domain.model.Party;
+import com.architek.oikos.party.domain.valueobject.PartyId;
+import com.architek.oikos.shared.domain.valueobject.PartyType;
 
-public record ContactView(ContactId id, String lastName, String firstName, String email, String phone) {
+public record PartyView(PartyId id, String fullName, PartyType partyType, String email, String phone) {
 
-    public static ContactView from(Contact contact) {
-        return new ContactView(contact.getId(), contact.getLastName(), contact.getFirstName(),
-                contact.getEmail().value(), contact.getPhone());
+    public static PartyView from(Party party) {
+        return new PartyView(party.getId(), party.getFullName(), party.getPartyType(),
+                party.getEmail().value(), party.getPhone());
     }
 }

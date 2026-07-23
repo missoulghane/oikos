@@ -15,33 +15,40 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import com.architek.oikos.property.application.command.AddUnitOwnerCommand;
 import com.architek.oikos.property.application.command.AddUnitOwnershipCommand;
 import com.architek.oikos.property.application.command.RemoveUnitOwnershipCommand;
+import com.architek.oikos.property.application.port.in.AddUnitOwnerUseCase;
 import com.architek.oikos.property.application.port.in.AddUnitOwnershipUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitOwnershipsByUnitUseCase;
 import com.architek.oikos.property.application.port.in.RemoveUnitOwnershipUseCase;
 import com.architek.oikos.property.application.query.ListUnitOwnershipsByUnitQuery;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.UnitOwnershipId;
+import com.architek.oikos.property.web.request.AddUnitOwnerRequest;
 import com.architek.oikos.property.web.request.AddUnitOwnershipRequest;
 import com.architek.oikos.property.web.response.UnitOwnershipResponse;
+import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
- * Rattachement des copropretaires (personnes physiques, via Contact) a un lot.
+ * Rattachement des copropretaires (personnes physiques, via Party) a un lot.
  */
 @RestController
 // Pour le moment aucune de gestion de droits (à mettre en place plus tard)
 public class UnitOwnershipController {
 
     private final AddUnitOwnershipUseCase addUnitOwnershipUseCase;
+    private final AddUnitOwnerUseCase addUnitOwnerUseCase;
     private final ListUnitOwnershipsByUnitUseCase listUnitOwnershipsByUnitUseCase;
     private final RemoveUnitOwnershipUseCase removeUnitOwnershipUseCase;
 
     public UnitOwnershipController(AddUnitOwnershipUseCase addUnitOwnershipUseCase,
+                                   AddUnitOwnerUseCase addUnitOwnerUseCase,
                                    ListUnitOwnershipsByUnitUseCase listUnitOwnershipsByUnitUseCase,
                                    RemoveUnitOwnershipUseCase removeUnitOwnershipUseCase) {
         this.addUnitOwnershipUseCase = addUnitOwnershipUseCase;
+        this.addUnitOwnerUseCase = addUnitOwnerUseCase;
         this.listUnitOwnershipsByUnitUseCase = listUnitOwnershipsByUnitUseCase;
         this.removeUnitOwnershipUseCase = removeUnitOwnershipUseCase;
     }
@@ -56,7 +63,15 @@ public class UnitOwnershipController {
     @PostMapping("/units/{unitId}/owners")
     public ResponseEntity<Void> add(@PathVariable String unitId, @Valid @RequestBody AddUnitOwnershipRequest request) {
         UnitOwnershipId id = addUnitOwnershipUseCase.add(new AddUnitOwnershipCommand(
-                UnitId.of(unitId), EntityId.of(request.contactId()), request.ownershipShare()));
+                UnitId.of(unitId), EntityId.of(request.partyId()), request.ownershipShare()));
+        return ResponseEntity.created(URI.create("/api/v1/units/" + unitId + "/owners/" + id)).build();
+    }
+
+    @PostMapping("/units/{unitId}/owners/new-party")
+    public ResponseEntity<Void> addWithNewParty(@PathVariable String unitId,
+                                                    @Valid @RequestBody AddUnitOwnerRequest request) {
+        UnitOwnershipId id = addUnitOwnerUseCase.add(new AddUnitOwnerCommand(UnitId.of(unitId), request.fullName(),
+                request.partyType(), EmailVO.of(request.email()), request.ownershipShare()));
         return ResponseEntity.created(URI.create("/api/v1/units/" + unitId + "/owners/" + id)).build();
     }
 

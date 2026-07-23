@@ -27,8 +27,8 @@ public class BoardMemberEntity extends AuditableEntity {
     @Column(name = "property_id", nullable = false)
     private UUID propertyId;
 
-    @Column(name = "contact_id", nullable = false)
-    private UUID contactId;
+    @Column(name = "party_id", nullable = false)
+    private UUID partyId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "board_role", nullable = false)

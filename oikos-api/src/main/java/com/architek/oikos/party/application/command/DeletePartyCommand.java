@@ -1,6 +1,6 @@
-package com.architek.oikos.contact.application.command;
+package com.architek.oikos.party.application.command;
 
-import com.architek.oikos.contact.domain.valueobject.ContactId;
+import com.architek.oikos.party.domain.valueobject.PartyId;
 
-public record DeleteContactCommand(ContactId id) {
+public record DeletePartyCommand(PartyId id) {
 }

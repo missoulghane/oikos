@@ -44,9 +44,9 @@ public class BoardMemberRepositoryAdapter implements BoardMemberRepository {
     }
 
     @Override
-    public boolean existsByPropertyIdAndContactIdAndBoardRole(PropertyId propertyId, EntityId contactId,
+    public boolean existsByPropertyIdAndPartyIdAndBoardRole(PropertyId propertyId, EntityId partyId,
                                                                      BoardRole boardRole) {
-        return jpaRepository.existsByPropertyIdAndContactIdAndBoardRole(propertyId.asUuid(), contactId.value(), boardRole);
+        return jpaRepository.existsByPropertyIdAndPartyIdAndBoardRole(propertyId.asUuid(), partyId.value(), boardRole);
     }
 
     @Override

@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.property.application.command.AddUnitOwnershipCommand;
 import com.architek.oikos.property.application.port.in.AddUnitOwnershipUseCase;
-import com.architek.oikos.property.domain.exception.ContactAlreadyOwnsUnitException;
+import com.architek.oikos.property.domain.exception.PartyAlreadyOwnsUnitException;
 import com.architek.oikos.property.domain.exception.UnitNotFoundException;
 import com.architek.oikos.property.domain.exception.OwnershipShareExceededException;
 import com.architek.oikos.property.domain.model.UnitOwnership;
@@ -33,8 +33,8 @@ public class AddUnitOwnershipService implements AddUnitOwnershipUseCase {
     public UnitOwnershipId add(AddUnitOwnershipCommand command) {
         unitRepository.findById(command.unitId()).orElseThrow(() -> new UnitNotFoundException(command.unitId()));
 
-        if (unitOwnershipRepository.existsByUnitIdAndContactId(command.unitId(), command.contactId())) {
-            throw new ContactAlreadyOwnsUnitException();
+        if (unitOwnershipRepository.existsByUnitIdAndPartyId(command.unitId(), command.partyId())) {
+            throw new PartyAlreadyOwnsUnitException();
         }
 
         List<UnitOwnership> existing = unitOwnershipRepository.findAllByUnitId(command.unitId());
@@ -45,7 +45,7 @@ public class AddUnitOwnershipService implements AddUnitOwnershipUseCase {
             throw new OwnershipShareExceededException(command.unitId());
         }
 
-        UnitOwnership unitOwnership = UnitOwnership.create(UnitOwnershipId.newId(), command.unitId(), command.contactId(),
+        UnitOwnership unitOwnership = UnitOwnership.create(UnitOwnershipId.newId(), command.unitId(), command.partyId(),
                 OwnershipShare.of(command.ownershipShare()));
         return unitOwnershipRepository.save(unitOwnership).getId();
     }

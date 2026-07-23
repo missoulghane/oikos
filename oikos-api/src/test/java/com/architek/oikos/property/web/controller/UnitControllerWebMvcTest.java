@@ -27,7 +27,7 @@ import com.architek.oikos.property.application.port.in.ListUnitsByBuildingUseCas
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.OwnershipStatus;
-import com.architek.oikos.property.domain.valueobject.UnitType;
+import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
@@ -75,7 +75,8 @@ class UnitControllerWebMvcTest {
         BuildingId buildingId = BuildingId.newId();
         UnitId id = UnitId.newId();
         when(getUnitUseCase.getUnit(any())).thenReturn(
-                new UnitView(id, buildingId, "A12", UnitType.APARTMENT, BigDecimal.TEN, OwnershipStatus.UNSOLD_DEVELOPER));
+                new UnitView(id, buildingId, "A12", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
+                        OwnershipStatus.UNSOLD_DEVELOPER));
 
         mockMvc.perform(get("/api/v1/units/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
@@ -90,8 +91,8 @@ class UnitControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"unitNumber":"A12","unitType":"APARTMENT","shares":150}
-                                """))
+                                {"unitNumber":"A12","unitTypeId":"%s","shares":150}
+                                """.formatted(UnitTypeDefinitionId.newId())))
                 .andExpect(status().isCreated());
     }
 
@@ -101,8 +102,8 @@ class UnitControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"unitNumber":"A12","unitType":"APARTMENT","shares":150}
-                                """))
+                                {"unitNumber":"A12","unitTypeId":"%s","shares":150}
+                                """.formatted(UnitTypeDefinitionId.newId())))
                 .andExpect(status().isForbidden());
     }
 }

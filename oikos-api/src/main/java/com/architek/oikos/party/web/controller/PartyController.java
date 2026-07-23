@@ -1,4 +1,4 @@
-package com.architek.oikos.contact.web.controller;
+package com.architek.oikos.party.web.controller;
 
 import java.net.URI;
 
@@ -17,83 +17,83 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
-import com.architek.oikos.contact.application.command.CreateContactCommand;
-import com.architek.oikos.contact.application.command.DeleteContactCommand;
-import com.architek.oikos.contact.application.command.UpdateContactCommand;
-import com.architek.oikos.contact.application.port.in.CreateContactUseCase;
-import com.architek.oikos.contact.application.port.in.DeleteContactUseCase;
-import com.architek.oikos.contact.application.port.in.GetContactUseCase;
-import com.architek.oikos.contact.application.port.in.ListContactsUseCase;
-import com.architek.oikos.contact.application.port.in.UpdateContactUseCase;
-import com.architek.oikos.contact.application.query.GetContactQuery;
-import com.architek.oikos.contact.application.query.ListContactsQuery;
-import com.architek.oikos.contact.domain.valueobject.ContactId;
-import com.architek.oikos.contact.domain.valueobject.ContactSearchCriteria;
-import com.architek.oikos.contact.web.request.CreateContactRequest;
-import com.architek.oikos.contact.web.request.UpdateContactRequest;
-import com.architek.oikos.contact.web.response.ContactResponse;
-import com.architek.oikos.contact.web.response.PagedContactResponse;
+import com.architek.oikos.party.application.command.CreatePartyCommand;
+import com.architek.oikos.party.application.command.DeletePartyCommand;
+import com.architek.oikos.party.application.command.UpdatePartyCommand;
+import com.architek.oikos.party.application.port.in.CreatePartyUseCase;
+import com.architek.oikos.party.application.port.in.DeletePartyUseCase;
+import com.architek.oikos.party.application.port.in.GetPartyUseCase;
+import com.architek.oikos.party.application.port.in.ListPartiesUseCase;
+import com.architek.oikos.party.application.port.in.UpdatePartyUseCase;
+import com.architek.oikos.party.application.query.GetPartyQuery;
+import com.architek.oikos.party.application.query.ListPartiesQuery;
+import com.architek.oikos.party.domain.valueobject.PartyId;
+import com.architek.oikos.party.domain.valueobject.PartySearchCriteria;
+import com.architek.oikos.party.web.request.CreatePartyRequest;
+import com.architek.oikos.party.web.request.UpdatePartyRequest;
+import com.architek.oikos.party.web.response.PartyResponse;
+import com.architek.oikos.party.web.response.PagedPartyResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 
 /**
- * Administrative management of contacts (identity records independent of any
+ * Administrative management of parties (identity records independent of any
  * application account). Reserved to ROLE_ADMIN for now; will be revisited once
  * per-copropriete contextual access (RG-ACC-02) is introduced.
  */
 @RestController
-@RequestMapping("/contacts")
+@RequestMapping("/parties")
 @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-public class ContactController {
+public class PartyController {
 
-    private final CreateContactUseCase createContactUseCase;
-    private final GetContactUseCase getContactUseCase;
-    private final UpdateContactUseCase updateContactUseCase;
-    private final ListContactsUseCase listContactsUseCase;
-    private final DeleteContactUseCase deleteContactUseCase;
+    private final CreatePartyUseCase createPartyUseCase;
+    private final GetPartyUseCase getPartyUseCase;
+    private final UpdatePartyUseCase updatePartyUseCase;
+    private final ListPartiesUseCase listPartiesUseCase;
+    private final DeletePartyUseCase deletePartyUseCase;
 
-    public ContactController(CreateContactUseCase createContactUseCase,
-                              GetContactUseCase getContactUseCase,
-                              UpdateContactUseCase updateContactUseCase,
-                              ListContactsUseCase listContactsUseCase,
-                              DeleteContactUseCase deleteContactUseCase) {
-        this.createContactUseCase = createContactUseCase;
-        this.getContactUseCase = getContactUseCase;
-        this.updateContactUseCase = updateContactUseCase;
-        this.listContactsUseCase = listContactsUseCase;
-        this.deleteContactUseCase = deleteContactUseCase;
+    public PartyController(CreatePartyUseCase createPartyUseCase,
+                              GetPartyUseCase getPartyUseCase,
+                              UpdatePartyUseCase updatePartyUseCase,
+                              ListPartiesUseCase listPartiesUseCase,
+                              DeletePartyUseCase deletePartyUseCase) {
+        this.createPartyUseCase = createPartyUseCase;
+        this.getPartyUseCase = getPartyUseCase;
+        this.updatePartyUseCase = updatePartyUseCase;
+        this.listPartiesUseCase = listPartiesUseCase;
+        this.deletePartyUseCase = deletePartyUseCase;
     }
 
     @GetMapping
-    public PagedContactResponse list(@RequestParam(defaultValue = "0") int page,
+    public PagedPartyResponse list(@RequestParam(defaultValue = "0") int page,
                                       @RequestParam(defaultValue = "20") int size,
                                       @RequestParam(required = false) String search) {
-        ListContactsQuery query = new ListContactsQuery(PageRequest.of(page, size), new ContactSearchCriteria(search));
-        return PagedContactResponse.from(listContactsUseCase.listContacts(query));
+        ListPartiesQuery query = new ListPartiesQuery(PageRequest.of(page, size), new PartySearchCriteria(search));
+        return PagedPartyResponse.from(listPartiesUseCase.listParties(query));
     }
 
     @GetMapping("/{id}")
-    public ContactResponse getById(@PathVariable String id) {
-        return ContactResponse.from(getContactUseCase.getContact(new GetContactQuery(ContactId.of(id))));
+    public PartyResponse getById(@PathVariable String id) {
+        return PartyResponse.from(getPartyUseCase.getParty(new GetPartyQuery(PartyId.of(id))));
     }
 
     @PostMapping
-    public ResponseEntity<Void> create(@Valid @RequestBody CreateContactRequest request) {
-        ContactId id = createContactUseCase.create(new CreateContactCommand(
-                request.lastName(), request.firstName(), EmailVO.of(request.email()), request.phone()));
-        return ResponseEntity.created(URI.create("/api/v1/contacts/" + id)).build();
+    public ResponseEntity<Void> create(@Valid @RequestBody CreatePartyRequest request) {
+        PartyId id = createPartyUseCase.create(new CreatePartyCommand(
+                request.fullName(), request.partyType(), EmailVO.of(request.email()), request.phone()));
+        return ResponseEntity.created(URI.create("/api/v1/parties/" + id)).build();
     }
 
     @PutMapping("/{id}")
-    public ContactResponse update(@PathVariable String id, @Valid @RequestBody UpdateContactRequest request) {
-        UpdateContactCommand command = new UpdateContactCommand(
-                ContactId.of(id), request.lastName(), request.firstName(), EmailVO.of(request.email()), request.phone());
-        return ContactResponse.from(updateContactUseCase.update(command));
+    public PartyResponse update(@PathVariable String id, @Valid @RequestBody UpdatePartyRequest request) {
+        UpdatePartyCommand command = new UpdatePartyCommand(
+                PartyId.of(id), request.fullName(), request.partyType(), EmailVO.of(request.email()), request.phone());
+        return PartyResponse.from(updatePartyUseCase.update(command));
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     public void delete(@PathVariable String id) {
-        deleteContactUseCase.delete(new DeleteContactCommand(ContactId.of(id)));
+        deletePartyUseCase.delete(new DeletePartyCommand(PartyId.of(id)));
     }
 }

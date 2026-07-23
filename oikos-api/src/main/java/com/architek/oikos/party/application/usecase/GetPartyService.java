@@ -1,29 +1,29 @@
-package com.architek.oikos.contact.application.usecase;
+package com.architek.oikos.party.application.usecase;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.architek.oikos.contact.application.dto.ContactView;
-import com.architek.oikos.contact.application.port.in.GetContactUseCase;
-import com.architek.oikos.contact.application.query.GetContactQuery;
-import com.architek.oikos.contact.domain.exception.ContactNotFoundException;
-import com.architek.oikos.contact.domain.model.Contact;
-import com.architek.oikos.contact.domain.repository.ContactRepository;
+import com.architek.oikos.party.application.dto.PartyView;
+import com.architek.oikos.party.application.port.in.GetPartyUseCase;
+import com.architek.oikos.party.application.query.GetPartyQuery;
+import com.architek.oikos.party.domain.exception.PartyNotFoundException;
+import com.architek.oikos.party.domain.model.Party;
+import com.architek.oikos.party.domain.repository.PartyRepository;
 
 @Component
-public class GetContactService implements GetContactUseCase {
+public class GetPartyService implements GetPartyUseCase {
 
-    private final ContactRepository contactRepository;
+    private final PartyRepository partyRepository;
 
-    public GetContactService(ContactRepository contactRepository) {
-        this.contactRepository = contactRepository;
+    public GetPartyService(PartyRepository partyRepository) {
+        this.partyRepository = partyRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ContactView getContact(GetContactQuery query) {
-        Contact contact = contactRepository.findById(query.id())
-                .orElseThrow(() -> new ContactNotFoundException(query.id()));
-        return ContactView.from(contact);
+    public PartyView getParty(GetPartyQuery query) {
+        Party party = partyRepository.findById(query.id())
+                .orElseThrow(() -> new PartyNotFoundException(query.id()));
+        return PartyView.from(party);
     }
 }

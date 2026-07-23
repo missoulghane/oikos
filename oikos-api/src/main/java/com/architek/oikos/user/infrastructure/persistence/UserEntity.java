@@ -27,8 +27,8 @@ public class UserEntity extends AuditableEntity {
     @Id
     private UUID id;
 
-    @Column(name = "contact_id", nullable = false)
-    private UUID contactId;
+    @Column(name = "party_id", nullable = false)
+    private UUID partyId;
 
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;

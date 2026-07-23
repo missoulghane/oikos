@@ -1,6 +1,6 @@
-package com.architek.oikos.contact.application.query;
+package com.architek.oikos.party.application.query;
 
-import com.architek.oikos.contact.domain.valueobject.ContactId;
+import com.architek.oikos.party.domain.valueobject.PartyId;
 
-public record GetContactQuery(ContactId id) {
+public record GetPartyQuery(PartyId id) {
 }

@@ -74,7 +74,7 @@ class BoardMemberControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"contactId":"%s","boardRole":"PRESIDENT"}
+                                {"partyId":"%s","boardRole":"PRESIDENT"}
                                 """.formatted(EntityId.newId())))
                 .andExpect(status().isCreated());
     }
@@ -85,7 +85,7 @@ class BoardMemberControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"contactId":"%s","boardRole":"PRESIDENT"}
+                                {"partyId":"%s","boardRole":"PRESIDENT"}
                                 """.formatted(EntityId.newId())))
                 .andExpect(status().isForbidden());
     }

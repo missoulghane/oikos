@@ -11,8 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.user.application.command.ResendAccountActivationCommand;
 import com.architek.oikos.user.application.port.in.ResendAccountActivationUseCase;
-import com.architek.oikos.user.application.port.out.ContactDetails;
-import com.architek.oikos.user.application.port.out.ContactDirectoryPort;
+import com.architek.oikos.user.application.port.out.PartyDetails;
+import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.user.domain.exception.AccountAlreadyVerifiedException;
 import com.architek.oikos.user.domain.exception.UserNotFoundException;
 import com.architek.oikos.user.domain.model.User;
@@ -31,7 +31,7 @@ import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
 public class ResendAccountActivationService implements ResendAccountActivationUseCase {
 
     private final UserRepository userRepository;
-    private final ContactDirectoryPort contactDirectoryPort;
+    private final PartyDirectoryPort partyDirectoryPort;
     private final VerificationTokenRepository verificationTokenRepository;
     private final EmailSenderPort emailSenderPort;
     private final VerificationTokenGenerator tokenGenerator;
@@ -40,7 +40,7 @@ public class ResendAccountActivationService implements ResendAccountActivationUs
     private final Duration verificationTokenTtl;
 
     public ResendAccountActivationService(UserRepository userRepository,
-                                           ContactDirectoryPort contactDirectoryPort,
+                                           PartyDirectoryPort partyDirectoryPort,
                                            VerificationTokenRepository verificationTokenRepository,
                                            EmailSenderPort emailSenderPort,
                                            VerificationTokenGenerator tokenGenerator,
@@ -48,7 +48,7 @@ public class ResendAccountActivationService implements ResendAccountActivationUs
                                            Clock clock,
                                            @Value("${oikos.mail.verification-token-ttl-hours}") long verificationTokenTtlHours) {
         this.userRepository = userRepository;
-        this.contactDirectoryPort = contactDirectoryPort;
+        this.partyDirectoryPort = partyDirectoryPort;
         this.verificationTokenRepository = verificationTokenRepository;
         this.emailSenderPort = emailSenderPort;
         this.tokenGenerator = tokenGenerator;
@@ -70,7 +70,7 @@ public class ResendAccountActivationService implements ResendAccountActivationUs
         Instant expiresAt = clock.instant().plus(verificationTokenTtl);
         VerificationToken activationToken = VerificationToken.issue(user.getId(), rawToken, expiresAt);
         verificationTokenRepository.save(activationToken);
-        ContactDetails contact = contactDirectoryPort.getContactById(user.getContactId());
-        emailSenderPort.send(contact.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken));
+        PartyDetails party = partyDirectoryPort.getPartyById(user.getPartyId());
+        emailSenderPort.send(party.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken));
     }
 }

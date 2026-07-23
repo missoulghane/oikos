@@ -1,32 +1,32 @@
-package com.architek.oikos.contact.application.usecase;
+package com.architek.oikos.party.application.usecase;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.architek.oikos.contact.application.command.CreateContactCommand;
-import com.architek.oikos.contact.application.port.in.CreateContactUseCase;
-import com.architek.oikos.contact.domain.exception.EmailAlreadyUsedException;
-import com.architek.oikos.contact.domain.model.Contact;
-import com.architek.oikos.contact.domain.repository.ContactRepository;
-import com.architek.oikos.contact.domain.valueobject.ContactId;
+import com.architek.oikos.party.application.command.CreatePartyCommand;
+import com.architek.oikos.party.application.port.in.CreatePartyUseCase;
+import com.architek.oikos.party.domain.exception.EmailAlreadyUsedException;
+import com.architek.oikos.party.domain.model.Party;
+import com.architek.oikos.party.domain.repository.PartyRepository;
+import com.architek.oikos.party.domain.valueobject.PartyId;
 
 @Component
-public class CreateContactService implements CreateContactUseCase {
+public class CreatePartyService implements CreatePartyUseCase {
 
-    private final ContactRepository contactRepository;
+    private final PartyRepository partyRepository;
 
-    public CreateContactService(ContactRepository contactRepository) {
-        this.contactRepository = contactRepository;
+    public CreatePartyService(PartyRepository partyRepository) {
+        this.partyRepository = partyRepository;
     }
 
     @Override
     @Transactional
-    public ContactId create(CreateContactCommand command) {
-        if (contactRepository.existsByEmail(command.email())) {
+    public PartyId create(CreatePartyCommand command) {
+        if (partyRepository.existsByEmail(command.email())) {
             throw new EmailAlreadyUsedException(command.email().value());
         }
-        Contact contact = Contact.create(ContactId.newId(), command.lastName(), command.firstName(),
+        Party party = Party.create(PartyId.newId(), command.fullName(), command.partyType(),
                 command.email(), command.phone());
-        return contactRepository.save(contact).getId();
+        return partyRepository.save(party).getId();
     }
 }

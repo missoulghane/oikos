@@ -20,23 +20,33 @@ src/
 │   └── index.tsx
 │
 ├── features/
-│   ├── auth/             # Connexion
-│   │   ├── api/          # Appels HTTP (login)
-│   │   ├── components/   # LoginForm (présentation)
-│   │   ├── hooks/        # useLogin (mutation + orchestration)
-│   │   ├── pages/        # LoginPage (composition d'écran)
-│   │   ├── schemas/      # Validation Zod
-│   │   ├── types/
-│   │   └── index.ts      # Point d'entrée public de la feature
+│   ├── identity/          # Comptes et accès, transverse au métier property
+│   │   ├── auth/          # Connexion
+│   │   │   ├── api/       # Appels HTTP (login)
+│   │   │   ├── components/ # LoginForm (présentation)
+│   │   │   ├── hooks/     # useLogin (mutation + orchestration)
+│   │   │   ├── pages/     # LoginPage (composition d'écran)
+│   │   │   ├── schemas/   # Validation Zod
+│   │   │   ├── types/
+│   │   │   └── index.ts   # Point d'entrée public de la feature
+│   │   │
+│   │   └── register/      # Inscription, activation de compte
+│   │       ├── api/ / components/ / hooks/ / pages/ / schemas/ / types/
+│   │       └── index.ts
 │   │
-│   └── properties/       # Copropriétés
-│       ├── api/          # getProperties, createProperty
-│       ├── components/   # PropertyCard, PropertyList, CreatePropertyForm
-│       ├── hooks/        # useProperties, useCreateProperty
-│       ├── pages/        # PropertiesPage, CreatePropertyPage
-│       ├── schemas/
-│       ├── types/
-│       └── index.ts
+│   └── property-mngt/      # Coeur métier copropriété
+│       ├── properties/     # Structure : copropriétés, immeubles, lots, copropriétaires
+│       │   ├── api/        # getProperties, createProperty, getUnits, ...
+│       │   ├── components/ # PropertyCard, PropertyList, CreatePropertyForm, ...
+│       │   ├── hooks/      # useProperties, useCreateProperty, ...
+│       │   ├── pages/      # PropertiesPage, CreatePropertyPage, ...
+│       │   ├── schemas/
+│       │   ├── types/
+│       │   └── index.ts
+│       └── accounting/        # Gestion financière (comptes, échéances, appels de
+│                            # cotisation) — pas encore créé : ce qui existe
+│                            # aujourd'hui (échéances d'un lot) vit encore dans
+│                            # `properties/`, à extraire dans une passe dédiée.
 │
 ├── shared/
 │   ├── api/httpClient.ts       # Instance Axios + intercepteurs JWT/refresh
@@ -53,9 +63,11 @@ src/
 └── main.tsx
 ```
 
-Seules deux features existent à ce stade (`auth`, `properties`) : le
-périmètre réduit de cette version ne justifie pas encore `dashboard`,
-`users`, etc. évoqués dans le guide.
+Les features sont regroupées par domaine métier : `identity` (`auth`,
+`register`) pour les comptes et l'accès, `property-mngt` (`properties`,
+`accounting`) pour le coeur métier copropriété. Le périmètre réduit de cette
+version ne justifie pas encore d'autres groupes (`dashboard`, etc.)
+évoqués dans le guide.
 
 ## 2. Flux de dépendances
 
@@ -70,7 +82,7 @@ CreatePropertyForm            (présentation, React Hook Form + Zod)
     ↓ (au submit)
 useCreateProperty()           (hook métier, useMutation)
     ↓
-createProperty()              (features/properties/api, appel HTTP)
+createProperty()              (features/property-mngt/properties/api, appel HTTP)
     ↓
 httpClient.post('/properties')
 ```
@@ -137,8 +149,8 @@ composant `Alert`.
 Trois niveaux couverts pour cette version (voir §14 du guide) :
 
 - **Utilitaires** — `shared/utils/getErrorMessage.test.ts`.
-- **Logique métier / schémas** — `features/properties/schemas/createPropertySchema.test.ts`.
-- **Composants** — `features/properties/components/CreatePropertyForm.test.tsx`
+- **Logique métier / schémas** — `features/property-mngt/properties/schemas/createPropertySchema.test.ts`.
+- **Composants** — `features/property-mngt/properties/components/CreatePropertyForm.test.tsx`
   (rendu, validation, soumission), avec Testing Library + `user-event`.
 
 `npm run test` exécute Vitest en mode CI (une passe, pas de watch) — c'est

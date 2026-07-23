@@ -29,8 +29,8 @@ class UnitOwnershipRepositoryAdapterDataJpaTest {
     @Test
     void saves_and_finds_a_unit_ownership_by_id() {
         UnitId unitId = UnitId.newId();
-        EntityId contactId = EntityId.newId();
-        UnitOwnership unitOwnership = UnitOwnership.create(UnitOwnershipId.newId(), unitId, contactId, OwnershipShare.of(new BigDecimal("50")));
+        EntityId partyId = EntityId.newId();
+        UnitOwnership unitOwnership = UnitOwnership.create(UnitOwnershipId.newId(), unitId, partyId, OwnershipShare.of(new BigDecimal("50")));
 
         adapter.save(unitOwnership);
 
@@ -49,14 +49,14 @@ class UnitOwnershipRepositoryAdapterDataJpaTest {
     }
 
     @Test
-    void existsByUnitIdAndContactId_reflects_persisted_state() {
+    void existsByUnitIdAndPartyId_reflects_persisted_state() {
         UnitId unitId = UnitId.newId();
-        EntityId contactId = EntityId.newId();
-        assertThat(adapter.existsByUnitIdAndContactId(unitId, contactId)).isFalse();
+        EntityId partyId = EntityId.newId();
+        assertThat(adapter.existsByUnitIdAndPartyId(unitId, partyId)).isFalse();
 
-        adapter.save(UnitOwnership.create(UnitOwnershipId.newId(), unitId, contactId, OwnershipShare.of(BigDecimal.TEN)));
+        adapter.save(UnitOwnership.create(UnitOwnershipId.newId(), unitId, partyId, OwnershipShare.of(BigDecimal.TEN)));
 
-        assertThat(adapter.existsByUnitIdAndContactId(unitId, contactId)).isTrue();
+        assertThat(adapter.existsByUnitIdAndPartyId(unitId, partyId)).isTrue();
     }
 
     @Test

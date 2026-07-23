@@ -15,7 +15,7 @@ public interface UserRepository {
 
     Optional<User> findById(UserId id);
 
-    Optional<User> findByContactId(EntityId contactId);
+    Optional<User> findByPartyId(EntityId partyId);
 
     Optional<User> findByLogin(String login);
 

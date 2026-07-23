@@ -1,1 +1,1 @@
-(cd oikos-api/ && ./mvnw spring-boot:run) & (cd oikos-web/ && npm run dev) &
+(cd oikos-api/ && ./mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005") & (cd oikos-web/ && npm run dev) &

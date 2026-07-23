@@ -6,9 +6,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.architek.oikos.property.application.command.AddUnitCommand;
 import com.architek.oikos.property.application.port.in.AddUnitUseCase;
 import com.architek.oikos.property.domain.exception.BuildingNotFoundException;
+import com.architek.oikos.property.domain.exception.UnitTypeDefinitionNotFoundException;
+import com.architek.oikos.property.domain.model.Building;
 import com.architek.oikos.property.domain.model.Unit;
 import com.architek.oikos.property.domain.repository.BuildingRepository;
 import com.architek.oikos.property.domain.repository.UnitRepository;
+import com.architek.oikos.property.domain.repository.UnitTypeDefinitionRepository;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.Shares;
 
@@ -17,18 +20,26 @@ public class AddUnitService implements AddUnitUseCase {
 
     private final UnitRepository unitRepository;
     private final BuildingRepository buildingRepository;
+    private final UnitTypeDefinitionRepository unitTypeDefinitionRepository;
 
-    public AddUnitService(UnitRepository unitRepository, BuildingRepository buildingRepository) {
+    public AddUnitService(UnitRepository unitRepository, BuildingRepository buildingRepository,
+                           UnitTypeDefinitionRepository unitTypeDefinitionRepository) {
         this.unitRepository = unitRepository;
         this.buildingRepository = buildingRepository;
+        this.unitTypeDefinitionRepository = unitTypeDefinitionRepository;
     }
 
     @Override
     @Transactional
     public UnitId add(AddUnitCommand command) {
-        buildingRepository.findById(command.buildingId())
+        Building building = buildingRepository.findById(command.buildingId())
                 .orElseThrow(() -> new BuildingNotFoundException(command.buildingId()));
-        Unit unit = Unit.create(UnitId.newId(), command.buildingId(), command.unitNumber(), command.unitType(),
+
+        unitTypeDefinitionRepository.findById(command.unitTypeId())
+                .filter(unitType -> unitType.getPropertyId().equals(building.getPropertyId()))
+                .orElseThrow(() -> new UnitTypeDefinitionNotFoundException(command.unitTypeId()));
+
+        Unit unit = Unit.create(UnitId.newId(), command.buildingId(), command.unitNumber(), command.unitTypeId(),
                 Shares.of(command.shares()));
         return unitRepository.save(unit).getId();
     }

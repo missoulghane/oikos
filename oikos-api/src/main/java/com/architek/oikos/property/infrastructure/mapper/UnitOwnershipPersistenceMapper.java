@@ -19,13 +19,13 @@ public interface UnitOwnershipPersistenceMapper {
     default UnitOwnershipEntity toEntity(UnitOwnership unitOwnership, UnitOwnershipEntity entity) {
         entity.setId(unitOwnership.getId().asUuid());
         entity.setUnitId(unitOwnership.getUnitId().asUuid());
-        entity.setContactId(unitOwnership.getContactId().value());
+        entity.setPartyId(unitOwnership.getPartyId().value());
         entity.setOwnershipShare(unitOwnership.getOwnershipShare().value());
         return entity;
     }
 
     default UnitOwnership toDomain(UnitOwnershipEntity entity) {
         return UnitOwnership.reconstruct(UnitOwnershipId.of(entity.getId()), UnitId.of(entity.getUnitId()),
-                EntityId.of(entity.getContactId()), OwnershipShare.of(entity.getOwnershipShare()));
+                EntityId.of(entity.getPartyId()), OwnershipShare.of(entity.getOwnershipShare()));
     }
 }

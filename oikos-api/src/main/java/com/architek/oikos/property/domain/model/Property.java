@@ -35,6 +35,10 @@ public final class Property {
         return new Property(id, name, address);
     }
 
+    public Property withDetails(String newName, String newAddress) {
+        return new Property(id, newName, newAddress);
+    }
+
     private static String requireNonBlank(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " must not be blank");

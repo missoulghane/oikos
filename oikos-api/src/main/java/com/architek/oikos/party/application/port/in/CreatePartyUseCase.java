@@ -1,9 +1,9 @@
-package com.architek.oikos.contact.application.port.in;
+package com.architek.oikos.party.application.port.in;
 
-import com.architek.oikos.contact.application.command.CreateContactCommand;
-import com.architek.oikos.contact.domain.valueobject.ContactId;
+import com.architek.oikos.party.application.command.CreatePartyCommand;
+import com.architek.oikos.party.domain.valueobject.PartyId;
 
-public interface CreateContactUseCase {
+public interface CreatePartyUseCase {
 
-    ContactId create(CreateContactCommand command);
+    PartyId create(CreatePartyCommand command);
 }

@@ -6,8 +6,7 @@ import jakarta.validation.constraints.Size;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 
 public record RegisterPropertyManagerRequest(
-        @NotBlank @Size(max = 100) String lastName,
-        @NotBlank @Size(max = 100) String firstName,
+        @NotBlank @Size(max = 200) String fullName,
         @NotBlank @Email @Size(max = 150) String email,
         @Size(max = 20) String phone,
         @Size(max = 150) String login,

@@ -20,8 +20,8 @@ import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.user.application.command.ResendAccountActivationCommand;
-import com.architek.oikos.user.application.port.out.ContactDetails;
-import com.architek.oikos.user.application.port.out.ContactDirectoryPort;
+import com.architek.oikos.user.application.port.out.PartyDetails;
+import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.user.domain.exception.AccountAlreadyVerifiedException;
 import com.architek.oikos.user.domain.exception.UserNotFoundException;
 import com.architek.oikos.user.domain.model.User;
@@ -37,7 +37,7 @@ class ResendAccountActivationServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private ContactDirectoryPort contactDirectoryPort;
+    private PartyDirectoryPort partyDirectoryPort;
 
     @Mock
     private VerificationTokenRepository verificationTokenRepository;
@@ -46,7 +46,7 @@ class ResendAccountActivationServiceTest {
     private EmailSenderPort emailSenderPort;
 
     private ResendAccountActivationService newService() {
-        return new ResendAccountActivationService(userRepository, contactDirectoryPort, verificationTokenRepository, emailSenderPort,
+        return new ResendAccountActivationService(userRepository, partyDirectoryPort, verificationTokenRepository, emailSenderPort,
                 new VerificationTokenGenerator(), new AccountActivationEmailComposer("http://localhost/activate-account"),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
     }
@@ -59,8 +59,8 @@ class ResendAccountActivationServiceTest {
     void resending_for_an_unverified_user_issues_a_new_token_and_sends_an_email() {
         User user = newAdminCreatedUser();
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-        when(contactDirectoryPort.getContactById(user.getContactId()))
-                .thenReturn(new ContactDetails("Doe", "Jane", EmailVO.of("invited@oikos.com"), null));
+        when(partyDirectoryPort.getPartyById(user.getPartyId()))
+                .thenReturn(new PartyDetails("Jane Doe", EmailVO.of("invited@oikos.com"), null));
 
         newService().resend(new ResendAccountActivationCommand(user.getId()));
 

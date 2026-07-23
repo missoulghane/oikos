@@ -33,7 +33,7 @@ public interface UserPersistenceMapper {
      */
     default UserEntity toEntity(User user, UserEntity entity) {
         entity.setId(user.getId().asUuid());
-        entity.setContactId(user.getContactId().value());
+        entity.setPartyId(user.getPartyId().value());
         entity.setPasswordHash(user.getPassword().value());
         entity.setLogin(user.getLogin());
         entity.setRoles(user.getRoles().stream().map(Enum::name).collect(Collectors.toSet()));
@@ -46,7 +46,7 @@ public interface UserPersistenceMapper {
         Set<Role> roles = entity.getRoles().stream().map(Role::valueOf).collect(Collectors.toSet());
         return User.reconstruct(
                 UserId.of(entity.getId()),
-                EntityId.of(entity.getContactId()),
+                EntityId.of(entity.getPartyId()),
                 HashedPassword.of(entity.getPasswordHash()),
                 entity.getLogin(),
                 roles,

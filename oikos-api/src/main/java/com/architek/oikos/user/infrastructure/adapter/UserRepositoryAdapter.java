@@ -42,8 +42,8 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     @Override
-    public Optional<User> findByContactId(EntityId contactId) {
-        return jpaRepository.findByContactId(contactId.value()).map(mapper::toDomain);
+    public Optional<User> findByPartyId(EntityId partyId) {
+        return jpaRepository.findByPartyId(partyId.value()).map(mapper::toDomain);
     }
 
     @Override

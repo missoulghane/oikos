@@ -72,7 +72,7 @@ class UserTest {
         User updated = user.withPassword(HashedPassword.of("new-hash"));
 
         assertThat(updated.getPassword().value()).isEqualTo("new-hash");
-        assertThat(updated.getContactId()).isEqualTo(user.getContactId());
+        assertThat(updated.getPartyId()).isEqualTo(user.getPartyId());
     }
 
     @Test
@@ -82,6 +82,6 @@ class UserTest {
         User updated = user.withLogin("new-login");
 
         assertThat(updated.getLogin()).isEqualTo("new-login");
-        assertThat(updated.getContactId()).isEqualTo(user.getContactId());
+        assertThat(updated.getPartyId()).isEqualTo(user.getPartyId());
     }
 }

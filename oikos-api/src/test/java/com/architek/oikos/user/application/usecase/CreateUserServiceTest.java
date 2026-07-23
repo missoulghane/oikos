@@ -15,14 +15,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.architek.oikos.contact.domain.exception.EmailAlreadyUsedException;
+import com.architek.oikos.party.domain.exception.EmailAlreadyUsedException;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.user.application.command.CreateUserCommand;
-import com.architek.oikos.user.application.port.out.ContactDirectoryPort;
+import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.user.domain.repository.VerificationTokenRepository;
@@ -35,7 +35,7 @@ class CreateUserServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private ContactDirectoryPort contactDirectoryPort;
+    private PartyDirectoryPort partyDirectoryPort;
 
     @Mock
     private VerificationTokenRepository verificationTokenRepository;
@@ -47,7 +47,7 @@ class CreateUserServiceTest {
     private EmailSenderPort emailSenderPort;
 
     private CreateUserService newService() {
-        return new CreateUserService(userRepository, contactDirectoryPort, verificationTokenRepository, passwordEncoderPort,
+        return new CreateUserService(userRepository, partyDirectoryPort, verificationTokenRepository, passwordEncoderPort,
                 emailSenderPort, new VerificationTokenGenerator(),
                 new AccountActivationEmailComposer("http://localhost/activate-account"),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
@@ -55,11 +55,11 @@ class CreateUserServiceTest {
 
     @Test
     void creating_a_user_persists_an_unverified_but_enabled_account_and_sends_an_activation_email() {
-        when(contactDirectoryPort.createContact(any())).thenReturn(EntityId.newId());
+        when(partyDirectoryPort.createParty(any())).thenReturn(EntityId.newId());
         when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CreateUserCommand command = new CreateUserCommand("Doe", "Jane", EmailVO.of("admin-created@oikos.com"), null, null);
+        CreateUserCommand command = new CreateUserCommand("Jane Doe", EmailVO.of("admin-created@oikos.com"), null, null);
 
         newService().create(command);
 
@@ -73,10 +73,10 @@ class CreateUserServiceTest {
 
     @Test
     void creating_a_user_with_an_already_used_email_is_rejected() {
-        when(contactDirectoryPort.createContact(any()))
+        when(partyDirectoryPort.createParty(any()))
                 .thenThrow(new EmailAlreadyUsedException("existing@oikos.com"));
 
-        CreateUserCommand command = new CreateUserCommand("Doe", "Jane", EmailVO.of("existing@oikos.com"), null, null);
+        CreateUserCommand command = new CreateUserCommand("Jane Doe", EmailVO.of("existing@oikos.com"), null, null);
 
         assertThatThrownBy(() -> newService().create(command)).isInstanceOf(EmailAlreadyUsedException.class);
     }

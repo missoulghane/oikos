@@ -10,6 +10,7 @@ import com.architek.oikos.property.domain.model.Unit;
 import com.architek.oikos.property.domain.repository.UnitRepository;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
+import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.property.infrastructure.mapper.UnitPersistenceMapper;
 import com.architek.oikos.property.infrastructure.persistence.UnitEntity;
 import com.architek.oikos.property.infrastructure.persistence.UnitJpaRepository;
@@ -46,5 +47,10 @@ public class UnitRepositoryAdapter implements UnitRepository {
                 jpaRepository.findByBuildingId(buildingId.asUuid(), pageable);
         List<Unit> content = springPage.getContent().stream().map(mapper::toDomain).toList();
         return Page.of(content, pageRequest.pageNumber(), pageRequest.pageSize(), springPage.getTotalElements());
+    }
+
+    @Override
+    public boolean existsByUnitTypeId(UnitTypeDefinitionId unitTypeId) {
+        return jpaRepository.existsByUnitTypeId(unitTypeId.asUuid());
     }
 }

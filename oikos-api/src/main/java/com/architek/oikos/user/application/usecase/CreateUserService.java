@@ -15,8 +15,8 @@ import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 import com.architek.oikos.user.application.command.CreateUserCommand;
 import com.architek.oikos.user.application.port.in.CreateUserUseCase;
-import com.architek.oikos.user.application.port.out.ContactDetails;
-import com.architek.oikos.user.application.port.out.ContactDirectoryPort;
+import com.architek.oikos.user.application.port.out.PartyDetails;
+import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.user.domain.exception.LoginAlreadyUsedException;
 import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.model.VerificationToken;
@@ -36,7 +36,7 @@ import com.architek.oikos.user.domain.valueobject.UserId;
 public class CreateUserService implements CreateUserUseCase {
 
     private final UserRepository userRepository;
-    private final ContactDirectoryPort contactDirectoryPort;
+    private final PartyDirectoryPort partyDirectoryPort;
     private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordEncoderPort passwordEncoderPort;
     private final EmailSenderPort emailSenderPort;
@@ -46,7 +46,7 @@ public class CreateUserService implements CreateUserUseCase {
     private final Duration verificationTokenTtl;
 
     public CreateUserService(UserRepository userRepository,
-                              ContactDirectoryPort contactDirectoryPort,
+                              PartyDirectoryPort partyDirectoryPort,
                               VerificationTokenRepository verificationTokenRepository,
                               PasswordEncoderPort passwordEncoderPort,
                               EmailSenderPort emailSenderPort,
@@ -55,7 +55,7 @@ public class CreateUserService implements CreateUserUseCase {
                               Clock clock,
                               @Value("${oikos.mail.verification-token-ttl-hours}") long verificationTokenTtlHours) {
         this.userRepository = userRepository;
-        this.contactDirectoryPort = contactDirectoryPort;
+        this.partyDirectoryPort = partyDirectoryPort;
         this.verificationTokenRepository = verificationTokenRepository;
         this.passwordEncoderPort = passwordEncoderPort;
         this.emailSenderPort = emailSenderPort;
@@ -71,10 +71,10 @@ public class CreateUserService implements CreateUserUseCase {
         if (command.login() != null && !command.login().isBlank() && userRepository.existsByLogin(command.login())) {
             throw new LoginAlreadyUsedException(command.login());
         }
-        EntityId contactId = contactDirectoryPort.createContact(
-                new ContactDetails(command.lastName(), command.firstName(), command.email(), command.phone()));
+        EntityId partyId = partyDirectoryPort.createParty(
+                new PartyDetails(command.fullName(), command.email(), command.phone()));
         HashedPassword placeholderPassword = passwordEncoderPort.encode(RawPassword.of(tokenGenerator.generate()));
-        User user = User.registerByAdmin(UserId.newId(), contactId, placeholderPassword, command.login());
+        User user = User.registerByAdmin(UserId.newId(), partyId, placeholderPassword, command.login());
         User savedUser = userRepository.save(user);
 
         String rawToken = tokenGenerator.generate();

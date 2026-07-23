@@ -17,27 +17,29 @@ Contextes métier existants sous `src/main/java/com/architek/oikos/` :
 - `auth` — inscription, connexion, JWT (access + refresh token),
   vérification d'email, activation de compte, réinitialisation de mot de
   passe. La connexion accepte indifféremment trois types d'identifiant
-  (priorité fixe : login du compte, puis email du contact lié, puis
-  téléphone du contact lié — voir `LoadUserByIdentifierService`).
+  (priorité fixe : login du compte, puis email de la party liée, puis
+  téléphone de la party liée — voir `LoadUserByIdentifierService`).
 - `user` — gestion des comptes applicatifs (`User`) : CRUD, recherche
-  paginée. `User` ne porte plus d'identité propre : il référence un
-  `Contact` par id (`contactId`) et porte uniquement les identifiants de
+  paginée. `User` ne porte plus d'identité propre : il référence une
+  `Party` par id (`partyId`) et porte uniquement les identifiants de
   connexion (mot de passe, `login` optionnel, statut `verified`/`enabled`,
-  rôles).
-- `contact` — fiche d'identité d'une personne physique (nom, prénom,
-  email, téléphone), indépendante d'un compte applicatif. CRUD de base.
-  Contexte de base pour la structuration d'une copropriété (SFD "Gestion
-  de la Structure des Copropriétés et des Accès") : copropriétaires et
-  membres du syndic référenceront un `Contact` plutôt qu'un `User`.
+  rôles). Les parties créées via `user` sont toujours de type `INDIVIDUAL`.
+- `party` (anciennement `contact`) — fiche d'identité d'un acteur juridique
+  (personne physique ou société) : `fullName`, `partyType`
+  (`INDIVIDUAL`/`COMPANY`), email, téléphone, indépendante d'un compte
+  applicatif. CRUD de base. Contexte de base pour la structuration d'une
+  copropriété (SFD "Gestion de la Structure des Copropriétés et des
+  Accès") : copropriétaires et membres du syndic référencent une `Party`
+  plutôt qu'un `User`.
 - `copropriete` — structure physique d'une copropriété : `Copropriete`,
   `Immeuble`, `Lot` (type de lot, tantièmes), et les deux pivots de la
   SFD "Gestion de la Structure des Copropriétés et des Accès" :
-  - `ProprieteLot` — rattache un `Contact` (par id) à un lot avec sa part
+  - `ProprieteLot` — rattache une `Party` (par id) à un lot avec sa part
     de propriété. Règle appliquée : la somme des parts d'un même lot ne
     peut pas dépasser 100 % (`AddProprieteLotService`). RG-LOT-01 : un lot
     sans aucun `ProprieteLot` associé est étiqueté `NON_VENDU_PROMOTEUR`
     dans `LotView` (calculé à la lecture, jamais stocké).
-  - `MembreSyndic` — rattache un `Contact` (par id) à une fonction de
+  - `MembreSyndic` — rattache une `Party` (par id) à une fonction de
     gestion (`RoleGestion`) sur une copropriété.
 
   La création d'une copropriété (`CreateCoproprieteService`) crée
@@ -47,17 +49,61 @@ Contextes métier existants sous `src/main/java/com/architek/oikos/` :
   CRUD limité à create/get/list pour Copropriete/Immeuble/Lot (pas
   d'update/delete : non requis par la SFD à ce stade) ; add/list/remove
   pour les deux pivots.
-- `shared` — briques transverses : pagination, gestion des exceptions,
-  audit, envoi d'email, configuration.
 
-Le couplage `user` → `contact` suit le patron déjà utilisé pour
-`auth` → `user` : `user.application.port.out.ContactDirectoryPort` (out-port
+  `POST /properties/configure` (`ConfigurePropertyService`) permet de
+  configurer une property complète en un seul appel : property, tous ses
+  buildings, et pour chaque building, un nombre donné d'unités par type
+  (ex. 50 appartements, 33 box). Les unités sont créées avec des tantièmes
+  à zéro (affectés plus tard) et un `unitNumber` généré automatiquement
+  (voir `docs/NOMENCLATURE.md`). L'ensemble est créé dans une seule
+  transaction, avec une limite paramétrable du nombre total d'unités par
+  requête (`oikos.property.configure.max-units`).
+- `accounting` — grand livre et compte client : compte (`Account`, un par lot
+  et un par property en miroir, RG001 révisée) et mouvements comptables
+  (`Movement`, historique immuable, RG002). Le solde du compte
+  (`GetAccountBalanceUseCase`) est toujours tenu à jour par
+  `AccountBalanceService` (RG010), jamais recalculé à la lecture.
+- `installment` — ce qui est dû : échéances (`Installment`, générées par un
+  appel de cotisation manuel `POST /installment-calls` ou automatique `POST
+  /properties/{id}/installment-calls`, une échéance = un débit automatique
+  posté sur `accounting` via un port), et affectations (`Allocation`, lettrage
+  crédit ↔ échéance, automatique en FIFO ou manuel, ne modifie jamais les
+  mouvements — RG009). Le statut d'une échéance
+  (`InstallmentStatusCalculator`) est toujours calculé à la lecture, jamais
+  stocké (RG011). `unitId` référence un `Unit` réel (contrainte FK en base +
+  validation d'existence via son propre `UnitDirectoryPort`). `accounting` et
+  `installment` étaient un seul module à l'origine ; voir
+  `docs/NOMENCLATURE.md` pour le détail de la séparation, RG001-RG012, et la
+  correspondance FR/EN complète.
+- `shared` — briques transverses : pagination, gestion des exceptions,
+  audit, envoi d'email, configuration, ainsi que les VO génériques utilisées
+  au-delà d'un seul module (`EntityId`, `Amount` — montant strictement
+  positif, utilisée par `Movement`/`Installment`/`Allocation` dans `accounting`
+  et `installment`).
+
+Le couplage `user` → `party` suit le patron déjà utilisé pour
+`auth` → `user` : `user.application.port.out.PartyDirectoryPort` (out-port
 propre à `user`) est implémenté par
-`user.infrastructure.adapter.ContactDirectoryAdapter`, seul point du
-module autorisé à dépendre des port-in de `contact`. `user.application`
-reste ainsi totalement découplé de `contact`. `copropriete` référence
-`Contact` de la même façon (par `EntityId` générique sur `ProprieteLot`/
-`MembreSyndic`), sans dépendre du type `ContactId` propre à `contact`.
+`user.infrastructure.adapter.UserPartyDirectoryAdapter`, seul point du
+module autorisé à dépendre des port-in de `party`. `user.application`
+reste ainsi totalement découplé de `party`. `copropriete` référence
+`Party` de la même façon (par `EntityId` générique sur `ProprieteLot`/
+`MembreSyndic`), sans dépendre du type `PartyId` propre à `party`.
+`accounting` et `installment` suivent le même patron pour leur dépendance
+cross-feature vers `property` : chacun a son propre
+`application.port.out.PropertyDirectoryPort`/`UnitDirectoryPort`, implémenté
+par un adapter nommé distinctement (`AccountingPropertyDirectoryAdapter`/
+`AccountingUnitDirectoryAdapter` côté `accounting`,
+`InstallmentPropertyDirectoryAdapter`/`InstallmentUnitDirectoryAdapter` côté
+`installment`) pour éviter toute collision de bean Spring. Entre eux,
+`accounting` et `installment` sont couplés dans les deux sens (`Allocation`
+doit lire et écrire à la fois le mouvement et l'échéance qu'elle rapproche,
+RG009) : chacun expose ses propres ports (`accounting.application.port.out.AutoAllocationPort`
+vers `installment` ; `installment.application.port.out.AccountLedgerPort`,
+`AccountMovementsPort`, `MovementLookupPort` vers `accounting`), implémentés par
+des adapters qui ne dépendent que des port-in publics de l'autre module,
+jamais de son modèle de domaine ni de ses repositories — vérifié par
+`DependencyRulesArchTest`.
 
 Reste à implémenter (SFD "Gestion de la Structure des Copropriétés et
 des Accès") : résolution des droits contextuels par copropriété

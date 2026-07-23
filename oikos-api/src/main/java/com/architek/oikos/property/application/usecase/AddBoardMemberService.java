@@ -5,7 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.property.application.command.AddBoardMemberCommand;
 import com.architek.oikos.property.application.port.in.AddBoardMemberUseCase;
-import com.architek.oikos.property.domain.exception.ContactAlreadyHasRoleException;
+import com.architek.oikos.property.domain.exception.PartyAlreadyHasRoleException;
 import com.architek.oikos.property.domain.exception.PropertyNotFoundException;
 import com.architek.oikos.property.domain.model.BoardMember;
 import com.architek.oikos.property.domain.repository.PropertyRepository;
@@ -29,13 +29,13 @@ public class AddBoardMemberService implements AddBoardMemberUseCase {
         propertyRepository.findById(command.propertyId())
                 .orElseThrow(() -> new PropertyNotFoundException(command.propertyId()));
 
-        if (boardMemberRepository.existsByPropertyIdAndContactIdAndBoardRole(
-                command.propertyId(), command.contactId(), command.boardRole())) {
-            throw new ContactAlreadyHasRoleException();
+        if (boardMemberRepository.existsByPropertyIdAndPartyIdAndBoardRole(
+                command.propertyId(), command.partyId(), command.boardRole())) {
+            throw new PartyAlreadyHasRoleException();
         }
 
         BoardMember boardMember = BoardMember.create(BoardMemberId.newId(), command.propertyId(),
-                command.contactId(), command.boardRole());
+                command.partyId(), command.boardRole());
         return boardMemberRepository.save(boardMember).getId();
     }
 }

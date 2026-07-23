@@ -70,7 +70,7 @@ class UserAdminControllerWebMvcTest {
     }
 
     private static UserView newUserView(UserId userId, boolean enabled) {
-        return new UserView(userId, null, "Doe", "Jane", "user@oikos.com", null, Set.of(Role.ROLE_USER), true, enabled);
+        return new UserView(userId, null, "Jane Doe", "user@oikos.com", null, Set.of(Role.ROLE_USER), true, enabled);
     }
 
     @Test
@@ -110,7 +110,7 @@ class UserAdminControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"new-user@oikos.com"}
+                                {"fullName":"Jane Doe","email":"new-user@oikos.com"}
                                 """))
                 .andExpect(status().isCreated());
     }
@@ -121,7 +121,7 @@ class UserAdminControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"new-user@oikos.com"}
+                                {"fullName":"Jane Doe","email":"new-user@oikos.com"}
                                 """))
                 .andExpect(status().isForbidden());
     }

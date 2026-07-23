@@ -1,26 +1,26 @@
-package com.architek.oikos.contact.domain.valueobject;
+package com.architek.oikos.party.domain.valueobject;
 
 import java.util.Objects;
 import java.util.UUID;
 
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
-public record ContactId(EntityId value) {
+public record PartyId(EntityId value) {
 
-    public ContactId {
+    public PartyId {
         Objects.requireNonNull(value, "value must not be null");
     }
 
-    public static ContactId newId() {
-        return new ContactId(EntityId.newId());
+    public static PartyId newId() {
+        return new PartyId(EntityId.newId());
     }
 
-    public static ContactId of(UUID value) {
-        return new ContactId(EntityId.of(value));
+    public static PartyId of(UUID value) {
+        return new PartyId(EntityId.of(value));
     }
 
-    public static ContactId of(String value) {
-        return new ContactId(EntityId.of(value));
+    public static PartyId of(String value) {
+        return new PartyId(EntityId.of(value));
     }
 
     public UUID asUuid() {

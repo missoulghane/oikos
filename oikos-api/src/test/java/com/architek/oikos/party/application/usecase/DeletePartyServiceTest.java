@@ -1,4 +1,4 @@
-package com.architek.oikos.contact.application.usecase;
+package com.architek.oikos.party.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
@@ -11,40 +11,41 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.architek.oikos.contact.application.command.DeleteContactCommand;
-import com.architek.oikos.contact.domain.exception.ContactNotFoundException;
-import com.architek.oikos.contact.domain.model.Contact;
-import com.architek.oikos.contact.domain.repository.ContactRepository;
-import com.architek.oikos.contact.domain.valueobject.ContactId;
+import com.architek.oikos.party.application.command.DeletePartyCommand;
+import com.architek.oikos.party.domain.exception.PartyNotFoundException;
+import com.architek.oikos.party.domain.model.Party;
+import com.architek.oikos.party.domain.repository.PartyRepository;
+import com.architek.oikos.party.domain.valueobject.PartyId;
+import com.architek.oikos.shared.domain.valueobject.PartyType;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 
 @ExtendWith(MockitoExtension.class)
-class DeleteContactServiceTest {
+class DeletePartyServiceTest {
 
     @Mock
-    private ContactRepository contactRepository;
+    private PartyRepository partyRepository;
 
-    private DeleteContactService newService() {
-        return new DeleteContactService(contactRepository);
+    private DeletePartyService newService() {
+        return new DeletePartyService(partyRepository);
     }
 
     @Test
-    void deleting_an_existing_contact_removes_it() {
-        ContactId id = ContactId.newId();
-        Contact contact = Contact.create(id, "Doe", "Jane", EmailVO.of("jane@doe.com"), null);
-        when(contactRepository.findById(id)).thenReturn(Optional.of(contact));
+    void deleting_an_existing_party_removes_it() {
+        PartyId id = PartyId.newId();
+        Party party = Party.create(id, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
+        when(partyRepository.findById(id)).thenReturn(Optional.of(party));
 
-        newService().delete(new DeleteContactCommand(id));
+        newService().delete(new DeletePartyCommand(id));
 
-        verify(contactRepository).deleteById(id);
+        verify(partyRepository).deleteById(id);
     }
 
     @Test
-    void deleting_a_missing_contact_throws() {
-        ContactId id = ContactId.newId();
-        when(contactRepository.findById(id)).thenReturn(Optional.empty());
+    void deleting_a_missing_party_throws() {
+        PartyId id = PartyId.newId();
+        when(partyRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> newService().delete(new DeleteContactCommand(id)))
-                .isInstanceOf(ContactNotFoundException.class);
+        assertThatThrownBy(() -> newService().delete(new DeletePartyCommand(id)))
+                .isInstanceOf(PartyNotFoundException.class);
     }
 }

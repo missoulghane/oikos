@@ -29,4 +29,40 @@ class DependencyRulesArchTest {
             .that().resideInAnyPackage("..domain..", "..application..")
             .should().dependOnClassesThat().resideInAnyPackage("..web..", "..infrastructure..")
             .because("dependencies must flow web -> application -> domain <- infrastructure (rule 1)");
+
+    @ArchTest
+    static final ArchRule accounting_must_not_depend_on_installments_domain_model_repositories_or_infrastructure = noClasses()
+            .that().resideInAPackage("com.architek.oikos.accounting..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "com.architek.oikos.installment.domain.model..",
+                    "com.architek.oikos.installment.domain.repository..",
+                    "com.architek.oikos.installment.infrastructure..")
+            .because("accounting reaches installment only through its port-in use cases and DTOs (application.port.in/dto/command/query), never its domain model, repositories, or infrastructure directly");
+
+    @ArchTest
+    static final ArchRule installment_must_not_depend_on_accountings_domain_model_repositories_or_infrastructure = noClasses()
+            .that().resideInAPackage("com.architek.oikos.installment..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "com.architek.oikos.accounting.domain.model..",
+                    "com.architek.oikos.accounting.domain.repository..",
+                    "com.architek.oikos.accounting.infrastructure..")
+            .because("installment reaches accounting only through its port-in use cases and DTOs (application.port.in/dto/command/query), never its domain model, repositories, or infrastructure directly");
+
+    @ArchTest
+    static final ArchRule property_must_not_depend_on_accountings_domain_model_repositories_or_infrastructure = noClasses()
+            .that().resideInAPackage("com.architek.oikos.property..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "com.architek.oikos.accounting.domain.model..",
+                    "com.architek.oikos.accounting.domain.repository..",
+                    "com.architek.oikos.accounting.infrastructure..")
+            .because("property reaches accounting only through its port-in use cases and DTOs (application.port.in/dto/command/query), never its domain model, repositories, or infrastructure directly");
+
+    @ArchTest
+    static final ArchRule accounting_must_not_depend_on_propertys_domain_model_repositories_or_infrastructure = noClasses()
+            .that().resideInAPackage("com.architek.oikos.accounting..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "com.architek.oikos.property.domain.model..",
+                    "com.architek.oikos.property.domain.repository..",
+                    "com.architek.oikos.property.infrastructure..")
+            .because("accounting reaches property only through its port-in use cases and DTOs (application.port.in/dto/command/query), never its domain model, repositories, or infrastructure directly");
 }

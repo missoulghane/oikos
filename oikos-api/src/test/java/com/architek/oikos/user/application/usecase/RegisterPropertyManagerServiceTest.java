@@ -22,7 +22,7 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 import com.architek.oikos.user.application.command.RegisterPropertyManagerCommand;
-import com.architek.oikos.user.application.port.out.ContactDirectoryPort;
+import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningDetails;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningPort;
 import com.architek.oikos.user.domain.model.Role;
@@ -38,7 +38,7 @@ class RegisterPropertyManagerServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private ContactDirectoryPort contactDirectoryPort;
+    private PartyDirectoryPort partyDirectoryPort;
 
     @Mock
     private PropertyProvisioningPort propertyProvisioningPort;
@@ -53,20 +53,20 @@ class RegisterPropertyManagerServiceTest {
     private EmailSenderPort emailSenderPort;
 
     private RegisterPropertyManagerService newService() {
-        return new RegisterPropertyManagerService(userRepository, contactDirectoryPort, propertyProvisioningPort,
+        return new RegisterPropertyManagerService(userRepository, partyDirectoryPort, propertyProvisioningPort,
                 verificationTokenRepository, passwordEncoderPort, emailSenderPort, new VerificationTokenGenerator(),
                 new VerificationEmailComposer("http://localhost/verify"), Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
     }
 
     @Test
     void registering_a_property_manager_creates_the_user_with_the_property_manager_role_and_provisions_the_property() {
-        EntityId contactId = EntityId.newId();
-        when(contactDirectoryPort.createContact(any())).thenReturn(contactId);
+        EntityId partyId = EntityId.newId();
+        when(partyDirectoryPort.createParty(any())).thenReturn(partyId);
         when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterPropertyManagerCommand command = new RegisterPropertyManagerCommand(
-                "Doe", "Jane", EmailVO.of("manager@oikos.com"), null, null, RawPassword.of("password123"),
+                "Jane Doe", EmailVO.of("manager@oikos.com"), null, null, RawPassword.of("password123"),
                 "Residence A", "1 rue de Paris");
 
         newService().register(command);
@@ -78,7 +78,7 @@ class RegisterPropertyManagerServiceTest {
         ArgumentCaptor<PropertyProvisioningDetails> detailsCaptor = ArgumentCaptor.forClass(PropertyProvisioningDetails.class);
         verify(propertyProvisioningPort).provisionProperty(detailsCaptor.capture());
         assertThat(detailsCaptor.getValue().name()).isEqualTo("Residence A");
-        assertThat(detailsCaptor.getValue().managerContactId()).isEqualTo(contactId);
+        assertThat(detailsCaptor.getValue().managerPartyId()).isEqualTo(partyId);
 
         verify(verificationTokenRepository).save(any());
         verify(emailSenderPort).send(any(), any(), any());

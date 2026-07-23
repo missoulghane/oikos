@@ -64,7 +64,7 @@ class AuthenticationFlowIntegrationTest {
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"%s","password":"%s"}
+                                {"fullName":"Jane Doe","email":"%s","password":"%s"}
                                 """.formatted(email, password)))
                 .andExpect(status().isCreated());
 
@@ -130,7 +130,7 @@ class AuthenticationFlowIntegrationTest {
         mockMvc.perform(post("/api/v1/users/register-property-manager")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"%s","password":"%s",
+                                {"fullName":"Jane Doe","email":"%s","password":"%s",
                                 "propertyName":"Residence A","propertyAddress":"1 rue de Paris"}
                                 """.formatted(email, password)))
                 .andExpect(status().isCreated());
@@ -171,7 +171,7 @@ class AuthenticationFlowIntegrationTest {
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"%s","phone":"%s","login":"%s","password":"%s"}
+                                {"fullName":"Jane Doe","email":"%s","phone":"%s","login":"%s","password":"%s"}
                                 """.formatted(email, phone, login, password)))
                 .andExpect(status().isCreated());
 
@@ -215,7 +215,7 @@ class AuthenticationFlowIntegrationTest {
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"%s","password":"%s"}
+                                {"fullName":"Jane Doe","email":"%s","password":"%s"}
                                 """.formatted(email, oldPassword)))
                 .andExpect(status().isCreated());
 
@@ -286,7 +286,7 @@ class AuthenticationFlowIntegrationTest {
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"%s","password":"%s"}
+                                {"fullName":"Jane Doe","email":"%s","password":"%s"}
                                 """.formatted(email, password)))
                 .andExpect(status().isCreated());
 
@@ -306,7 +306,7 @@ class AuthenticationFlowIntegrationTest {
         MvcResult registerResult = mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"%s","password":"%s"}
+                                {"fullName":"Jane Doe","email":"%s","password":"%s"}
                                 """.formatted(email, password)))
                 .andExpect(status().isCreated())
                 .andReturn();
@@ -363,7 +363,7 @@ class AuthenticationFlowIntegrationTest {
                         .header("Authorization", adminBearerToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"%s"}
+                                {"fullName":"Jane Doe","email":"%s"}
                                 """.formatted(email)))
                 .andExpect(status().isCreated());
 
@@ -410,7 +410,7 @@ class AuthenticationFlowIntegrationTest {
                         .header("Authorization", adminBearerToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"lastName":"Doe","firstName":"Jane","email":"%s"}
+                                {"fullName":"Jane Doe","email":"%s"}
                                 """.formatted(email)))
                 .andExpect(status().isCreated())
                 .andReturn();

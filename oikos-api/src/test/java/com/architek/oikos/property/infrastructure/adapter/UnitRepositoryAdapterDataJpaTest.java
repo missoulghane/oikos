@@ -14,7 +14,7 @@ import com.architek.oikos.property.domain.model.Unit;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.Shares;
-import com.architek.oikos.property.domain.valueobject.UnitType;
+import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.property.infrastructure.mapper.UnitPersistenceMapperImpl;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.infrastructure.configuration.JpaAuditingConfiguration;
@@ -29,7 +29,8 @@ class UnitRepositoryAdapterDataJpaTest {
 
     @Test
     void saves_and_finds_a_unit_by_id() {
-        Unit unit = Unit.create(UnitId.newId(), BuildingId.newId(), "A12", UnitType.APARTMENT, Shares.of(new BigDecimal("150.00")));
+        Unit unit = Unit.create(UnitId.newId(), BuildingId.newId(), "A12", UnitTypeDefinitionId.newId(),
+                Shares.of(new BigDecimal("150.00")));
 
         adapter.save(unit);
 
@@ -41,13 +42,25 @@ class UnitRepositoryAdapterDataJpaTest {
     void findAllByBuildingId_paginates_and_filters_by_parent() {
         BuildingId buildingId = BuildingId.newId();
         for (int i = 0; i < 3; i++) {
-            adapter.save(Unit.create(UnitId.newId(), buildingId, "A" + i, UnitType.APARTMENT, Shares.of(BigDecimal.TEN)));
+            adapter.save(Unit.create(UnitId.newId(), buildingId, "A" + i, UnitTypeDefinitionId.newId(),
+                    Shares.of(BigDecimal.TEN)));
         }
-        adapter.save(Unit.create(UnitId.newId(), BuildingId.newId(), "Z99", UnitType.PARKING, Shares.of(BigDecimal.ONE)));
+        adapter.save(Unit.create(UnitId.newId(), BuildingId.newId(), "Z99", UnitTypeDefinitionId.newId(),
+                Shares.of(BigDecimal.ONE)));
 
         var page = adapter.findAllByBuildingId(buildingId, PageRequest.of(0, 2));
 
         assertThat(page.totalElements()).isEqualTo(3);
         assertThat(page.content()).hasSize(2);
+    }
+
+    @Test
+    void existsByUnitTypeId_reflects_persisted_state() {
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        assertThat(adapter.existsByUnitTypeId(unitTypeId)).isFalse();
+
+        adapter.save(Unit.create(UnitId.newId(), BuildingId.newId(), "A12", unitTypeId, Shares.of(BigDecimal.TEN)));
+
+        assertThat(adapter.existsByUnitTypeId(unitTypeId)).isTrue();
     }
 }

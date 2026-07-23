@@ -8,6 +8,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record AddUnitOwnershipRequest(
-        @NotBlank String contactId,
+        @NotBlank String partyId,
         @NotNull @DecimalMin(value = "0", inclusive = true) @DecimalMax(value = "100", inclusive = true) BigDecimal ownershipShare) {
 }

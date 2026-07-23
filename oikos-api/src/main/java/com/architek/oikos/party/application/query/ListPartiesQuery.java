@@ -1,7 +1,7 @@
-package com.architek.oikos.contact.application.query;
+package com.architek.oikos.party.application.query;
 
-import com.architek.oikos.contact.domain.valueobject.ContactSearchCriteria;
+import com.architek.oikos.party.domain.valueobject.PartySearchCriteria;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 
-public record ListContactsQuery(PageRequest pageRequest, ContactSearchCriteria criteria) {
+public record ListPartiesQuery(PageRequest pageRequest, PartySearchCriteria criteria) {
 }

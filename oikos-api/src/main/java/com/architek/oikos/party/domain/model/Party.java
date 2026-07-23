@@ -1,43 +1,45 @@
-package com.architek.oikos.contact.domain.model;
+package com.architek.oikos.party.domain.model;
 
 import java.util.Objects;
 
-import com.architek.oikos.contact.domain.valueobject.ContactId;
+import com.architek.oikos.party.domain.valueobject.PartyId;
+import com.architek.oikos.shared.domain.valueobject.PartyType;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 
 /**
- * Identity record of a physical person known to the system, independent of any
- * application account (see {@code com.architek.oikos.user.domain.model.User}, which
- * references a Contact by id rather than duplicating identity fields).
+ * Identity record of a legal actor known to the system (individual or
+ * company), independent of any application account (see {@code
+ * com.architek.oikos.user.domain.model.User}, which references a Party by id
+ * rather than duplicating identity fields).
  * Immutable: every mutation returns a new instance. Entity semantics: equals/hashCode
  * are identity-based (on id), not value-based.
  */
-public final class Contact {
+public final class Party {
 
-    private final ContactId id;
-    private final String lastName;
-    private final String firstName;
+    private final PartyId id;
+    private final String fullName;
+    private final PartyType partyType;
     private final EmailVO email;
     private final String phone;
 
-    private Contact(ContactId id, String lastName, String firstName, EmailVO email, String phone) {
+    private Party(PartyId id, String fullName, PartyType partyType, EmailVO email, String phone) {
         this.id = Objects.requireNonNull(id, "id must not be null");
-        this.lastName = requireNonBlank(lastName, "lastName");
-        this.firstName = requireNonBlank(firstName, "firstName");
+        this.fullName = requireNonBlank(fullName, "fullName");
+        this.partyType = Objects.requireNonNull(partyType, "partyType must not be null");
         this.email = Objects.requireNonNull(email, "email must not be null");
         this.phone = phone;
     }
 
-    public static Contact create(ContactId id, String lastName, String firstName, EmailVO email, String phone) {
-        return new Contact(id, lastName, firstName, email, phone);
+    public static Party create(PartyId id, String fullName, PartyType partyType, EmailVO email, String phone) {
+        return new Party(id, fullName, partyType, email, phone);
     }
 
-    public static Contact reconstruct(ContactId id, String lastName, String firstName, EmailVO email, String phone) {
-        return new Contact(id, lastName, firstName, email, phone);
+    public static Party reconstruct(PartyId id, String fullName, PartyType partyType, EmailVO email, String phone) {
+        return new Party(id, fullName, partyType, email, phone);
     }
 
-    public Contact withContactInfo(String newLastName, String newFirstName, EmailVO newEmail, String newPhone) {
-        return new Contact(id, newLastName, newFirstName, newEmail, newPhone);
+    public Party withPartyInfo(String newFullName, PartyType newPartyType, EmailVO newEmail, String newPhone) {
+        return new Party(id, newFullName, newPartyType, newEmail, newPhone);
     }
 
     private static String requireNonBlank(String value, String fieldName) {
@@ -47,16 +49,16 @@ public final class Contact {
         return value;
     }
 
-    public ContactId getId() {
+    public PartyId getId() {
         return id;
     }
 
-    public String getLastName() {
-        return lastName;
+    public String getFullName() {
+        return fullName;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public PartyType getPartyType() {
+        return partyType;
     }
 
     public EmailVO getEmail() {
@@ -72,7 +74,7 @@ public final class Contact {
         if (this == o) {
             return true;
         }
-        return o instanceof Contact other && id.equals(other.id);
+        return o instanceof Party other && id.equals(other.id);
     }
 
     @Override

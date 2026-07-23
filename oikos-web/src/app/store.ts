@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AuthTokens } from '@/features/auth/types/auth.types';
+import type { AuthTokens } from '@/features/identity/auth/types/auth.types';
 
 interface AuthState {
   accessToken: string | null;

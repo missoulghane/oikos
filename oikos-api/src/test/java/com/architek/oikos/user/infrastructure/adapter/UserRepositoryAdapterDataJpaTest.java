@@ -31,12 +31,12 @@ class UserRepositoryAdapterDataJpaTest {
     }
 
     @Test
-    void saves_and_finds_a_user_by_contact_id() {
+    void saves_and_finds_a_user_by_party_id() {
         User user = newUser();
 
         adapter.save(user);
 
-        assertThat(adapter.findByContactId(user.getContactId())).isPresent()
+        assertThat(adapter.findByPartyId(user.getPartyId())).isPresent()
                 .get().extracting(User::getLogin).isEqualTo("jpa-test-login");
     }
 

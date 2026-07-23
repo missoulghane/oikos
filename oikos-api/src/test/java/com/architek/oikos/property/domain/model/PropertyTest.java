@@ -31,4 +31,15 @@ class PropertyTest {
 
         assertThat(a).isEqualTo(b);
     }
+
+    @Test
+    void with_details_returns_a_new_instance_with_updated_name_and_address() {
+        Property property = Property.create(PropertyId.newId(), "Copro Laumiere", "33 Avenue de Laumiere");
+
+        Property updated = property.withDetails("Copro Renamed", "New address");
+
+        assertThat(updated.getId()).isEqualTo(property.getId());
+        assertThat(updated.getName()).isEqualTo("Copro Renamed");
+        assertThat(updated.getAddress()).isEqualTo("New address");
+    }
 }

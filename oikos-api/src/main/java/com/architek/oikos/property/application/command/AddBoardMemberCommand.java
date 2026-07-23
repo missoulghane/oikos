@@ -4,5 +4,5 @@ import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.BoardRole;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
-public record AddBoardMemberCommand(PropertyId propertyId, EntityId contactId, BoardRole boardRole) {
+public record AddBoardMemberCommand(PropertyId propertyId, EntityId partyId, BoardRole boardRole) {
 }

@@ -43,8 +43,8 @@ public class UnitOwnershipRepositoryAdapter implements UnitOwnershipRepository {
     }
 
     @Override
-    public boolean existsByUnitIdAndContactId(UnitId unitId, EntityId contactId) {
-        return jpaRepository.existsByUnitIdAndContactId(unitId.asUuid(), contactId.value());
+    public boolean existsByUnitIdAndPartyId(UnitId unitId, EntityId partyId) {
+        return jpaRepository.existsByUnitIdAndPartyId(unitId.asUuid(), partyId.value());
     }
 
     @Override

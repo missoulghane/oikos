@@ -1,22 +1,22 @@
-package com.architek.oikos.contact.infrastructure.mapper;
+package com.architek.oikos.party.infrastructure.mapper;
 
 import org.mapstruct.Mapper;
 
-import com.architek.oikos.contact.domain.model.Contact;
-import com.architek.oikos.contact.domain.valueobject.ContactId;
-import com.architek.oikos.contact.infrastructure.persistence.ContactEntity;
+import com.architek.oikos.party.domain.model.Party;
+import com.architek.oikos.party.domain.valueobject.PartyId;
+import com.architek.oikos.party.infrastructure.persistence.PartyEntity;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 
 /**
  * Domain <-> entity mapping. Implemented as default methods rather than
  * auto-generated field mapping since the domain side is composed of value objects
- * (EmailVO, ContactId) that need explicit unwrapping.
+ * (EmailVO, PartyId) that need explicit unwrapping.
  */
 @Mapper(componentModel = "spring")
-public interface ContactPersistenceMapper {
+public interface PartyPersistenceMapper {
 
-    default ContactEntity toEntity(Contact contact) {
-        return toEntity(contact, new ContactEntity());
+    default PartyEntity toEntity(Party party) {
+        return toEntity(party, new PartyEntity());
     }
 
     /**
@@ -26,20 +26,20 @@ public interface ContactPersistenceMapper {
      * "new" and would attempt an INSERT instead of an UPDATE for an already-persisted
      * aggregate.
      */
-    default ContactEntity toEntity(Contact contact, ContactEntity entity) {
-        entity.setId(contact.getId().asUuid());
-        entity.setLastName(contact.getLastName());
-        entity.setFirstName(contact.getFirstName());
-        entity.setEmail(contact.getEmail().value());
-        entity.setPhone(contact.getPhone());
+    default PartyEntity toEntity(Party party, PartyEntity entity) {
+        entity.setId(party.getId().asUuid());
+        entity.setFullName(party.getFullName());
+        entity.setPartyType(party.getPartyType());
+        entity.setEmail(party.getEmail().value());
+        entity.setPhone(party.getPhone());
         return entity;
     }
 
-    default Contact toDomain(ContactEntity entity) {
-        return Contact.reconstruct(
-                ContactId.of(entity.getId()),
-                entity.getLastName(),
-                entity.getFirstName(),
+    default Party toDomain(PartyEntity entity) {
+        return Party.reconstruct(
+                PartyId.of(entity.getId()),
+                entity.getFullName(),
+                entity.getPartyType(),
                 EmailVO.of(entity.getEmail()),
                 entity.getPhone());
     }

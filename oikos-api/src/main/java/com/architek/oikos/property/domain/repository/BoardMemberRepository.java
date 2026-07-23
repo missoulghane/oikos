@@ -17,7 +17,7 @@ public interface BoardMemberRepository {
 
     List<BoardMember> findAllByPropertyId(PropertyId propertyId);
 
-    boolean existsByPropertyIdAndContactIdAndBoardRole(PropertyId propertyId, EntityId contactId, BoardRole boardRole);
+    boolean existsByPropertyIdAndPartyIdAndBoardRole(PropertyId propertyId, EntityId partyId, BoardRole boardRole);
 
     void deleteById(BoardMemberId id);
 }

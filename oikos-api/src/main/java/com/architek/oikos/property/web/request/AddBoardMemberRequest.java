@@ -5,6 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import com.architek.oikos.property.domain.valueobject.BoardRole;
 
 public record AddBoardMemberRequest(
-        @NotBlank String contactId,
+        @NotBlank String partyId,
         @NotNull BoardRole boardRole) {
 }

@@ -1,26 +1,26 @@
-package com.architek.oikos.contact.application.usecase;
+package com.architek.oikos.party.application.usecase;
 
 import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.architek.oikos.contact.application.port.in.LoadContactIdByPhoneUseCase;
-import com.architek.oikos.contact.domain.repository.ContactRepository;
-import com.architek.oikos.contact.domain.valueobject.ContactId;
+import com.architek.oikos.party.application.port.in.LoadPartyIdByPhoneUseCase;
+import com.architek.oikos.party.domain.repository.PartyRepository;
+import com.architek.oikos.party.domain.valueobject.PartyId;
 
 @Component
-public class LoadContactIdByPhoneService implements LoadContactIdByPhoneUseCase {
+public class LoadPartyIdByPhoneService implements LoadPartyIdByPhoneUseCase {
 
-    private final ContactRepository contactRepository;
+    private final PartyRepository partyRepository;
 
-    public LoadContactIdByPhoneService(ContactRepository contactRepository) {
-        this.contactRepository = contactRepository;
+    public LoadPartyIdByPhoneService(PartyRepository partyRepository) {
+        this.partyRepository = partyRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<ContactId> loadByPhone(String phone) {
-        return contactRepository.findByPhone(phone).map(contact -> contact.getId());
+    public Optional<PartyId> loadByPhone(String phone) {
+        return partyRepository.findByPhone(phone).map(party -> party.getId());
     }
 }

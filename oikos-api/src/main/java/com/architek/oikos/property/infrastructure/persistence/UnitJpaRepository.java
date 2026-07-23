@@ -9,4 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface UnitJpaRepository extends JpaRepository<UnitEntity, UUID> {
 
     Page<UnitEntity> findByBuildingId(UUID buildingId, Pageable pageable);
+
+    boolean existsByUnitTypeId(UUID unitTypeId);
 }

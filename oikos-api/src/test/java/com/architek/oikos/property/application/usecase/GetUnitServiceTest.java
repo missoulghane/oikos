@@ -17,15 +17,18 @@ import com.architek.oikos.property.application.query.GetUnitQuery;
 import com.architek.oikos.property.domain.exception.UnitNotFoundException;
 import com.architek.oikos.property.domain.model.Unit;
 import com.architek.oikos.property.domain.model.UnitOwnership;
+import com.architek.oikos.property.domain.model.UnitTypeDefinition;
 import com.architek.oikos.property.domain.repository.UnitRepository;
 import com.architek.oikos.property.domain.repository.UnitOwnershipRepository;
+import com.architek.oikos.property.domain.repository.UnitTypeDefinitionRepository;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
+import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.OwnershipShare;
 import com.architek.oikos.property.domain.valueobject.UnitOwnershipId;
 import com.architek.oikos.property.domain.valueobject.OwnershipStatus;
 import com.architek.oikos.property.domain.valueobject.Shares;
-import com.architek.oikos.property.domain.valueobject.UnitType;
+import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,30 +40,40 @@ class GetUnitServiceTest {
     @Mock
     private UnitOwnershipRepository unitOwnershipRepository;
 
+    @Mock
+    private UnitTypeDefinitionRepository unitTypeDefinitionRepository;
+
     private GetUnitService newService() {
-        return new GetUnitService(unitRepository, unitOwnershipRepository);
+        return new GetUnitService(unitRepository, unitOwnershipRepository, unitTypeDefinitionRepository);
     }
 
     @Test
     void a_unit_without_any_owner_is_labelled_non_vendu_promoteur() {
         UnitId id = UnitId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
         when(unitRepository.findById(id)).thenReturn(Optional.of(
-                Unit.create(id, BuildingId.newId(), "A12", UnitType.APARTMENT, Shares.of(new BigDecimal("150")))));
+                Unit.create(id, BuildingId.newId(), "A12", unitTypeId, Shares.of(new BigDecimal("150")))));
         when(unitOwnershipRepository.findAllByUnitId(id)).thenReturn(List.of());
+        when(unitTypeDefinitionRepository.findById(unitTypeId))
+                .thenReturn(Optional.of(UnitTypeDefinition.create(unitTypeId, PropertyId.newId(), "Appartement")));
 
         var view = newService().getUnit(new GetUnitQuery(id));
 
         assertThat(view.unitNumber()).isEqualTo("A12");
+        assertThat(view.unitTypeName()).isEqualTo("Appartement");
         assertThat(view.ownershipStatus()).isEqualTo(OwnershipStatus.UNSOLD_DEVELOPER);
     }
 
     @Test
     void a_unit_with_at_least_one_owner_is_labelled_vendu() {
         UnitId id = UnitId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
         when(unitRepository.findById(id)).thenReturn(Optional.of(
-                Unit.create(id, BuildingId.newId(), "A12", UnitType.APARTMENT, Shares.of(new BigDecimal("150")))));
+                Unit.create(id, BuildingId.newId(), "A12", unitTypeId, Shares.of(new BigDecimal("150")))));
         when(unitOwnershipRepository.findAllByUnitId(id)).thenReturn(List.of(
                 UnitOwnership.create(UnitOwnershipId.newId(), id, EntityId.newId(), OwnershipShare.of(BigDecimal.TEN))));
+        when(unitTypeDefinitionRepository.findById(unitTypeId))
+                .thenReturn(Optional.of(UnitTypeDefinition.create(unitTypeId, PropertyId.newId(), "Appartement")));
 
         var view = newService().getUnit(new GetUnitQuery(id));
 

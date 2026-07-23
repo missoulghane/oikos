@@ -1,8 +1,8 @@
-package com.architek.oikos.contact.application.port.in;
+package com.architek.oikos.party.application.port.in;
 
-import com.architek.oikos.contact.application.command.DeleteContactCommand;
+import com.architek.oikos.party.application.command.DeletePartyCommand;
 
-public interface DeleteContactUseCase {
+public interface DeletePartyUseCase {
 
-    void delete(DeleteContactCommand command);
+    void delete(DeletePartyCommand command);
 }

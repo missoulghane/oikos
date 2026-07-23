@@ -1,28 +1,28 @@
-package com.architek.oikos.contact.application.usecase;
+package com.architek.oikos.party.application.usecase;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.architek.oikos.contact.application.command.DeleteContactCommand;
-import com.architek.oikos.contact.application.port.in.DeleteContactUseCase;
-import com.architek.oikos.contact.domain.exception.ContactNotFoundException;
-import com.architek.oikos.contact.domain.repository.ContactRepository;
+import com.architek.oikos.party.application.command.DeletePartyCommand;
+import com.architek.oikos.party.application.port.in.DeletePartyUseCase;
+import com.architek.oikos.party.domain.exception.PartyNotFoundException;
+import com.architek.oikos.party.domain.repository.PartyRepository;
 
 @Component
-public class DeleteContactService implements DeleteContactUseCase {
+public class DeletePartyService implements DeletePartyUseCase {
 
-    private final ContactRepository contactRepository;
+    private final PartyRepository partyRepository;
 
-    public DeleteContactService(ContactRepository contactRepository) {
-        this.contactRepository = contactRepository;
+    public DeletePartyService(PartyRepository partyRepository) {
+        this.partyRepository = partyRepository;
     }
 
     @Override
     @Transactional
-    public void delete(DeleteContactCommand command) {
-        if (contactRepository.findById(command.id()).isEmpty()) {
-            throw new ContactNotFoundException(command.id());
+    public void delete(DeletePartyCommand command) {
+        if (partyRepository.findById(command.id()).isEmpty()) {
+            throw new PartyNotFoundException(command.id());
         }
-        contactRepository.deleteById(command.id());
+        partyRepository.deleteById(command.id());
     }
 }

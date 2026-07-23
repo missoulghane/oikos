@@ -1,35 +1,35 @@
-package com.architek.oikos.contact.application.usecase;
+package com.architek.oikos.party.application.usecase;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.architek.oikos.contact.application.command.UpdateContactCommand;
-import com.architek.oikos.contact.application.dto.ContactView;
-import com.architek.oikos.contact.application.port.in.UpdateContactUseCase;
-import com.architek.oikos.contact.domain.exception.ContactNotFoundException;
-import com.architek.oikos.contact.domain.exception.EmailAlreadyUsedException;
-import com.architek.oikos.contact.domain.model.Contact;
-import com.architek.oikos.contact.domain.repository.ContactRepository;
+import com.architek.oikos.party.application.command.UpdatePartyCommand;
+import com.architek.oikos.party.application.dto.PartyView;
+import com.architek.oikos.party.application.port.in.UpdatePartyUseCase;
+import com.architek.oikos.party.domain.exception.PartyNotFoundException;
+import com.architek.oikos.party.domain.exception.EmailAlreadyUsedException;
+import com.architek.oikos.party.domain.model.Party;
+import com.architek.oikos.party.domain.repository.PartyRepository;
 
 @Component
-public class UpdateContactService implements UpdateContactUseCase {
+public class UpdatePartyService implements UpdatePartyUseCase {
 
-    private final ContactRepository contactRepository;
+    private final PartyRepository partyRepository;
 
-    public UpdateContactService(ContactRepository contactRepository) {
-        this.contactRepository = contactRepository;
+    public UpdatePartyService(PartyRepository partyRepository) {
+        this.partyRepository = partyRepository;
     }
 
     @Override
     @Transactional
-    public ContactView update(UpdateContactCommand command) {
-        Contact contact = contactRepository.findById(command.id())
-                .orElseThrow(() -> new ContactNotFoundException(command.id()));
-        if (!contact.getEmail().equals(command.email()) && contactRepository.existsByEmail(command.email())) {
+    public PartyView update(UpdatePartyCommand command) {
+        Party party = partyRepository.findById(command.id())
+                .orElseThrow(() -> new PartyNotFoundException(command.id()));
+        if (!party.getEmail().equals(command.email()) && partyRepository.existsByEmail(command.email())) {
             throw new EmailAlreadyUsedException(command.email().value());
         }
-        Contact updated = contactRepository.save(
-                contact.withContactInfo(command.lastName(), command.firstName(), command.email(), command.phone()));
-        return ContactView.from(updated);
+        Party updated = partyRepository.save(
+                party.withPartyInfo(command.fullName(), command.partyType(), command.email(), command.phone()));
+        return PartyView.from(updated);
     }
 }

@@ -1,11 +1,11 @@
-package com.architek.oikos.contact.domain.exception;
+package com.architek.oikos.party.domain.exception;
 
-import com.architek.oikos.contact.domain.valueobject.ContactId;
+import com.architek.oikos.party.domain.valueobject.PartyId;
 import com.architek.oikos.shared.exception.ResourceNotFoundException;
 
-public class ContactNotFoundException extends ResourceNotFoundException {
+public class PartyNotFoundException extends ResourceNotFoundException {
 
-    public ContactNotFoundException(ContactId id) {
-        super("Contact not found with id: " + id);
+    public PartyNotFoundException(PartyId id) {
+        super("Party not found with id: " + id);
     }
 }

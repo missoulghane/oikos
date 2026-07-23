@@ -93,14 +93,14 @@ public class UserAdminController {
     @PostMapping
     public ResponseEntity<Void> create(@Valid @RequestBody CreateUserRequest request) {
         UserId id = createUserUseCase.create(new CreateUserCommand(
-                request.lastName(), request.firstName(), EmailVO.of(request.email()), request.phone(), request.login()));
+                request.fullName(), EmailVO.of(request.email()), request.phone(), request.login()));
         return ResponseEntity.created(URI.create("/api/v1/users/" + id)).build();
     }
 
     @PatchMapping("/{id}/profile")
     public UserResponse updateProfile(@PathVariable String id, @Valid @RequestBody UpdateProfileRequest request) {
         UpdateUserProfileCommand command = new UpdateUserProfileCommand(
-                UserId.of(id), request.lastName(), request.firstName(), EmailVO.of(request.email()), request.phone());
+                UserId.of(id), request.fullName(), EmailVO.of(request.email()), request.phone());
         return UserResponse.from(updateUserProfileUseCase.updateProfile(command));
     }
 

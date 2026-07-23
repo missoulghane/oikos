@@ -5,5 +5,5 @@ import java.math.BigDecimal;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
-public record AddUnitOwnershipCommand(UnitId unitId, EntityId contactId, BigDecimal ownershipShare) {
+public record AddUnitOwnershipCommand(UnitId unitId, EntityId partyId, BigDecimal ownershipShare) {
 }

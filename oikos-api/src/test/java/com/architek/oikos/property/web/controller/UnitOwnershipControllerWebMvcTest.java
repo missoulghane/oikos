@@ -20,6 +20,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.auth.infrastructure.security.JwtService;
+import com.architek.oikos.property.application.port.in.AddUnitOwnerUseCase;
 import com.architek.oikos.property.application.port.in.AddUnitOwnershipUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitOwnershipsByUnitUseCase;
 import com.architek.oikos.property.application.port.in.RemoveUnitOwnershipUseCase;
@@ -40,6 +41,9 @@ class UnitOwnershipControllerWebMvcTest {
 
     @MockitoBean
     private AddUnitOwnershipUseCase addUnitOwnershipUseCase;
+
+    @MockitoBean
+    private AddUnitOwnerUseCase addUnitOwnerUseCase;
 
     @MockitoBean
     private ListUnitOwnershipsByUnitUseCase listUnitOwnershipsByUnitUseCase;
@@ -73,7 +77,7 @@ class UnitOwnershipControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"contactId":"%s","ownershipShare":50}
+                                {"partyId":"%s","ownershipShare":50}
                                 """.formatted(EntityId.newId())))
                 .andExpect(status().isCreated());
     }
@@ -84,7 +88,7 @@ class UnitOwnershipControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"contactId":"%s","ownershipShare":50}
+                                {"partyId":"%s","ownershipShare":50}
                                 """.formatted(EntityId.newId())))
                 .andExpect(status().isForbidden());
     }
@@ -95,7 +99,7 @@ class UnitOwnershipControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"contactId":"%s","ownershipShare":150}
+                                {"partyId":"%s","ownershipShare":150}
                                 """.formatted(EntityId.newId())))
                 .andExpect(status().isBadRequest());
     }
@@ -107,4 +111,27 @@ class UnitOwnershipControllerWebMvcTest {
                 .andExpect(status().isNoContent());
     }
 
+    @Test
+    void admin_can_add_an_owner_by_creating_its_party() throws Exception {
+        when(addUnitOwnerUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
+
+        mockMvc.perform(post("/api/v1/units/" + UnitId.newId() + "/owners/new-party")
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fullName":"Jane Doe","partyType":"INDIVIDUAL","email":"jane.doe@example.com","ownershipShare":50}
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void adding_an_owner_by_party_with_an_invalid_email_returns_400() throws Exception {
+        mockMvc.perform(post("/api/v1/units/" + UnitId.newId() + "/owners/new-party")
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fullName":"Jane Doe","partyType":"INDIVIDUAL","email":"not-an-email","ownershipShare":50}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
 }

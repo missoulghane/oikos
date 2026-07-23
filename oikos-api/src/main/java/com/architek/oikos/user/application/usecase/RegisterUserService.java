@@ -14,8 +14,8 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.user.application.command.RegisterUserCommand;
 import com.architek.oikos.user.application.port.in.RegisterUserUseCase;
-import com.architek.oikos.user.application.port.out.ContactDetails;
-import com.architek.oikos.user.application.port.out.ContactDirectoryPort;
+import com.architek.oikos.user.application.port.out.PartyDetails;
+import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.user.domain.exception.LoginAlreadyUsedException;
 import com.architek.oikos.user.domain.exception.RoleNotAllowedException;
 import com.architek.oikos.user.domain.model.RegistrableRoles;
@@ -31,7 +31,7 @@ import com.architek.oikos.user.domain.valueobject.UserId;
 public class RegisterUserService implements RegisterUserUseCase {
 
     private final UserRepository userRepository;
-    private final ContactDirectoryPort contactDirectoryPort;
+    private final PartyDirectoryPort partyDirectoryPort;
     private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordEncoderPort passwordEncoderPort;
     private final EmailSenderPort emailSenderPort;
@@ -41,7 +41,7 @@ public class RegisterUserService implements RegisterUserUseCase {
     private final Duration verificationTokenTtl;
 
     public RegisterUserService(UserRepository userRepository,
-                                ContactDirectoryPort contactDirectoryPort,
+                                PartyDirectoryPort partyDirectoryPort,
                                 VerificationTokenRepository verificationTokenRepository,
                                 PasswordEncoderPort passwordEncoderPort,
                                 EmailSenderPort emailSenderPort,
@@ -50,7 +50,7 @@ public class RegisterUserService implements RegisterUserUseCase {
                                 Clock clock,
                                 @Value("${oikos.mail.verification-token-ttl-hours}") long verificationTokenTtlHours) {
         this.userRepository = userRepository;
-        this.contactDirectoryPort = contactDirectoryPort;
+        this.partyDirectoryPort = partyDirectoryPort;
         this.verificationTokenRepository = verificationTokenRepository;
         this.passwordEncoderPort = passwordEncoderPort;
         this.emailSenderPort = emailSenderPort;
@@ -70,10 +70,10 @@ public class RegisterUserService implements RegisterUserUseCase {
         if (!RegistrableRoles.isAllowed(role)) {
             throw new RoleNotAllowedException(role);
         }
-        EntityId contactId = contactDirectoryPort.createContact(
-                new ContactDetails(command.lastName(), command.firstName(), command.email(), command.phone()));
+        EntityId partyId = partyDirectoryPort.createParty(
+                new PartyDetails(command.fullName(), command.email(), command.phone()));
         HashedPassword hashedPassword = passwordEncoderPort.encode(command.password());
-        User user = User.register(UserId.newId(), contactId, hashedPassword, command.login(), role);
+        User user = User.register(UserId.newId(), partyId, hashedPassword, command.login(), role);
         User savedUser = userRepository.save(user);
 
         String rawToken = tokenGenerator.generate();

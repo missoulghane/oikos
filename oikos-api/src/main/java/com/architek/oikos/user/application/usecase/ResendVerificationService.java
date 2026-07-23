@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.user.application.command.ResendVerificationCommand;
 import com.architek.oikos.user.application.port.in.ResendVerificationUseCase;
-import com.architek.oikos.user.application.port.out.ContactDirectoryPort;
+import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.user.domain.model.VerificationToken;
 import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.user.domain.repository.VerificationTokenRepository;
@@ -25,7 +25,7 @@ import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
 public class ResendVerificationService implements ResendVerificationUseCase {
 
     private final UserRepository userRepository;
-    private final ContactDirectoryPort contactDirectoryPort;
+    private final PartyDirectoryPort partyDirectoryPort;
     private final VerificationTokenRepository verificationTokenRepository;
     private final EmailSenderPort emailSenderPort;
     private final VerificationTokenGenerator tokenGenerator;
@@ -34,7 +34,7 @@ public class ResendVerificationService implements ResendVerificationUseCase {
     private final Duration verificationTokenTtl;
 
     public ResendVerificationService(UserRepository userRepository,
-                                      ContactDirectoryPort contactDirectoryPort,
+                                      PartyDirectoryPort partyDirectoryPort,
                                       VerificationTokenRepository verificationTokenRepository,
                                       EmailSenderPort emailSenderPort,
                                       VerificationTokenGenerator tokenGenerator,
@@ -42,7 +42,7 @@ public class ResendVerificationService implements ResendVerificationUseCase {
                                       Clock clock,
                                       @Value("${oikos.mail.verification-token-ttl-hours}") long verificationTokenTtlHours) {
         this.userRepository = userRepository;
-        this.contactDirectoryPort = contactDirectoryPort;
+        this.partyDirectoryPort = partyDirectoryPort;
         this.verificationTokenRepository = verificationTokenRepository;
         this.emailSenderPort = emailSenderPort;
         this.tokenGenerator = tokenGenerator;
@@ -54,8 +54,8 @@ public class ResendVerificationService implements ResendVerificationUseCase {
     @Override
     @Transactional
     public void resend(ResendVerificationCommand command) {
-        contactDirectoryPort.findIdByEmail(command.email())
-                .flatMap(userRepository::findByContactId)
+        partyDirectoryPort.findIdByEmail(command.email())
+                .flatMap(userRepository::findByPartyId)
                 .filter(user -> !user.isVerified())
                 .ifPresent(user -> {
                     verificationTokenRepository.deleteByUserId(user.getId());

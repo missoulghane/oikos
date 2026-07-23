@@ -14,8 +14,8 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.user.application.command.RegisterPropertyManagerCommand;
 import com.architek.oikos.user.application.port.in.RegisterPropertyManagerUseCase;
-import com.architek.oikos.user.application.port.out.ContactDetails;
-import com.architek.oikos.user.application.port.out.ContactDirectoryPort;
+import com.architek.oikos.user.application.port.out.PartyDetails;
+import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningDetails;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningPort;
 import com.architek.oikos.user.domain.exception.LoginAlreadyUsedException;
@@ -28,7 +28,7 @@ import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
 import com.architek.oikos.user.domain.valueobject.UserId;
 
 /**
- * Registers a property manager: creates the Contact, User (ROLE_PROPERTY_MANAGER,
+ * Registers a property manager: creates the Party, User (ROLE_PROPERTY_MANAGER,
  * unverified) and the property they manage (without a building - the manager adds
  * buildings later) in the same transaction, then issues a verification token and
  * sends the verification email - same activation flow as a plain user registration
@@ -38,7 +38,7 @@ import com.architek.oikos.user.domain.valueobject.UserId;
 public class RegisterPropertyManagerService implements RegisterPropertyManagerUseCase {
 
     private final UserRepository userRepository;
-    private final ContactDirectoryPort contactDirectoryPort;
+    private final PartyDirectoryPort partyDirectoryPort;
     private final PropertyProvisioningPort propertyProvisioningPort;
     private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordEncoderPort passwordEncoderPort;
@@ -49,7 +49,7 @@ public class RegisterPropertyManagerService implements RegisterPropertyManagerUs
     private final Duration verificationTokenTtl;
 
     public RegisterPropertyManagerService(UserRepository userRepository,
-                                           ContactDirectoryPort contactDirectoryPort,
+                                           PartyDirectoryPort partyDirectoryPort,
                                            PropertyProvisioningPort propertyProvisioningPort,
                                            VerificationTokenRepository verificationTokenRepository,
                                            PasswordEncoderPort passwordEncoderPort,
@@ -59,7 +59,7 @@ public class RegisterPropertyManagerService implements RegisterPropertyManagerUs
                                            Clock clock,
                                            @Value("${oikos.mail.verification-token-ttl-hours}") long verificationTokenTtlHours) {
         this.userRepository = userRepository;
-        this.contactDirectoryPort = contactDirectoryPort;
+        this.partyDirectoryPort = partyDirectoryPort;
         this.propertyProvisioningPort = propertyProvisioningPort;
         this.verificationTokenRepository = verificationTokenRepository;
         this.passwordEncoderPort = passwordEncoderPort;
@@ -76,14 +76,14 @@ public class RegisterPropertyManagerService implements RegisterPropertyManagerUs
         if (command.login() != null && !command.login().isBlank() && userRepository.existsByLogin(command.login())) {
             throw new LoginAlreadyUsedException(command.login());
         }
-        EntityId contactId = contactDirectoryPort.createContact(
-                new ContactDetails(command.lastName(), command.firstName(), command.email(), command.phone()));
+        EntityId partyId = partyDirectoryPort.createParty(
+                new PartyDetails(command.fullName(), command.email(), command.phone()));
         HashedPassword hashedPassword = passwordEncoderPort.encode(command.password());
-        User user = User.register(UserId.newId(), contactId, hashedPassword, command.login(), Role.ROLE_PROPERTY_MANAGER);
+        User user = User.register(UserId.newId(), partyId, hashedPassword, command.login(), Role.ROLE_PROPERTY_MANAGER);
         User savedUser = userRepository.save(user);
 
         propertyProvisioningPort.provisionProperty(new PropertyProvisioningDetails(
-                command.propertyName(), command.propertyAddress(), contactId));
+                command.propertyName(), command.propertyAddress(), partyId));
 
         String rawToken = tokenGenerator.generate();
         Instant expiresAt = clock.instant().plus(verificationTokenTtl);

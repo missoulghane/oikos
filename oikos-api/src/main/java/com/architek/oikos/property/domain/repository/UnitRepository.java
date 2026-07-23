@@ -5,6 +5,7 @@ import java.util.Optional;
 import com.architek.oikos.property.domain.model.Unit;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
+import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 
@@ -15,4 +16,6 @@ public interface UnitRepository {
     Optional<Unit> findById(UnitId id);
 
     Page<Unit> findAllByBuildingId(BuildingId buildingId, PageRequest pageRequest);
+
+    boolean existsByUnitTypeId(UnitTypeDefinitionId unitTypeId);
 }

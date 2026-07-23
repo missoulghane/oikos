@@ -22,6 +22,9 @@ oikos:
       secret: test-secret-key-for-jwt-signing-must-be-at-least-32-bytes-long
       access-token-ttl-seconds: 900
       refresh-token-ttl-seconds: 1209600
+  property:
+    configure:
+      max-units: 500
   mail:
     from: no-reply@oikos.ma
     verification-base-url: http://localhost:8080/api/v1/users/verify

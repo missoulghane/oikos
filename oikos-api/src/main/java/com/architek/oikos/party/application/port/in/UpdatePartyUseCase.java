@@ -1,9 +1,9 @@
-package com.architek.oikos.contact.application.port.in;
+package com.architek.oikos.party.application.port.in;
 
-import com.architek.oikos.contact.application.command.UpdateContactCommand;
-import com.architek.oikos.contact.application.dto.ContactView;
+import com.architek.oikos.party.application.command.UpdatePartyCommand;
+import com.architek.oikos.party.application.dto.PartyView;
 
-public interface UpdateContactUseCase {
+public interface UpdatePartyUseCase {
 
-    ContactView update(UpdateContactCommand command);
+    PartyView update(UpdatePartyCommand command);
 }

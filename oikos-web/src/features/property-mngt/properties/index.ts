@@ -1,0 +1,7 @@
+export { PropertiesPage } from '@/features/property-mngt/properties/pages/PropertiesPage';
+export { CreatePropertyPage } from '@/features/property-mngt/properties/pages/CreatePropertyPage';
+export { PropertyDetailLayout } from '@/features/property-mngt/properties/pages/PropertyDetailLayout';
+export { PropertyInfoSectionLayout } from '@/features/property-mngt/properties/pages/PropertyInfoSectionLayout';
+export { PropertyGeneralInfoTab } from '@/features/property-mngt/properties/pages/PropertyGeneralInfoTab';
+export { PropertyLotsTab } from '@/features/property-mngt/properties/pages/PropertyLotsTab';
+export { UnitDetailPage } from '@/features/property-mngt/properties/pages/UnitDetailPage';

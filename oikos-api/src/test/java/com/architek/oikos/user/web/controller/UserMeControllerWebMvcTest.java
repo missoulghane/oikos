@@ -69,7 +69,7 @@ class UserMeControllerWebMvcTest {
         UUID currentUserId = UUID.randomUUID();
         UserId userId = UserId.of(currentUserId);
         when(getUserUseCase.getUser(any())).thenReturn(
-                new UserView(userId, null, "Doe", "Jane", "user@oikos.com", null, Set.of(Role.ROLE_USER), true, true));
+                new UserView(userId, null, "Jane Doe", "user@oikos.com", null, Set.of(Role.ROLE_USER), true, true));
 
         mockMvc.perform(get("/api/v1/users/me").header("Authorization", bearerTokenFor(currentUserId)))
                 .andExpect(status().isOk())
@@ -77,12 +77,12 @@ class UserMeControllerWebMvcTest {
     }
 
     @Test
-    void update_profile_with_blank_first_name_returns_400() throws Exception {
+    void update_profile_with_blank_full_name_returns_400() throws Exception {
         mockMvc.perform(patch("/api/v1/users/me/profile")
                         .header("Authorization", bearerTokenFor(UUID.randomUUID()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"firstName":"","lastName":"Doe","email":"jane@doe.com"}
+                                {"fullName":"","email":"jane@doe.com"}
                                 """))
                 .andExpect(status().isBadRequest());
     }

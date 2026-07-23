@@ -1,26 +1,26 @@
-package com.architek.oikos.contact.application.usecase;
+package com.architek.oikos.party.application.usecase;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.architek.oikos.contact.application.dto.ContactView;
-import com.architek.oikos.contact.application.port.in.ListContactsUseCase;
-import com.architek.oikos.contact.application.query.ListContactsQuery;
-import com.architek.oikos.contact.domain.repository.ContactRepository;
+import com.architek.oikos.party.application.dto.PartyView;
+import com.architek.oikos.party.application.port.in.ListPartiesUseCase;
+import com.architek.oikos.party.application.query.ListPartiesQuery;
+import com.architek.oikos.party.domain.repository.PartyRepository;
 import com.architek.oikos.shared.domain.pagination.Page;
 
 @Component
-public class ListContactsService implements ListContactsUseCase {
+public class ListPartiesService implements ListPartiesUseCase {
 
-    private final ContactRepository contactRepository;
+    private final PartyRepository partyRepository;
 
-    public ListContactsService(ContactRepository contactRepository) {
-        this.contactRepository = contactRepository;
+    public ListPartiesService(PartyRepository partyRepository) {
+        this.partyRepository = partyRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ContactView> listContacts(ListContactsQuery query) {
-        return contactRepository.findAll(query.pageRequest(), query.criteria()).map(ContactView::from);
+    public Page<PartyView> listParties(ListPartiesQuery query) {
+        return partyRepository.findAll(query.pageRequest(), query.criteria()).map(PartyView::from);
     }
 }

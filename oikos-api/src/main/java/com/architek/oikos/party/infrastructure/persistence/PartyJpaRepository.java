@@ -1,4 +1,4 @@
-package com.architek.oikos.contact.infrastructure.persistence;
+package com.architek.oikos.party.infrastructure.persistence;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -6,11 +6,11 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface ContactJpaRepository extends JpaRepository<ContactEntity, UUID>, JpaSpecificationExecutor<ContactEntity> {
+public interface PartyJpaRepository extends JpaRepository<PartyEntity, UUID>, JpaSpecificationExecutor<PartyEntity> {
 
-    Optional<ContactEntity> findByEmail(String email);
+    Optional<PartyEntity> findByEmail(String email);
 
-    Optional<ContactEntity> findByPhone(String phone);
+    Optional<PartyEntity> findByPhone(String phone);
 
     boolean existsByEmail(String email);
 }

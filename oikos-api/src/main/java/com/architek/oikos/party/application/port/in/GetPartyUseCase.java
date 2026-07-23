@@ -1,9 +1,9 @@
-package com.architek.oikos.contact.application.port.in;
+package com.architek.oikos.party.application.port.in;
 
-import com.architek.oikos.contact.application.dto.ContactView;
-import com.architek.oikos.contact.application.query.GetContactQuery;
+import com.architek.oikos.party.application.dto.PartyView;
+import com.architek.oikos.party.application.query.GetPartyQuery;
 
-public interface GetContactUseCase {
+public interface GetPartyUseCase {
 
-    ContactView getContact(GetContactQuery query);
+    PartyView getParty(GetPartyQuery query);
 }

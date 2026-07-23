@@ -25,8 +25,8 @@ public class UnitOwnershipEntity extends AuditableEntity {
     @Column(name = "unit_id", nullable = false)
     private UUID unitId;
 
-    @Column(name = "contact_id", nullable = false)
-    private UUID contactId;
+    @Column(name = "party_id", nullable = false)
+    private UUID partyId;
 
     @Column(name = "ownership_share", nullable = false, precision = 5, scale = 2)
     private BigDecimal ownershipShare;

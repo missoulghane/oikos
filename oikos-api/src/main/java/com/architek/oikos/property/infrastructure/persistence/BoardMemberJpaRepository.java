@@ -11,5 +11,5 @@ public interface BoardMemberJpaRepository extends JpaRepository<BoardMemberEntit
 
     List<BoardMemberEntity> findByPropertyId(UUID propertyId);
 
-    boolean existsByPropertyIdAndContactIdAndBoardRole(UUID propertyId, UUID contactId, BoardRole boardRole);
+    boolean existsByPropertyIdAndPartyIdAndBoardRole(UUID propertyId, UUID partyId, BoardRole boardRole);
 }

@@ -21,6 +21,7 @@ import com.architek.oikos.property.application.query.GetUnitQuery;
 import com.architek.oikos.property.application.query.ListUnitsByBuildingQuery;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
+import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.property.web.request.AddUnitRequest;
 import com.architek.oikos.property.web.response.UnitResponse;
 import com.architek.oikos.property.web.response.PagedUnitResponse;
@@ -58,7 +59,8 @@ public class UnitController {
     @PostMapping("/buildings/{buildingId}/units")
     public ResponseEntity<Void> add(@PathVariable String buildingId, @Valid @RequestBody AddUnitRequest request) {
         UnitId id = addUnitUseCase.add(new AddUnitCommand(
-                BuildingId.of(buildingId), request.unitNumber(), request.unitType(), request.shares()));
+                BuildingId.of(buildingId), request.unitNumber(), UnitTypeDefinitionId.of(request.unitTypeId()),
+                request.shares()));
         return ResponseEntity.created(URI.create("/api/v1/units/" + id)).build();
     }
 }

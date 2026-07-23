@@ -5,7 +5,7 @@ import java.util.Objects;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.Shares;
-import com.architek.oikos.property.domain.valueobject.UnitType;
+import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 
 /**
  * Unite privative au sein d'un building. Immutable: toute mutation retourne
@@ -17,23 +17,25 @@ public final class Unit {
     private final UnitId id;
     private final BuildingId buildingId;
     private final String unitNumber;
-    private final UnitType unitType;
+    private final UnitTypeDefinitionId unitTypeId;
     private final Shares shares;
 
-    private Unit(UnitId id, BuildingId buildingId, String unitNumber, UnitType unitType, Shares shares) {
+    private Unit(UnitId id, BuildingId buildingId, String unitNumber, UnitTypeDefinitionId unitTypeId, Shares shares) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.buildingId = Objects.requireNonNull(buildingId, "buildingId must not be null");
         this.unitNumber = requireNonBlank(unitNumber, "unitNumber");
-        this.unitType = Objects.requireNonNull(unitType, "unitType must not be null");
+        this.unitTypeId = Objects.requireNonNull(unitTypeId, "unitTypeId must not be null");
         this.shares = Objects.requireNonNull(shares, "shares must not be null");
     }
 
-    public static Unit create(UnitId id, BuildingId buildingId, String unitNumber, UnitType unitType, Shares shares) {
-        return new Unit(id, buildingId, unitNumber, unitType, shares);
+    public static Unit create(UnitId id, BuildingId buildingId, String unitNumber, UnitTypeDefinitionId unitTypeId,
+                               Shares shares) {
+        return new Unit(id, buildingId, unitNumber, unitTypeId, shares);
     }
 
-    public static Unit reconstruct(UnitId id, BuildingId buildingId, String unitNumber, UnitType unitType, Shares shares) {
-        return new Unit(id, buildingId, unitNumber, unitType, shares);
+    public static Unit reconstruct(UnitId id, BuildingId buildingId, String unitNumber, UnitTypeDefinitionId unitTypeId,
+                                    Shares shares) {
+        return new Unit(id, buildingId, unitNumber, unitTypeId, shares);
     }
 
     private static String requireNonBlank(String value, String fieldName) {
@@ -55,8 +57,8 @@ public final class Unit {
         return unitNumber;
     }
 
-    public UnitType getUnitType() {
-        return unitType;
+    public UnitTypeDefinitionId getUnitTypeId() {
+        return unitTypeId;
     }
 
     public Shares getShares() {

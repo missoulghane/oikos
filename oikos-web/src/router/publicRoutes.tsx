@@ -2,14 +2,14 @@ import { lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router-dom';
 import { Loader } from '@/shared/components/Loader/Loader';
 
-const LoginPage = lazy(() => import('@/features/auth').then((m) => ({ default: m.LoginPage })));
-const RegisterUserPage = lazy(() => import('@/features/register').then((m) => ({ default: m.RegisterUserPage })));
+const LoginPage = lazy(() => import('@/features/identity/auth').then((m) => ({ default: m.LoginPage })));
+const RegisterUserPage = lazy(() => import('@/features/identity/register').then((m) => ({ default: m.RegisterUserPage })));
 const RegisterPropertyManagerPage = lazy(() =>
-  import('@/features/register').then((m) => ({ default: m.RegisterPropertyManagerPage })),
+  import('@/features/identity/register').then((m) => ({ default: m.RegisterPropertyManagerPage })),
 );
-const VerifyEmailPage = lazy(() => import('@/features/register').then((m) => ({ default: m.VerifyEmailPage })));
+const VerifyEmailPage = lazy(() => import('@/features/identity/register').then((m) => ({ default: m.VerifyEmailPage })));
 const ActivateAccountPage = lazy(() =>
-  import('@/features/register').then((m) => ({ default: m.ActivateAccountPage })),
+  import('@/features/identity/register').then((m) => ({ default: m.ActivateAccountPage })),
 );
 
 export const publicRoutes: RouteObject[] = [

@@ -14,7 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.property.application.command.AddUnitOwnershipCommand;
-import com.architek.oikos.property.domain.exception.ContactAlreadyOwnsUnitException;
+import com.architek.oikos.property.domain.exception.PartyAlreadyOwnsUnitException;
 import com.architek.oikos.property.domain.exception.UnitNotFoundException;
 import com.architek.oikos.property.domain.exception.OwnershipShareExceededException;
 import com.architek.oikos.property.domain.model.Unit;
@@ -27,7 +27,7 @@ import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.OwnershipShare;
 import com.architek.oikos.property.domain.valueobject.UnitOwnershipId;
 import com.architek.oikos.property.domain.valueobject.Shares;
-import com.architek.oikos.property.domain.valueobject.UnitType;
+import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,14 +44,14 @@ class AddUnitOwnershipServiceTest {
     }
 
     private static Unit existingUnit(UnitId id) {
-        return Unit.create(id, BuildingId.newId(), "A12", UnitType.APARTMENT, Shares.of(BigDecimal.TEN));
+        return Unit.create(id, BuildingId.newId(), "A12", UnitTypeDefinitionId.newId(), Shares.of(BigDecimal.TEN));
     }
 
     @Test
     void adding_an_owner_within_the_available_share_persists_it() {
         UnitId unitId = UnitId.newId();
         when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
-        when(unitOwnershipRepository.existsByUnitIdAndContactId(any(), any())).thenReturn(false);
+        when(unitOwnershipRepository.existsByUnitIdAndPartyId(any(), any())).thenReturn(false);
         when(unitOwnershipRepository.findAllByUnitId(unitId)).thenReturn(List.of());
         when(unitOwnershipRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -62,7 +62,7 @@ class AddUnitOwnershipServiceTest {
     void adding_an_owner_that_would_push_the_total_share_above_100_is_rejected() {
         UnitId unitId = UnitId.newId();
         when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
-        when(unitOwnershipRepository.existsByUnitIdAndContactId(any(), any())).thenReturn(false);
+        when(unitOwnershipRepository.existsByUnitIdAndPartyId(any(), any())).thenReturn(false);
         when(unitOwnershipRepository.findAllByUnitId(unitId)).thenReturn(List.of(
                 UnitOwnership.create(UnitOwnershipId.newId(), unitId, EntityId.newId(), OwnershipShare.of(new BigDecimal("60")))));
 
@@ -71,13 +71,13 @@ class AddUnitOwnershipServiceTest {
     }
 
     @Test
-    void adding_the_same_contact_twice_on_the_same_unit_is_rejected() {
+    void adding_the_same_party_twice_on_the_same_unit_is_rejected() {
         UnitId unitId = UnitId.newId();
         when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
-        when(unitOwnershipRepository.existsByUnitIdAndContactId(any(), any())).thenReturn(true);
+        when(unitOwnershipRepository.existsByUnitIdAndPartyId(any(), any())).thenReturn(true);
 
         assertThatThrownBy(() -> newService().add(new AddUnitOwnershipCommand(unitId, EntityId.newId(), BigDecimal.TEN)))
-                .isInstanceOf(ContactAlreadyOwnsUnitException.class);
+                .isInstanceOf(PartyAlreadyOwnsUnitException.class);
     }
 
     @Test

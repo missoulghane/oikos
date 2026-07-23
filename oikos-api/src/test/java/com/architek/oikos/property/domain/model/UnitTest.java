@@ -10,18 +10,19 @@ import org.junit.jupiter.api.Test;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.Shares;
-import com.architek.oikos.property.domain.valueobject.UnitType;
+import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 
 class UnitTest {
 
     @Test
     void create_builds_a_unit_with_the_given_fields() {
         BuildingId buildingId = BuildingId.newId();
-        Unit unit = Unit.create(UnitId.newId(), buildingId, "A12", UnitType.APARTMENT, Shares.of(new BigDecimal("150")));
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        Unit unit = Unit.create(UnitId.newId(), buildingId, "A12", unitTypeId, Shares.of(new BigDecimal("150")));
 
         assertThat(unit.getBuildingId()).isEqualTo(buildingId);
         assertThat(unit.getUnitNumber()).isEqualTo("A12");
-        assertThat(unit.getUnitType()).isEqualTo(UnitType.APARTMENT);
+        assertThat(unit.getUnitTypeId()).isEqualTo(unitTypeId);
         assertThat(unit.getShares().value()).isEqualByComparingTo("150");
     }
 
@@ -34,8 +35,8 @@ class UnitTest {
     @Test
     void equality_is_based_on_identity_not_on_field_values() {
         UnitId id = UnitId.newId();
-        Unit a = Unit.create(id, BuildingId.newId(), "A12", UnitType.APARTMENT, Shares.of(BigDecimal.TEN));
-        Unit b = Unit.create(id, BuildingId.newId(), "B34", UnitType.PARKING, Shares.of(BigDecimal.ONE));
+        Unit a = Unit.create(id, BuildingId.newId(), "A12", UnitTypeDefinitionId.newId(), Shares.of(BigDecimal.TEN));
+        Unit b = Unit.create(id, BuildingId.newId(), "B34", UnitTypeDefinitionId.newId(), Shares.of(BigDecimal.ONE));
 
         assertThat(a).isEqualTo(b);
     }
