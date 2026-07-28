@@ -6,8 +6,6 @@ describe('createPropertySchema', () => {
     const result = createPropertySchema.safeParse({
       name: 'Résidence Les Oliviers',
       address: '12 rue de la Paix, Casablanca',
-      firstBuildingName: 'Bâtiment A',
-      firstBuildingFloorCount: 4,
     });
 
     expect(result.success).toBe(true);
@@ -17,30 +15,15 @@ describe('createPropertySchema', () => {
     const result = createPropertySchema.safeParse({
       name: '',
       address: '12 rue de la Paix, Casablanca',
-      firstBuildingName: 'Bâtiment A',
-      firstBuildingFloorCount: 4,
     });
 
     expect(result.success).toBe(false);
   });
 
-  it('rejects a negative floor count', () => {
+  it('rejects a blank address', () => {
     const result = createPropertySchema.safeParse({
       name: 'Résidence Les Oliviers',
-      address: '12 rue de la Paix, Casablanca',
-      firstBuildingName: 'Bâtiment A',
-      firstBuildingFloorCount: -1,
-    });
-
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects a missing floor count', () => {
-    const result = createPropertySchema.safeParse({
-      name: 'Résidence Les Oliviers',
-      address: '12 rue de la Paix, Casablanca',
-      firstBuildingName: 'Bâtiment A',
-      firstBuildingFloorCount: NaN,
+      address: '',
     });
 
     expect(result.success).toBe(false);

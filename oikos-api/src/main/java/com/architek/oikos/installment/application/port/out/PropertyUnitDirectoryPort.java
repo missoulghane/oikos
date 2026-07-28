@@ -6,8 +6,8 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
  * Outbound port used to resolve every unit belonging to a property (a
- * "résidence"), so accounting can list installments across a whole property.
- * Implemented in accounting.infrastructure.adapter by delegating to property's
+ * "résidence"), so installment can list installments across a whole property.
+ * Implemented in installment.infrastructure.adapter by delegating to property's
  * public port-in use cases (ListBuildingsByPropertyUseCase,
  * ListUnitsByBuildingUseCase), never to property's repositories directly
  * (rule 4).

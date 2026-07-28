@@ -40,7 +40,7 @@ export function InstallmentCallRow({ installmentCall }: { installmentCall: Insta
           {detail.isError && <Alert message={getErrorMessage(detail.error)} />}
           {detail.data && detail.data.installments.length === 0 && (
             <EmptyState title="Aucune échéance">
-              Tous les lots ont été ignorés (prix non configuré ou compte non provisionné).
+              Tous les lots ont été ignorés (prix non configuré).
             </EmptyState>
           )}
           {detail.data && detail.data.installments.length > 0 && (

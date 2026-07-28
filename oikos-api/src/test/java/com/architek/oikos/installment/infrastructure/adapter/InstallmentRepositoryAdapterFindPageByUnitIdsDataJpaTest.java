@@ -13,15 +13,12 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
 
-import com.architek.oikos.installment.domain.model.Allocation;
 import com.architek.oikos.installment.domain.model.Installment;
-import com.architek.oikos.installment.domain.valueobject.AllocationId;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.installment.domain.valueobject.InstallmentFilter;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentSortField;
 import com.architek.oikos.installment.domain.valueobject.InstallmentStatus;
-import com.architek.oikos.installment.infrastructure.mapper.AllocationPersistenceMapperImpl;
 import com.architek.oikos.installment.infrastructure.mapper.InstallmentPersistenceMapperImpl;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
@@ -31,8 +28,7 @@ import com.architek.oikos.shared.infrastructure.configuration.JpaAuditingConfigu
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({InstallmentRepositoryAdapter.class, InstallmentPersistenceMapperImpl.class,
-        AllocationRepositoryAdapter.class, AllocationPersistenceMapperImpl.class, JpaAuditingConfiguration.class})
+@Import({InstallmentRepositoryAdapter.class, InstallmentPersistenceMapperImpl.class, JpaAuditingConfiguration.class})
 class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 7, 22);
@@ -40,38 +36,28 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
     @Autowired
     private InstallmentRepositoryAdapter installmentAdapter;
 
-    @Autowired
-    private AllocationRepositoryAdapter allocationAdapter;
-
     private EntityId unitA;
     private EntityId unitB;
     private Installment notPaid;
     private Installment overdue;
-    private Installment partiallyPaid;
-    private Installment paid;
+    private Installment otherNotPaid;
 
     private void seed() {
         unitA = EntityId.newId();
         unitB = EntityId.newId();
         EntityId otherUnit = EntityId.newId();
-        EntityId account = EntityId.newId();
 
-        notPaid = Installment.create(InstallmentId.newId(), account, unitA, TODAY.plusDays(10), Amount.of(new BigDecimal("100")));
+        notPaid = Installment.create(InstallmentId.newId(), unitA, TODAY.plusDays(10), Amount.of(new BigDecimal("100")));
         installmentAdapter.save(notPaid);
 
-        overdue = Installment.create(InstallmentId.newId(), account, unitA, TODAY.minusDays(5), Amount.of(new BigDecimal("200")));
+        overdue = Installment.create(InstallmentId.newId(), unitA, TODAY.minusDays(5), Amount.of(new BigDecimal("200")));
         installmentAdapter.save(overdue);
 
-        partiallyPaid = Installment.create(InstallmentId.newId(), account, unitB, TODAY.plusDays(20), Amount.of(new BigDecimal("300")));
-        installmentAdapter.save(partiallyPaid);
-        allocationAdapter.save(Allocation.create(AllocationId.newId(), EntityId.newId(),partiallyPaid.getId(), Amount.of(new BigDecimal("50"))));
-
-        paid = Installment.create(InstallmentId.newId(), account, unitB, TODAY.plusDays(1), Amount.of(new BigDecimal("400")));
-        installmentAdapter.save(paid);
-        allocationAdapter.save(Allocation.create(AllocationId.newId(), EntityId.newId(),paid.getId(), Amount.of(new BigDecimal("400"))));
+        otherNotPaid = Installment.create(InstallmentId.newId(), unitB, TODAY.plusDays(20), Amount.of(new BigDecimal("300")));
+        installmentAdapter.save(otherNotPaid);
 
         // belongs to a unit outside the residence being queried - must never appear
-        installmentAdapter.save(Installment.create(InstallmentId.newId(), account, otherUnit, TODAY, Amount.of(new BigDecimal("999"))));
+        installmentAdapter.save(Installment.create(InstallmentId.newId(), otherUnit, TODAY, Amount.of(new BigDecimal("999"))));
     }
 
     @Test
@@ -82,9 +68,9 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
                 new InstallmentFilter(Set.of(), null, null, InstallmentSortField.AMOUNT, SortDirection.DESC),
                 TODAY, PageRequest.of(0, 10));
 
-        assertThat(page.totalElements()).isEqualTo(4);
+        assertThat(page.totalElements()).isEqualTo(3);
         assertThat(page.content()).extracting(i -> i.getAmount().value().doubleValue())
-                .containsExactly(400d, 300d, 200d, 100d);
+                .containsExactly(300d, 200d, 100d);
     }
 
     @Test
@@ -97,20 +83,10 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
                 TODAY, PageRequest.of(0, 10));
         assertThat(overduePage.content()).extracting(Installment::getId).containsExactly(overdue.getId());
 
-        Page<Installment> paidPage = installmentAdapter.findPageByUnitIds(unitIds,
-                new InstallmentFilter(Set.of(InstallmentStatus.PAID), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC),
-                TODAY, PageRequest.of(0, 10));
-        assertThat(paidPage.content()).extracting(Installment::getId).containsExactly(paid.getId());
-
-        Page<Installment> partiallyPaidPage = installmentAdapter.findPageByUnitIds(unitIds,
-                new InstallmentFilter(Set.of(InstallmentStatus.PARTIALLY_PAID), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC),
-                TODAY, PageRequest.of(0, 10));
-        assertThat(partiallyPaidPage.content()).extracting(Installment::getId).containsExactly(partiallyPaid.getId());
-
         Page<Installment> notPaidPage = installmentAdapter.findPageByUnitIds(unitIds,
                 new InstallmentFilter(Set.of(InstallmentStatus.NOT_PAID), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC),
                 TODAY, PageRequest.of(0, 10));
-        assertThat(notPaidPage.content()).extracting(Installment::getId).containsExactly(notPaid.getId());
+        assertThat(notPaidPage.content()).extracting(Installment::getId).containsExactly(notPaid.getId(), otherNotPaid.getId());
     }
 
     @Test
@@ -121,7 +97,7 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
                 new InstallmentFilter(Set.of(), TODAY, TODAY.plusDays(15), InstallmentSortField.DUE_DATE, SortDirection.ASC),
                 TODAY, PageRequest.of(0, 10));
 
-        assertThat(page.content()).extracting(Installment::getId).containsExactly(paid.getId(), notPaid.getId());
+        assertThat(page.content()).extracting(Installment::getId).containsExactly(notPaid.getId());
     }
 
     @Test
@@ -132,7 +108,7 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
                 InstallmentFilter.defaultFilter(), TODAY, PageRequest.of(0, 2));
 
         assertThat(firstPage.content()).hasSize(2);
-        assertThat(firstPage.totalElements()).isEqualTo(4);
+        assertThat(firstPage.totalElements()).isEqualTo(3);
         assertThat(firstPage.totalPages()).isEqualTo(2);
     }
 }

@@ -22,8 +22,6 @@ describe('CreatePropertyForm', () => {
 
     await user.type(screen.getByLabelText('Nom de la copropriété'), 'Résidence Les Oliviers');
     await user.type(screen.getByLabelText('Adresse'), '12 rue de la Paix, Casablanca');
-    await user.type(screen.getByLabelText("Nom de l'immeuble"), 'Bâtiment A');
-    await user.type(screen.getByLabelText("Nombre d'étages"), '4');
     await user.click(screen.getByRole('button', { name: /créer la copropriété/i }));
 
     await waitFor(() =>
@@ -31,8 +29,6 @@ describe('CreatePropertyForm', () => {
         {
           name: 'Résidence Les Oliviers',
           address: '12 rue de la Paix, Casablanca',
-          firstBuildingName: 'Bâtiment A',
-          firstBuildingFloorCount: 4,
         },
         expect.anything(),
       ),

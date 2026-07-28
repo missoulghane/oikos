@@ -82,6 +82,25 @@ class PartyControllerWebMvcTest {
     }
 
     @Test
+    void property_manager_can_list_parties() throws Exception {
+        when(listPartiesUseCase.listParties(any())).thenReturn(Page.of(List.of(), 0, 20, 0));
+
+        mockMvc.perform(get("/api/v1/parties").header("Authorization", bearerToken("ROLE_PROPERTY_MANAGER")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void property_manager_is_forbidden_from_creating_a_party() throws Exception {
+        mockMvc.perform(post("/api/v1/parties")
+                        .header("Authorization", bearerToken("ROLE_PROPERTY_MANAGER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fullName":"Jane Doe","partyType":"INDIVIDUAL","email":"jane@doe.com"}
+                                """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void admin_can_get_a_party_by_id() throws Exception {
         PartyId id = PartyId.newId();
         when(getPartyUseCase.getParty(any())).thenReturn(new PartyView(id, "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));

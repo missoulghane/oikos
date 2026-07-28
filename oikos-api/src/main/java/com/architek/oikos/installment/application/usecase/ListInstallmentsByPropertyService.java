@@ -11,7 +11,6 @@ import com.architek.oikos.installment.application.dto.InstallmentView;
 import com.architek.oikos.installment.application.port.in.ListInstallmentsByPropertyUseCase;
 import com.architek.oikos.installment.application.port.out.PropertyUnitDirectoryPort;
 import com.architek.oikos.installment.application.query.ListInstallmentsByPropertyQuery;
-import com.architek.oikos.installment.domain.repository.AllocationRepository;
 import com.architek.oikos.installment.domain.repository.InstallmentRepository;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -21,15 +20,12 @@ public class ListInstallmentsByPropertyService implements ListInstallmentsByProp
 
     private final PropertyUnitDirectoryPort propertyUnitDirectoryPort;
     private final InstallmentRepository installmentRepository;
-    private final AllocationRepository allocationRepository;
     private final Clock clock;
 
     public ListInstallmentsByPropertyService(PropertyUnitDirectoryPort propertyUnitDirectoryPort,
-                                              InstallmentRepository installmentRepository,
-                                              AllocationRepository allocationRepository, Clock clock) {
+                                              InstallmentRepository installmentRepository, Clock clock) {
         this.propertyUnitDirectoryPort = propertyUnitDirectoryPort;
         this.installmentRepository = installmentRepository;
-        this.allocationRepository = allocationRepository;
         this.clock = clock;
     }
 
@@ -43,6 +39,6 @@ public class ListInstallmentsByPropertyService implements ListInstallmentsByProp
 
         LocalDate today = LocalDate.now(clock);
         return installmentRepository.findPageByUnitIds(unitIds, query.filter(), today, query.pageRequest())
-                .map(installment -> InstallmentViewFactory.build(installment, allocationRepository, today));
+                .map(installment -> InstallmentViewFactory.build(installment, today));
     }
 }

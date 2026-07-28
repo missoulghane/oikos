@@ -10,18 +10,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.architek.oikos.installment.application.port.in.GetInstallmentUseCase;
-import com.architek.oikos.installment.application.port.in.ListAllocationsByInstallmentUseCase;
 import com.architek.oikos.installment.application.port.in.ListInstallmentsByPropertyUseCase;
 import com.architek.oikos.installment.application.port.in.ListInstallmentsByUnitUseCase;
 import com.architek.oikos.installment.application.query.GetInstallmentQuery;
-import com.architek.oikos.installment.application.query.ListAllocationsByInstallmentQuery;
 import com.architek.oikos.installment.application.query.ListInstallmentsByPropertyQuery;
 import com.architek.oikos.installment.application.query.ListInstallmentsByUnitQuery;
 import com.architek.oikos.installment.domain.valueobject.InstallmentFilter;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentSortField;
 import com.architek.oikos.installment.domain.valueobject.InstallmentStatus;
-import com.architek.oikos.installment.web.response.AllocationResponse;
 import com.architek.oikos.installment.web.response.InstallmentResponse;
 import com.architek.oikos.installment.web.response.PagedInstallmentResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
@@ -34,16 +31,13 @@ public class InstallmentController {
     private final ListInstallmentsByUnitUseCase listInstallmentsByUnitUseCase;
     private final ListInstallmentsByPropertyUseCase listInstallmentsByPropertyUseCase;
     private final GetInstallmentUseCase getInstallmentUseCase;
-    private final ListAllocationsByInstallmentUseCase listAllocationsByInstallmentUseCase;
 
     public InstallmentController(ListInstallmentsByUnitUseCase listInstallmentsByUnitUseCase,
                                   ListInstallmentsByPropertyUseCase listInstallmentsByPropertyUseCase,
-                                  GetInstallmentUseCase getInstallmentUseCase,
-                                  ListAllocationsByInstallmentUseCase listAllocationsByInstallmentUseCase) {
+                                  GetInstallmentUseCase getInstallmentUseCase) {
         this.listInstallmentsByUnitUseCase = listInstallmentsByUnitUseCase;
         this.listInstallmentsByPropertyUseCase = listInstallmentsByPropertyUseCase;
         this.getInstallmentUseCase = getInstallmentUseCase;
-        this.listAllocationsByInstallmentUseCase = listAllocationsByInstallmentUseCase;
     }
 
     @GetMapping("/units/{unitId}/installments")
@@ -70,13 +64,5 @@ public class InstallmentController {
     @GetMapping("/installments/{id}")
     public InstallmentResponse getById(@PathVariable String id) {
         return InstallmentResponse.from(getInstallmentUseCase.getInstallment(new GetInstallmentQuery(InstallmentId.of(id))));
-    }
-
-    @GetMapping("/installments/{id}/allocations")
-    public List<AllocationResponse> listAllocations(@PathVariable String id) {
-        return listAllocationsByInstallmentUseCase.listAllocations(new ListAllocationsByInstallmentQuery(InstallmentId.of(id)))
-                .stream()
-                .map(AllocationResponse::from)
-                .toList();
     }
 }

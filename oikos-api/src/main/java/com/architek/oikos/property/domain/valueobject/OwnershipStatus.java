@@ -6,6 +6,6 @@ package com.architek.oikos.property.domain.valueobject;
  * lui-meme.
  */
 public enum OwnershipStatus {
-    SOLD,
-    UNSOLD_DEVELOPER
+    AFFECTED,
+    NOT_AFFECTED
 }

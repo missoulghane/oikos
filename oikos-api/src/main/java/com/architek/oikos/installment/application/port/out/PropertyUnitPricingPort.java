@@ -9,7 +9,7 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * currently configured price (per UnitTypePricing), so
  * GenerateInstallmentCallUseCase can price a bulk installment call without
  * knowing anything about property's persistence (rule 4). Implemented in
- * accounting.infrastructure.adapter by delegating to property's public port-in
+ * installment.infrastructure.adapter by delegating to property's public port-in
  * use cases (ListBuildingsByPropertyUseCase, ListUnitsByBuildingUseCase,
  * ListUnitTypePricesByPropertyUseCase).
  */

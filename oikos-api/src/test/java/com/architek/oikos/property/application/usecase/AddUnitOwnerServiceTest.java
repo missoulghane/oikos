@@ -62,7 +62,7 @@ class AddUnitOwnerServiceTest {
         when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
 
         newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"),
-                new BigDecimal("50")));
+                null, new BigDecimal("50")));
 
         verify(partyDirectoryPort, never()).createParty(any());
         ArgumentCaptor<AddUnitOwnershipCommand> captor = ArgumentCaptor.forClass(AddUnitOwnershipCommand.class);
@@ -81,7 +81,7 @@ class AddUnitOwnerServiceTest {
         when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
 
         newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"),
-                new BigDecimal("50")));
+                null, new BigDecimal("50")));
 
         ArgumentCaptor<PartyDetails> partyCaptor = ArgumentCaptor.forClass(PartyDetails.class);
         verify(partyDirectoryPort).createParty(partyCaptor.capture());
@@ -99,7 +99,7 @@ class AddUnitOwnerServiceTest {
         when(unitRepository.findById(unitId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL,
-                EmailVO.of("jane.doe@example.com"), BigDecimal.TEN)))
+                EmailVO.of("jane.doe@example.com"), null, BigDecimal.TEN)))
                 .isInstanceOf(UnitNotFoundException.class);
 
         verify(partyDirectoryPort, never()).findIdByEmail(any());

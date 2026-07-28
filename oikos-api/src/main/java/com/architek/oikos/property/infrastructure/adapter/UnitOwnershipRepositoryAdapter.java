@@ -2,6 +2,7 @@ package com.architek.oikos.property.infrastructure.adapter;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
@@ -40,6 +41,17 @@ public class UnitOwnershipRepositoryAdapter implements UnitOwnershipRepository {
     @Override
     public List<UnitOwnership> findAllByUnitId(UnitId unitId) {
         return jpaRepository.findByUnitId(unitId.asUuid()).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<UnitOwnership> findAllByUnitIds(List<UnitId> unitIds) {
+        List<UUID> ids = unitIds.stream().map(UnitId::asUuid).toList();
+        return jpaRepository.findByUnitIdIn(ids).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<UnitOwnership> findAllByPartyId(EntityId partyId) {
+        return jpaRepository.findByPartyId(partyId.value()).stream().map(mapper::toDomain).toList();
     }
 
     @Override

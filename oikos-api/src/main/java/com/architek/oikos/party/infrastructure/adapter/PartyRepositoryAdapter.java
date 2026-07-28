@@ -58,6 +58,11 @@ public class PartyRepositoryAdapter implements PartyRepository {
     }
 
     @Override
+    public boolean existsByPhone(String phone) {
+        return jpaRepository.existsByPhone(phone);
+    }
+
+    @Override
     public Page<Party> findAll(PageRequest pageRequest, PartySearchCriteria criteria) {
         Pageable pageable = Pageable.ofSize(pageRequest.pageSize()).withPage(pageRequest.pageNumber());
         Specification<PartyEntity> specification = PartySpecifications.matching(criteria);

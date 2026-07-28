@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.architek.oikos.party.application.command.CreatePartyCommand;
 import com.architek.oikos.party.application.port.in.CreatePartyUseCase;
 import com.architek.oikos.party.domain.exception.EmailAlreadyUsedException;
+import com.architek.oikos.party.domain.exception.PhoneAlreadyUsedException;
 import com.architek.oikos.party.domain.model.Party;
 import com.architek.oikos.party.domain.repository.PartyRepository;
 import com.architek.oikos.party.domain.valueobject.PartyId;
@@ -24,6 +25,9 @@ public class CreatePartyService implements CreatePartyUseCase {
     public PartyId create(CreatePartyCommand command) {
         if (partyRepository.existsByEmail(command.email())) {
             throw new EmailAlreadyUsedException(command.email().value());
+        }
+        if (command.phone() != null && !command.phone().isBlank() && partyRepository.existsByPhone(command.phone())) {
+            throw new PhoneAlreadyUsedException(command.phone());
         }
         Party party = Party.create(PartyId.newId(), command.fullName(), command.partyType(),
                 command.email(), command.phone());

@@ -11,8 +11,11 @@ export type PagedProperties = Paged<Property>;
 export interface CreatePropertyPayload {
   name: string;
   address: string;
-  firstBuildingName: string;
-  firstBuildingFloorCount: number;
+}
+
+export interface AddBuildingPayload {
+  name: string;
+  floorCount: number;
 }
 
 export interface UpdatePropertyPayload {
@@ -35,7 +38,7 @@ export interface UnitTypeDefinition {
   name: string;
 }
 
-export type OwnershipStatus = 'SOLD' | 'UNSOLD_DEVELOPER';
+export type OwnershipStatus = 'AFFECTED' | 'NOT_AFFECTED';
 
 export interface Unit {
   id: string;
@@ -72,5 +75,23 @@ export interface AddUnitOwnerPayload {
   fullName: string;
   partyType: PartyType;
   email: string;
+  phone?: string;
+  ownershipShare: number;
+}
+
+export interface AddUnitOwnershipPayload {
+  partyId: string;
+  ownershipShare: number;
+}
+
+export interface PropertyContact {
+  id: string;
+  partyId: string;
+  partyFullName: string;
+  partyType: PartyType;
+  partyEmail: string;
+  unitId: string;
+  unitNumber: string;
+  buildingName: string;
   ownershipShare: number;
 }

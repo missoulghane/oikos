@@ -18,8 +18,6 @@ public interface InstallmentRepository {
 
     Optional<Installment> findById(InstallmentId id);
 
-    List<Installment> findAllByAccountId(EntityId accountId);
-
     List<Installment> findAllByUnitId(EntityId unitId);
 
     List<Installment> findAllByInstallmentCallId(InstallmentCallId installmentCallId);

@@ -71,7 +71,7 @@ public class UnitOwnershipController {
     public ResponseEntity<Void> addWithNewParty(@PathVariable String unitId,
                                                     @Valid @RequestBody AddUnitOwnerRequest request) {
         UnitOwnershipId id = addUnitOwnerUseCase.add(new AddUnitOwnerCommand(UnitId.of(unitId), request.fullName(),
-                request.partyType(), EmailVO.of(request.email()), request.ownershipShare()));
+                request.partyType(), EmailVO.of(request.email()), request.phone(), request.ownershipShare()));
         return ResponseEntity.created(URI.create("/api/v1/units/" + unitId + "/owners/" + id)).build();
     }
 

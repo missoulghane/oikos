@@ -49,6 +49,15 @@ class PartyRepositoryAdapterDataJpaTest {
     }
 
     @Test
+    void existsByPhone_reflects_persisted_state() {
+        assertThat(adapter.existsByPhone("0611223344")).isFalse();
+
+        adapter.save(Party.create(PartyId.newId(), "A B", PartyType.INDIVIDUAL, EmailVO.of("phone-test@oikos.com"), "0611223344"));
+
+        assertThat(adapter.existsByPhone("0611223344")).isTrue();
+    }
+
+    @Test
     void findByEmail_returns_the_matching_party() {
         Party party = newParty();
         adapter.save(party);

@@ -23,9 +23,6 @@ public class InstallmentEntity extends AuditableEntity {
     @Id
     private UUID id;
 
-    @Column(name = "account_id", nullable = false)
-    private UUID accountId;
-
     @Column(name = "unit_id", nullable = false)
     private UUID unitId;
 

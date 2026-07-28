@@ -21,7 +21,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.installment.application.dto.InstallmentView;
 import com.architek.oikos.installment.application.port.in.GetInstallmentUseCase;
-import com.architek.oikos.installment.application.port.in.ListAllocationsByInstallmentUseCase;
 import com.architek.oikos.installment.application.port.in.ListInstallmentsByPropertyUseCase;
 import com.architek.oikos.installment.application.port.in.ListInstallmentsByUnitUseCase;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
@@ -48,9 +47,6 @@ class InstallmentControllerWebMvcTest {
 
     @MockitoBean
     private GetInstallmentUseCase getInstallmentUseCase;
-
-    @MockitoBean
-    private ListAllocationsByInstallmentUseCase listAllocationsByInstallmentUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
@@ -98,20 +94,10 @@ class InstallmentControllerWebMvcTest {
     @Test
     void gets_an_installment_by_id() throws Exception {
         InstallmentId id = InstallmentId.newId();
-        when(getInstallmentUseCase.getInstallment(any())).thenReturn(new InstallmentView(id, EntityId.newId(),
-                EntityId.newId(), LocalDate.of(2027, 1, 1), new BigDecimal("250"), BigDecimal.ZERO,
-                new BigDecimal("250"), InstallmentStatus.NOT_PAID));
+        when(getInstallmentUseCase.getInstallment(any())).thenReturn(new InstallmentView(id,
+                EntityId.newId(), LocalDate.of(2027, 1, 1), new BigDecimal("250"), InstallmentStatus.NOT_PAID));
 
         mockMvc.perform(get("/api/v1/installments/" + id).header("Authorization", bearerToken("ROLE_USER")))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void lists_allocations_of_an_installment() throws Exception {
-        InstallmentId id = InstallmentId.newId();
-        when(listAllocationsByInstallmentUseCase.listAllocations(any())).thenReturn(List.of());
-
-        mockMvc.perform(get("/api/v1/installments/" + id + "/allocations").header("Authorization", bearerToken("ROLE_USER")))
                 .andExpect(status().isOk());
     }
 }

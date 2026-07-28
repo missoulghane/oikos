@@ -33,7 +33,7 @@ public class PropertyProvisioningAdapter implements PropertyProvisioningPort {
     @Override
     public EntityId provisionProperty(PropertyProvisioningDetails details) {
         PropertyId propertyId = createPropertyUseCase.create(new CreatePropertyCommand(
-                details.name(), details.address(), null, null));
+                details.name(), details.address()));
 
         addBoardMemberUseCase.add(new AddBoardMemberCommand(propertyId, details.managerPartyId(), BoardRole.PROPERTY_MANAGER));
 

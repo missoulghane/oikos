@@ -47,11 +47,6 @@ public class InstallmentRepositoryAdapter implements InstallmentRepository {
     }
 
     @Override
-    public List<Installment> findAllByAccountId(EntityId accountId) {
-        return jpaRepository.findAllByAccountId(accountId.value()).stream().map(mapper::toDomain).toList();
-    }
-
-    @Override
     public List<Installment> findAllByUnitId(EntityId unitId) {
         return jpaRepository.findAllByUnitId(unitId.value()).stream().map(mapper::toDomain).toList();
     }
@@ -72,8 +67,6 @@ public class InstallmentRepositoryAdapter implements InstallmentRepository {
         org.springframework.data.domain.Page<InstallmentEntity> page = jpaRepository.search(ids,
                 filter.dueDateFrom(), filter.dueDateTo(), hasStatusFilter,
                 filter.statuses().contains(InstallmentStatus.NOT_PAID),
-                filter.statuses().contains(InstallmentStatus.PARTIALLY_PAID),
-                filter.statuses().contains(InstallmentStatus.PAID),
                 filter.statuses().contains(InstallmentStatus.OVERDUE),
                 today, pageable);
 

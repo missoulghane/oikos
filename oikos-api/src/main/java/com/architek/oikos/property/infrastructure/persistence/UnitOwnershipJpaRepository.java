@@ -9,5 +9,9 @@ public interface UnitOwnershipJpaRepository extends JpaRepository<UnitOwnershipE
 
     List<UnitOwnershipEntity> findByUnitId(UUID unitId);
 
+    List<UnitOwnershipEntity> findByUnitIdIn(List<UUID> unitIds);
+
+    List<UnitOwnershipEntity> findByPartyId(UUID partyId);
+
     boolean existsByUnitIdAndPartyId(UUID unitId, UUID partyId);
 }

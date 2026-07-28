@@ -12,7 +12,6 @@ import com.architek.oikos.property.application.command.BuildingConfiguration;
 import com.architek.oikos.property.application.command.ConfigurePropertyCommand;
 import com.architek.oikos.property.application.command.UnitTypeConfiguration;
 import com.architek.oikos.property.application.port.in.ConfigurePropertyUseCase;
-import com.architek.oikos.property.application.port.out.PropertyAccountProvisioningPort;
 import com.architek.oikos.property.domain.exception.PropertyConfigurationLimitExceededException;
 import com.architek.oikos.property.domain.model.Building;
 import com.architek.oikos.property.domain.model.Property;
@@ -46,20 +45,17 @@ public class ConfigurePropertyService implements ConfigurePropertyUseCase {
     private final BuildingRepository buildingRepository;
     private final UnitRepository unitRepository;
     private final UnitTypeDefinitionRepository unitTypeDefinitionRepository;
-    private final PropertyAccountProvisioningPort propertyAccountProvisioningPort;
     private final int maxUnitsPerRequest;
 
     public ConfigurePropertyService(PropertyRepository propertyRepository,
                                      BuildingRepository buildingRepository,
                                      UnitRepository unitRepository,
                                      UnitTypeDefinitionRepository unitTypeDefinitionRepository,
-                                     PropertyAccountProvisioningPort propertyAccountProvisioningPort,
                                      @Value("${oikos.property.configure.max-units}") int maxUnitsPerRequest) {
         this.propertyRepository = propertyRepository;
         this.buildingRepository = buildingRepository;
         this.unitRepository = unitRepository;
         this.unitTypeDefinitionRepository = unitTypeDefinitionRepository;
-        this.propertyAccountProvisioningPort = propertyAccountProvisioningPort;
         this.maxUnitsPerRequest = maxUnitsPerRequest;
     }
 
@@ -76,7 +72,6 @@ public class ConfigurePropertyService implements ConfigurePropertyUseCase {
 
         Property savedProperty = propertyRepository.save(
                 Property.create(PropertyId.newId(), command.name(), command.address()));
-        propertyAccountProvisioningPort.provisionAccount(savedProperty.getId().value());
 
         UnitTypeDefinition defaultUnitType = unitTypeDefinitionRepository.save(UnitTypeDefinition.create(
                 UnitTypeDefinitionId.newId(), savedProperty.getId(), UnitTypeDefinition.DEFAULT_NAME));

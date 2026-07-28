@@ -65,6 +65,6 @@ class ListUnitsByBuildingServiceTest {
         assertThat(page.content()).extracting(view -> view.unitNumber()).containsExactly("A12");
         assertThat(page.content()).extracting(view -> view.unitTypeName()).containsExactly("Appartement");
         assertThat(page.content()).extracting(view -> view.ownershipStatus())
-                .containsExactly(OwnershipStatus.UNSOLD_DEVELOPER);
+                .containsExactly(OwnershipStatus.NOT_AFFECTED);
     }
 }

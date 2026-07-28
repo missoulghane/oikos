@@ -1,8 +1,8 @@
 -- =========================================================================
 -- dev-only: complete dataset covering user/auth, property (properties,
--- buildings, units, ownerships, board), party and accounting together, so
--- the whole application can be explored manually (Swagger UI, H2 console)
--- without going through the use cases first.
+-- buildings, units, ownerships, board) and party together, so the whole
+-- application can be explored manually (Swagger UI, H2 console) without
+-- going through the use cases first.
 -- =========================================================================
 
 -- =========================================================================
@@ -104,68 +104,18 @@ INSERT INTO board_member (id, property_id, party_id, board_role, created_date, l
     ('99999999-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000001', 'PROPERTY_MANAGER', now(), now(), 0);
 
 -- =========================================================================
--- 6. ACCOUNTING: one account per lot (RG001 revised - not per copropriétaire),
--- each illustrating a different installment status (PAID / PARTIALLY_PAID /
--- NOT_PAID / OVERDUE) plus an advance-payment / credit-balance scenario
--- (spec §4). Plus one mirror account per property (RG010bis): every
--- unit-side movement below is paired with its opposite-direction mirror on
--- that unit's property account, exactly as AccountBalanceService would do at
--- runtime - this seed data is plain SQL, so the mirror has to be written out
--- by hand here to stay consistent with what the app itself would produce.
+-- 6. INSTALLMENTS: one per lot, illustrating the two possible statuses
+-- (NOT_PAID / OVERDUE - never stored, computed from due_date at read time).
 -- =========================================================================
 
-INSERT INTO account (id, holder_id, account_type, balance, created_date, last_modified_date, version) VALUES
-    ('44444444-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000003', 'UNIT', -150.00, now(), now(), 0), -- Jean Dupont's lot
-    ('44444444-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000004', 'UNIT', -300.00, now(), now(), 0), -- Marie Martin's lot
-    ('44444444-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000007', 'UNIT', -300.00, now(), now(), 0), -- Ahmed Benali's lot
-    ('44444444-0000-0000-0000-000000000004', '22222222-0000-0000-0000-000000000003', 'UNIT', 1000.00, now(), now(), 0), -- Sophie Bernard's lot
-    ('44444444-0000-0000-0000-000000000005', '11111111-0000-0000-0000-000000000001', 'PROPERTY', 750.00, now(), now(), 0), -- Résidence Test (mirrors Jean+Marie+Ahmed)
-    ('44444444-0000-0000-0000-000000000006', '22222222-0000-0000-0000-000000000001', 'PROPERTY', -1000.00, now(), now(), 0); -- Résidence Les Oliviers (mirrors Sophie)
+-- Jean Dupont's lot: not yet due (NOT_PAID).
+INSERT INTO installment (id, unit_id, due_date, amount, created_date, last_modified_date, version) VALUES
+    ('55555555-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000003', '2030-01-01', 250.00, now(), now(), 0);
 
--- --- Jean Dupont's lot: 2 installments - one fully settled (PAID), one
--- partially paid (PARTIALLY_PAID, reste dû 150). Illustrates lettrage on both sides.
-INSERT INTO installment (id, account_id, unit_id, due_date, amount, created_date, last_modified_date, version) VALUES
-    ('55555555-0000-0000-0000-000000000001', '44444444-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000003', '2026-01-01', 250.00, now(), now(), 0),
-    ('55555555-0000-0000-0000-000000000002', '44444444-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000003', '2030-01-01', 250.00, now(), now(), 0);
+-- Marie Martin's lot: not yet due (NOT_PAID).
+INSERT INTO installment (id, unit_id, due_date, amount, created_date, last_modified_date, version) VALUES
+    ('55555555-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000004', '2030-06-01', 300.00, now(), now(), 0);
 
-INSERT INTO movement (id, account_id, occurred_on, type, direction, amount, label, business_reference, created_date, last_modified_date, version) VALUES
-    ('66666666-0000-0000-0000-000000000001', '44444444-0000-0000-0000-000000000001', '2025-12-01T09:00:00Z', 'INSTALLMENT', 'DEBIT', 250.00, 'Appel de cotisation T1', NULL, now(), now(), 0),
-    ('66666666-0000-0000-0000-000000000002', '44444444-0000-0000-0000-000000000001', '2025-12-15T09:00:00Z', 'PAYMENT', 'CREDIT', 250.00, 'Paiement par virement', NULL, now(), now(), 0),
-    ('66666666-0000-0000-0000-000000000003', '44444444-0000-0000-0000-000000000001', '2029-12-01T09:00:00Z', 'INSTALLMENT', 'DEBIT', 250.00, 'Appel de cotisation T2', NULL, now(), now(), 0),
-    ('66666666-0000-0000-0000-000000000004', '44444444-0000-0000-0000-000000000001', '2029-12-10T09:00:00Z', 'PAYMENT', 'CREDIT', 100.00, 'Acompte', NULL, now(), now(), 0);
-
-INSERT INTO allocation (id, movement_id, installment_id, allocated_amount, created_date, last_modified_date, version) VALUES
-    ('77777777-0000-0000-0000-000000000001', '66666666-0000-0000-0000-000000000002', '55555555-0000-0000-0000-000000000001', 250.00, now(), now(), 0),
-    ('77777777-0000-0000-0000-000000000002', '66666666-0000-0000-0000-000000000004', '55555555-0000-0000-0000-000000000002', 100.00, now(), now(), 0);
-
--- --- Marie Martin's lot: 1 installment not yet due, no payment (NOT_PAID).
-INSERT INTO installment (id, account_id, unit_id, due_date, amount, created_date, last_modified_date, version) VALUES
-    ('55555555-0000-0000-0000-000000000003', '44444444-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000004', '2030-06-01', 300.00, now(), now(), 0);
-
-INSERT INTO movement (id, account_id, occurred_on, type, direction, amount, label, business_reference, created_date, last_modified_date, version) VALUES
-    ('66666666-0000-0000-0000-000000000005', '44444444-0000-0000-0000-000000000002', '2030-05-01T09:00:00Z', 'INSTALLMENT', 'DEBIT', 300.00, 'Appel de cotisation T1', NULL, now(), now(), 0);
-
--- --- Ahmed Benali's lot: 1 installment past due, no payment (OVERDUE).
-INSERT INTO installment (id, account_id, unit_id, due_date, amount, created_date, last_modified_date, version) VALUES
-    ('55555555-0000-0000-0000-000000000004', '44444444-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000007', '2024-01-01', 300.00, now(), now(), 0);
-
-INSERT INTO movement (id, account_id, occurred_on, type, direction, amount, label, business_reference, created_date, last_modified_date, version) VALUES
-    ('66666666-0000-0000-0000-000000000006', '44444444-0000-0000-0000-000000000003', '2023-12-01T09:00:00Z', 'INSTALLMENT', 'DEBIT', 300.00, 'Appel de cotisation T1', NULL, now(), now(), 0);
-
--- --- Sophie Bernard's lot: advance payment, no installment raised yet
--- (spec §4) - a pure credit balance of +1000, ready to be auto-allocated to
--- whatever installment gets raised next on this account.
-INSERT INTO movement (id, account_id, occurred_on, type, direction, amount, label, business_reference, created_date, last_modified_date, version) VALUES
-    ('66666666-0000-0000-0000-000000000007', '44444444-0000-0000-0000-000000000004', '2026-01-05T09:00:00Z', 'PAYMENT', 'CREDIT', 1000.00, 'Versement anticipé', NULL, now(), now(), 0);
-
--- --- RG010bis mirror movements: opposite direction, same amount/type/label,
--- posted on the lot's property account (Jean/Marie/Ahmed -> Résidence Test;
--- Sophie -> Résidence Les Oliviers).
-INSERT INTO movement (id, account_id, occurred_on, type, direction, amount, label, business_reference, created_date, last_modified_date, version) VALUES
-    ('66666666-0000-0000-0000-000000000008', '44444444-0000-0000-0000-000000000005', '2025-12-01T09:00:00Z', 'INSTALLMENT', 'CREDIT', 250.00, 'Appel de cotisation T1', NULL, now(), now(), 0),
-    ('66666666-0000-0000-0000-000000000009', '44444444-0000-0000-0000-000000000005', '2025-12-15T09:00:00Z', 'PAYMENT', 'DEBIT', 250.00, 'Paiement par virement', NULL, now(), now(), 0),
-    ('66666666-0000-0000-0000-000000000010', '44444444-0000-0000-0000-000000000005', '2029-12-01T09:00:00Z', 'INSTALLMENT', 'CREDIT', 250.00, 'Appel de cotisation T2', NULL, now(), now(), 0),
-    ('66666666-0000-0000-0000-000000000011', '44444444-0000-0000-0000-000000000005', '2029-12-10T09:00:00Z', 'PAYMENT', 'DEBIT', 100.00, 'Acompte', NULL, now(), now(), 0),
-    ('66666666-0000-0000-0000-000000000012', '44444444-0000-0000-0000-000000000005', '2030-05-01T09:00:00Z', 'INSTALLMENT', 'CREDIT', 300.00, 'Appel de cotisation T1', NULL, now(), now(), 0),
-    ('66666666-0000-0000-0000-000000000013', '44444444-0000-0000-0000-000000000005', '2023-12-01T09:00:00Z', 'INSTALLMENT', 'CREDIT', 300.00, 'Appel de cotisation T1', NULL, now(), now(), 0),
-    ('66666666-0000-0000-0000-000000000014', '44444444-0000-0000-0000-000000000006', '2026-01-05T09:00:00Z', 'PAYMENT', 'DEBIT', 1000.00, 'Versement anticipé', NULL, now(), now(), 0);
+-- Ahmed Benali's lot: past due (OVERDUE).
+INSERT INTO installment (id, unit_id, due_date, amount, created_date, last_modified_date, version) VALUES
+    ('55555555-0000-0000-0000-000000000004', '11111111-0000-0000-0000-000000000007', '2024-01-01', 300.00, now(), now(), 0);

@@ -76,7 +76,7 @@ class UnitControllerWebMvcTest {
         UnitId id = UnitId.newId();
         when(getUnitUseCase.getUnit(any())).thenReturn(
                 new UnitView(id, buildingId, "A12", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
-                        OwnershipStatus.UNSOLD_DEVELOPER));
+                        OwnershipStatus.NOT_AFFECTED));
 
         mockMvc.perform(get("/api/v1/units/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());

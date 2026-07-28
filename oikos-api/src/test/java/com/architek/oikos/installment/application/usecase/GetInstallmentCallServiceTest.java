@@ -23,7 +23,6 @@ import com.architek.oikos.installment.application.query.GetInstallmentCallQuery;
 import com.architek.oikos.installment.domain.exception.InstallmentCallNotFoundException;
 import com.architek.oikos.installment.domain.model.InstallmentCall;
 import com.architek.oikos.installment.domain.model.Installment;
-import com.architek.oikos.installment.domain.repository.AllocationRepository;
 import com.architek.oikos.installment.domain.repository.InstallmentCallRepository;
 import com.architek.oikos.installment.domain.repository.InstallmentRepository;
 import com.architek.oikos.shared.domain.valueobject.Amount;
@@ -40,13 +39,10 @@ class GetInstallmentCallServiceTest {
     @Mock
     private InstallmentRepository installmentRepository;
 
-    @Mock
-    private AllocationRepository allocationRepository;
-
     private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-02-01T00:00:00Z"), ZoneOffset.UTC);
 
     private GetInstallmentCallService newService() {
-        return new GetInstallmentCallService(installmentCallRepository, installmentRepository, allocationRepository, FIXED_CLOCK);
+        return new GetInstallmentCallService(installmentCallRepository, installmentRepository, FIXED_CLOCK);
     }
 
     @Test
@@ -56,10 +52,9 @@ class GetInstallmentCallServiceTest {
         InstallmentCall installmentCall = InstallmentCall.create(id, propertyId, YearMonth.of(2026, 1), LocalDate.of(2026, 2, 5));
         when(installmentCallRepository.findById(id)).thenReturn(Optional.of(installmentCall));
 
-        Installment installment = Installment.create(InstallmentId.newId(), EntityId.newId(), EntityId.newId(),
+        Installment installment = Installment.create(InstallmentId.newId(), EntityId.newId(),
                 LocalDate.of(2026, 2, 5), Amount.of(new BigDecimal("300")), id);
         when(installmentRepository.findAllByInstallmentCallId(id)).thenReturn(List.of(installment));
-        when(allocationRepository.sumAllocatedByInstallmentId(installment.getId())).thenReturn(BigDecimal.ZERO);
 
         InstallmentCallDetailView view = newService().getInstallmentCall(new GetInstallmentCallQuery(id));
 

@@ -14,7 +14,6 @@ import com.architek.oikos.installment.application.port.in.GetInstallmentCallUseC
 import com.architek.oikos.installment.application.query.GetInstallmentCallQuery;
 import com.architek.oikos.installment.domain.exception.InstallmentCallNotFoundException;
 import com.architek.oikos.installment.domain.model.InstallmentCall;
-import com.architek.oikos.installment.domain.repository.AllocationRepository;
 import com.architek.oikos.installment.domain.repository.InstallmentCallRepository;
 import com.architek.oikos.installment.domain.repository.InstallmentRepository;
 
@@ -23,15 +22,12 @@ public class GetInstallmentCallService implements GetInstallmentCallUseCase {
 
     private final InstallmentCallRepository installmentCallRepository;
     private final InstallmentRepository installmentRepository;
-    private final AllocationRepository allocationRepository;
     private final Clock clock;
 
     public GetInstallmentCallService(InstallmentCallRepository installmentCallRepository,
-                                     InstallmentRepository installmentRepository,
-                                     AllocationRepository allocationRepository, Clock clock) {
+                                     InstallmentRepository installmentRepository, Clock clock) {
         this.installmentCallRepository = installmentCallRepository;
         this.installmentRepository = installmentRepository;
-        this.allocationRepository = allocationRepository;
         this.clock = clock;
     }
 
@@ -43,7 +39,7 @@ public class GetInstallmentCallService implements GetInstallmentCallUseCase {
 
         LocalDate today = LocalDate.now(clock);
         List<InstallmentView> installments = installmentRepository.findAllByInstallmentCallId(installmentCall.getId()).stream()
-                .map(installment -> InstallmentViewFactory.build(installment, allocationRepository, today))
+                .map(installment -> InstallmentViewFactory.build(installment, today))
                 .toList();
 
         return new InstallmentCallDetailView(InstallmentCallView.from(installmentCall), installments);

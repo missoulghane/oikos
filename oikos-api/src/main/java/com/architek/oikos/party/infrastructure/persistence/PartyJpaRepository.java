@@ -13,4 +13,6 @@ public interface PartyJpaRepository extends JpaRepository<PartyEntity, UUID>, Jp
     Optional<PartyEntity> findByPhone(String phone);
 
     boolean existsByEmail(String email);
+
+    boolean existsByPhone(String phone);
 }

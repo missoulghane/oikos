@@ -1,6 +1,7 @@
 -- =========================================================================
--- Baseline schema for the OIKOS application: party, user, auth and
--- property (property/building/unit, ownership and board) features.
+-- Baseline schema for the OIKOS application: party, user, auth, property
+-- (property/building/unit type/unit, pricing, ownership and board) and
+-- installment (cotisation calls) features.
 -- All identifiers are UUIDs assigned application-side (never DB-generated).
 -- =========================================================================
 
@@ -20,7 +21,8 @@ CREATE TABLE party (
     created_date        TIMESTAMPTZ NOT NULL,
     last_modified_date  TIMESTAMPTZ NOT NULL,
     version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT uk_party_email UNIQUE (email)
+    CONSTRAINT uk_party_email UNIQUE (email),
+    CONSTRAINT uk_party_phone UNIQUE (phone)
 );
 
 -- =========================================================================
@@ -108,9 +110,10 @@ CREATE TABLE password_reset_token (
 CREATE INDEX idx_password_reset_token_user_id ON password_reset_token (user_id);
 
 -- =========================================================================
--- 4. PROPERTY FEATURE: property, its buildings and their units, plus the
--- two pivots rattaching a party to the structure (SFD "Gestion de la
--- Structure des Coproprietes et des Acces").
+-- 4. PROPERTY FEATURE: property, its buildings, their per-property unit type
+-- catalog and units, per-property unit-type pricing, plus the two pivots
+-- rattaching a party to the structure (SFD "Gestion de la Structure des
+-- Coproprietes et des Acces").
 -- =========================================================================
 
 CREATE TABLE property (
@@ -135,19 +138,58 @@ CREATE TABLE building (
 
 CREATE INDEX idx_building_property_id ON building (property_id);
 
+-- Per-property, user-defined unit type catalog (e.g. "Appartement", "Box"),
+-- always seeded with one default "OTHERS" row at property creation (see
+-- CreatePropertyService/ConfigurePropertyService).
+CREATE TABLE unit_type_definition (
+    id                  UUID PRIMARY KEY,
+    property_id         UUID NOT NULL,
+    name                VARCHAR(50) NOT NULL,
+    created_date        TIMESTAMPTZ NOT NULL,
+    last_modified_date  TIMESTAMPTZ NOT NULL,
+    version             BIGINT NOT NULL DEFAULT 0,
+    CONSTRAINT fk_unit_type_definition_property FOREIGN KEY (property_id) REFERENCES property (id),
+    CONSTRAINT uk_unit_type_definition_property_name UNIQUE (property_id, name)
+);
+
+CREATE INDEX idx_unit_type_definition_property_id ON unit_type_definition (property_id);
+
 CREATE TABLE unit (
     id                  UUID PRIMARY KEY,
     building_id         UUID NOT NULL,
     unit_number         VARCHAR(20) NOT NULL,
-    unit_type           VARCHAR(20) NOT NULL,
+    unit_type_id        UUID NOT NULL,
     shares              NUMERIC(12, 2) NOT NULL,
     created_date        TIMESTAMPTZ NOT NULL,
     last_modified_date  TIMESTAMPTZ NOT NULL,
     version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT fk_unit_building FOREIGN KEY (building_id) REFERENCES building (id)
+    CONSTRAINT fk_unit_building FOREIGN KEY (building_id) REFERENCES building (id),
+    CONSTRAINT fk_unit_unit_type FOREIGN KEY (unit_type_id) REFERENCES unit_type_definition (id)
 );
 
 CREATE INDEX idx_unit_building_id ON unit (building_id);
+CREATE INDEX idx_unit_unit_type_id ON unit (unit_type_id);
+
+-- Optional price per unit type for a given property (e.g. Appartement: 300,
+-- Box: 100). At most one row per unit type; a unit type without a row simply
+-- has no configured price (no default, no error). Removing a unit type
+-- cascades to its price row.
+CREATE TABLE unit_type_pricing (
+    id                  UUID PRIMARY KEY,
+    property_id         UUID NOT NULL,
+    unit_type_id        UUID NOT NULL,
+    price               NUMERIC(12, 2) NOT NULL,
+    created_date        TIMESTAMPTZ NOT NULL,
+    last_modified_date  TIMESTAMPTZ NOT NULL,
+    version             BIGINT NOT NULL DEFAULT 0,
+    CONSTRAINT fk_unit_type_pricing_property FOREIGN KEY (property_id) REFERENCES property (id),
+    CONSTRAINT fk_unit_type_pricing_unit_type FOREIGN KEY (unit_type_id)
+        REFERENCES unit_type_definition (id) ON DELETE CASCADE,
+    CONSTRAINT uk_unit_type_pricing_unit_type UNIQUE (unit_type_id)
+);
+
+CREATE INDEX idx_unit_type_pricing_property_id ON unit_type_pricing (property_id);
+CREATE INDEX idx_unit_type_pricing_unit_type_id ON unit_type_pricing (unit_type_id);
 
 CREATE TABLE unit_ownership (
     id                  UUID PRIMARY KEY,
@@ -182,7 +224,45 @@ CREATE INDEX idx_board_member_property_id ON board_member (property_id);
 CREATE INDEX idx_board_member_party_id ON board_member (party_id);
 
 -- =========================================================================
--- 5. SEED / INITIAL DATA (Default Root Account)
+-- 5. INSTALLMENT FEATURE: cotisation calls and the installments they raise
+-- against units. An installment call is a fund-collection event for a
+-- property over one month (period); generating one raises an Installment
+-- for every priced unit of the property. Unique (property_id, period)
+-- prevents an accidental double call for the same month.
+-- installment.installment_call_id is nullable: the manual
+-- POST /installment-calls flow (arbitrary caller-supplied lines) does not
+-- attach to a batch.
+-- =========================================================================
+
+CREATE TABLE installment_call (
+    id                  UUID PRIMARY KEY,
+    property_id         UUID NOT NULL,
+    period              DATE NOT NULL,
+    due_date            DATE NOT NULL,
+    created_date        TIMESTAMPTZ NOT NULL,
+    last_modified_date  TIMESTAMPTZ NOT NULL,
+    version             BIGINT NOT NULL DEFAULT 0,
+    CONSTRAINT uk_installment_call_property_period UNIQUE (property_id, period)
+);
+
+CREATE TABLE installment (
+    id                  UUID PRIMARY KEY,
+    unit_id             UUID NOT NULL,
+    due_date            DATE NOT NULL,
+    amount              NUMERIC(12, 2) NOT NULL,
+    installment_call_id UUID,
+    created_date        TIMESTAMPTZ NOT NULL,
+    last_modified_date  TIMESTAMPTZ NOT NULL,
+    version             BIGINT NOT NULL DEFAULT 0,
+    CONSTRAINT fk_installment_unit FOREIGN KEY (unit_id) REFERENCES unit (id),
+    CONSTRAINT fk_installment_installment_call FOREIGN KEY (installment_call_id) REFERENCES installment_call (id)
+);
+
+CREATE INDEX idx_installment_unit_id ON installment (unit_id);
+CREATE INDEX idx_installment_installment_call_id ON installment (installment_call_id);
+
+-- =========================================================================
+-- 6. SEED / INITIAL DATA (Default Root Account)
 -- =========================================================================
 
 INSERT INTO party (id, full_name, party_type, email, phone, created_date, last_modified_date, version)

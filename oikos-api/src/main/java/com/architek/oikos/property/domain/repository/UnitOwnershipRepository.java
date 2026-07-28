@@ -16,6 +16,10 @@ public interface UnitOwnershipRepository {
 
     List<UnitOwnership> findAllByUnitId(UnitId unitId);
 
+    List<UnitOwnership> findAllByUnitIds(List<UnitId> unitIds);
+
+    List<UnitOwnership> findAllByPartyId(EntityId partyId);
+
     boolean existsByUnitIdAndPartyId(UnitId unitId, EntityId partyId);
 
     void deleteById(UnitOwnershipId id);

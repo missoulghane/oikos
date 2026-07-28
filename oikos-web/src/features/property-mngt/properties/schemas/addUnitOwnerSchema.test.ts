@@ -57,6 +57,18 @@ describe('addUnitOwnerSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('accepts a valid payload with a phone number', () => {
+    const result = addUnitOwnerSchema.safeParse({
+      fullName: 'Jane Doe',
+      partyType: 'INDIVIDUAL',
+      email: 'jane.doe@example.com',
+      phone: '0600000000',
+      ownershipShare: 50,
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it('rejects a negative ownership share', () => {
     const result = addUnitOwnerSchema.safeParse({
       fullName: 'Jane Doe',

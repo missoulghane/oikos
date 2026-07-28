@@ -8,9 +8,8 @@ import com.architek.oikos.shared.exception.ResourceNotFoundException;
  * property, or the property resolved from a unit) does not correspond to any
  * existing Property. Installment does not depend on property's own exception
  * type (rule 4) - this is installment's own view of "reference does not
- * exist". Distinct from accounting's own PropertyNotFoundException and from
- * property.domain.exception.PropertyNotFoundException, neither of which
- * installment depends on directly.
+ * exist". Distinct from property.domain.exception.PropertyNotFoundException,
+ * which installment does not depend on directly.
  */
 public class PropertyNotFoundException extends ResourceNotFoundException {
 

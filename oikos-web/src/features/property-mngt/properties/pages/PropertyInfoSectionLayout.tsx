@@ -4,6 +4,7 @@ import type { Property } from '@/features/property-mngt/properties/types/propert
 const TABS = [
   { to: '.', label: 'Informations générales', end: true },
   { to: 'lots', label: 'Lots' },
+  { to: 'contacts', label: 'Contacts' },
   { to: 'configuration', label: 'Configuration' },
 ];
 

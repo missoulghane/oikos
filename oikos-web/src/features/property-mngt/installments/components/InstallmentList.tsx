@@ -21,7 +21,6 @@ export function InstallmentList({ installments }: { installments: Installment[] 
               <Link to={`/units/${installment.unitId}`} className="hover:underline">
                 Lot {installment.unitId}
               </Link>
-              {' · '}Reste dû : {installment.remainingDue} MAD
             </p>
           </div>
           <span

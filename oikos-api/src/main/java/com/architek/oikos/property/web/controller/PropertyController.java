@@ -78,8 +78,7 @@ public class PropertyController {
 
     @PostMapping
     public ResponseEntity<Void> create(@Valid @RequestBody CreatePropertyRequest request) {
-        PropertyId id = createPropertyUseCase.create(new CreatePropertyCommand(
-                request.name(), request.address(), request.firstBuildingName(), request.firstBuildingFloorCount()));
+        PropertyId id = createPropertyUseCase.create(new CreatePropertyCommand(request.name(), request.address()));
         return ResponseEntity.created(URI.create("/api/v1/properties/" + id)).build();
     }
 

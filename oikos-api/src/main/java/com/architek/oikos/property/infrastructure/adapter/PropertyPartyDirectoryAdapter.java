@@ -41,7 +41,7 @@ public class PropertyPartyDirectoryAdapter implements PartyDirectoryPort {
     @Override
     public EntityId createParty(PartyDetails details) {
         PartyId id = createPartyUseCase.create(new CreatePartyCommand(
-                details.fullName(), details.partyType(), details.email(), null));
+                details.fullName(), details.partyType(), details.email(), details.phone()));
         return EntityId.of(id.asUuid());
     }
 
@@ -53,6 +53,6 @@ public class PropertyPartyDirectoryAdapter implements PartyDirectoryPort {
     @Override
     public PartyDetails getPartyById(EntityId partyId) {
         PartyView view = getPartyUseCase.getParty(new GetPartyQuery(PartyId.of(partyId.value())));
-        return new PartyDetails(view.fullName(), view.partyType(), EmailVO.of(view.email()));
+        return new PartyDetails(view.fullName(), view.partyType(), EmailVO.of(view.email()), view.phone());
     }
 }

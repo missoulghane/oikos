@@ -23,7 +23,6 @@ import com.architek.oikos.installment.application.dto.InstallmentView;
 import com.architek.oikos.installment.application.port.out.PropertyUnitDirectoryPort;
 import com.architek.oikos.installment.application.query.ListInstallmentsByPropertyQuery;
 import com.architek.oikos.installment.domain.model.Installment;
-import com.architek.oikos.installment.domain.repository.AllocationRepository;
 import com.architek.oikos.installment.domain.repository.InstallmentRepository;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.installment.domain.valueobject.InstallmentFilter;
@@ -41,13 +40,10 @@ class ListInstallmentsByPropertyServiceTest {
     @Mock
     private InstallmentRepository installmentRepository;
 
-    @Mock
-    private AllocationRepository allocationRepository;
-
     private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-07-22T00:00:00Z"), ZoneOffset.UTC);
 
     private ListInstallmentsByPropertyService newService() {
-        return new ListInstallmentsByPropertyService(propertyUnitDirectoryPort, installmentRepository, allocationRepository, FIXED_CLOCK);
+        return new ListInstallmentsByPropertyService(propertyUnitDirectoryPort, installmentRepository, FIXED_CLOCK);
     }
 
     @Test
@@ -70,13 +66,12 @@ class ListInstallmentsByPropertyServiceTest {
         List<EntityId> unitIds = List.of(unitId);
         when(propertyUnitDirectoryPort.listUnitIds(propertyId)).thenReturn(unitIds);
 
-        Installment installment = Installment.create(InstallmentId.newId(), EntityId.newId(), unitId,
+        Installment installment = Installment.create(InstallmentId.newId(), unitId,
                 LocalDate.of(2026, 8, 1), Amount.of(new BigDecimal("150")));
         InstallmentFilter filter = InstallmentFilter.defaultFilter();
         PageRequest pageRequest = PageRequest.of(0, 20);
         when(installmentRepository.findPageByUnitIds(eq(unitIds), eq(filter), eq(LocalDate.now(FIXED_CLOCK)), eq(pageRequest)))
                 .thenReturn(Page.of(List.of(installment), 0, 20, 1));
-        when(allocationRepository.sumAllocatedByInstallmentId(installment.getId())).thenReturn(BigDecimal.ZERO);
 
         Page<InstallmentView> page = newService().listInstallments(new ListInstallmentsByPropertyQuery(propertyId, filter, pageRequest));
 

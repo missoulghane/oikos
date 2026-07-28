@@ -12,9 +12,9 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 /**
  * Cross-feature adapter: delegates to property's public port-in
  * (GetUnitUseCase), never to property's repository directly (rule 4). Named
- * distinctly from property's own PropertyPartyDirectoryAdapter and accounting's
- * own AccountingUnitDirectoryAdapter to avoid a Spring bean name collision
- * between same-named classes in different packages.
+ * distinctly from property's own PropertyPartyDirectoryAdapter to avoid a
+ * Spring bean name collision between same-named classes in different
+ * packages.
  */
 @Component
 public class InstallmentUnitDirectoryAdapter implements UnitDirectoryPort {

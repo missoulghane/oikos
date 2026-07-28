@@ -3,14 +3,12 @@ package com.architek.oikos.installment.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,9 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.installment.application.command.InstallmentCallLine;
 import com.architek.oikos.installment.application.command.RecordInstallmentCallCommand;
-import com.architek.oikos.installment.application.port.out.AccountLedgerPort;
 import com.architek.oikos.installment.application.port.out.UnitDirectoryPort;
-import com.architek.oikos.installment.domain.exception.AccountNotFoundException;
 import com.architek.oikos.installment.domain.exception.UnitNotFoundException;
 import com.architek.oikos.installment.domain.model.Installment;
 import com.architek.oikos.installment.domain.repository.InstallmentRepository;
@@ -36,24 +32,16 @@ class RecordInstallmentCallServiceTest {
     private InstallmentRepository installmentRepository;
 
     @Mock
-    private AccountLedgerPort accountLedgerPort;
-
-    @Mock
-    private AutoAllocationEngine autoAllocationEngine;
-
-    @Mock
     private UnitDirectoryPort unitDirectoryPort;
 
     private RecordInstallmentCallService newService() {
-        return new RecordInstallmentCallService(installmentRepository, accountLedgerPort, autoAllocationEngine, unitDirectoryPort);
+        return new RecordInstallmentCallService(installmentRepository, unitDirectoryPort);
     }
 
     @Test
-    void recording_a_installment_call_creates_an_installment_and_a_debit_movement_per_line() {
+    void recording_a_installment_call_creates_an_installment_per_line() {
         EntityId unitId = EntityId.newId();
-        EntityId accountId = EntityId.newId();
         when(unitDirectoryPort.exists(unitId)).thenReturn(true);
-        when(accountLedgerPort.findUnitAccountId(unitId)).thenReturn(Optional.of(accountId));
         when(installmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         LocalDate dueDate = LocalDate.of(2027, 1, 1);
@@ -65,13 +53,9 @@ class RecordInstallmentCallServiceTest {
         ArgumentCaptor<Installment> installmentCaptor = ArgumentCaptor.forClass(Installment.class);
         verify(installmentRepository).save(installmentCaptor.capture());
         Installment savedInstallment = installmentCaptor.getValue();
-        assertThat(savedInstallment.getAccountId()).isEqualTo(accountId);
         assertThat(savedInstallment.getUnitId()).isEqualTo(unitId);
         assertThat(savedInstallment.getDueDate()).isEqualTo(dueDate);
         assertThat(savedInstallment.getAmount().value()).isEqualByComparingTo("250");
-
-        verify(accountLedgerPort).recordDebit(eq(accountId), eq(new BigDecimal("250")), any());
-        verify(autoAllocationEngine).allocate(accountId);
     }
 
     @Test
@@ -83,17 +67,5 @@ class RecordInstallmentCallServiceTest {
                 List.of(new InstallmentCallLine(unitId, BigDecimal.TEN)));
 
         assertThatThrownBy(() -> newService().record(command)).isInstanceOf(UnitNotFoundException.class);
-    }
-
-    @Test
-    void recording_a_installment_call_for_a_unit_without_an_account_is_rejected() {
-        EntityId unitId = EntityId.newId();
-        when(unitDirectoryPort.exists(unitId)).thenReturn(true);
-        when(accountLedgerPort.findUnitAccountId(unitId)).thenReturn(Optional.empty());
-
-        RecordInstallmentCallCommand command = new RecordInstallmentCallCommand(LocalDate.now(),
-                List.of(new InstallmentCallLine(unitId, BigDecimal.TEN)));
-
-        assertThatThrownBy(() -> newService().record(command)).isInstanceOf(AccountNotFoundException.class);
     }
 }

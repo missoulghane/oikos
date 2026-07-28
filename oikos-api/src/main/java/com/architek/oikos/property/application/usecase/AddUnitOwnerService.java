@@ -43,7 +43,7 @@ public class AddUnitOwnerService implements AddUnitOwnerUseCase {
 
         EntityId partyId = partyDirectoryPort.findIdByEmail(command.email())
                 .orElseGet(() -> partyDirectoryPort.createParty(
-                        new PartyDetails(command.fullName(), command.partyType(), command.email())));
+                        new PartyDetails(command.fullName(), command.partyType(), command.email(), command.phone())));
 
         return addUnitOwnershipUseCase.add(
                 new AddUnitOwnershipCommand(command.unitId(), partyId, command.ownershipShare()));

@@ -40,7 +40,7 @@ class ListUnitOwnershipsByUnitServiceTest {
                 OwnershipShare.of(new BigDecimal("50")));
         when(unitOwnershipRepository.findAllByUnitId(unitId)).thenReturn(List.of(unitOwnership));
         when(partyDirectoryPort.getPartyById(any()))
-                .thenReturn(new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com")));
+                .thenReturn(new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"), null));
 
         var views = new ListUnitOwnershipsByUnitService(unitOwnershipRepository, partyDirectoryPort)
                 .listUnitOwnerships(new ListUnitOwnershipsByUnitQuery(unitId));

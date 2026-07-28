@@ -99,13 +99,13 @@ class InstallmentPropertyDirectoryAdapterTest {
                 PageRequest.of(0, 100))))
                 .thenReturn(Page.of(List.of(
                         new UnitView(unitA1, buildingA, "A1", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
-                                OwnershipStatus.SOLD)), 0, 100, 1));
+                                OwnershipStatus.AFFECTED)), 0, 100, 1));
 
         when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingB,
                 PageRequest.of(0, 100))))
                 .thenReturn(Page.of(List.of(
                         new UnitView(unitB1, buildingB, "B1", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
-                                OwnershipStatus.SOLD)), 0, 100, 1));
+                                OwnershipStatus.AFFECTED)), 0, 100, 1));
 
         List<EntityId> unitIds = newAdapter().listUnitIds(propertyId);
 
@@ -138,8 +138,8 @@ class InstallmentPropertyDirectoryAdapterTest {
                 .thenReturn(Page.of(List.of(new BuildingView(buildingA, propertyIdValue, "A", 3)), 0, 100, 1));
         when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingA, PageRequest.of(0, 100))))
                 .thenReturn(Page.of(List.of(
-                        new UnitView(pricedUnit, buildingA, "A1", pricedTypeId, "Appartement", BigDecimal.TEN, OwnershipStatus.SOLD),
-                        new UnitView(unpricedUnit, buildingA, "A2", unpricedTypeId, "Box", BigDecimal.TEN, OwnershipStatus.SOLD)),
+                        new UnitView(pricedUnit, buildingA, "A1", pricedTypeId, "Appartement", BigDecimal.TEN, OwnershipStatus.AFFECTED),
+                        new UnitView(unpricedUnit, buildingA, "A2", unpricedTypeId, "Box", BigDecimal.TEN, OwnershipStatus.AFFECTED)),
                         0, 100, 2));
         when(listUnitTypePricesByPropertyUseCase.listUnitTypePrices(new ListUnitTypePricesByPropertyQuery(propertyIdValue)))
                 .thenReturn(List.of(new UnitTypePriceView(UnitTypePricingId.newId(), propertyIdValue, pricedTypeId,

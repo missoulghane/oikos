@@ -21,6 +21,8 @@ public interface PartyRepository {
 
     boolean existsByEmail(EmailVO email);
 
+    boolean existsByPhone(String phone);
+
     Page<Party> findAll(PageRequest pageRequest, PartySearchCriteria criteria);
 
     void deleteById(PartyId id);

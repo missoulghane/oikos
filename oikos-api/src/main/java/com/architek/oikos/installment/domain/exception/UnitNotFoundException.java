@@ -5,9 +5,9 @@ import com.architek.oikos.shared.exception.ResourceNotFoundException;
 
 /**
  * Thrown when a unitId supplied to a installment call line does not
- * correspond to any existing Unit. Distinct from accounting's own
- * UnitNotFoundException and from property.domain.exception.UnitNotFoundException,
- * neither of which installment depends on directly (rule 4).
+ * correspond to any existing Unit. Distinct from
+ * property.domain.exception.UnitNotFoundException, which installment does not
+ * depend on directly (rule 4).
  */
 public class UnitNotFoundException extends ResourceNotFoundException {
 

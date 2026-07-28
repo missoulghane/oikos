@@ -14,5 +14,6 @@ public record AddUnitOwnerRequest(
         @NotBlank @Size(max = 200) String fullName,
         @NotNull PartyType partyType,
         @NotBlank @Email @Size(max = 150) String email,
+        @Size(max = 20) String phone,
         @NotNull @DecimalMin(value = "0", inclusive = true) @DecimalMax(value = "100", inclusive = true) BigDecimal ownershipShare) {
 }

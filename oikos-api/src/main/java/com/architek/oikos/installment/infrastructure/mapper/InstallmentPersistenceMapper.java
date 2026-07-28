@@ -18,7 +18,6 @@ public interface InstallmentPersistenceMapper {
 
     default InstallmentEntity toEntity(Installment installment, InstallmentEntity entity) {
         entity.setId(installment.getId().asUuid());
-        entity.setAccountId(installment.getAccountId().value());
         entity.setUnitId(installment.getUnitId().value());
         entity.setDueDate(installment.getDueDate());
         entity.setAmount(installment.getAmount().value());
@@ -28,7 +27,7 @@ public interface InstallmentPersistenceMapper {
 
     default Installment toDomain(InstallmentEntity entity) {
         InstallmentCallId installmentCallId = entity.getInstallmentCallId() == null ? null : InstallmentCallId.of(entity.getInstallmentCallId());
-        return Installment.reconstruct(InstallmentId.of(entity.getId()), EntityId.of(entity.getAccountId()),
+        return Installment.reconstruct(InstallmentId.of(entity.getId()),
                 EntityId.of(entity.getUnitId()), entity.getDueDate(), Amount.of(entity.getAmount()), installmentCallId);
     }
 }

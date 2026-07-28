@@ -8,8 +8,8 @@ import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 
 const OWNERSHIP_STATUS_LABELS = {
-  SOLD: 'Vendu',
-  UNSOLD_DEVELOPER: 'Non vendu (promoteur)',
+  AFFECTED: 'Affecté',
+  NOT_AFFECTED: 'Non affecté',
 } as const;
 
 export function UnitDetailPage() {

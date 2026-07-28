@@ -7,7 +7,6 @@ import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 const MENUS = [
   { to: 'property', label: 'Ma copropriété' },
   { to: 'installments', label: 'Gestion des échéances' },
-  { to: 'finance', label: 'Gestion financière' },
 ];
 
 export function PropertyDetailLayout() {

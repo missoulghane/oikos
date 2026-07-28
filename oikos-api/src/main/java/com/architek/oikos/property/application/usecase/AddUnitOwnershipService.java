@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.property.application.command.AddUnitOwnershipCommand;
 import com.architek.oikos.property.application.port.in.AddUnitOwnershipUseCase;
+import com.architek.oikos.property.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.property.domain.exception.PartyAlreadyOwnsUnitException;
 import com.architek.oikos.property.domain.exception.UnitNotFoundException;
 import com.architek.oikos.property.domain.exception.OwnershipShareExceededException;
@@ -22,16 +23,20 @@ public class AddUnitOwnershipService implements AddUnitOwnershipUseCase {
 
     private final UnitOwnershipRepository unitOwnershipRepository;
     private final UnitRepository unitRepository;
+    private final PartyDirectoryPort partyDirectoryPort;
 
-    public AddUnitOwnershipService(UnitOwnershipRepository unitOwnershipRepository, UnitRepository unitRepository) {
+    public AddUnitOwnershipService(UnitOwnershipRepository unitOwnershipRepository, UnitRepository unitRepository,
+                                    PartyDirectoryPort partyDirectoryPort) {
         this.unitOwnershipRepository = unitOwnershipRepository;
         this.unitRepository = unitRepository;
+        this.partyDirectoryPort = partyDirectoryPort;
     }
 
     @Override
     @Transactional
     public UnitOwnershipId add(AddUnitOwnershipCommand command) {
         unitRepository.findById(command.unitId()).orElseThrow(() -> new UnitNotFoundException(command.unitId()));
+        partyDirectoryPort.getPartyById(command.partyId());
 
         if (unitOwnershipRepository.existsByUnitIdAndPartyId(command.unitId(), command.partyId())) {
             throw new PartyAlreadyOwnsUnitException();

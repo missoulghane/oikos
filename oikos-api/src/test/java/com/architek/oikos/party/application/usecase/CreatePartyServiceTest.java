@@ -3,6 +3,7 @@ package com.architek.oikos.party.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.party.application.command.CreatePartyCommand;
 import com.architek.oikos.party.domain.exception.EmailAlreadyUsedException;
+import com.architek.oikos.party.domain.exception.PhoneAlreadyUsedException;
 import com.architek.oikos.party.domain.model.Party;
 import com.architek.oikos.party.domain.repository.PartyRepository;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
@@ -51,5 +53,28 @@ class CreatePartyServiceTest {
         CreatePartyCommand command = new CreatePartyCommand("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
 
         assertThatThrownBy(() -> newService().create(command)).isInstanceOf(EmailAlreadyUsedException.class);
+    }
+
+    @Test
+    void creating_a_party_with_an_already_used_phone_is_rejected() {
+        when(partyRepository.existsByEmail(any())).thenReturn(false);
+        when(partyRepository.existsByPhone("0600000000")).thenReturn(true);
+
+        CreatePartyCommand command = new CreatePartyCommand("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"),
+                "0600000000");
+
+        assertThatThrownBy(() -> newService().create(command)).isInstanceOf(PhoneAlreadyUsedException.class);
+    }
+
+    @Test
+    void creating_a_party_without_a_phone_never_checks_phone_uniqueness() {
+        when(partyRepository.existsByEmail(any())).thenReturn(false);
+        when(partyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreatePartyCommand command = new CreatePartyCommand("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
+
+        newService().create(command);
+
+        verify(partyRepository, never()).existsByPhone(any());
     }
 }

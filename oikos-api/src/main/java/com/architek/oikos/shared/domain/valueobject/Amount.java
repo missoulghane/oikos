@@ -4,10 +4,9 @@ import java.math.BigDecimal;
 import java.util.Objects;
 
 /**
- * A strictly positive monetary amount, shared across accounting and installment
- * (Movement, Installment, Allocation). Kept distinct from a raw balance (which
- * can be negative or zero): a movement, an installment or an allocation of
- * zero has no meaning.
+ * A strictly positive monetary amount, used across property and installment
+ * (UnitTypePricing, Installment). Kept distinct from a raw balance (which can
+ * be negative or zero): an installment of zero has no meaning.
  */
 public record Amount(BigDecimal value) {
 

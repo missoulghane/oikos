@@ -15,13 +15,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.installment.application.dto.InstallmentCallSummaryView;
 import com.architek.oikos.installment.application.query.ListInstallmentCallsByPropertyQuery;
-import com.architek.oikos.accounting.domain.model.Account;
 import com.architek.oikos.installment.domain.model.InstallmentCall;
 import com.architek.oikos.installment.domain.model.Installment;
 import com.architek.oikos.installment.domain.repository.InstallmentCallRepository;
 import com.architek.oikos.installment.domain.repository.InstallmentRepository;
-import com.architek.oikos.accounting.domain.valueobject.AccountId;
-import com.architek.oikos.accounting.domain.valueobject.AccountType;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
@@ -47,10 +44,9 @@ class ListInstallmentCallsByPropertyServiceTest {
         when(installmentCallRepository.findPageByPropertyId(propertyId, PageRequest.of(0, 20)))
                 .thenReturn(Page.of(List.of(installmentCall), 0, 20, 1));
 
-        EntityId unitAccountId = Account.create(AccountId.newId(), EntityId.newId(), AccountType.UNIT).getId().value();
-        Installment installmentA = Installment.create(InstallmentId.newId(), unitAccountId, EntityId.newId(),
+        Installment installmentA = Installment.create(InstallmentId.newId(), EntityId.newId(),
                 LocalDate.of(2026, 2, 5), Amount.of(new BigDecimal("300")), installmentCallId);
-        Installment installmentB = Installment.create(InstallmentId.newId(), unitAccountId, EntityId.newId(),
+        Installment installmentB = Installment.create(InstallmentId.newId(), EntityId.newId(),
                 LocalDate.of(2026, 2, 5), Amount.of(new BigDecimal("100")), installmentCallId);
         when(installmentRepository.findAllByInstallmentCallId(installmentCallId)).thenReturn(List.of(installmentA, installmentB));
 

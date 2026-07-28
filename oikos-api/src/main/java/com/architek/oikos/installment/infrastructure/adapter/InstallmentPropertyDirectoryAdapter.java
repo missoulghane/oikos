@@ -37,9 +37,8 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * checks (GetPropertyUseCase), every unit of a property (buildings, then
  * units per building), and unit type prices - never through property's
  * repositories directly (rule 4). Named distinctly from property's own
- * PropertyPartyDirectoryAdapter and accounting's own AccountingPropertyDirectoryAdapter
- * to avoid a Spring bean name collision between same-named classes in
- * different packages.
+ * PropertyPartyDirectoryAdapter to avoid a Spring bean name collision between
+ * same-named classes in different packages.
  */
 @Component
 public class InstallmentPropertyDirectoryAdapter implements PropertyUnitDirectoryPort, PropertyDirectoryPort, PropertyUnitPricingPort {

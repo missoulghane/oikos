@@ -46,6 +46,7 @@ export function AddUnitOwnerForm({ unitId, onSuccess, onCancel }: AddUnitOwnerFo
         ))}
       </Select>
       <Input label="Email" type="email" {...register('email')} errorMessage={errors.email?.message} />
+      <Input label="Téléphone" {...register('phone')} errorMessage={errors.phone?.message} />
       <Input
         label="Part de propriété (%)"
         type="number"

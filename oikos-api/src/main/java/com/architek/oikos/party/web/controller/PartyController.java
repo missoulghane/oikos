@@ -38,12 +38,14 @@ import com.architek.oikos.shared.domain.valueobject.EmailVO;
 
 /**
  * Administrative management of parties (identity records independent of any
- * application account). Reserved to ROLE_ADMIN for now; will be revisited once
- * per-copropriete contextual access (RG-ACC-02) is introduced.
+ * application account). Read access (list/search, get by id) is also open to
+ * ROLE_PROPERTY_MANAGER, so a manager can look up an existing party to
+ * reattach it to a lot instead of creating a duplicate; mutations stay
+ * reserved to ROLE_ADMIN for now, to be revisited once per-copropriete
+ * contextual access (RG-ACC-02) is introduced.
  */
 @RestController
 @RequestMapping("/parties")
-@PreAuthorize("hasAuthority('ROLE_ADMIN')")
 public class PartyController {
 
     private final CreatePartyUseCase createPartyUseCase;
@@ -64,6 +66,7 @@ public class PartyController {
         this.deletePartyUseCase = deletePartyUseCase;
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_PROPERTY_MANAGER')")
     @GetMapping
     public PagedPartyResponse list(@RequestParam(defaultValue = "0") int page,
                                       @RequestParam(defaultValue = "20") int size,
@@ -72,11 +75,13 @@ public class PartyController {
         return PagedPartyResponse.from(listPartiesUseCase.listParties(query));
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_PROPERTY_MANAGER')")
     @GetMapping("/{id}")
     public PartyResponse getById(@PathVariable String id) {
         return PartyResponse.from(getPartyUseCase.getParty(new GetPartyQuery(PartyId.of(id))));
     }
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @PostMapping
     public ResponseEntity<Void> create(@Valid @RequestBody CreatePartyRequest request) {
         PartyId id = createPartyUseCase.create(new CreatePartyCommand(
@@ -84,6 +89,7 @@ public class PartyController {
         return ResponseEntity.created(URI.create("/api/v1/parties/" + id)).build();
     }
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @PutMapping("/{id}")
     public PartyResponse update(@PathVariable String id, @Valid @RequestBody UpdatePartyRequest request) {
         UpdatePartyCommand command = new UpdatePartyCommand(
@@ -91,6 +97,7 @@ public class PartyController {
         return PartyResponse.from(updatePartyUseCase.update(command));
     }
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     public void delete(@PathVariable String id) {

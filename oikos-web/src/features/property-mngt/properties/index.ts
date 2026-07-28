@@ -4,4 +4,5 @@ export { PropertyDetailLayout } from '@/features/property-mngt/properties/pages/
 export { PropertyInfoSectionLayout } from '@/features/property-mngt/properties/pages/PropertyInfoSectionLayout';
 export { PropertyGeneralInfoTab } from '@/features/property-mngt/properties/pages/PropertyGeneralInfoTab';
 export { PropertyLotsTab } from '@/features/property-mngt/properties/pages/PropertyLotsTab';
+export { PropertyContactsTab } from '@/features/property-mngt/properties/pages/PropertyContactsTab';
 export { UnitDetailPage } from '@/features/property-mngt/properties/pages/UnitDetailPage';

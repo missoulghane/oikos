@@ -20,7 +20,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.architek.oikos.property.application.command.BuildingConfiguration;
 import com.architek.oikos.property.application.command.ConfigurePropertyCommand;
 import com.architek.oikos.property.application.command.UnitTypeConfiguration;
-import com.architek.oikos.property.application.port.out.PropertyAccountProvisioningPort;
 import com.architek.oikos.property.domain.exception.PropertyConfigurationLimitExceededException;
 import com.architek.oikos.property.domain.model.Building;
 import com.architek.oikos.property.domain.model.Property;
@@ -29,7 +28,6 @@ import com.architek.oikos.property.domain.repository.BuildingRepository;
 import com.architek.oikos.property.domain.repository.PropertyRepository;
 import com.architek.oikos.property.domain.repository.UnitRepository;
 import com.architek.oikos.property.domain.repository.UnitTypeDefinitionRepository;
-import com.architek.oikos.property.domain.valueobject.PropertyId;
 
 @ExtendWith(MockitoExtension.class)
 class ConfigurePropertyServiceTest {
@@ -46,12 +44,9 @@ class ConfigurePropertyServiceTest {
     @Mock
     private UnitTypeDefinitionRepository unitTypeDefinitionRepository;
 
-    @Mock
-    private PropertyAccountProvisioningPort propertyAccountProvisioningPort;
-
     private ConfigurePropertyService newService(int maxUnitsPerRequest) {
         return new ConfigurePropertyService(propertyRepository, buildingRepository, unitRepository,
-                unitTypeDefinitionRepository, propertyAccountProvisioningPort, maxUnitsPerRequest);
+                unitTypeDefinitionRepository, maxUnitsPerRequest);
     }
 
     @Test
@@ -98,18 +93,6 @@ class ConfigurePropertyServiceTest {
     }
 
     @Test
-    void configuring_a_property_provisions_its_accounting_account() {
-        when(propertyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(unitTypeDefinitionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        ConfigurePropertyCommand command = new ConfigurePropertyCommand("My Property", "123 Main St", List.of());
-
-        PropertyId propertyId = newService(500).configure(command);
-
-        verify(propertyAccountProvisioningPort).provisionAccount(propertyId.value());
-    }
-
-    @Test
     void configuring_a_property_beyond_the_max_units_limit_is_rejected_without_persisting_anything() {
         ConfigurePropertyCommand command = new ConfigurePropertyCommand("My Property", "123 Main St", List.of(
                 new BuildingConfiguration("Building A", 5, List.of(
@@ -121,6 +104,5 @@ class ConfigurePropertyServiceTest {
         verify(propertyRepository, never()).save(any());
         verify(buildingRepository, never()).save(any());
         verify(unitRepository, never()).save(any());
-        verify(propertyAccountProvisioningPort, never()).provisionAccount(any());
     }
 }

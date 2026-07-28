@@ -48,7 +48,7 @@ class GetUnitServiceTest {
     }
 
     @Test
-    void a_unit_without_any_owner_is_labelled_non_vendu_promoteur() {
+    void a_unit_without_any_owner_is_labelled_non_affecte() {
         UnitId id = UnitId.newId();
         UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
         when(unitRepository.findById(id)).thenReturn(Optional.of(
@@ -61,11 +61,11 @@ class GetUnitServiceTest {
 
         assertThat(view.unitNumber()).isEqualTo("A12");
         assertThat(view.unitTypeName()).isEqualTo("Appartement");
-        assertThat(view.ownershipStatus()).isEqualTo(OwnershipStatus.UNSOLD_DEVELOPER);
+        assertThat(view.ownershipStatus()).isEqualTo(OwnershipStatus.NOT_AFFECTED);
     }
 
     @Test
-    void a_unit_with_at_least_one_owner_is_labelled_vendu() {
+    void a_unit_with_at_least_one_owner_is_labelled_affecte() {
         UnitId id = UnitId.newId();
         UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
         when(unitRepository.findById(id)).thenReturn(Optional.of(
@@ -77,7 +77,7 @@ class GetUnitServiceTest {
 
         var view = newService().getUnit(new GetUnitQuery(id));
 
-        assertThat(view.ownershipStatus()).isEqualTo(OwnershipStatus.SOLD);
+        assertThat(view.ownershipStatus()).isEqualTo(OwnershipStatus.AFFECTED);
     }
 
     @Test

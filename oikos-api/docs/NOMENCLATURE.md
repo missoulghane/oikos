@@ -16,7 +16,7 @@ nouvelle SFD, **avant** d'écrire le code correspondant.
 | Tantièmes                          | `Shares`                       | Quote-part des charges communes attachée au lot lui-même — à ne pas confondre avec `OwnershipShare`. |
 | Copropriétaire / rattachement copropriétaire-lot (`ProprieteLot`) | `UnitOwnership` | Pivot Party ↔ Unit. |
 | Part de propriété (`PartPropriete`)| `OwnershipShare`                | % de détention du lot par un copropriétaire donné (distinct de `Shares`). |
-| Statut d'occupation (RG-LOT-01)    | `OwnershipStatus` (`SOLD` / `UNSOLD_DEVELOPER`) | Calculé à la lecture, jamais stocké. |
+| Statut d'occupation (RG-LOT-01)    | `OwnershipStatus` (`AFFECTED` / `NOT_AFFECTED`) | Calculé à la lecture, jamais stocké. |
 | Membre du syndic (`MembreSyndic`)  | `BoardMember`                   | Vocabulaire HOA (Homeowners Association) anglophone. |
 | Rôle de gestion (`RoleGestion`)    | `BoardRole` (`PRESIDENT`/`TREASURER`/`SECRETARY`/`MEMBER`/`VOLUNTEER_MANAGER`) | "Syndic bénévole" → `VOLUNTEER_MANAGER`. |
 | nom                                 | `name`                          | |

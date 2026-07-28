@@ -13,12 +13,12 @@ public record UnitView(UnitId id, BuildingId buildingId, String unitNumber, Unit
 
     /**
      * hasCoproprietaires vient de l'appelant (RG-LOT-01): un unit sans aucun
-     * UnitOwnership associe est etiquete "Non vendu / Promoteur". unitTypeName
-     * vient aussi de l'appelant (resolu via UnitTypeDefinitionRepository), pour
+     * UnitOwnership associe est etiquete "Non affecte". unitTypeName vient
+     * aussi de l'appelant (resolu via UnitTypeDefinitionRepository), pour
      * eviter un aller-retour supplementaire cote consommateur (Swagger, front).
      */
     public static UnitView from(Unit unit, boolean hasCoproprietaires, String unitTypeName) {
-        OwnershipStatus statut = hasCoproprietaires ? OwnershipStatus.SOLD : OwnershipStatus.UNSOLD_DEVELOPER;
+        OwnershipStatus statut = hasCoproprietaires ? OwnershipStatus.AFFECTED : OwnershipStatus.NOT_AFFECTED;
         return new UnitView(unit.getId(), unit.getBuildingId(), unit.getUnitNumber(), unit.getUnitTypeId(),
                 unitTypeName, unit.getShares().value(), statut);
     }

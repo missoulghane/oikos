@@ -22,6 +22,9 @@ const PropertyGeneralInfoTab = lazy(() =>
 const PropertyLotsTab = lazy(() =>
   import('@/features/property-mngt/properties').then((m) => ({ default: m.PropertyLotsTab })),
 );
+const PropertyContactsTab = lazy(() =>
+  import('@/features/property-mngt/properties').then((m) => ({ default: m.PropertyContactsTab })),
+);
 const UnitDetailPage = lazy(() =>
   import('@/features/property-mngt/properties').then((m) => ({ default: m.UnitDetailPage })),
 );
@@ -40,14 +43,11 @@ const InstallmentsOtherTab = lazy(() =>
 const PropertyConfigurationPage = lazy(() =>
   import('@/features/property-mngt/pricing').then((m) => ({ default: m.PropertyConfigurationPage })),
 );
-const FinanceSectionLayout = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.FinanceSectionLayout })),
+const PartiesPage = lazy(() =>
+  import('@/features/property-mngt/parties').then((m) => ({ default: m.PartiesPage })),
 );
-const MovementsTab = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.MovementsTab })),
-);
-const FinanceOtherTab = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.FinanceOtherTab })),
+const PartyDetailPage = lazy(() =>
+  import('@/features/property-mngt/parties').then((m) => ({ default: m.PartyDetailPage })),
 );
 
 export const privateRoutes: RouteObject[] = [
@@ -105,6 +105,14 @@ export const privateRoutes: RouteObject[] = [
                 ),
               },
               {
+                path: 'contacts',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <PropertyContactsTab />
+                  </Suspense>
+                ),
+              },
+              {
                 path: 'configuration',
                 element: (
                   <Suspense fallback={<Loader />}>
@@ -148,32 +156,6 @@ export const privateRoutes: RouteObject[] = [
               },
             ],
           },
-          {
-            path: 'finance',
-            element: (
-              <Suspense fallback={<Loader />}>
-                <FinanceSectionLayout />
-              </Suspense>
-            ),
-            children: [
-              {
-                index: true,
-                element: (
-                  <Suspense fallback={<Loader />}>
-                    <MovementsTab />
-                  </Suspense>
-                ),
-              },
-              {
-                path: 'other',
-                element: (
-                  <Suspense fallback={<Loader />}>
-                    <FinanceOtherTab />
-                  </Suspense>
-                ),
-              },
-            ],
-          },
         ],
       },
       {
@@ -181,6 +163,22 @@ export const privateRoutes: RouteObject[] = [
         element: (
           <Suspense fallback={<Loader />}>
             <UnitDetailPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/parties',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <PartiesPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/parties/:id',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <PartyDetailPage />
           </Suspense>
         ),
       },

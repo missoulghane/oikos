@@ -26,22 +26,6 @@ export function CreatePropertyForm({ onSubmit, isSubmitting, errorMessage }: Cre
       {errorMessage && <Alert message={errorMessage} />}
       <Input label="Nom de la copropriété" {...register('name')} errorMessage={errors.name?.message} />
       <Input label="Adresse" {...register('address')} errorMessage={errors.address?.message} />
-      <fieldset className="flex flex-col gap-4 rounded-md border border-slate-200 p-4">
-        <legend className="px-1 text-sm font-medium text-slate-700">Premier immeuble</legend>
-        <Input
-          label="Nom de l'immeuble"
-          {...register('firstBuildingName')}
-          errorMessage={errors.firstBuildingName?.message}
-        />
-        <Input
-          label="Nombre d'étages"
-          type="number"
-          min={0}
-          step={1}
-          {...register('firstBuildingFloorCount', { valueAsNumber: true })}
-          errorMessage={errors.firstBuildingFloorCount?.message}
-        />
-      </fieldset>
       <Button type="submit" isLoading={isSubmitting} className="mt-2">
         Créer la copropriété
       </Button>

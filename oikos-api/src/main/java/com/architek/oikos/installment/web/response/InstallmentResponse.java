@@ -6,11 +6,11 @@ import java.time.LocalDate;
 import com.architek.oikos.installment.application.dto.InstallmentView;
 import com.architek.oikos.installment.domain.valueobject.InstallmentStatus;
 
-public record InstallmentResponse(String id, String accountId, String unitId, LocalDate dueDate, BigDecimal amount,
-                                      BigDecimal amountPaid, BigDecimal remainingDue, InstallmentStatus status) {
+public record InstallmentResponse(String id, String unitId, LocalDate dueDate, BigDecimal amount,
+                                      InstallmentStatus status) {
 
     public static InstallmentResponse from(InstallmentView view) {
-        return new InstallmentResponse(view.id().toString(), view.accountId().toString(), view.unitId().toString(),
-                view.dueDate(), view.amount(), view.amountPaid(), view.remainingDue(), view.status());
+        return new InstallmentResponse(view.id().toString(), view.unitId().toString(),
+                view.dueDate(), view.amount(), view.status());
     }
 }

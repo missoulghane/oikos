@@ -89,7 +89,7 @@ class PropertyControllerWebMvcTest {
     }
 
     @Test
-    void admin_can_create_a_property_with_its_first_building() throws Exception {
+    void admin_can_create_a_property() throws Exception {
         PropertyId id = PropertyId.newId();
         when(createPropertyUseCase.create(any())).thenReturn(id);
 
@@ -97,7 +97,7 @@ class PropertyControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Copro Laumiere","address":"33 Avenue de Laumiere","firstBuildingName":"Batiment A","firstBuildingFloorCount":5}
+                                {"name":"Copro Laumiere","address":"33 Avenue de Laumiere"}
                                 """))
                 .andExpect(status().isCreated());
     }
@@ -108,18 +108,18 @@ class PropertyControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Copro Laumiere","address":"33 Avenue de Laumiere","firstBuildingName":"Batiment A","firstBuildingFloorCount":5}
+                                {"name":"Copro Laumiere","address":"33 Avenue de Laumiere"}
                                 """))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void create_without_first_building_returns_400() throws Exception {
+    void create_with_a_blank_name_returns_400() throws Exception {
         mockMvc.perform(post("/api/v1/properties")
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Copro Laumiere","address":"33 Avenue de Laumiere"}
+                                {"name":" ","address":"33 Avenue de Laumiere"}
                                 """))
                 .andExpect(status().isBadRequest());
     }

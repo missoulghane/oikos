@@ -30,7 +30,6 @@ export function UnitInstallmentsSection({ unitId }: { unitId: string }) {
             <p className="text-slate-700">
               Échéance du {new Date(installment.dueDate).toLocaleDateString('fr-FR')} — {installment.amount} MAD
             </p>
-            <p className="text-slate-500">Reste dû : {installment.remainingDue} MAD</p>
           </div>
           <span
             className={`w-fit rounded-full px-2 py-1 text-xs font-medium ${INSTALLMENT_STATUS_CLASSES[installment.status]}`}
