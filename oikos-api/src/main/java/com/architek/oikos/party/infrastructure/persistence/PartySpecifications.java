@@ -1,6 +1,7 @@
 package com.architek.oikos.party.infrastructure.persistence;
 
 import java.util.Locale;
+import java.util.UUID;
 
 import org.springframework.data.jpa.domain.Specification;
 
@@ -12,11 +13,15 @@ public final class PartySpecifications {
     }
 
     public static Specification<PartyEntity> matching(PartySearchCriteria criteria) {
-        Specification<PartyEntity> spec = Specification.allOf();
+        Specification<PartyEntity> spec = hasPropertyId(criteria.propertyId().value());
         if (criteria.search() != null && !criteria.search().isBlank()) {
             spec = spec.and(searchText(criteria.search()));
         }
         return spec;
+    }
+
+    private static Specification<PartyEntity> hasPropertyId(UUID propertyId) {
+        return (root, query, cb) -> cb.equal(root.get("propertyId"), propertyId);
     }
 
     private static Specification<PartyEntity> searchText(String search) {

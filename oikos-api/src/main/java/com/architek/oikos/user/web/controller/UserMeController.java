@@ -1,5 +1,7 @@
 package com.architek.oikos.user.web.controller;
 
+import java.util.List;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -14,12 +16,15 @@ import com.architek.oikos.user.application.command.ChangePasswordCommand;
 import com.architek.oikos.user.application.command.UpdateUserProfileCommand;
 import com.architek.oikos.user.application.dto.UserView;
 import com.architek.oikos.user.application.port.in.ChangePasswordUseCase;
+import com.architek.oikos.user.application.port.in.GetMyUnitsUseCase;
 import com.architek.oikos.user.application.port.in.GetUserUseCase;
 import com.architek.oikos.user.application.port.in.UpdateUserProfileUseCase;
+import com.architek.oikos.user.application.query.GetMyUnitsQuery;
 import com.architek.oikos.user.application.query.GetUserQuery;
 import com.architek.oikos.user.domain.valueobject.UserId;
 import com.architek.oikos.user.web.request.ChangePasswordRequest;
 import com.architek.oikos.user.web.request.UpdateProfileRequest;
+import com.architek.oikos.user.web.response.OwnedUnitResponse;
 import com.architek.oikos.user.web.response.UserResponse;
 
 /**
@@ -33,13 +38,16 @@ public class UserMeController {
     private final GetUserUseCase getUserUseCase;
     private final UpdateUserProfileUseCase updateUserProfileUseCase;
     private final ChangePasswordUseCase changePasswordUseCase;
+    private final GetMyUnitsUseCase getMyUnitsUseCase;
 
     public UserMeController(GetUserUseCase getUserUseCase,
                              UpdateUserProfileUseCase updateUserProfileUseCase,
-                             ChangePasswordUseCase changePasswordUseCase) {
+                             ChangePasswordUseCase changePasswordUseCase,
+                             GetMyUnitsUseCase getMyUnitsUseCase) {
         this.getUserUseCase = getUserUseCase;
         this.updateUserProfileUseCase = updateUserProfileUseCase;
         this.changePasswordUseCase = changePasswordUseCase;
+        this.getMyUnitsUseCase = getMyUnitsUseCase;
     }
 
     @GetMapping
@@ -48,11 +56,17 @@ public class UserMeController {
         return UserResponse.from(view);
     }
 
+    @GetMapping("/units")
+    public List<OwnedUnitResponse> myUnits(Authentication authentication) {
+        return getMyUnitsUseCase.getMyUnits(new GetMyUnitsQuery(currentUserId(authentication))).stream()
+                .map(OwnedUnitResponse::from)
+                .toList();
+    }
+
     @PatchMapping("/profile")
     public UserResponse updateProfile(Authentication authentication, @Valid @RequestBody UpdateProfileRequest request) {
         UpdateUserProfileCommand command = new UpdateUserProfileCommand(
-                currentUserId(authentication), request.fullName(),
-                EmailVO.of(request.email()), request.phone());
+                currentUserId(authentication), request.fullName(), EmailVO.of(request.email()));
         return UserResponse.from(updateUserProfileUseCase.updateProfile(command));
     }
 

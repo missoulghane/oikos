@@ -14,9 +14,9 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  */
 public interface PartyDirectoryPort {
 
-    EntityId createParty(PartyDetails details);
+    EntityId createParty(PartyDetails details, EntityId propertyId);
 
-    Optional<EntityId> findIdByEmail(EmailVO email);
+    Optional<EntityId> findIdByEmail(EmailVO email, EntityId propertyId);
 
     PartyDetails getPartyById(EntityId partyId);
 }

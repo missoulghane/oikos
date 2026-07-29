@@ -14,11 +14,12 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.user.application.command.RegisterPropertyManagerCommand;
 import com.architek.oikos.user.application.port.in.RegisterPropertyManagerUseCase;
-import com.architek.oikos.user.application.port.out.PartyDetails;
-import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
+import com.architek.oikos.user.application.port.out.PartyProvisioningDetails;
+import com.architek.oikos.user.application.port.out.PartyProvisioningPort;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningDetails;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningPort;
-import com.architek.oikos.user.domain.exception.LoginAlreadyUsedException;
+import com.architek.oikos.user.domain.exception.EmailAlreadyUsedException;
+import com.architek.oikos.user.domain.model.PropertyRole;
 import com.architek.oikos.user.domain.model.Role;
 import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.model.VerificationToken;
@@ -28,17 +29,20 @@ import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
 import com.architek.oikos.user.domain.valueobject.UserId;
 
 /**
- * Registers a property manager: creates the Party, User (ROLE_PROPERTY_MANAGER,
- * unverified) and the property they manage (without a building - the manager adds
- * buildings later) in the same transaction, then issues a verification token and
- * sends the verification email - same activation flow as a plain user registration
- * (see RegisterUserService).
+ * Registers a property manager: creates the property they manage (without a
+ * building - the manager adds buildings later), then a Party scoped to that
+ * property, assigns it as the property's PROPERTY_MANAGER board member, and
+ * finally the User account (ROLE_USER globally, ROLE_PROPERTY_MANAGER
+ * granted through the linked Party) - in that order, since the Party can
+ * only be created once its property id is known. Issues a verification
+ * token and sends the verification email afterwards - same activation flow
+ * as a plain user registration (see RegisterUserService).
  */
 @Component
 public class RegisterPropertyManagerService implements RegisterPropertyManagerUseCase {
 
     private final UserRepository userRepository;
-    private final PartyDirectoryPort partyDirectoryPort;
+    private final PartyProvisioningPort partyProvisioningPort;
     private final PropertyProvisioningPort propertyProvisioningPort;
     private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordEncoderPort passwordEncoderPort;
@@ -49,7 +53,7 @@ public class RegisterPropertyManagerService implements RegisterPropertyManagerUs
     private final Duration verificationTokenTtl;
 
     public RegisterPropertyManagerService(UserRepository userRepository,
-                                           PartyDirectoryPort partyDirectoryPort,
+                                           PartyProvisioningPort partyProvisioningPort,
                                            PropertyProvisioningPort propertyProvisioningPort,
                                            VerificationTokenRepository verificationTokenRepository,
                                            PasswordEncoderPort passwordEncoderPort,
@@ -59,7 +63,7 @@ public class RegisterPropertyManagerService implements RegisterPropertyManagerUs
                                            Clock clock,
                                            @Value("${oikos.mail.verification-token-ttl-hours}") long verificationTokenTtlHours) {
         this.userRepository = userRepository;
-        this.partyDirectoryPort = partyDirectoryPort;
+        this.partyProvisioningPort = partyProvisioningPort;
         this.propertyProvisioningPort = propertyProvisioningPort;
         this.verificationTokenRepository = verificationTokenRepository;
         this.passwordEncoderPort = passwordEncoderPort;
@@ -73,17 +77,20 @@ public class RegisterPropertyManagerService implements RegisterPropertyManagerUs
     @Override
     @Transactional
     public UserId register(RegisterPropertyManagerCommand command) {
-        if (command.login() != null && !command.login().isBlank() && userRepository.existsByLogin(command.login())) {
-            throw new LoginAlreadyUsedException(command.login());
+        if (userRepository.existsByEmail(command.email().value())) {
+            throw new EmailAlreadyUsedException(command.email().value());
         }
-        EntityId partyId = partyDirectoryPort.createParty(
-                new PartyDetails(command.fullName(), command.email(), command.phone()));
-        HashedPassword hashedPassword = passwordEncoderPort.encode(command.password());
-        User user = User.register(UserId.newId(), partyId, hashedPassword, command.login(), Role.ROLE_PROPERTY_MANAGER);
-        User savedUser = userRepository.save(user);
+        EntityId propertyId = propertyProvisioningPort.provisionProperty(
+                new PropertyProvisioningDetails(command.propertyName(), command.propertyAddress()));
+        EntityId partyId = partyProvisioningPort.createParty(
+                new PartyProvisioningDetails(command.fullName(), command.email(), command.phone(), propertyId));
+        propertyProvisioningPort.assignPropertyManager(propertyId, partyId);
 
-        propertyProvisioningPort.provisionProperty(new PropertyProvisioningDetails(
-                command.propertyName(), command.propertyAddress(), partyId));
+        HashedPassword hashedPassword = passwordEncoderPort.encode(command.password());
+        User user = User.register(UserId.newId(), command.email(), command.fullName(), hashedPassword, Role.ROLE_USER)
+                .withLinkedParty(partyId)
+                .withPropertyRoleGrant(partyId, propertyId, PropertyRole.ROLE_PROPERTY_MANAGER);
+        User savedUser = userRepository.save(user);
 
         String rawToken = tokenGenerator.generate();
         Instant expiresAt = clock.instant().plus(verificationTokenTtl);

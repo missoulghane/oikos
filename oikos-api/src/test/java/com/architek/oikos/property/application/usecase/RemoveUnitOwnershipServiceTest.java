@@ -16,6 +16,7 @@ import com.architek.oikos.property.application.command.RemoveUnitOwnershipComman
 import com.architek.oikos.property.domain.exception.UnitOwnershipNotFoundException;
 import com.architek.oikos.property.domain.model.UnitOwnership;
 import com.architek.oikos.property.domain.repository.UnitOwnershipRepository;
+import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.OwnershipShare;
 import com.architek.oikos.property.domain.valueobject.UnitOwnershipId;
@@ -30,7 +31,8 @@ class RemoveUnitOwnershipServiceTest {
     @Test
     void removing_an_existing_entry_deletes_it() {
         UnitOwnershipId id = UnitOwnershipId.newId();
-        UnitOwnership unitOwnership = UnitOwnership.create(id, UnitId.newId(), EntityId.newId(), OwnershipShare.of(BigDecimal.TEN));
+        UnitOwnership unitOwnership = UnitOwnership.create(id, UnitId.newId(), EntityId.newId(), PropertyId.newId(),
+                OwnershipShare.of(BigDecimal.TEN));
         when(unitOwnershipRepository.findById(id)).thenReturn(Optional.of(unitOwnership));
 
         new RemoveUnitOwnershipService(unitOwnershipRepository).remove(new RemoveUnitOwnershipCommand(id));

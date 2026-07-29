@@ -87,7 +87,7 @@ public class ConfigurePropertyService implements ConfigurePropertyUseCase {
                         name -> unitTypeDefinitionRepository.save(
                                 UnitTypeDefinition.create(UnitTypeDefinitionId.newId(), savedProperty.getId(), name))
                                 .getId());
-                createUnits(savedBuilding.getId(), unitTypeConfiguration.unitTypeName(), unitTypeId,
+                createUnits(savedBuilding.getId(), savedProperty.getId(), unitTypeConfiguration.unitTypeName(), unitTypeId,
                         unitTypeConfiguration.count());
             }
         }
@@ -95,10 +95,11 @@ public class ConfigurePropertyService implements ConfigurePropertyUseCase {
         return savedProperty.getId();
     }
 
-    private void createUnits(BuildingId buildingId, String unitTypeName, UnitTypeDefinitionId unitTypeId, int count) {
+    private void createUnits(BuildingId buildingId, PropertyId propertyId, String unitTypeName,
+                              UnitTypeDefinitionId unitTypeId, int count) {
         for (int sequence = 1; sequence <= count; sequence++) {
-            unitRepository.save(Unit.create(UnitId.newId(), buildingId, unitTypeName + " " + sequence, unitTypeId,
-                    Shares.of(BigDecimal.ZERO)));
+            unitRepository.save(Unit.create(UnitId.newId(), buildingId, propertyId, unitTypeName + " " + sequence,
+                    unitTypeId, Shares.of(BigDecimal.ZERO)));
         }
     }
 }

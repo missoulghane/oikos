@@ -19,6 +19,7 @@ import com.architek.oikos.party.domain.exception.PhoneAlreadyUsedException;
 import com.architek.oikos.party.domain.model.Party;
 import com.architek.oikos.party.domain.repository.PartyRepository;
 import com.architek.oikos.party.domain.valueobject.PartyId;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 
@@ -28,6 +29,8 @@ class UpdatePartyServiceTest {
     @Mock
     private PartyRepository partyRepository;
 
+    private final EntityId propertyId = EntityId.newId();
+
     private UpdatePartyService newService() {
         return new UpdatePartyService(partyRepository);
     }
@@ -35,7 +38,7 @@ class UpdatePartyServiceTest {
     @Test
     void updating_a_party_persists_the_new_fields() {
         PartyId id = PartyId.newId();
-        Party party = Party.create(id, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
+        Party party = Party.create(id, propertyId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
         when(partyRepository.findById(id)).thenReturn(Optional.of(party));
         when(partyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -50,7 +53,7 @@ class UpdatePartyServiceTest {
     @Test
     void updating_with_the_same_email_does_not_trigger_a_uniqueness_check() {
         PartyId id = PartyId.newId();
-        Party party = Party.create(id, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
+        Party party = Party.create(id, propertyId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
         when(partyRepository.findById(id)).thenReturn(Optional.of(party));
         when(partyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -62,9 +65,9 @@ class UpdatePartyServiceTest {
     @Test
     void updating_to_an_email_already_used_by_another_party_is_rejected() {
         PartyId id = PartyId.newId();
-        Party party = Party.create(id, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
+        Party party = Party.create(id, propertyId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
         when(partyRepository.findById(id)).thenReturn(Optional.of(party));
-        when(partyRepository.existsByEmail(EmailVO.of("taken@doe.com"))).thenReturn(true);
+        when(partyRepository.existsByPropertyIdAndEmail(propertyId, EmailVO.of("taken@doe.com"))).thenReturn(true);
 
         var command = new UpdatePartyCommand(id, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("taken@doe.com"), null);
 
@@ -74,9 +77,9 @@ class UpdatePartyServiceTest {
     @Test
     void updating_to_a_phone_already_used_by_another_party_is_rejected() {
         PartyId id = PartyId.newId();
-        Party party = Party.create(id, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), "0600000000");
+        Party party = Party.create(id, propertyId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), "0600000000");
         when(partyRepository.findById(id)).thenReturn(Optional.of(party));
-        when(partyRepository.existsByPhone("0700000000")).thenReturn(true);
+        when(partyRepository.existsByPropertyIdAndPhone(propertyId, "0700000000")).thenReturn(true);
 
         var command = new UpdatePartyCommand(id, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), "0700000000");
 
@@ -86,7 +89,7 @@ class UpdatePartyServiceTest {
     @Test
     void updating_with_the_same_phone_does_not_trigger_a_uniqueness_check() {
         PartyId id = PartyId.newId();
-        Party party = Party.create(id, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), "0600000000");
+        Party party = Party.create(id, propertyId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), "0600000000");
         when(partyRepository.findById(id)).thenReturn(Optional.of(party));
         when(partyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 

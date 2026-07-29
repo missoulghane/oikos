@@ -15,11 +15,11 @@ public interface UserRepository {
 
     Optional<User> findById(UserId id);
 
-    Optional<User> findByPartyId(EntityId partyId);
+    Optional<User> findByEmail(String email);
 
-    Optional<User> findByLogin(String login);
+    boolean existsByEmail(String email);
 
-    boolean existsByLogin(String login);
+    boolean existsByLinkedPartyId(EntityId partyId);
 
     Page<User> findAll(PageRequest pageRequest, UserSearchCriteria criteria);
 

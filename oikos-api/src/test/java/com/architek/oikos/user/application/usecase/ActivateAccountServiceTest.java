@@ -17,7 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
-import com.architek.oikos.shared.domain.valueobject.EntityId;
+import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 import com.architek.oikos.user.application.command.ActivateAccountCommand;
@@ -47,7 +47,7 @@ class ActivateAccountServiceTest {
     }
 
     private static User newAdminCreatedUser() {
-        return User.registerByAdmin(UserId.newId(), EntityId.newId(), HashedPassword.of("placeholder"), null);
+        return User.registerByAdmin(UserId.newId(), EmailVO.of("invited@oikos.com"), "Jane Doe", HashedPassword.of("placeholder"));
     }
 
     @Test

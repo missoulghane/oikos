@@ -15,13 +15,14 @@ import {
 
 interface AddExistingUnitOwnerFormProps {
   unitId: string;
+  propertyId: string | undefined;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-export function AddExistingUnitOwnerForm({ unitId, onSuccess, onCancel }: AddExistingUnitOwnerFormProps) {
+export function AddExistingUnitOwnerForm({ unitId, propertyId, onSuccess, onCancel }: AddExistingUnitOwnerFormProps) {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
@@ -30,7 +31,7 @@ export function AddExistingUnitOwnerForm({ unitId, onSuccess, onCancel }: AddExi
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
-  const parties = useParties(0, search || undefined);
+  const parties = useParties(propertyId, 0, search || undefined);
   const {
     register,
     handleSubmit,

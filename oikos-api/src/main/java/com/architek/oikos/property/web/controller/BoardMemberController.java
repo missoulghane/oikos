@@ -28,9 +28,8 @@ import com.architek.oikos.property.web.response.BoardMemberResponse;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
- * Rattachement des membres du syndic (via Party) a une copropriété. 
+ * Rattachement des membres du syndic (via Party) a une copropriété.
  */
-// Pour le moment aucune de gestion de droits (à mettre en place plus tard)
 @RestController
 public class BoardMemberController {
 
@@ -46,6 +45,7 @@ public class BoardMemberController {
         this.removeBoardMemberUseCase = removeBoardMemberUseCase;
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @GetMapping("/properties/{propertyId}/board-members")
     public List<BoardMemberResponse> list(@PathVariable String propertyId) {
         ListBoardMembersByPropertyQuery query = new ListBoardMembersByPropertyQuery(PropertyId.of(propertyId));
@@ -54,6 +54,7 @@ public class BoardMemberController {
                 .toList();
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @PostMapping("/properties/{propertyId}/board-members")
     public ResponseEntity<Void> add(@PathVariable String propertyId, @Valid @RequestBody AddBoardMemberRequest request) {
         BoardMemberId id = addBoardMemberUseCase.add(new AddBoardMemberCommand(
@@ -61,6 +62,7 @@ public class BoardMemberController {
         return ResponseEntity.created(URI.create("/api/v1/properties/" + propertyId + "/board-members/" + id)).build();
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/properties/{propertyId}/board-members/{id}")
     public void remove(@PathVariable String propertyId, @PathVariable String id) {

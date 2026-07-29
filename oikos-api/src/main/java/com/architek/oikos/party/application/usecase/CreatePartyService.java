@@ -23,13 +23,14 @@ public class CreatePartyService implements CreatePartyUseCase {
     @Override
     @Transactional
     public PartyId create(CreatePartyCommand command) {
-        if (partyRepository.existsByEmail(command.email())) {
+        if (partyRepository.existsByPropertyIdAndEmail(command.propertyId(), command.email())) {
             throw new EmailAlreadyUsedException(command.email().value());
         }
-        if (command.phone() != null && !command.phone().isBlank() && partyRepository.existsByPhone(command.phone())) {
+        if (command.phone() != null && !command.phone().isBlank()
+                && partyRepository.existsByPropertyIdAndPhone(command.propertyId(), command.phone())) {
             throw new PhoneAlreadyUsedException(command.phone());
         }
-        Party party = Party.create(PartyId.newId(), command.fullName(), command.partyType(),
+        Party party = Party.create(PartyId.newId(), command.propertyId(), command.fullName(), command.partyType(),
                 command.email(), command.phone());
         return partyRepository.save(party).getId();
     }

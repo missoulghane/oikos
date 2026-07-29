@@ -10,13 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
-import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.user.application.command.RegisterUserCommand;
 import com.architek.oikos.user.application.port.in.RegisterUserUseCase;
-import com.architek.oikos.user.application.port.out.PartyDetails;
-import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
-import com.architek.oikos.user.domain.exception.LoginAlreadyUsedException;
+import com.architek.oikos.user.domain.exception.EmailAlreadyUsedException;
 import com.architek.oikos.user.domain.exception.RoleNotAllowedException;
 import com.architek.oikos.user.domain.model.RegistrableRoles;
 import com.architek.oikos.user.domain.model.Role;
@@ -31,7 +28,6 @@ import com.architek.oikos.user.domain.valueobject.UserId;
 public class RegisterUserService implements RegisterUserUseCase {
 
     private final UserRepository userRepository;
-    private final PartyDirectoryPort partyDirectoryPort;
     private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordEncoderPort passwordEncoderPort;
     private final EmailSenderPort emailSenderPort;
@@ -41,7 +37,6 @@ public class RegisterUserService implements RegisterUserUseCase {
     private final Duration verificationTokenTtl;
 
     public RegisterUserService(UserRepository userRepository,
-                                PartyDirectoryPort partyDirectoryPort,
                                 VerificationTokenRepository verificationTokenRepository,
                                 PasswordEncoderPort passwordEncoderPort,
                                 EmailSenderPort emailSenderPort,
@@ -50,7 +45,6 @@ public class RegisterUserService implements RegisterUserUseCase {
                                 Clock clock,
                                 @Value("${oikos.mail.verification-token-ttl-hours}") long verificationTokenTtlHours) {
         this.userRepository = userRepository;
-        this.partyDirectoryPort = partyDirectoryPort;
         this.verificationTokenRepository = verificationTokenRepository;
         this.passwordEncoderPort = passwordEncoderPort;
         this.emailSenderPort = emailSenderPort;
@@ -63,17 +57,15 @@ public class RegisterUserService implements RegisterUserUseCase {
     @Override
     @Transactional
     public UserId register(RegisterUserCommand command) {
-        if (command.login() != null && !command.login().isBlank() && userRepository.existsByLogin(command.login())) {
-            throw new LoginAlreadyUsedException(command.login());
+        if (userRepository.existsByEmail(command.email().value())) {
+            throw new EmailAlreadyUsedException(command.email().value());
         }
         Role role = command.role() != null ? command.role() : Role.ROLE_USER;
         if (!RegistrableRoles.isAllowed(role)) {
             throw new RoleNotAllowedException(role);
         }
-        EntityId partyId = partyDirectoryPort.createParty(
-                new PartyDetails(command.fullName(), command.email(), command.phone()));
         HashedPassword hashedPassword = passwordEncoderPort.encode(command.password());
-        User user = User.register(UserId.newId(), partyId, hashedPassword, command.login(), role);
+        User user = User.register(UserId.newId(), command.email(), command.fullName(), hashedPassword, role);
         User savedUser = userRepository.save(user);
 
         String rawToken = tokenGenerator.generate();

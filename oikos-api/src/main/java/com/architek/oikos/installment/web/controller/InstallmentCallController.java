@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -52,6 +53,11 @@ public class InstallmentCallController {
         this.getInstallmentCallUseCase = getInstallmentCallUseCase;
     }
 
+    // No propertyId in the path here (the request body carries arbitrary unitIds
+    // potentially spanning properties) - restricted to ADMIN until per-line
+    // property validation is built; a MANAGER should use the property-scoped
+    // /properties/{propertyId}/installment-calls "generate" endpoint below instead.
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @PostMapping("/installment-calls")
     public ResponseEntity<InstallmentCallResponse> create(@Valid @RequestBody RecordInstallmentCallRequest request) {
         List<InstallmentId> installmentIds = recordInstallmentCallUseCase.record(new RecordInstallmentCallCommand(
@@ -59,6 +65,7 @@ public class InstallmentCallController {
         return ResponseEntity.status(HttpStatus.CREATED).body(InstallmentCallResponse.from(installmentIds));
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @PostMapping("/properties/{propertyId}/installment-calls")
     public ResponseEntity<GenerateInstallmentCallResponse> generate(@PathVariable String propertyId,
                                                                      @Valid @RequestBody GenerateInstallmentCallRequest request) {
@@ -67,6 +74,7 @@ public class InstallmentCallController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @GetMapping("/properties/{propertyId}/installment-calls")
     public PagedInstallmentCallResponse listByProperty(@PathVariable String propertyId,
                                                         @RequestParam(defaultValue = "0") int page,
@@ -75,6 +83,7 @@ public class InstallmentCallController {
                 new ListInstallmentCallsByPropertyQuery(EntityId.of(propertyId), PageRequest.of(page, size))));
     }
 
+    @PreAuthorize("@propertyAccess.managesInstallmentCall(authentication, #id)")
     @GetMapping("/installment-calls/{id}")
     public InstallmentCallDetailResponse getById(@PathVariable String id) {
         return InstallmentCallDetailResponse.from(

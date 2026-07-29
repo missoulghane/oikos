@@ -18,6 +18,7 @@ import com.architek.oikos.party.infrastructure.persistence.PartySpecifications;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 @Component
 public class PartyRepositoryAdapter implements PartyRepository {
@@ -43,23 +44,23 @@ public class PartyRepositoryAdapter implements PartyRepository {
     }
 
     @Override
-    public Optional<Party> findByEmail(EmailVO email) {
-        return jpaRepository.findByEmail(email.value()).map(mapper::toDomain);
+    public Optional<Party> findByPropertyIdAndEmail(EntityId propertyId, EmailVO email) {
+        return jpaRepository.findByPropertyIdAndEmail(propertyId.value(), email.value()).map(mapper::toDomain);
     }
 
     @Override
-    public Optional<Party> findByPhone(String phone) {
-        return jpaRepository.findByPhone(phone).map(mapper::toDomain);
+    public Optional<Party> findByPropertyIdAndPhone(EntityId propertyId, String phone) {
+        return jpaRepository.findByPropertyIdAndPhone(propertyId.value(), phone).map(mapper::toDomain);
     }
 
     @Override
-    public boolean existsByEmail(EmailVO email) {
-        return jpaRepository.existsByEmail(email.value());
+    public boolean existsByPropertyIdAndEmail(EntityId propertyId, EmailVO email) {
+        return jpaRepository.existsByPropertyIdAndEmail(propertyId.value(), email.value());
     }
 
     @Override
-    public boolean existsByPhone(String phone) {
-        return jpaRepository.existsByPhone(phone);
+    public boolean existsByPropertyIdAndPhone(EntityId propertyId, String phone) {
+        return jpaRepository.existsByPropertyIdAndPhone(propertyId.value(), phone);
     }
 
     @Override

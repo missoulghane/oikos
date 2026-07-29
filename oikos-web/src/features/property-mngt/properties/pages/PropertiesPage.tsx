@@ -1,7 +1,19 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { PropertyList } from '@/features/property-mngt/properties/components/PropertyList';
+import { useCurrentUser, canManageProperties } from '@/features/identity/me';
+import { Loader } from '@/shared/components/Loader/Loader';
 
 export function PropertiesPage() {
+  const currentUser = useCurrentUser();
+
+  if (currentUser.isLoading) {
+    return <Loader />;
+  }
+
+  if (currentUser.data && !canManageProperties(currentUser.data)) {
+    return <Navigate to="/my-units" replace />;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">

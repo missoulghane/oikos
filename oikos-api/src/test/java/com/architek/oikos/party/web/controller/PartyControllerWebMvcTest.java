@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
@@ -32,10 +33,16 @@ import com.architek.oikos.shared.domain.valueobject.PartyType;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
+import com.architek.oikos.user.application.dto.UserAccessView;
+import com.architek.oikos.user.application.port.in.GetUserAccessUseCase;
+import com.architek.oikos.user.application.port.in.InvitePartyUseCase;
 
 @WebMvcTest(controllers = PartyController.class)
 @Import(WebSecuritySliceTestConfiguration.class)
 class PartyControllerWebMvcTest {
+
+    @Autowired
+    private GetUserAccessUseCase getUserAccessUseCase;
 
     @Autowired
     private MockMvc mockMvc;
@@ -58,18 +65,24 @@ class PartyControllerWebMvcTest {
     @MockitoBean
     private DeletePartyUseCase deletePartyUseCase;
 
+    @MockitoBean
+    private InvitePartyUseCase invitePartyUseCase;
+
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
     }
 
     @Test
     void anonymous_request_is_rejected_with_401() throws Exception {
-        mockMvc.perform(get("/api/v1/parties")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/parties").param("propertyId", UUID.randomUUID().toString()))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     void regular_user_is_forbidden_from_listing_parties() throws Exception {
-        mockMvc.perform(get("/api/v1/parties").header("Authorization", bearerToken("ROLE_USER")))
+        mockMvc.perform(get("/api/v1/parties")
+                        .param("propertyId", UUID.randomUUID().toString())
+                        .header("Authorization", bearerToken("ROLE_USER")))
                 .andExpect(status().isForbidden());
     }
 
@@ -77,15 +90,22 @@ class PartyControllerWebMvcTest {
     void admin_can_list_parties() throws Exception {
         when(listPartiesUseCase.listParties(any())).thenReturn(Page.of(List.of(), 0, 20, 0));
 
-        mockMvc.perform(get("/api/v1/parties").header("Authorization", bearerToken("ROLE_ADMIN")))
+        mockMvc.perform(get("/api/v1/parties")
+                        .param("propertyId", UUID.randomUUID().toString())
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 
     @Test
     void property_manager_can_list_parties() throws Exception {
+        String propertyId = UUID.randomUUID().toString();
         when(listPartiesUseCase.listParties(any())).thenReturn(Page.of(List.of(), 0, 20, 0));
+        when(getUserAccessUseCase.getAccess(any()))
+                .thenReturn(new UserAccessView(Set.of(), Set.of(propertyId), Set.of()));
 
-        mockMvc.perform(get("/api/v1/parties").header("Authorization", bearerToken("ROLE_PROPERTY_MANAGER")))
+        mockMvc.perform(get("/api/v1/parties")
+                        .param("propertyId", propertyId)
+                        .header("Authorization", bearerToken("ROLE_PROPERTY_MANAGER")))
                 .andExpect(status().isOk());
     }
 
@@ -95,18 +115,38 @@ class PartyControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_PROPERTY_MANAGER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"fullName":"Jane Doe","partyType":"INDIVIDUAL","email":"jane@doe.com"}
-                                """))
+                                {"propertyId":"%s","fullName":"Jane Doe","partyType":"INDIVIDUAL","email":"jane@doe.com"}
+                                """.formatted(UUID.randomUUID())))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void admin_can_get_a_party_by_id() throws Exception {
         PartyId id = PartyId.newId();
-        when(getPartyUseCase.getParty(any())).thenReturn(new PartyView(id, "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
+        when(getPartyUseCase.getParty(any())).thenReturn(new PartyView(id, EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
 
         mockMvc.perform(get("/api/v1/parties/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void owner_can_get_their_own_party_by_id() throws Exception {
+        PartyId id = PartyId.newId();
+        when(getPartyUseCase.getParty(any())).thenReturn(new PartyView(id, EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
+        when(getUserAccessUseCase.getAccess(any()))
+                .thenReturn(new UserAccessView(Set.of(), Set.of(), Set.of(id.toString())));
+
+        mockMvc.perform(get("/api/v1/parties/" + id).header("Authorization", bearerToken("ROLE_USER")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void regular_user_is_forbidden_from_getting_someone_elses_party() throws Exception {
+        PartyId id = PartyId.newId();
+        when(getPartyUseCase.getParty(any())).thenReturn(new PartyView(id, EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
+
+        mockMvc.perform(get("/api/v1/parties/" + id).header("Authorization", bearerToken("ROLE_USER")))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -118,8 +158,8 @@ class PartyControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"fullName":"Jane Doe","partyType":"INDIVIDUAL","email":"jane@doe.com"}
-                                """))
+                                {"propertyId":"%s","fullName":"Jane Doe","partyType":"INDIVIDUAL","email":"jane@doe.com"}
+                                """.formatted(UUID.randomUUID())))
                 .andExpect(status().isCreated());
     }
 
@@ -129,15 +169,15 @@ class PartyControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"fullName":"Jane Doe","partyType":"INDIVIDUAL","email":"jane@doe.com"}
-                                """))
+                                {"propertyId":"%s","fullName":"Jane Doe","partyType":"INDIVIDUAL","email":"jane@doe.com"}
+                                """.formatted(UUID.randomUUID())))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void admin_can_update_a_party() throws Exception {
         PartyId id = PartyId.newId();
-        when(updatePartyUseCase.update(any())).thenReturn(new PartyView(id, "Janet Smith", PartyType.COMPANY, "janet@smith.com", null));
+        when(updatePartyUseCase.update(any())).thenReturn(new PartyView(id, EntityId.newId(), "Janet Smith", PartyType.COMPANY, "janet@smith.com", null));
 
         mockMvc.perform(put("/api/v1/parties/" + id)
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
@@ -157,7 +197,44 @@ class PartyControllerWebMvcTest {
 
     @Test
     void regular_user_is_forbidden_from_deleting_a_party() throws Exception {
-        mockMvc.perform(delete("/api/v1/parties/" + PartyId.newId())
+        PartyId id = PartyId.newId();
+        when(getPartyUseCase.getParty(any())).thenReturn(new PartyView(id, EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
+
+        mockMvc.perform(delete("/api/v1/parties/" + id)
+                        .header("Authorization", bearerToken("ROLE_USER")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void admin_can_invite_an_unlinked_party() throws Exception {
+        PartyId id = PartyId.newId();
+        when(getPartyUseCase.getParty(any())).thenReturn(new PartyView(id, EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
+        when(invitePartyUseCase.invite(any())).thenReturn(true);
+
+        mockMvc.perform(post("/api/v1/parties/" + id + "/invite")
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"invited\":true}"));
+    }
+
+    @Test
+    void inviting_an_already_linked_party_reports_no_invitation_sent() throws Exception {
+        PartyId id = PartyId.newId();
+        when(getPartyUseCase.getParty(any())).thenReturn(new PartyView(id, EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
+        when(invitePartyUseCase.invite(any())).thenReturn(false);
+
+        mockMvc.perform(post("/api/v1/parties/" + id + "/invite")
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"invited\":false}"));
+    }
+
+    @Test
+    void regular_user_is_forbidden_from_inviting_a_party() throws Exception {
+        PartyId id = PartyId.newId();
+        when(getPartyUseCase.getParty(any())).thenReturn(new PartyView(id, EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
+
+        mockMvc.perform(post("/api/v1/parties/" + id + "/invite")
                         .header("Authorization", bearerToken("ROLE_USER")))
                 .andExpect(status().isForbidden());
     }

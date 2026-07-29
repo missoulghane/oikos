@@ -15,15 +15,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.architek.oikos.party.domain.exception.EmailAlreadyUsedException;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
-import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 import com.architek.oikos.user.application.command.RegisterUserCommand;
-import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
+import com.architek.oikos.user.domain.exception.EmailAlreadyUsedException;
 import com.architek.oikos.user.domain.exception.RoleNotAllowedException;
 import com.architek.oikos.user.domain.model.Role;
 import com.architek.oikos.user.domain.model.User;
@@ -38,9 +36,6 @@ class RegisterUserServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private PartyDirectoryPort partyDirectoryPort;
-
-    @Mock
     private VerificationTokenRepository verificationTokenRepository;
 
     @Mock
@@ -50,19 +45,18 @@ class RegisterUserServiceTest {
     private EmailSenderPort emailSenderPort;
 
     private RegisterUserService newService() {
-        return new RegisterUserService(userRepository, partyDirectoryPort, verificationTokenRepository, passwordEncoderPort,
+        return new RegisterUserService(userRepository, verificationTokenRepository, passwordEncoderPort,
                 emailSenderPort, new VerificationTokenGenerator(), new VerificationEmailComposer("http://localhost/verify"),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
     }
 
     @Test
     void registering_a_new_email_persists_the_user_and_sends_a_verification_email() {
-        when(partyDirectoryPort.createParty(any())).thenReturn(EntityId.newId());
         when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), null, null, RawPassword.of("password123"), null);
+                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), null);
 
         newService().register(command);
 
@@ -73,22 +67,21 @@ class RegisterUserServiceTest {
 
     @Test
     void registering_an_already_used_email_is_rejected() {
-        when(partyDirectoryPort.createParty(any())).thenThrow(new EmailAlreadyUsedException("existing@oikos.com"));
+        when(userRepository.existsByEmail("existing@oikos.com")).thenReturn(true);
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("existing@oikos.com"), null, null, RawPassword.of("password123"), null);
+                "Jane Doe", EmailVO.of("existing@oikos.com"), RawPassword.of("password123"), null);
 
         assertThatThrownBy(() -> newService().register(command)).isInstanceOf(EmailAlreadyUsedException.class);
     }
 
     @Test
     void role_defaults_to_user_when_not_specified() {
-        when(partyDirectoryPort.createParty(any())).thenReturn(EntityId.newId());
         when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), null, null, RawPassword.of("password123"), null);
+                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), null);
 
         newService().register(command);
 
@@ -98,38 +91,35 @@ class RegisterUserServiceTest {
     }
 
     @Test
-    void role_is_assigned_when_it_is_registrable() {
-        when(partyDirectoryPort.createParty(any())).thenReturn(EntityId.newId());
+    void role_is_assigned_when_explicitly_registrable() {
         when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), null, null, RawPassword.of("password123"),
-                Role.ROLE_PROPERTY_MANAGER);
+                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), Role.ROLE_USER);
 
         newService().register(command);
 
         var captor = org.mockito.ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
-        assertThat(captor.getValue().getRoles()).containsExactly(Role.ROLE_PROPERTY_MANAGER);
+        assertThat(captor.getValue().getRoles()).containsExactly(Role.ROLE_USER);
     }
 
     @Test
     void a_privileged_role_cannot_be_self_assigned_at_registration() {
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), null, null, RawPassword.of("password123"), Role.ROLE_ADMIN);
+                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), Role.ROLE_ADMIN);
 
         assertThatThrownBy(() -> newService().register(command)).isInstanceOf(RoleNotAllowedException.class);
     }
 
     @Test
     void password_is_hashed_before_persisting_the_user() {
-        when(partyDirectoryPort.createParty(any())).thenReturn(EntityId.newId());
         when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed-value"));
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), null, null, RawPassword.of("password123"), null);
+                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), null);
 
         newService().register(command);
 

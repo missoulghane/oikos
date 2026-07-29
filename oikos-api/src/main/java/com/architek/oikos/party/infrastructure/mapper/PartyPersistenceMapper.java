@@ -6,6 +6,7 @@ import com.architek.oikos.party.domain.model.Party;
 import com.architek.oikos.party.domain.valueobject.PartyId;
 import com.architek.oikos.party.infrastructure.persistence.PartyEntity;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
  * Domain <-> entity mapping. Implemented as default methods rather than
@@ -28,6 +29,7 @@ public interface PartyPersistenceMapper {
      */
     default PartyEntity toEntity(Party party, PartyEntity entity) {
         entity.setId(party.getId().asUuid());
+        entity.setPropertyId(party.getPropertyId().value());
         entity.setFullName(party.getFullName());
         entity.setPartyType(party.getPartyType());
         entity.setEmail(party.getEmail().value());
@@ -38,6 +40,7 @@ public interface PartyPersistenceMapper {
     default Party toDomain(PartyEntity entity) {
         return Party.reconstruct(
                 PartyId.of(entity.getId()),
+                EntityId.of(entity.getPropertyId()),
                 entity.getFullName(),
                 entity.getPartyType(),
                 EmailVO.of(entity.getEmail()),

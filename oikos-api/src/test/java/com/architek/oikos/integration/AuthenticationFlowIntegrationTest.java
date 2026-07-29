@@ -155,24 +155,25 @@ class AuthenticationFlowIntegrationTest {
                 .andReturn();
         String accessToken = JsonPath.read(loginResult.getResponse().getContentAsString(), "$.accessToken");
 
+        // Global JWT roles only ever carry platform-wide roles (ROLE_USER/ROLE_ADMIN/ROLE_MASTER):
+        // ROLE_PROPERTY_MANAGER is now granted per-property through the linked Party, not embedded
+        // in the token (see the deferred per-property authorization pass).
         mockMvc.perform(get("/api/v1/users/me").header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email", is(email)))
-                .andExpect(jsonPath("$.roles", org.hamcrest.Matchers.hasItem("ROLE_PROPERTY_MANAGER")));
+                .andExpect(jsonPath("$.roles", org.hamcrest.Matchers.hasItem("ROLE_USER")));
     }
 
     @Test
-    void logs_in_with_login_email_or_phone_indifferently() throws Exception {
+    void logs_in_with_its_own_email() throws Exception {
         String email = "multi-identifier-user@oikos.com";
-        String phone = "0611223344";
-        String login = "multi-id-login";
         String password = "password123456";
 
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"fullName":"Jane Doe","email":"%s","phone":"%s","login":"%s","password":"%s"}
-                                """.formatted(email, phone, login, password)))
+                                {"fullName":"Jane Doe","email":"%s","password":"%s"}
+                                """.formatted(email, password)))
                 .andExpect(status().isCreated());
 
         var bodyCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
@@ -188,21 +189,7 @@ class AuthenticationFlowIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"identifier":"%s","password":"%s"}
-                                """.formatted(login, password)))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"identifier":"%s","password":"%s"}
                                 """.formatted(email, password)))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"identifier":"%s","password":"%s"}
-                                """.formatted(phone, password)))
                 .andExpect(status().isOk());
     }
 

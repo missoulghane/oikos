@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Import;
 
 import com.architek.oikos.property.domain.model.Unit;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
+import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.Shares;
 import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
@@ -29,7 +30,7 @@ class UnitRepositoryAdapterDataJpaTest {
 
     @Test
     void saves_and_finds_a_unit_by_id() {
-        Unit unit = Unit.create(UnitId.newId(), BuildingId.newId(), "A12", UnitTypeDefinitionId.newId(),
+        Unit unit = Unit.create(UnitId.newId(), BuildingId.newId(), PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(),
                 Shares.of(new BigDecimal("150.00")));
 
         adapter.save(unit);
@@ -41,11 +42,12 @@ class UnitRepositoryAdapterDataJpaTest {
     @Test
     void findAllByBuildingId_paginates_and_filters_by_parent() {
         BuildingId buildingId = BuildingId.newId();
+        PropertyId propertyId = PropertyId.newId();
         for (int i = 0; i < 3; i++) {
-            adapter.save(Unit.create(UnitId.newId(), buildingId, "A" + i, UnitTypeDefinitionId.newId(),
+            adapter.save(Unit.create(UnitId.newId(), buildingId, propertyId, "A" + i, UnitTypeDefinitionId.newId(),
                     Shares.of(BigDecimal.TEN)));
         }
-        adapter.save(Unit.create(UnitId.newId(), BuildingId.newId(), "Z99", UnitTypeDefinitionId.newId(),
+        adapter.save(Unit.create(UnitId.newId(), BuildingId.newId(), PropertyId.newId(), "Z99", UnitTypeDefinitionId.newId(),
                 Shares.of(BigDecimal.ONE)));
 
         var page = adapter.findAllByBuildingId(buildingId, PageRequest.of(0, 2));
@@ -59,7 +61,8 @@ class UnitRepositoryAdapterDataJpaTest {
         UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
         assertThat(adapter.existsByUnitTypeId(unitTypeId)).isFalse();
 
-        adapter.save(Unit.create(UnitId.newId(), BuildingId.newId(), "A12", unitTypeId, Shares.of(BigDecimal.TEN)));
+        adapter.save(Unit.create(UnitId.newId(), BuildingId.newId(), PropertyId.newId(), "A12", unitTypeId,
+                Shares.of(BigDecimal.TEN)));
 
         assertThat(adapter.existsByUnitTypeId(unitTypeId)).isTrue();
     }

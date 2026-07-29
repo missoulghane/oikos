@@ -9,7 +9,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.context.annotation.Import;
 
 import com.architek.oikos.shared.domain.pagination.PageRequest;
-import com.architek.oikos.shared.domain.valueobject.EntityId;
+import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.shared.infrastructure.configuration.JpaAuditingConfiguration;
 import com.architek.oikos.user.domain.model.Role;
@@ -27,27 +27,27 @@ class UserRepositoryAdapterDataJpaTest {
     private UserRepositoryAdapter adapter;
 
     private static User newUser() {
-        return User.register(UserId.newId(), EntityId.newId(), HashedPassword.of("hashed"), "jpa-test-login");
+        return User.register(UserId.newId(), EmailVO.of("jpa-test@oikos.com"), "Jane Doe", HashedPassword.of("hashed"));
     }
 
     @Test
-    void saves_and_finds_a_user_by_party_id() {
+    void saves_and_finds_a_user_by_id() {
         User user = newUser();
 
         adapter.save(user);
 
-        assertThat(adapter.findByPartyId(user.getPartyId())).isPresent()
-                .get().extracting(User::getLogin).isEqualTo("jpa-test-login");
+        assertThat(adapter.findById(user.getId())).isPresent()
+                .get().extracting(u -> u.getEmail().value()).isEqualTo("jpa-test@oikos.com");
     }
 
     @Test
-    void findByLogin_and_existsByLogin_reflect_persisted_state() {
-        assertThat(adapter.existsByLogin("nobody-login")).isFalse();
+    void findByEmail_and_existsByEmail_reflect_persisted_state() {
+        assertThat(adapter.existsByEmail("nobody@oikos.com")).isFalse();
 
-        adapter.save(User.register(UserId.newId(), EntityId.newId(), HashedPassword.of("hashed"), "nobody-login"));
+        adapter.save(User.register(UserId.newId(), EmailVO.of("nobody@oikos.com"), "Jane Doe", HashedPassword.of("hashed")));
 
-        assertThat(adapter.existsByLogin("nobody-login")).isTrue();
-        assertThat(adapter.findByLogin("nobody-login")).isPresent();
+        assertThat(adapter.existsByEmail("nobody@oikos.com")).isTrue();
+        assertThat(adapter.findByEmail("nobody@oikos.com")).isPresent();
     }
 
     @Test
@@ -55,17 +55,18 @@ class UserRepositoryAdapterDataJpaTest {
         User user = newUser();
         adapter.save(user);
 
-        adapter.save(user.verify().withLogin("updated-login"));
+        adapter.save(user.verify().withFullName("Updated Name"));
 
         User reloaded = adapter.findById(user.getId()).orElseThrow();
         assertThat(reloaded.isVerified()).isTrue();
-        assertThat(reloaded.getLogin()).isEqualTo("updated-login");
+        assertThat(reloaded.getFullName()).isEqualTo("Updated Name");
     }
 
     @Test
     void findAll_paginates_results() {
         for (int i = 0; i < 3; i++) {
-            adapter.save(User.register(UserId.newId(), EntityId.newId(), HashedPassword.of("hashed"), "login-" + i));
+            adapter.save(User.register(UserId.newId(), EmailVO.of("user" + i + "@oikos.com"), "Jane Doe",
+                    HashedPassword.of("hashed")));
         }
 
         var page = adapter.findAll(PageRequest.of(0, 2), UserSearchCriteria.empty());
@@ -75,13 +76,13 @@ class UserRepositoryAdapterDataJpaTest {
     }
 
     @Test
-    void findAll_filters_by_search_text_on_login() {
-        adapter.save(User.register(UserId.newId(), EntityId.newId(), HashedPassword.of("hashed"), "alice-login"));
-        adapter.save(User.register(UserId.newId(), EntityId.newId(), HashedPassword.of("hashed"), "bob-login"));
+    void findAll_filters_by_search_text_on_email() {
+        adapter.save(User.register(UserId.newId(), EmailVO.of("alice@oikos.com"), "Alice", HashedPassword.of("hashed")));
+        adapter.save(User.register(UserId.newId(), EmailVO.of("bob@oikos.com"), "Bob", HashedPassword.of("hashed")));
 
         var page = adapter.findAll(PageRequest.of(0, 20), new UserSearchCriteria("alice", null, null));
 
-        assertThat(page.content()).extracting(User::getLogin).containsExactly("alice-login");
+        assertThat(page.content()).extracting(u -> u.getEmail().value()).containsExactly("alice@oikos.com");
     }
 
     @Test

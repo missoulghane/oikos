@@ -35,7 +35,6 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * Rattachement des copropretaires (personnes physiques, via Party) a un lot.
  */
 @RestController
-// Pour le moment aucune de gestion de droits (à mettre en place plus tard)
 public class UnitOwnershipController {
 
     private final AddUnitOwnershipUseCase addUnitOwnershipUseCase;
@@ -53,6 +52,7 @@ public class UnitOwnershipController {
         this.removeUnitOwnershipUseCase = removeUnitOwnershipUseCase;
     }
 
+    @PreAuthorize("@propertyAccess.managesUnit(authentication, #unitId) or @propertyAccess.ownsUnit(authentication, #unitId)")
     @GetMapping("/units/{unitId}/owners")
     public List<UnitOwnershipResponse> list(@PathVariable String unitId) {
         return listUnitOwnershipsByUnitUseCase.listUnitOwnerships(new ListUnitOwnershipsByUnitQuery(UnitId.of(unitId))).stream()
@@ -60,6 +60,7 @@ public class UnitOwnershipController {
                 .toList();
     }
 
+    @PreAuthorize("@propertyAccess.managesUnit(authentication, #unitId)")
     @PostMapping("/units/{unitId}/owners")
     public ResponseEntity<Void> add(@PathVariable String unitId, @Valid @RequestBody AddUnitOwnershipRequest request) {
         UnitOwnershipId id = addUnitOwnershipUseCase.add(new AddUnitOwnershipCommand(
@@ -67,6 +68,7 @@ public class UnitOwnershipController {
         return ResponseEntity.created(URI.create("/api/v1/units/" + unitId + "/owners/" + id)).build();
     }
 
+    @PreAuthorize("@propertyAccess.managesUnit(authentication, #unitId)")
     @PostMapping("/units/{unitId}/owners/new-party")
     public ResponseEntity<Void> addWithNewParty(@PathVariable String unitId,
                                                     @Valid @RequestBody AddUnitOwnerRequest request) {
@@ -75,6 +77,7 @@ public class UnitOwnershipController {
         return ResponseEntity.created(URI.create("/api/v1/units/" + unitId + "/owners/" + id)).build();
     }
 
+    @PreAuthorize("@propertyAccess.managesUnit(authentication, #unitId)")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/units/{unitId}/owners/{id}")
     public void remove(@PathVariable String unitId, @PathVariable String id) {

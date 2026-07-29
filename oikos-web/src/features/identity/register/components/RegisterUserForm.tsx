@@ -28,7 +28,6 @@ export function RegisterUserForm({ onSubmit, isSubmitting, errorMessage }: Regis
         errorMessage={errors.fullName?.message}
       />
       <Input label="Email" type="email" autoComplete="email" {...register('email')} errorMessage={errors.email?.message} />
-      <Input label="Téléphone" autoComplete="tel" {...register('phone')} errorMessage={errors.phone?.message} />
       <Input
         label="Mot de passe"
         type="password"

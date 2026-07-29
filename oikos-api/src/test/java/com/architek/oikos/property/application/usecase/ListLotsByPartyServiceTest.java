@@ -65,15 +65,15 @@ class ListLotsByPartyServiceTest {
                 .thenReturn(new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"), null));
 
         UnitId unitId = UnitId.newId();
-        UnitOwnership unitOwnership = UnitOwnership.create(UnitOwnershipId.newId(), unitId, partyId,
+        PropertyId propertyId = PropertyId.newId();
+        UnitOwnership unitOwnership = UnitOwnership.create(UnitOwnershipId.newId(), unitId, partyId, propertyId,
                 OwnershipShare.of(new BigDecimal("50")));
         when(unitOwnershipRepository.findAllByPartyId(partyId)).thenReturn(List.of(unitOwnership));
 
         BuildingId buildingId = BuildingId.newId();
-        Unit unit = Unit.create(unitId, buildingId, "A12", UnitTypeDefinitionId.newId(), Shares.of(BigDecimal.TEN));
+        Unit unit = Unit.create(unitId, buildingId, propertyId, "A12", UnitTypeDefinitionId.newId(), Shares.of(BigDecimal.TEN));
         when(unitRepository.findById(unitId)).thenReturn(Optional.of(unit));
 
-        PropertyId propertyId = PropertyId.newId();
         Building building = Building.create(buildingId, propertyId, "Bâtiment A", 3);
         when(buildingRepository.findById(buildingId)).thenReturn(Optional.of(building));
 

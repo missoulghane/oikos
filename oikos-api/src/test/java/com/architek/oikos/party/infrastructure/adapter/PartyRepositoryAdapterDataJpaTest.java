@@ -15,6 +15,7 @@ import com.architek.oikos.shared.domain.valueobject.PartyType;
 import com.architek.oikos.party.infrastructure.mapper.PartyPersistenceMapperImpl;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.infrastructure.configuration.JpaAuditingConfiguration;
 
 @DataJpaTest
@@ -25,8 +26,11 @@ class PartyRepositoryAdapterDataJpaTest {
     @Autowired
     private PartyRepositoryAdapter adapter;
 
-    private static Party newParty() {
-        return Party.create(PartyId.newId(), "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jpa-test@oikos.com"), "0600000000");
+    private final EntityId propertyId = EntityId.newId();
+
+    private Party newParty() {
+        return Party.create(PartyId.newId(), propertyId, "Jane Doe", PartyType.INDIVIDUAL,
+                EmailVO.of("jpa-test@oikos.com"), "0600000000");
     }
 
     @Test
@@ -40,41 +44,43 @@ class PartyRepositoryAdapterDataJpaTest {
     }
 
     @Test
-    void existsByEmail_reflects_persisted_state() {
-        assertThat(adapter.existsByEmail(EmailVO.of("nobody@oikos.com"))).isFalse();
+    void existsByPropertyIdAndEmail_reflects_persisted_state() {
+        assertThat(adapter.existsByPropertyIdAndEmail(propertyId, EmailVO.of("nobody@oikos.com"))).isFalse();
 
-        adapter.save(Party.create(PartyId.newId(), "A B", PartyType.INDIVIDUAL, EmailVO.of("nobody@oikos.com"), null));
+        adapter.save(Party.create(PartyId.newId(), propertyId, "A B", PartyType.INDIVIDUAL,
+                EmailVO.of("nobody@oikos.com"), null));
 
-        assertThat(adapter.existsByEmail(EmailVO.of("nobody@oikos.com"))).isTrue();
+        assertThat(adapter.existsByPropertyIdAndEmail(propertyId, EmailVO.of("nobody@oikos.com"))).isTrue();
     }
 
     @Test
-    void existsByPhone_reflects_persisted_state() {
-        assertThat(adapter.existsByPhone("0611223344")).isFalse();
+    void existsByPropertyIdAndPhone_reflects_persisted_state() {
+        assertThat(adapter.existsByPropertyIdAndPhone(propertyId, "0611223344")).isFalse();
 
-        adapter.save(Party.create(PartyId.newId(), "A B", PartyType.INDIVIDUAL, EmailVO.of("phone-test@oikos.com"), "0611223344"));
+        adapter.save(Party.create(PartyId.newId(), propertyId, "A B", PartyType.INDIVIDUAL,
+                EmailVO.of("phone-test@oikos.com"), "0611223344"));
 
-        assertThat(adapter.existsByPhone("0611223344")).isTrue();
+        assertThat(adapter.existsByPropertyIdAndPhone(propertyId, "0611223344")).isTrue();
     }
 
     @Test
-    void findByEmail_returns_the_matching_party() {
+    void findByPropertyIdAndEmail_returns_the_matching_party() {
         Party party = newParty();
         adapter.save(party);
 
-        assertThat(adapter.findByEmail(EmailVO.of("jpa-test@oikos.com"))).isPresent()
+        assertThat(adapter.findByPropertyIdAndEmail(propertyId, EmailVO.of("jpa-test@oikos.com"))).isPresent()
                 .get().extracting(Party::getId).isEqualTo(party.getId());
-        assertThat(adapter.findByEmail(EmailVO.of("nobody@oikos.com"))).isEmpty();
+        assertThat(adapter.findByPropertyIdAndEmail(propertyId, EmailVO.of("nobody@oikos.com"))).isEmpty();
     }
 
     @Test
-    void findByPhone_returns_the_matching_party() {
+    void findByPropertyIdAndPhone_returns_the_matching_party() {
         Party party = newParty();
         adapter.save(party);
 
-        assertThat(adapter.findByPhone("0600000000")).isPresent()
+        assertThat(adapter.findByPropertyIdAndPhone(propertyId, "0600000000")).isPresent()
                 .get().extracting(Party::getId).isEqualTo(party.getId());
-        assertThat(adapter.findByPhone("0000000000")).isEmpty();
+        assertThat(adapter.findByPropertyIdAndPhone(propertyId, "0000000000")).isEmpty();
     }
 
     @Test
@@ -93,10 +99,11 @@ class PartyRepositoryAdapterDataJpaTest {
     @Test
     void findAll_paginates_results() {
         for (int i = 0; i < 3; i++) {
-            adapter.save(Party.create(PartyId.newId(), "Doe " + i, PartyType.INDIVIDUAL, EmailVO.of("user" + i + "@oikos.com"), null));
+            adapter.save(Party.create(PartyId.newId(), propertyId, "Doe " + i, PartyType.INDIVIDUAL,
+                    EmailVO.of("user" + i + "@oikos.com"), null));
         }
 
-        var page = adapter.findAll(PageRequest.of(0, 2), PartySearchCriteria.empty());
+        var page = adapter.findAll(PageRequest.of(0, 2), PartySearchCriteria.of(propertyId));
 
         assertThat(page.content()).hasSize(2);
         assertThat(page.totalElements()).isEqualTo(3);
@@ -104,10 +111,12 @@ class PartyRepositoryAdapterDataJpaTest {
 
     @Test
     void findAll_filters_by_search_text() {
-        adapter.save(Party.create(PartyId.newId(), "Alice Martin", PartyType.INDIVIDUAL, EmailVO.of("alice@oikos.com"), null));
-        adapter.save(Party.create(PartyId.newId(), "Bob Durand", PartyType.INDIVIDUAL, EmailVO.of("bob@oikos.com"), null));
+        adapter.save(Party.create(PartyId.newId(), propertyId, "Alice Martin", PartyType.INDIVIDUAL,
+                EmailVO.of("alice@oikos.com"), null));
+        adapter.save(Party.create(PartyId.newId(), propertyId, "Bob Durand", PartyType.INDIVIDUAL,
+                EmailVO.of("bob@oikos.com"), null));
 
-        var page = adapter.findAll(PageRequest.of(0, 20), new PartySearchCriteria("alice"));
+        var page = adapter.findAll(PageRequest.of(0, 20), new PartySearchCriteria(propertyId, "alice"));
 
         assertThat(page.content()).extracting(Party::getFullName).containsExactly("Alice Martin");
     }

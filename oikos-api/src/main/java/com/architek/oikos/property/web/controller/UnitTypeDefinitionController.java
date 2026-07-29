@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,7 +31,6 @@ import com.architek.oikos.property.web.response.UnitTypeDefinitionResponse;
  * UnitType) - une ligne "OTHERS" existe toujours par defaut (creee a la
  * creation de la property).
  */
-// Pour le moment aucune de gestion de droits (à mettre en place plus tard)
 @RestController
 public class UnitTypeDefinitionController {
 
@@ -46,6 +46,7 @@ public class UnitTypeDefinitionController {
         this.removeUnitTypeDefinitionUseCase = removeUnitTypeDefinitionUseCase;
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @GetMapping("/properties/{propertyId}/unit-types")
     public List<UnitTypeDefinitionResponse> list(@PathVariable String propertyId) {
         ListUnitTypeDefinitionsByPropertyQuery query = new ListUnitTypeDefinitionsByPropertyQuery(PropertyId.of(propertyId));
@@ -54,6 +55,7 @@ public class UnitTypeDefinitionController {
                 .toList();
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @PostMapping("/properties/{propertyId}/unit-types")
     public ResponseEntity<Void> add(@PathVariable String propertyId,
                                       @Valid @RequestBody AddUnitTypeDefinitionRequest request) {
@@ -62,6 +64,7 @@ public class UnitTypeDefinitionController {
         return ResponseEntity.created(URI.create("/api/v1/properties/" + propertyId + "/unit-types/" + id)).build();
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/properties/{propertyId}/unit-types/{id}")
     public void remove(@PathVariable String propertyId, @PathVariable String id) {

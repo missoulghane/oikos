@@ -30,6 +30,8 @@ import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
+import com.architek.oikos.user.application.port.in.AssignPropertyManagerUseCase;
+import com.architek.oikos.user.application.port.in.GrantCreatorAsManagerUseCase;
 
 @WebMvcTest(controllers = PropertyController.class)
 @Import(WebSecuritySliceTestConfiguration.class)
@@ -56,6 +58,12 @@ class PropertyControllerWebMvcTest {
     @MockitoBean
     private UpdatePropertyUseCase updatePropertyUseCase;
 
+    @MockitoBean
+    private GrantCreatorAsManagerUseCase grantCreatorAsManagerUseCase;
+
+    @MockitoBean
+    private AssignPropertyManagerUseCase assignPropertyManagerUseCase;
+
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
     }
@@ -66,9 +74,9 @@ class PropertyControllerWebMvcTest {
     }
 
     @Test
-    void regular_user_is_forbidden_from_listing_properties() throws Exception {
+    void regular_user_with_no_managed_property_sees_an_empty_list() throws Exception {
         mockMvc.perform(get("/api/v1/properties").header("Authorization", bearerToken("ROLE_USER")))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test

@@ -1,4 +1,8 @@
 export const queryKeys = {
+  me: {
+    detail: () => ['me', 'detail'] as const,
+    units: () => ['me', 'units'] as const,
+  },
   properties: {
     list: (page: number, size: number) => ['properties', 'list', page, size] as const,
     detail: (id: string) => ['properties', 'detail', id] as const,
@@ -25,6 +29,7 @@ export const queryKeys = {
     detail: (id: string) => ['installment-calls', id, 'detail'] as const,
   },
   buildings: {
+    detail: (id: string) => ['buildings', 'detail', id] as const,
     units: (buildingId: string, page: number, size: number) =>
       ['buildings', buildingId, 'units', page, size] as const,
   },
@@ -34,8 +39,8 @@ export const queryKeys = {
     installments: (unitId: string) => ['units', unitId, 'installments'] as const,
   },
   parties: {
-    list: (page: number, size: number, search: string | undefined) =>
-      ['parties', 'list', page, size, search] as const,
+    list: (propertyId: string | undefined, page: number, size: number, search: string | undefined) =>
+      ['parties', 'list', propertyId, page, size, search] as const,
     detail: (id: string) => ['parties', 'detail', id] as const,
     lots: (id: string) => ['parties', id, 'lots'] as const,
   },

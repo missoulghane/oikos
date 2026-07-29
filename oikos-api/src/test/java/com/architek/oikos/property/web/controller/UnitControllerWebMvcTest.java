@@ -20,11 +20,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.auth.infrastructure.security.JwtService;
+import com.architek.oikos.property.application.dto.BuildingView;
 import com.architek.oikos.property.application.dto.UnitView;
 import com.architek.oikos.property.application.port.in.AddUnitUseCase;
+import com.architek.oikos.property.application.port.in.GetBuildingUseCase;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitsByBuildingUseCase;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
+import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.OwnershipStatus;
 import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
@@ -51,6 +54,9 @@ class UnitControllerWebMvcTest {
     @MockitoBean
     private ListUnitsByBuildingUseCase listUnitsByBuildingUseCase;
 
+    @MockitoBean
+    private GetBuildingUseCase getBuildingUseCase;
+
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
     }
@@ -75,7 +81,7 @@ class UnitControllerWebMvcTest {
         BuildingId buildingId = BuildingId.newId();
         UnitId id = UnitId.newId();
         when(getUnitUseCase.getUnit(any())).thenReturn(
-                new UnitView(id, buildingId, "A12", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
+                new UnitView(id, buildingId, PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
                         OwnershipStatus.NOT_AFFECTED));
 
         mockMvc.perform(get("/api/v1/units/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
@@ -98,7 +104,11 @@ class UnitControllerWebMvcTest {
 
     @Test
     void regular_user_is_forbidden_from_adding_a_unit() throws Exception {
-        mockMvc.perform(post("/api/v1/buildings/" + BuildingId.newId() + "/units")
+        BuildingId buildingId = BuildingId.newId();
+        when(getBuildingUseCase.getBuilding(any())).thenReturn(
+                new BuildingView(buildingId, PropertyId.newId(), "A", 3));
+
+        mockMvc.perform(post("/api/v1/buildings/" + buildingId + "/units")
                         .header("Authorization", bearerToken("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

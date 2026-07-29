@@ -28,7 +28,7 @@ public final class UserSpecifications {
 
     private static Specification<UserEntity> searchText(String search) {
         String pattern = "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
-        return (root, query, cb) -> cb.like(cb.lower(root.get("login")), pattern);
+        return (root, query, cb) -> cb.like(cb.lower(root.get("email")), pattern);
     }
 
     private static Specification<UserEntity> hasRole(Role role) {

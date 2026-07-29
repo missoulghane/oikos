@@ -20,6 +20,7 @@ import jakarta.validation.Valid;
 import com.architek.oikos.party.application.command.CreatePartyCommand;
 import com.architek.oikos.party.application.command.DeletePartyCommand;
 import com.architek.oikos.party.application.command.UpdatePartyCommand;
+import com.architek.oikos.party.application.dto.PartyView;
 import com.architek.oikos.party.application.port.in.CreatePartyUseCase;
 import com.architek.oikos.party.application.port.in.DeletePartyUseCase;
 import com.architek.oikos.party.application.port.in.GetPartyUseCase;
@@ -31,18 +32,22 @@ import com.architek.oikos.party.domain.valueobject.PartyId;
 import com.architek.oikos.party.domain.valueobject.PartySearchCriteria;
 import com.architek.oikos.party.web.request.CreatePartyRequest;
 import com.architek.oikos.party.web.request.UpdatePartyRequest;
+import com.architek.oikos.party.web.response.InvitePartyResponse;
 import com.architek.oikos.party.web.response.PartyResponse;
 import com.architek.oikos.party.web.response.PagedPartyResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
+import com.architek.oikos.user.application.command.InvitePartyCommand;
+import com.architek.oikos.user.application.port.in.InvitePartyUseCase;
 
 /**
- * Administrative management of parties (identity records independent of any
- * application account). Read access (list/search, get by id) is also open to
- * ROLE_PROPERTY_MANAGER, so a manager can look up an existing party to
- * reattach it to a lot instead of creating a duplicate; mutations stay
- * reserved to ROLE_ADMIN for now, to be revisited once per-copropriete
- * contextual access (RG-ACC-02) is introduced.
+ * Administrative management of parties (identity records scoped to one
+ * property). Mutations are open to ADMIN or to a MANAGER of the party's own
+ * property (see PropertyAccessEvaluator), so a manager can create/update/
+ * remove owners within their own copropriete without needing ADMIN. Reading
+ * a single party (getById) additionally allows the party's own linked
+ * account (ownsParty) - a USER can view their own contact record.
  */
 @RestController
 @RequestMapping("/parties")
@@ -53,43 +58,49 @@ public class PartyController {
     private final UpdatePartyUseCase updatePartyUseCase;
     private final ListPartiesUseCase listPartiesUseCase;
     private final DeletePartyUseCase deletePartyUseCase;
+    private final InvitePartyUseCase invitePartyUseCase;
 
     public PartyController(CreatePartyUseCase createPartyUseCase,
                               GetPartyUseCase getPartyUseCase,
                               UpdatePartyUseCase updatePartyUseCase,
                               ListPartiesUseCase listPartiesUseCase,
-                              DeletePartyUseCase deletePartyUseCase) {
+                              DeletePartyUseCase deletePartyUseCase,
+                              InvitePartyUseCase invitePartyUseCase) {
         this.createPartyUseCase = createPartyUseCase;
         this.getPartyUseCase = getPartyUseCase;
         this.updatePartyUseCase = updatePartyUseCase;
         this.listPartiesUseCase = listPartiesUseCase;
         this.deletePartyUseCase = deletePartyUseCase;
+        this.invitePartyUseCase = invitePartyUseCase;
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_PROPERTY_MANAGER')")
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @GetMapping
-    public PagedPartyResponse list(@RequestParam(defaultValue = "0") int page,
+    public PagedPartyResponse list(@RequestParam String propertyId,
+                                      @RequestParam(defaultValue = "0") int page,
                                       @RequestParam(defaultValue = "20") int size,
                                       @RequestParam(required = false) String search) {
-        ListPartiesQuery query = new ListPartiesQuery(PageRequest.of(page, size), new PartySearchCriteria(search));
+        ListPartiesQuery query = new ListPartiesQuery(PageRequest.of(page, size),
+                new PartySearchCriteria(EntityId.of(propertyId), search));
         return PagedPartyResponse.from(listPartiesUseCase.listParties(query));
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_PROPERTY_MANAGER')")
+    @PreAuthorize("@propertyAccess.managesParty(authentication, #id) or @propertyAccess.ownsParty(authentication, #id)")
     @GetMapping("/{id}")
     public PartyResponse getById(@PathVariable String id) {
         return PartyResponse.from(getPartyUseCase.getParty(new GetPartyQuery(PartyId.of(id))));
     }
 
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #request.propertyId())")
     @PostMapping
     public ResponseEntity<Void> create(@Valid @RequestBody CreatePartyRequest request) {
         PartyId id = createPartyUseCase.create(new CreatePartyCommand(
-                request.fullName(), request.partyType(), EmailVO.of(request.email()), request.phone()));
+                EntityId.of(request.propertyId()), request.fullName(), request.partyType(),
+                EmailVO.of(request.email()), request.phone()));
         return ResponseEntity.created(URI.create("/api/v1/parties/" + id)).build();
     }
 
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("@propertyAccess.managesParty(authentication, #id)")
     @PutMapping("/{id}")
     public PartyResponse update(@PathVariable String id, @Valid @RequestBody UpdatePartyRequest request) {
         UpdatePartyCommand command = new UpdatePartyCommand(
@@ -97,10 +108,19 @@ public class PartyController {
         return PartyResponse.from(updatePartyUseCase.update(command));
     }
 
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("@propertyAccess.managesParty(authentication, #id)")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     public void delete(@PathVariable String id) {
         deletePartyUseCase.delete(new DeletePartyCommand(PartyId.of(id)));
+    }
+
+    @PreAuthorize("@propertyAccess.managesParty(authentication, #id)")
+    @PostMapping("/{id}/invite")
+    public InvitePartyResponse invite(@PathVariable String id) {
+        PartyView party = getPartyUseCase.getParty(new GetPartyQuery(PartyId.of(id)));
+        boolean invited = invitePartyUseCase.invite(
+                new InvitePartyCommand(EntityId.of(id), EmailVO.of(party.email()), party.fullName()));
+        return new InvitePartyResponse(invited);
     }
 }

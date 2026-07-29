@@ -64,7 +64,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/users/register-property-user", "/api/v1/users/register-property-manager",
                                 "/api/v1/users/verify", "/api/v1/users/resend-verification",
-                                "/api/v1/users/activate-account").permitAll()
+                                "/api/v1/users/activate-account", "/api/v1/users/accept-invitation").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()

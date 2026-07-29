@@ -75,7 +75,7 @@ class InstallmentCallControllerWebMvcTest {
         when(recordInstallmentCallUseCase.record(any())).thenReturn(List.of(InstallmentId.newId()));
 
         mockMvc.perform(post("/api/v1/installment-calls")
-                        .header("Authorization", bearerToken("ROLE_USER"))
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"dueDate":"2027-01-01","lines":[{"unitId":"%s","amount":250}]}
@@ -103,7 +103,7 @@ class InstallmentCallControllerWebMvcTest {
                 .thenReturn(new GenerateInstallmentCallResult(view, List.of(EntityId.newId()), List.of()));
 
         mockMvc.perform(post("/api/v1/properties/" + propertyId + "/installment-calls")
-                        .header("Authorization", bearerToken("ROLE_USER"))
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"period":"2026-01","dueDate":"2026-02-05"}
@@ -127,7 +127,7 @@ class InstallmentCallControllerWebMvcTest {
         when(listInstallmentCallsByPropertyUseCase.listInstallmentCalls(any())).thenReturn(Page.of(List.of(), 0, 20, 0));
 
         mockMvc.perform(get("/api/v1/properties/" + EntityId.newId() + "/installment-calls")
-                        .header("Authorization", bearerToken("ROLE_USER")))
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 
@@ -137,7 +137,7 @@ class InstallmentCallControllerWebMvcTest {
         InstallmentCallView view = new InstallmentCallView(id, EntityId.newId(), YearMonth.of(2026, 1), LocalDate.of(2026, 2, 5));
         when(getInstallmentCallUseCase.getInstallmentCall(any())).thenReturn(new InstallmentCallDetailView(view, List.of()));
 
-        mockMvc.perform(get("/api/v1/installment-calls/" + id).header("Authorization", bearerToken("ROLE_USER")))
+        mockMvc.perform(get("/api/v1/installment-calls/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 }

@@ -52,7 +52,7 @@ class GetUnitServiceTest {
         UnitId id = UnitId.newId();
         UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
         when(unitRepository.findById(id)).thenReturn(Optional.of(
-                Unit.create(id, BuildingId.newId(), "A12", unitTypeId, Shares.of(new BigDecimal("150")))));
+                Unit.create(id, BuildingId.newId(), PropertyId.newId(), "A12", unitTypeId, Shares.of(new BigDecimal("150")))));
         when(unitOwnershipRepository.findAllByUnitId(id)).thenReturn(List.of());
         when(unitTypeDefinitionRepository.findById(unitTypeId))
                 .thenReturn(Optional.of(UnitTypeDefinition.create(unitTypeId, PropertyId.newId(), "Appartement")));
@@ -69,9 +69,10 @@ class GetUnitServiceTest {
         UnitId id = UnitId.newId();
         UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
         when(unitRepository.findById(id)).thenReturn(Optional.of(
-                Unit.create(id, BuildingId.newId(), "A12", unitTypeId, Shares.of(new BigDecimal("150")))));
+                Unit.create(id, BuildingId.newId(), PropertyId.newId(), "A12", unitTypeId, Shares.of(new BigDecimal("150")))));
         when(unitOwnershipRepository.findAllByUnitId(id)).thenReturn(List.of(
-                UnitOwnership.create(UnitOwnershipId.newId(), id, EntityId.newId(), OwnershipShare.of(BigDecimal.TEN))));
+                UnitOwnership.create(UnitOwnershipId.newId(), id, EntityId.newId(), PropertyId.newId(),
+                        OwnershipShare.of(BigDecimal.TEN))));
         when(unitTypeDefinitionRepository.findById(unitTypeId))
                 .thenReturn(Optional.of(UnitTypeDefinition.create(unitTypeId, PropertyId.newId(), "Appartement")));
 

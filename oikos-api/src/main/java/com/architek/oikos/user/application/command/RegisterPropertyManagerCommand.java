@@ -4,6 +4,6 @@ import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 
 public record RegisterPropertyManagerCommand(String fullName, EmailVO email, String phone,
-                                              String login, RawPassword password, String propertyName,
+                                              RawPassword password, String propertyName,
                                               String propertyAddress) {
 }

@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -40,6 +41,7 @@ public class InstallmentController {
         this.getInstallmentUseCase = getInstallmentUseCase;
     }
 
+    @PreAuthorize("@propertyAccess.managesUnit(authentication, #unitId) or @propertyAccess.ownsUnit(authentication, #unitId)")
     @GetMapping("/units/{unitId}/installments")
     public List<InstallmentResponse> listByUnit(@PathVariable String unitId) {
         return listInstallmentsByUnitUseCase.listInstallments(new ListInstallmentsByUnitQuery(EntityId.of(unitId))).stream()
@@ -47,6 +49,7 @@ public class InstallmentController {
                 .toList();
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @GetMapping("/properties/{propertyId}/installments")
     public PagedInstallmentResponse listByProperty(@PathVariable String propertyId,
                                                      @RequestParam(defaultValue = "0") int page,
@@ -61,6 +64,7 @@ public class InstallmentController {
                 new ListInstallmentsByPropertyQuery(EntityId.of(propertyId), filter, PageRequest.of(page, size))));
     }
 
+    @PreAuthorize("@propertyAccess.managesInstallment(authentication, #id)")
     @GetMapping("/installments/{id}")
     public InstallmentResponse getById(@PathVariable String id) {
         return InstallmentResponse.from(getInstallmentUseCase.getInstallment(new GetInstallmentQuery(InstallmentId.of(id))));

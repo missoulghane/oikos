@@ -24,6 +24,9 @@ public class PartyEntity extends AuditableEntity {
     @Id
     private UUID id;
 
+    @Column(name = "property_id", nullable = false)
+    private UUID propertyId;
+
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
@@ -31,7 +34,7 @@ public class PartyEntity extends AuditableEntity {
     @Column(name = "party_type", nullable = false)
     private PartyType partyType;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String email;
 
     @Column

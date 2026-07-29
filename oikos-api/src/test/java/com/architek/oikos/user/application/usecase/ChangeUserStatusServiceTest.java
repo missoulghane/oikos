@@ -13,11 +13,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
-import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.user.application.command.ChangeUserStatusCommand;
-import com.architek.oikos.user.application.port.out.PartyDetails;
-import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.user.domain.exception.UserNotFoundException;
 import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.repository.UserRepository;
@@ -29,20 +26,12 @@ class ChangeUserStatusServiceTest {
     @Mock
     private UserRepository userRepository;
 
-    @Mock
-    private PartyDirectoryPort partyDirectoryPort;
-
     private ChangeUserStatusService newService() {
-        return new ChangeUserStatusService(userRepository, partyDirectoryPort);
+        return new ChangeUserStatusService(userRepository);
     }
 
     private static User newUser() {
-        return User.register(UserId.newId(), EntityId.newId(), HashedPassword.of("hashed"), null);
-    }
-
-    private void stubParty(User user) {
-        when(partyDirectoryPort.getPartyById(user.getPartyId()))
-                .thenReturn(new PartyDetails("Jane Doe", EmailVO.of("a@b.com"), null));
+        return User.register(UserId.newId(), EmailVO.of("jane@doe.com"), "Jane Doe", HashedPassword.of("hashed"));
     }
 
     @Test
@@ -50,7 +39,6 @@ class ChangeUserStatusServiceTest {
         User user = newUser();
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        stubParty(user);
 
         var result = newService().changeStatus(new ChangeUserStatusCommand(user.getId(), false));
 
@@ -62,7 +50,6 @@ class ChangeUserStatusServiceTest {
         User user = newUser().deactivate();
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        stubParty(user);
 
         var result = newService().changeStatus(new ChangeUserStatusCommand(user.getId(), true));
 

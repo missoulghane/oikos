@@ -13,17 +13,20 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
+import com.architek.oikos.user.application.command.AcceptPartyInvitationCommand;
 import com.architek.oikos.user.application.command.ActivateAccountCommand;
 import com.architek.oikos.user.application.command.RegisterPropertyManagerCommand;
 import com.architek.oikos.user.application.command.RegisterUserCommand;
 import com.architek.oikos.user.application.command.ResendVerificationCommand;
 import com.architek.oikos.user.application.command.VerifyAccountCommand;
+import com.architek.oikos.user.application.port.in.AcceptPartyInvitationUseCase;
 import com.architek.oikos.user.application.port.in.ActivateAccountUseCase;
 import com.architek.oikos.user.application.port.in.RegisterPropertyManagerUseCase;
 import com.architek.oikos.user.application.port.in.RegisterUserUseCase;
 import com.architek.oikos.user.application.port.in.ResendVerificationUseCase;
 import com.architek.oikos.user.application.port.in.VerifyAccountUseCase;
 import com.architek.oikos.user.domain.valueobject.UserId;
+import com.architek.oikos.user.web.request.AcceptInvitationRequest;
 import com.architek.oikos.user.web.request.ActivateAccountRequest;
 import com.architek.oikos.user.web.request.RegisterPropertyManagerRequest;
 import com.architek.oikos.user.web.request.RegisterUserRequest;
@@ -43,17 +46,20 @@ public class RegistrationController {
     private final VerifyAccountUseCase verifyAccountUseCase;
     private final ResendVerificationUseCase resendVerificationUseCase;
     private final ActivateAccountUseCase activateAccountUseCase;
+    private final AcceptPartyInvitationUseCase acceptPartyInvitationUseCase;
 
     public RegistrationController(RegisterUserUseCase registerUserUseCase,
                                    RegisterPropertyManagerUseCase registerPropertyManagerUseCase,
                                    VerifyAccountUseCase verifyAccountUseCase,
                                    ResendVerificationUseCase resendVerificationUseCase,
-                                   ActivateAccountUseCase activateAccountUseCase) {
+                                   ActivateAccountUseCase activateAccountUseCase,
+                                   AcceptPartyInvitationUseCase acceptPartyInvitationUseCase) {
         this.registerUserUseCase = registerUserUseCase;
         this.registerPropertyManagerUseCase = registerPropertyManagerUseCase;
         this.verifyAccountUseCase = verifyAccountUseCase;
         this.resendVerificationUseCase = resendVerificationUseCase;
         this.activateAccountUseCase = activateAccountUseCase;
+        this.acceptPartyInvitationUseCase = acceptPartyInvitationUseCase;
     }
 
     @PostMapping("/register-property-user")
@@ -61,8 +67,6 @@ public class RegistrationController {
         RegisterUserCommand command = new RegisterUserCommand(
                 request.fullName(),
                 EmailVO.of(request.email()),
-                request.phone(),
-                request.login(),
                 RawPassword.of(request.password()),
                 request.role());
         UserId userId = registerUserUseCase.register(command);
@@ -75,7 +79,6 @@ public class RegistrationController {
                 request.fullName(),
                 EmailVO.of(request.email()),
                 request.phone(),
-                request.login(),
                 RawPassword.of(request.password()),
                 request.propertyName(),
                 request.propertyAddress());
@@ -99,5 +102,11 @@ public class RegistrationController {
     public ResponseEntity<MessageResponse> activateAccount(@Valid @RequestBody ActivateAccountRequest request) {
         activateAccountUseCase.activate(new ActivateAccountCommand(request.token(), RawPassword.of(request.newPassword())));
         return ResponseEntity.ok(new MessageResponse("Account activated successfully"));
+    }
+
+    @PostMapping("/accept-invitation")
+    public ResponseEntity<MessageResponse> acceptInvitation(@Valid @RequestBody AcceptInvitationRequest request) {
+        acceptPartyInvitationUseCase.accept(new AcceptPartyInvitationCommand(request.token(), request.password()));
+        return ResponseEntity.ok(new MessageResponse("Invitation accepted successfully"));
     }
 }

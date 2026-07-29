@@ -27,7 +27,6 @@ import com.architek.oikos.property.web.response.PagedBuildingResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 
 @RestController
-// Pour le moment aucune de gestion de droits (à mettre en place plus tard)
 public class BuildingController {
 
     private final AddBuildingUseCase addBuildingUseCase;
@@ -42,6 +41,7 @@ public class BuildingController {
         this.listBuildingsByPropertyUseCase = listBuildingsByPropertyUseCase;
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @GetMapping("/properties/{propertyId}/buildings")
     public PagedBuildingResponse list(@PathVariable String propertyId,
                                        @RequestParam(defaultValue = "0") int page,
@@ -51,11 +51,13 @@ public class BuildingController {
         return PagedBuildingResponse.from(listBuildingsByPropertyUseCase.listBuildings(query));
     }
 
+    @PreAuthorize("@propertyAccess.managesBuilding(authentication, #id)")
     @GetMapping("/buildings/{id}")
     public BuildingResponse getById(@PathVariable String id) {
         return BuildingResponse.from(getBuildingUseCase.getBuilding(new GetBuildingQuery(BuildingId.of(id))));
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @PostMapping("/properties/{propertyId}/buildings")
     public ResponseEntity<Void> add(@PathVariable String propertyId, @Valid @RequestBody AddBuildingRequest request) {
         BuildingId id = addBuildingUseCase.add(new AddBuildingCommand(

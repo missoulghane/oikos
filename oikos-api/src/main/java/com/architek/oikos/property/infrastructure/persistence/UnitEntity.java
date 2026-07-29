@@ -25,6 +25,9 @@ public class UnitEntity extends AuditableEntity {
     @Column(name = "building_id", nullable = false)
     private UUID buildingId;
 
+    @Column(name = "property_id", nullable = false)
+    private UUID propertyId;
+
     @Column(name = "unit_number", nullable = false)
     private String unitNumber;
 

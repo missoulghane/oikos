@@ -15,8 +15,8 @@ import com.architek.oikos.user.application.port.out.PropertyProvisioningPort;
 /**
  * Cross-feature adapter: delegates to property's public port-in use cases
  * (CreatePropertyUseCase, AddBoardMemberUseCase), never to property's
- * repositories directly (rule 6). Assigns the newly registered user as the
- * property's PROPERTY_MANAGER board member.
+ * repositories directly (rule 6). Assigns the newly registered manager's
+ * Party as the property's PROPERTY_MANAGER board member.
  */
 @Component
 public class PropertyProvisioningAdapter implements PropertyProvisioningPort {
@@ -34,9 +34,12 @@ public class PropertyProvisioningAdapter implements PropertyProvisioningPort {
     public EntityId provisionProperty(PropertyProvisioningDetails details) {
         PropertyId propertyId = createPropertyUseCase.create(new CreatePropertyCommand(
                 details.name(), details.address()));
-
-        addBoardMemberUseCase.add(new AddBoardMemberCommand(propertyId, details.managerPartyId(), BoardRole.PROPERTY_MANAGER));
-
         return EntityId.of(propertyId.asUuid());
+    }
+
+    @Override
+    public void assignPropertyManager(EntityId propertyId, EntityId partyId) {
+        addBoardMemberUseCase.add(new AddBoardMemberCommand(
+                PropertyId.of(propertyId.value()), partyId, BoardRole.PROPERTY_MANAGER));
     }
 }

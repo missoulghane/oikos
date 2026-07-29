@@ -62,7 +62,7 @@ class InstallmentControllerWebMvcTest {
         when(listInstallmentsByUnitUseCase.listInstallments(any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/units/" + EntityId.newId() + "/installments")
-                        .header("Authorization", bearerToken("ROLE_USER")))
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 
@@ -71,7 +71,7 @@ class InstallmentControllerWebMvcTest {
         when(listInstallmentsByPropertyUseCase.listInstallments(any())).thenReturn(Page.of(List.of(), 0, 20, 0));
 
         mockMvc.perform(get("/api/v1/properties/" + EntityId.newId() + "/installments")
-                        .header("Authorization", bearerToken("ROLE_USER")))
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 
@@ -87,7 +87,7 @@ class InstallmentControllerWebMvcTest {
                         .param("status", "OVERDUE", "NOT_PAID")
                         .param("dueDateFrom", "2026-01-01")
                         .param("dueDateTo", "2026-12-31")
-                        .header("Authorization", bearerToken("ROLE_USER")))
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 
@@ -97,7 +97,7 @@ class InstallmentControllerWebMvcTest {
         when(getInstallmentUseCase.getInstallment(any())).thenReturn(new InstallmentView(id,
                 EntityId.newId(), LocalDate.of(2027, 1, 1), new BigDecimal("250"), InstallmentStatus.NOT_PAID));
 
-        mockMvc.perform(get("/api/v1/installments/" + id).header("Authorization", bearerToken("ROLE_USER")))
+        mockMvc.perform(get("/api/v1/installments/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 }

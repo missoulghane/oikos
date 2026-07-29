@@ -8,6 +8,7 @@ import com.architek.oikos.party.domain.valueobject.PartySearchCriteria;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 public interface PartyRepository {
 
@@ -15,13 +16,13 @@ public interface PartyRepository {
 
     Optional<Party> findById(PartyId id);
 
-    Optional<Party> findByEmail(EmailVO email);
+    Optional<Party> findByPropertyIdAndEmail(EntityId propertyId, EmailVO email);
 
-    Optional<Party> findByPhone(String phone);
+    Optional<Party> findByPropertyIdAndPhone(EntityId propertyId, String phone);
 
-    boolean existsByEmail(EmailVO email);
+    boolean existsByPropertyIdAndEmail(EntityId propertyId, EmailVO email);
 
-    boolean existsByPhone(String phone);
+    boolean existsByPropertyIdAndPhone(EntityId propertyId, String phone);
 
     Page<Party> findAll(PageRequest pageRequest, PartySearchCriteria criteria);
 

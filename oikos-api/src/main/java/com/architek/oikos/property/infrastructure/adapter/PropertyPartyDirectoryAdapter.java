@@ -39,15 +39,15 @@ public class PropertyPartyDirectoryAdapter implements PartyDirectoryPort {
     }
 
     @Override
-    public EntityId createParty(PartyDetails details) {
+    public EntityId createParty(PartyDetails details, EntityId propertyId) {
         PartyId id = createPartyUseCase.create(new CreatePartyCommand(
-                details.fullName(), details.partyType(), details.email(), details.phone()));
+                propertyId, details.fullName(), details.partyType(), details.email(), details.phone()));
         return EntityId.of(id.asUuid());
     }
 
     @Override
-    public Optional<EntityId> findIdByEmail(EmailVO email) {
-        return loadPartyIdByEmailUseCase.loadByEmail(email).map(id -> EntityId.of(id.asUuid()));
+    public Optional<EntityId> findIdByEmail(EmailVO email, EntityId propertyId) {
+        return loadPartyIdByEmailUseCase.loadByEmail(propertyId, email).map(id -> EntityId.of(id.asUuid()));
     }
 
     @Override

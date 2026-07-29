@@ -70,7 +70,7 @@ class UserAdminControllerWebMvcTest {
     }
 
     private static UserView newUserView(UserId userId, boolean enabled) {
-        return new UserView(userId, null, "Jane Doe", "user@oikos.com", null, Set.of(Role.ROLE_USER), true, enabled);
+        return new UserView(userId, "Jane Doe", "user@oikos.com", Set.of(Role.ROLE_USER), Set.of(), true, enabled);
     }
 
     @Test

@@ -3,6 +3,8 @@ import type { RouteObject } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
 import { AppLayout } from '@/shared/layouts/AppLayout';
 import { Loader } from '@/shared/components/Loader/Loader';
+import { ForbiddenPage } from '@/shared/pages/ForbiddenPage';
+import { RequireRole } from '@/router/RequireRole';
 
 const PropertiesPage = lazy(() =>
   import('@/features/property-mngt/properties').then((m) => ({ default: m.PropertiesPage })),
@@ -49,12 +51,14 @@ const PartiesPage = lazy(() =>
 const PartyDetailPage = lazy(() =>
   import('@/features/property-mngt/parties').then((m) => ({ default: m.PartyDetailPage })),
 );
+const MyUnitsPage = lazy(() => import('@/features/identity/me').then((m) => ({ default: m.MyUnitsPage })));
 
 export const privateRoutes: RouteObject[] = [
   {
     element: <AppLayout />,
     children: [
       { path: '/', element: <Navigate to="/properties" replace /> },
+      { path: '/forbidden', element: <ForbiddenPage /> },
       {
         path: '/properties',
         element: (
@@ -66,8 +70,18 @@ export const privateRoutes: RouteObject[] = [
       {
         path: '/properties/new',
         element: (
+          <RequireRole allow={['ADMIN', 'MANAGER']}>
+            <Suspense fallback={<Loader />}>
+              <CreatePropertyPage />
+            </Suspense>
+          </RequireRole>
+        ),
+      },
+      {
+        path: '/my-units',
+        element: (
           <Suspense fallback={<Loader />}>
-            <CreatePropertyPage />
+            <MyUnitsPage />
           </Suspense>
         ),
       },
@@ -169,12 +183,17 @@ export const privateRoutes: RouteObject[] = [
       {
         path: '/parties',
         element: (
-          <Suspense fallback={<Loader />}>
-            <PartiesPage />
-          </Suspense>
+          <RequireRole allow={['ADMIN', 'MANAGER']}>
+            <Suspense fallback={<Loader />}>
+              <PartiesPage />
+            </Suspense>
+          </RequireRole>
         ),
       },
       {
+        // No RequireRole here: a plain USER may view their own party record
+        // (ownsParty) - the API enforces the real per-resource authorization
+        // (manager/admin of the property, or the party's own linked account).
         path: '/parties/:id',
         element: (
           <Suspense fallback={<Loader />}>

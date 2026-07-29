@@ -1,16 +1,28 @@
 package com.architek.oikos.testsupport;
 
+import java.util.Set;
+
 import org.mockito.Mockito;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
 import com.architek.oikos.auth.infrastructure.security.DomainUserDetailsService;
 import com.architek.oikos.auth.infrastructure.security.JwtService;
+import com.architek.oikos.auth.infrastructure.security.PropertyAccessEvaluator;
 import com.architek.oikos.auth.infrastructure.security.RestAccessDeniedHandler;
 import com.architek.oikos.auth.infrastructure.security.RestAuthenticationEntryPoint;
 import com.architek.oikos.auth.infrastructure.security.SecurityConfiguration;
+import com.architek.oikos.installment.application.port.in.GetInstallmentCallUseCase;
+import com.architek.oikos.installment.application.port.in.GetInstallmentUseCase;
+import com.architek.oikos.party.application.port.in.GetPartyUseCase;
+import com.architek.oikos.property.application.port.in.GetBuildingUseCase;
+import com.architek.oikos.property.application.port.in.GetUnitUseCase;
+import com.architek.oikos.property.application.port.in.ListUnitOwnershipsByUnitUseCase;
 import com.architek.oikos.shared.infrastructure.configuration.PasswordEncoderConfiguration;
+import com.architek.oikos.user.application.dto.UserAccessView;
+import com.architek.oikos.user.application.port.in.GetUserAccessUseCase;
 
 /**
  * @WebMvcTest(controllers = ...) only whitelists a narrow set of bean types
@@ -20,6 +32,17 @@ import com.architek.oikos.shared.infrastructure.configuration.PasswordEncoderCon
  * reach controllers with a null Authentication. Import this into any @WebMvcTest
  * that needs genuine authentication/authorization enforcement (401/403, current
  * user id from the JWT subject, @PreAuthorize).
+ *
+ * <p>Controllers guarded by @PreAuthorize("@propertyAccess...") need the
+ * "propertyAccess" bean (PropertyAccessEvaluator) present in the slice's
+ * ApplicationContext, or SpEL evaluation fails outright (400, not 403/401).
+ * GetUserAccessUseCase is mocked here directly (default answer: an empty,
+ * non-admin, no-grants view, so an unstubbed regular user correctly fails
+ * every managesX/ownsX check instead of NPE'ing) since every evaluator method
+ * calls it; the other collaborators are looked up via ObjectProvider so a
+ * test class that already declares its own @MockitoBean for one of them
+ * (e.g. GetBuildingUseCase, because its controller uses it directly) reuses
+ * that same mock instance instead of colliding with a second one.
  */
 @TestConfiguration
 @Import({
@@ -34,5 +57,28 @@ public class WebSecuritySliceTestConfiguration {
     @Bean
     DomainUserDetailsService domainUserDetailsService() {
         return Mockito.mock(DomainUserDetailsService.class);
+    }
+
+    @Bean
+    GetUserAccessUseCase getUserAccessUseCase() {
+        return Mockito.mock(GetUserAccessUseCase.class,
+                invocation -> new UserAccessView(Set.of(), Set.of(), Set.of()));
+    }
+
+    @Bean
+    PropertyAccessEvaluator propertyAccess(GetUserAccessUseCase getUserAccessUseCase,
+                                            ObjectProvider<GetUnitUseCase> getUnitUseCase,
+                                            ObjectProvider<GetBuildingUseCase> getBuildingUseCase,
+                                            ObjectProvider<GetInstallmentUseCase> getInstallmentUseCase,
+                                            ObjectProvider<GetInstallmentCallUseCase> getInstallmentCallUseCase,
+                                            ObjectProvider<ListUnitOwnershipsByUnitUseCase> listUnitOwnershipsByUnitUseCase,
+                                            ObjectProvider<GetPartyUseCase> getPartyUseCase) {
+        return new PropertyAccessEvaluator(getUserAccessUseCase,
+                getUnitUseCase.getIfAvailable(() -> Mockito.mock(GetUnitUseCase.class)),
+                getBuildingUseCase.getIfAvailable(() -> Mockito.mock(GetBuildingUseCase.class)),
+                getInstallmentUseCase.getIfAvailable(() -> Mockito.mock(GetInstallmentUseCase.class)),
+                getInstallmentCallUseCase.getIfAvailable(() -> Mockito.mock(GetInstallmentCallUseCase.class)),
+                listUnitOwnershipsByUnitUseCase.getIfAvailable(() -> Mockito.mock(ListUnitOwnershipsByUnitUseCase.class)),
+                getPartyUseCase.getIfAvailable(() -> Mockito.mock(GetPartyUseCase.class)));
     }
 }

@@ -11,7 +11,7 @@ import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 
 type AddMode = 'none' | 'existing' | 'new';
 
-export function UnitOwnersSection({ unitId }: { unitId: string }) {
+export function UnitOwnersSection({ unitId, propertyId }: { unitId: string; propertyId: string | undefined }) {
   const [addMode, setAddMode] = useState<AddMode>('none');
   const { data, isLoading, isError, error } = useUnitOwners(unitId);
 
@@ -25,7 +25,7 @@ export function UnitOwnersSection({ unitId }: { unitId: string }) {
         <p className="text-xs font-medium text-slate-500">Propriétaires</p>
         {addMode === 'none' && (
           <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={() => setAddMode('existing')}>
+            <Button type="button" variant="secondary" disabled={!propertyId} onClick={() => setAddMode('existing')}>
               Party existante
             </Button>
             <Button type="button" variant="secondary" onClick={() => setAddMode('new')}>
@@ -35,7 +35,9 @@ export function UnitOwnersSection({ unitId }: { unitId: string }) {
         )}
       </div>
 
-      {addMode === 'existing' && <AddExistingUnitOwnerForm unitId={unitId} onSuccess={close} onCancel={close} />}
+      {addMode === 'existing' && (
+        <AddExistingUnitOwnerForm unitId={unitId} propertyId={propertyId} onSuccess={close} onCancel={close} />
+      )}
       {addMode === 'new' && <AddUnitOwnerForm unitId={unitId} onSuccess={close} onCancel={close} />}
 
       {isLoading && <Loader label="Chargement des propriétaires…" />}

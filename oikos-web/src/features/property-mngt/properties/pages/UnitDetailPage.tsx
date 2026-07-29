@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import { useUnit } from '@/features/property-mngt/properties/hooks/useUnit';
+import { useBuilding } from '@/features/property-mngt/properties/hooks/useBuilding';
 import { UnitOwnersSection } from '@/features/property-mngt/properties/components/UnitOwnersSection';
 import { UnitInstallmentsSection } from '@/features/property-mngt/installments/components/UnitInstallmentsSection';
 import { Card } from '@/shared/components/Card/Card';
@@ -16,6 +17,7 @@ export function UnitDetailPage() {
   const { id } = useParams<{ id: string }>();
   const unitId = id ?? '';
   const unit = useUnit(unitId);
+  const building = useBuilding(unit.data?.buildingId);
 
   if (unit.isLoading) {
     return <Loader label="Chargement du lot…" />;
@@ -48,7 +50,7 @@ export function UnitDetailPage() {
 
       <Card className="flex flex-col gap-2">
         <h2 className="text-base font-semibold text-slate-900">Propriétaires</h2>
-        <UnitOwnersSection unitId={unitId} />
+        <UnitOwnersSection unitId={unitId} propertyId={building.data?.propertyId} />
       </Card>
 
       <Card className="flex flex-col gap-2">

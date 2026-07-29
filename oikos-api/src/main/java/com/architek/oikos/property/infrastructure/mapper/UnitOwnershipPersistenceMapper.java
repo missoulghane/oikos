@@ -3,6 +3,7 @@ package com.architek.oikos.property.infrastructure.mapper;
 import org.mapstruct.Mapper;
 
 import com.architek.oikos.property.domain.model.UnitOwnership;
+import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.OwnershipShare;
 import com.architek.oikos.property.domain.valueobject.UnitOwnershipId;
@@ -20,12 +21,14 @@ public interface UnitOwnershipPersistenceMapper {
         entity.setId(unitOwnership.getId().asUuid());
         entity.setUnitId(unitOwnership.getUnitId().asUuid());
         entity.setPartyId(unitOwnership.getPartyId().value());
+        entity.setPropertyId(unitOwnership.getPropertyId().asUuid());
         entity.setOwnershipShare(unitOwnership.getOwnershipShare().value());
         return entity;
     }
 
     default UnitOwnership toDomain(UnitOwnershipEntity entity) {
         return UnitOwnership.reconstruct(UnitOwnershipId.of(entity.getId()), UnitId.of(entity.getUnitId()),
-                EntityId.of(entity.getPartyId()), OwnershipShare.of(entity.getOwnershipShare()));
+                EntityId.of(entity.getPartyId()), PropertyId.of(entity.getPropertyId()),
+                OwnershipShare.of(entity.getOwnershipShare()));
     }
 }

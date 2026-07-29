@@ -19,12 +19,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.architek.oikos.property.application.command.AddUnitOwnerCommand;
 import com.architek.oikos.property.application.command.AddUnitOwnershipCommand;
 import com.architek.oikos.property.application.port.in.AddUnitOwnershipUseCase;
+import com.architek.oikos.property.application.port.out.AccountLinkingPort;
 import com.architek.oikos.property.application.port.out.PartyDetails;
 import com.architek.oikos.property.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.property.domain.exception.UnitNotFoundException;
 import com.architek.oikos.property.domain.model.Unit;
 import com.architek.oikos.property.domain.repository.UnitRepository;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
+import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.Shares;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.UnitOwnershipId;
@@ -45,12 +47,16 @@ class AddUnitOwnerServiceTest {
     @Mock
     private AddUnitOwnershipUseCase addUnitOwnershipUseCase;
 
+    @Mock
+    private AccountLinkingPort accountLinkingPort;
+
     private AddUnitOwnerService newService() {
-        return new AddUnitOwnerService(unitRepository, partyDirectoryPort, addUnitOwnershipUseCase);
+        return new AddUnitOwnerService(unitRepository, partyDirectoryPort, addUnitOwnershipUseCase, accountLinkingPort);
     }
 
     private static Unit existingUnit(UnitId id) {
-        return Unit.create(id, BuildingId.newId(), "A12", UnitTypeDefinitionId.newId(), Shares.of(BigDecimal.TEN));
+        return Unit.create(id, BuildingId.newId(), PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(),
+                Shares.of(BigDecimal.TEN));
     }
 
     @Test
@@ -58,13 +64,13 @@ class AddUnitOwnerServiceTest {
         UnitId unitId = UnitId.newId();
         EntityId existingPartyId = EntityId.newId();
         when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
-        when(partyDirectoryPort.findIdByEmail(any())).thenReturn(Optional.of(existingPartyId));
+        when(partyDirectoryPort.findIdByEmail(any(), any())).thenReturn(Optional.of(existingPartyId));
         when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
 
         newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"),
                 null, new BigDecimal("50")));
 
-        verify(partyDirectoryPort, never()).createParty(any());
+        verify(partyDirectoryPort, never()).createParty(any(), any());
         ArgumentCaptor<AddUnitOwnershipCommand> captor = ArgumentCaptor.forClass(AddUnitOwnershipCommand.class);
         verify(addUnitOwnershipUseCase).add(captor.capture());
         assertThat(captor.getValue().partyId()).isEqualTo(existingPartyId);
@@ -76,15 +82,15 @@ class AddUnitOwnerServiceTest {
         UnitId unitId = UnitId.newId();
         EntityId newPartyId = EntityId.newId();
         when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
-        when(partyDirectoryPort.findIdByEmail(any())).thenReturn(Optional.empty());
-        when(partyDirectoryPort.createParty(any())).thenReturn(newPartyId);
+        when(partyDirectoryPort.findIdByEmail(any(), any())).thenReturn(Optional.empty());
+        when(partyDirectoryPort.createParty(any(), any())).thenReturn(newPartyId);
         when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
 
         newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"),
                 null, new BigDecimal("50")));
 
         ArgumentCaptor<PartyDetails> partyCaptor = ArgumentCaptor.forClass(PartyDetails.class);
-        verify(partyDirectoryPort).createParty(partyCaptor.capture());
+        verify(partyDirectoryPort).createParty(partyCaptor.capture(), any());
         assertThat(partyCaptor.getValue().fullName()).isEqualTo("Jane Doe");
         assertThat(partyCaptor.getValue().partyType()).isEqualTo(PartyType.INDIVIDUAL);
 
@@ -102,8 +108,8 @@ class AddUnitOwnerServiceTest {
                 EmailVO.of("jane.doe@example.com"), null, BigDecimal.TEN)))
                 .isInstanceOf(UnitNotFoundException.class);
 
-        verify(partyDirectoryPort, never()).findIdByEmail(any());
-        verify(partyDirectoryPort, never()).createParty(any());
+        verify(partyDirectoryPort, never()).findIdByEmail(any(), any());
+        verify(partyDirectoryPort, never()).createParty(any(), any());
         verify(addUnitOwnershipUseCase, never()).add(any());
     }
 }

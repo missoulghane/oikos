@@ -9,6 +9,7 @@ import com.architek.oikos.party.application.port.in.LoadPartyIdByEmailUseCase;
 import com.architek.oikos.party.domain.repository.PartyRepository;
 import com.architek.oikos.party.domain.valueobject.PartyId;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 @Component
 public class LoadPartyIdByEmailService implements LoadPartyIdByEmailUseCase {
@@ -21,7 +22,7 @@ public class LoadPartyIdByEmailService implements LoadPartyIdByEmailUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<PartyId> loadByEmail(EmailVO email) {
-        return partyRepository.findByEmail(email).map(party -> party.getId());
+    public Optional<PartyId> loadByEmail(EntityId propertyId, EmailVO email) {
+        return partyRepository.findByPropertyIdAndEmail(propertyId, email).map(party -> party.getId());
     }
 }

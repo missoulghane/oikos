@@ -16,6 +16,7 @@ import com.architek.oikos.party.domain.exception.PartyNotFoundException;
 import com.architek.oikos.party.domain.model.Party;
 import com.architek.oikos.party.domain.repository.PartyRepository;
 import com.architek.oikos.party.domain.valueobject.PartyId;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 
@@ -32,7 +33,7 @@ class DeletePartyServiceTest {
     @Test
     void deleting_an_existing_party_removes_it() {
         PartyId id = PartyId.newId();
-        Party party = Party.create(id, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
+        Party party = Party.create(id, EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
         when(partyRepository.findById(id)).thenReturn(Optional.of(party));
 
         newService().delete(new DeletePartyCommand(id));

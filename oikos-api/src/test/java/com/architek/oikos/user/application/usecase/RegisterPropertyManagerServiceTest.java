@@ -22,9 +22,11 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 import com.architek.oikos.user.application.command.RegisterPropertyManagerCommand;
-import com.architek.oikos.user.application.port.out.PartyDirectoryPort;
+import com.architek.oikos.user.application.port.out.PartyProvisioningDetails;
+import com.architek.oikos.user.application.port.out.PartyProvisioningPort;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningDetails;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningPort;
+import com.architek.oikos.user.domain.model.PropertyRole;
 import com.architek.oikos.user.domain.model.Role;
 import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.repository.UserRepository;
@@ -38,7 +40,7 @@ class RegisterPropertyManagerServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private PartyDirectoryPort partyDirectoryPort;
+    private PartyProvisioningPort partyProvisioningPort;
 
     @Mock
     private PropertyProvisioningPort propertyProvisioningPort;
@@ -53,33 +55,43 @@ class RegisterPropertyManagerServiceTest {
     private EmailSenderPort emailSenderPort;
 
     private RegisterPropertyManagerService newService() {
-        return new RegisterPropertyManagerService(userRepository, partyDirectoryPort, propertyProvisioningPort,
+        return new RegisterPropertyManagerService(userRepository, partyProvisioningPort, propertyProvisioningPort,
                 verificationTokenRepository, passwordEncoderPort, emailSenderPort, new VerificationTokenGenerator(),
                 new VerificationEmailComposer("http://localhost/verify"), Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
     }
 
     @Test
-    void registering_a_property_manager_creates_the_user_with_the_property_manager_role_and_provisions_the_property() {
+    void registering_a_property_manager_provisions_the_property_first_then_a_scoped_party_and_grants_the_role_through_it() {
+        EntityId propertyId = EntityId.newId();
         EntityId partyId = EntityId.newId();
-        when(partyDirectoryPort.createParty(any())).thenReturn(partyId);
+        when(propertyProvisioningPort.provisionProperty(any())).thenReturn(propertyId);
+        when(partyProvisioningPort.createParty(any())).thenReturn(partyId);
         when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterPropertyManagerCommand command = new RegisterPropertyManagerCommand(
-                "Jane Doe", EmailVO.of("manager@oikos.com"), null, null, RawPassword.of("password123"),
+                "Jane Doe", EmailVO.of("manager@oikos.com"), null, RawPassword.of("password123"),
                 "Residence A", "1 rue de Paris");
 
         newService().register(command);
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
-        assertThat(userCaptor.getValue().getRoles()).containsExactly(Role.ROLE_PROPERTY_MANAGER);
+        assertThat(userCaptor.getValue().getRoles()).containsExactly(Role.ROLE_USER);
+        assertThat(userCaptor.getValue().getLinkedPartyIds()).containsExactly(partyId);
+        assertThat(userCaptor.getValue().getPropertyRoleGrants())
+                .extracting("role").containsExactly(PropertyRole.ROLE_PROPERTY_MANAGER);
 
-        ArgumentCaptor<PropertyProvisioningDetails> detailsCaptor = ArgumentCaptor.forClass(PropertyProvisioningDetails.class);
-        verify(propertyProvisioningPort).provisionProperty(detailsCaptor.capture());
-        assertThat(detailsCaptor.getValue().name()).isEqualTo("Residence A");
-        assertThat(detailsCaptor.getValue().managerPartyId()).isEqualTo(partyId);
+        ArgumentCaptor<PropertyProvisioningDetails> propertyDetailsCaptor =
+                ArgumentCaptor.forClass(PropertyProvisioningDetails.class);
+        verify(propertyProvisioningPort).provisionProperty(propertyDetailsCaptor.capture());
+        assertThat(propertyDetailsCaptor.getValue().name()).isEqualTo("Residence A");
 
+        ArgumentCaptor<PartyProvisioningDetails> partyDetailsCaptor = ArgumentCaptor.forClass(PartyProvisioningDetails.class);
+        verify(partyProvisioningPort).createParty(partyDetailsCaptor.capture());
+        assertThat(partyDetailsCaptor.getValue().propertyId()).isEqualTo(propertyId);
+
+        verify(propertyProvisioningPort).assignPropertyManager(propertyId, partyId);
         verify(verificationTokenRepository).save(any());
         verify(emailSenderPort).send(any(), any(), any());
     }

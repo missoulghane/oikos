@@ -32,6 +32,8 @@ oikos:
     account-activation-base-url: http://localhost:5173/activate-account
     password-reset-base-url: http://localhost:5173/reset-password
     password-reset-token-ttl-hours: 1
+    party-invitation-base-url: http://localhost:5173/accept-invitation
+    party-invitation-token-ttl-hours: 168
 
 logging:
   level:

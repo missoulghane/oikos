@@ -26,11 +26,12 @@ public class UpdatePartyService implements UpdatePartyUseCase {
     public PartyView update(UpdatePartyCommand command) {
         Party party = partyRepository.findById(command.id())
                 .orElseThrow(() -> new PartyNotFoundException(command.id()));
-        if (!party.getEmail().equals(command.email()) && partyRepository.existsByEmail(command.email())) {
+        if (!party.getEmail().equals(command.email())
+                && partyRepository.existsByPropertyIdAndEmail(party.getPropertyId(), command.email())) {
             throw new EmailAlreadyUsedException(command.email().value());
         }
         if (command.phone() != null && !command.phone().isBlank() && !command.phone().equals(party.getPhone())
-                && partyRepository.existsByPhone(command.phone())) {
+                && partyRepository.existsByPropertyIdAndPhone(party.getPropertyId(), command.phone())) {
             throw new PhoneAlreadyUsedException(command.phone());
         }
         Party updated = partyRepository.save(

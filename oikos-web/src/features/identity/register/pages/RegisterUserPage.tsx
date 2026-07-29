@@ -10,7 +10,7 @@ export function RegisterUserPage() {
   const { mutate, isPending, isSuccess, error } = useRegisterUser();
 
   function handleSubmit(values: RegisterUserFormValues) {
-    mutate({ ...values, phone: values.phone || undefined });
+    mutate(values);
   }
 
   if (isSuccess) {

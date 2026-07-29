@@ -27,6 +27,7 @@ import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
 import com.architek.oikos.shared.exception.ResourceNotFoundException;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
+import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.OwnershipShare;
 import com.architek.oikos.property.domain.valueobject.UnitOwnershipId;
@@ -51,7 +52,8 @@ class AddUnitOwnershipServiceTest {
     }
 
     private static Unit existingUnit(UnitId id) {
-        return Unit.create(id, BuildingId.newId(), "A12", UnitTypeDefinitionId.newId(), Shares.of(BigDecimal.TEN));
+        return Unit.create(id, BuildingId.newId(), PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(),
+                Shares.of(BigDecimal.TEN));
     }
 
     private static PartyDetails existingParty() {
@@ -77,7 +79,8 @@ class AddUnitOwnershipServiceTest {
         when(partyDirectoryPort.getPartyById(any())).thenReturn(existingParty());
         when(unitOwnershipRepository.existsByUnitIdAndPartyId(any(), any())).thenReturn(false);
         when(unitOwnershipRepository.findAllByUnitId(unitId)).thenReturn(List.of(
-                UnitOwnership.create(UnitOwnershipId.newId(), unitId, EntityId.newId(), OwnershipShare.of(new BigDecimal("60")))));
+                UnitOwnership.create(UnitOwnershipId.newId(), unitId, EntityId.newId(), PropertyId.newId(),
+                        OwnershipShare.of(new BigDecimal("60")))));
 
         assertThatThrownBy(() -> newService().add(new AddUnitOwnershipCommand(unitId, EntityId.newId(), new BigDecimal("41"))))
                 .isInstanceOf(OwnershipShareExceededException.class);

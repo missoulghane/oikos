@@ -21,3 +21,7 @@ export interface PartyLot {
   propertyName: string;
   ownershipShare: number;
 }
+
+export interface InvitePartyResult {
+  invited: boolean;
+}

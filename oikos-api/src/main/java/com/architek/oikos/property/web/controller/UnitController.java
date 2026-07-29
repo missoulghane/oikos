@@ -28,7 +28,6 @@ import com.architek.oikos.property.web.response.PagedUnitResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 
 @RestController
-// Pour le moment aucune de gestion de droits (à mettre en place plus tard)
 public class UnitController {
 
     private final AddUnitUseCase addUnitUseCase;
@@ -43,6 +42,7 @@ public class UnitController {
         this.listUnitsByBuildingUseCase = listUnitsByBuildingUseCase;
     }
 
+    @PreAuthorize("@propertyAccess.managesBuilding(authentication, #buildingId)")
     @GetMapping("/buildings/{buildingId}/units")
     public PagedUnitResponse list(@PathVariable String buildingId,
                                   @RequestParam(defaultValue = "0") int page,
@@ -51,11 +51,13 @@ public class UnitController {
         return PagedUnitResponse.from(listUnitsByBuildingUseCase.listUnits(query));
     }
 
+    @PreAuthorize("@propertyAccess.managesUnit(authentication, #id) or @propertyAccess.ownsUnit(authentication, #id)")
     @GetMapping("/units/{id}")
     public UnitResponse getById(@PathVariable String id) {
         return UnitResponse.from(getUnitUseCase.getUnit(new GetUnitQuery(UnitId.of(id))));
     }
 
+    @PreAuthorize("@propertyAccess.managesBuilding(authentication, #buildingId)")
     @PostMapping("/buildings/{buildingId}/units")
     public ResponseEntity<Void> add(@PathVariable String buildingId, @Valid @RequestBody AddUnitRequest request) {
         UnitId id = addUnitUseCase.add(new AddUnitCommand(

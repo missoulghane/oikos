@@ -49,7 +49,7 @@ class ListUnitsByBuildingServiceTest {
         PropertyId propertyId = PropertyId.newId();
         BuildingId buildingId = BuildingId.newId();
         UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
-        Unit unit = Unit.create(UnitId.newId(), buildingId, "A12", unitTypeId, Shares.of(new BigDecimal("150")));
+        Unit unit = Unit.create(UnitId.newId(), buildingId, propertyId, "A12", unitTypeId, Shares.of(new BigDecimal("150")));
         when(buildingRepository.findById(buildingId))
                 .thenReturn(Optional.of(Building.create(buildingId, propertyId, "Batiment A", 5)));
         when(unitTypeDefinitionRepository.findAllByPropertyId(propertyId))

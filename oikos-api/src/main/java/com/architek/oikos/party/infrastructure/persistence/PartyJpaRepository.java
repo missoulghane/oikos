@@ -8,11 +8,11 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface PartyJpaRepository extends JpaRepository<PartyEntity, UUID>, JpaSpecificationExecutor<PartyEntity> {
 
-    Optional<PartyEntity> findByEmail(String email);
+    Optional<PartyEntity> findByPropertyIdAndEmail(UUID propertyId, String email);
 
-    Optional<PartyEntity> findByPhone(String phone);
+    Optional<PartyEntity> findByPropertyIdAndPhone(UUID propertyId, String phone);
 
-    boolean existsByEmail(String email);
+    boolean existsByPropertyIdAndEmail(UUID propertyId, String email);
 
-    boolean existsByPhone(String phone);
+    boolean existsByPropertyIdAndPhone(UUID propertyId, String phone);
 }

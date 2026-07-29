@@ -42,18 +42,18 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     @Override
-    public Optional<User> findByPartyId(EntityId partyId) {
-        return jpaRepository.findByPartyId(partyId.value()).map(mapper::toDomain);
+    public Optional<User> findByEmail(String email) {
+        return jpaRepository.findByEmail(email).map(mapper::toDomain);
     }
 
     @Override
-    public Optional<User> findByLogin(String login) {
-        return jpaRepository.findByLogin(login).map(mapper::toDomain);
+    public boolean existsByEmail(String email) {
+        return jpaRepository.existsByEmail(email);
     }
 
     @Override
-    public boolean existsByLogin(String login) {
-        return jpaRepository.existsByLogin(login);
+    public boolean existsByLinkedPartyId(EntityId partyId) {
+        return jpaRepository.existsByLinkedPartyId(partyId.value());
     }
 
     @Override

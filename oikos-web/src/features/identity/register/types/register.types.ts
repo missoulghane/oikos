@@ -1,11 +1,11 @@
 export interface RegisterUserPayload {
   fullName: string;
   email: string;
-  phone?: string;
   password: string;
 }
 
 export interface RegisterPropertyManagerPayload extends RegisterUserPayload {
+  phone?: string;
   propertyName: string;
   propertyAddress: string;
 }
@@ -17,6 +17,11 @@ export interface VerifyAccountPayload {
 export interface ActivateAccountPayload {
   token: string;
   newPassword: string;
+}
+
+export interface AcceptInvitationPayload {
+  token: string;
+  password?: string;
 }
 
 export interface MessageResponse {

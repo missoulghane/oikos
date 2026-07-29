@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
 
 public record CreatePartyRequest(
+        @NotBlank String propertyId,
         @NotBlank @Size(max = 200) String fullName,
         @NotNull PartyType partyType,
         @NotBlank @Email @Size(max = 150) String email,

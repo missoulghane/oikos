@@ -39,8 +39,8 @@ public class AddUnitService implements AddUnitUseCase {
                 .filter(unitType -> unitType.getPropertyId().equals(building.getPropertyId()))
                 .orElseThrow(() -> new UnitTypeDefinitionNotFoundException(command.unitTypeId()));
 
-        Unit unit = Unit.create(UnitId.newId(), command.buildingId(), command.unitNumber(), command.unitTypeId(),
-                Shares.of(command.shares()));
+        Unit unit = Unit.create(UnitId.newId(), command.buildingId(), building.getPropertyId(), command.unitNumber(),
+                command.unitTypeId(), Shares.of(command.shares()));
         return unitRepository.save(unit).getId();
     }
 }

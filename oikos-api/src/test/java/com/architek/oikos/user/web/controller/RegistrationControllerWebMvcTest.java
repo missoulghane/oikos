@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.architek.oikos.user.application.port.in.AcceptPartyInvitationUseCase;
 import com.architek.oikos.user.application.port.in.ActivateAccountUseCase;
 import com.architek.oikos.user.application.port.in.RegisterPropertyManagerUseCase;
 import com.architek.oikos.user.application.port.in.RegisterUserUseCase;
@@ -42,6 +43,9 @@ class RegistrationControllerWebMvcTest {
     @MockitoBean
     private ActivateAccountUseCase activateAccountUseCase;
 
+    @MockitoBean
+    private AcceptPartyInvitationUseCase acceptPartyInvitationUseCase;
+
     @Test
     void register_with_valid_body_returns_201_with_location() throws Exception {
         UserId userId = UserId.newId();
@@ -64,7 +68,7 @@ class RegistrationControllerWebMvcTest {
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"fullName":"Jane Doe","email":"user@oikos.com","password":"password123","role":"ROLE_PROPERTY_MANAGER"}
+                                {"fullName":"Jane Doe","email":"user@oikos.com","password":"password123","role":"ROLE_USER"}
                                 """))
                 .andExpect(status().isCreated());
     }

@@ -17,6 +17,7 @@ import com.architek.oikos.property.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.property.application.query.ListUnitOwnershipsByUnitQuery;
 import com.architek.oikos.property.domain.model.UnitOwnership;
 import com.architek.oikos.property.domain.repository.UnitOwnershipRepository;
+import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.OwnershipShare;
 import com.architek.oikos.property.domain.valueobject.UnitOwnershipId;
@@ -37,7 +38,7 @@ class ListUnitOwnershipsByUnitServiceTest {
     void listing_owners_maps_the_repository_entries_to_views_enriched_with_party_details() {
         UnitId unitId = UnitId.newId();
         UnitOwnership unitOwnership = UnitOwnership.create(UnitOwnershipId.newId(), unitId, EntityId.newId(),
-                OwnershipShare.of(new BigDecimal("50")));
+                PropertyId.newId(), OwnershipShare.of(new BigDecimal("50")));
         when(unitOwnershipRepository.findAllByUnitId(unitId)).thenReturn(List.of(unitOwnership));
         when(partyDirectoryPort.getPartyById(any()))
                 .thenReturn(new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"), null));

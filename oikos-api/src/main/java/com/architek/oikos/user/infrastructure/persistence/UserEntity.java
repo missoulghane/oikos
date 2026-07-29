@@ -27,19 +27,28 @@ public class UserEntity extends AuditableEntity {
     @Id
     private UUID id;
 
-    @Column(name = "party_id", nullable = false)
-    private UUID partyId;
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    @Column(name = "full_name", nullable = false)
+    private String fullName;
 
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
-
-    @Column(unique = true)
-    private String login;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role", nullable = false)
     private Set<String> roles = new HashSet<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "app_user_party", joinColumns = @JoinColumn(name = "app_user_id"))
+    @Column(name = "party_id", nullable = false)
+    private Set<UUID> linkedPartyIds = new HashSet<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "app_user_party_role", joinColumns = @JoinColumn(name = "app_user_id"))
+    private Set<PropertyRoleGrantEmbeddable> propertyRoleGrants = new HashSet<>();
 
     @Column(nullable = false)
     private boolean verified;

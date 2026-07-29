@@ -38,6 +38,8 @@ oikos:
     account-activation-base-url: ${APP_ACCOUNT_ACTIVATION_BASE_URL:http://localhost:5173/activate-account}
     password-reset-base-url: ${APP_PASSWORD_RESET_BASE_URL:http://localhost:5173/reset-password}
     password-reset-token-ttl-hours: 1
+    party-invitation-base-url: ${APP_PARTY_INVITATION_BASE_URL:http://localhost:5173/accept-invitation}
+    party-invitation-token-ttl-hours: 168
 
 management:
   endpoints:

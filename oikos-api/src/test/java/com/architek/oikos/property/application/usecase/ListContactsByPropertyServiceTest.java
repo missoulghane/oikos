@@ -85,12 +85,13 @@ class ListContactsByPropertyServiceTest {
                 .thenReturn(Page.of(List.of(building), 0, 100, 1));
 
         UnitId unitId = UnitId.newId();
-        Unit unit = Unit.create(unitId, buildingId, "A12", UnitTypeDefinitionId.newId(), Shares.of(new BigDecimal("150")));
+        Unit unit = Unit.create(unitId, buildingId, propertyId, "A12", UnitTypeDefinitionId.newId(),
+                Shares.of(new BigDecimal("150")));
         when(unitRepository.findAllByBuildingId(buildingId, PageRequest.of(0, 100)))
                 .thenReturn(Page.of(List.of(unit), 0, 100, 1));
 
         EntityId partyId = EntityId.newId();
-        UnitOwnership unitOwnership = UnitOwnership.create(UnitOwnershipId.newId(), unitId, partyId,
+        UnitOwnership unitOwnership = UnitOwnership.create(UnitOwnershipId.newId(), unitId, partyId, propertyId,
                 OwnershipShare.of(new BigDecimal("50")));
         when(unitOwnershipRepository.findAllByUnitIds(anyList())).thenReturn(List.of(unitOwnership));
         when(partyDirectoryPort.getPartyById(any()))

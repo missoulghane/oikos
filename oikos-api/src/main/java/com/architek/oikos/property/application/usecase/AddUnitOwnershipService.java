@@ -12,6 +12,7 @@ import com.architek.oikos.property.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.property.domain.exception.PartyAlreadyOwnsUnitException;
 import com.architek.oikos.property.domain.exception.UnitNotFoundException;
 import com.architek.oikos.property.domain.exception.OwnershipShareExceededException;
+import com.architek.oikos.property.domain.model.Unit;
 import com.architek.oikos.property.domain.model.UnitOwnership;
 import com.architek.oikos.property.domain.repository.UnitRepository;
 import com.architek.oikos.property.domain.repository.UnitOwnershipRepository;
@@ -35,7 +36,7 @@ public class AddUnitOwnershipService implements AddUnitOwnershipUseCase {
     @Override
     @Transactional
     public UnitOwnershipId add(AddUnitOwnershipCommand command) {
-        unitRepository.findById(command.unitId()).orElseThrow(() -> new UnitNotFoundException(command.unitId()));
+        Unit unit = unitRepository.findById(command.unitId()).orElseThrow(() -> new UnitNotFoundException(command.unitId()));
         partyDirectoryPort.getPartyById(command.partyId());
 
         if (unitOwnershipRepository.existsByUnitIdAndPartyId(command.unitId(), command.partyId())) {
@@ -51,7 +52,7 @@ public class AddUnitOwnershipService implements AddUnitOwnershipUseCase {
         }
 
         UnitOwnership unitOwnership = UnitOwnership.create(UnitOwnershipId.newId(), command.unitId(), command.partyId(),
-                OwnershipShare.of(command.ownershipShare()));
+                unit.getPropertyId(), OwnershipShare.of(command.ownershipShare()));
         return unitOwnershipRepository.save(unitOwnership).getId();
     }
 }

@@ -24,6 +24,7 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
 import com.architek.oikos.user.application.dto.UserView;
 import com.architek.oikos.user.application.port.in.ChangePasswordUseCase;
+import com.architek.oikos.user.application.port.in.GetMyUnitsUseCase;
 import com.architek.oikos.user.application.port.in.GetUserUseCase;
 import com.architek.oikos.user.application.port.in.UpdateUserProfileUseCase;
 import com.architek.oikos.user.domain.model.Role;
@@ -55,6 +56,9 @@ class UserMeControllerWebMvcTest {
     @MockitoBean
     private ChangePasswordUseCase changePasswordUseCase;
 
+    @MockitoBean
+    private GetMyUnitsUseCase getMyUnitsUseCase;
+
     private String bearerTokenFor(UUID userId) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(userId), Set.of("ROLE_USER"));
     }
@@ -69,7 +73,7 @@ class UserMeControllerWebMvcTest {
         UUID currentUserId = UUID.randomUUID();
         UserId userId = UserId.of(currentUserId);
         when(getUserUseCase.getUser(any())).thenReturn(
-                new UserView(userId, null, "Jane Doe", "user@oikos.com", null, Set.of(Role.ROLE_USER), true, true));
+                new UserView(userId, "Jane Doe", "user@oikos.com", Set.of(Role.ROLE_USER), Set.of(), true, true));
 
         mockMvc.perform(get("/api/v1/users/me").header("Authorization", bearerTokenFor(currentUserId)))
                 .andExpect(status().isOk())

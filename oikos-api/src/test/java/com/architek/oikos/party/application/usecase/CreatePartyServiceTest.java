@@ -18,6 +18,7 @@ import com.architek.oikos.party.domain.exception.EmailAlreadyUsedException;
 import com.architek.oikos.party.domain.exception.PhoneAlreadyUsedException;
 import com.architek.oikos.party.domain.model.Party;
 import com.architek.oikos.party.domain.repository.PartyRepository;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 
@@ -27,16 +28,19 @@ class CreatePartyServiceTest {
     @Mock
     private PartyRepository partyRepository;
 
+    private final EntityId propertyId = EntityId.newId();
+
     private CreatePartyService newService() {
         return new CreatePartyService(partyRepository);
     }
 
     @Test
     void creating_a_party_persists_it() {
-        when(partyRepository.existsByEmail(any())).thenReturn(false);
+        when(partyRepository.existsByPropertyIdAndEmail(any(), any())).thenReturn(false);
         when(partyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CreatePartyCommand command = new CreatePartyCommand("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
+        CreatePartyCommand command = new CreatePartyCommand(propertyId, "Jane Doe", PartyType.INDIVIDUAL,
+                EmailVO.of("jane@doe.com"), null);
 
         newService().create(command);
 
@@ -44,37 +48,40 @@ class CreatePartyServiceTest {
         verify(partyRepository).save(captor.capture());
         assertThat(captor.getValue().getFullName()).isEqualTo("Jane Doe");
         assertThat(captor.getValue().getPartyType()).isEqualTo(PartyType.INDIVIDUAL);
+        assertThat(captor.getValue().getPropertyId()).isEqualTo(propertyId);
     }
 
     @Test
     void creating_a_party_with_an_already_used_email_is_rejected() {
-        when(partyRepository.existsByEmail(any())).thenReturn(true);
+        when(partyRepository.existsByPropertyIdAndEmail(any(), any())).thenReturn(true);
 
-        CreatePartyCommand command = new CreatePartyCommand("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
+        CreatePartyCommand command = new CreatePartyCommand(propertyId, "Jane Doe", PartyType.INDIVIDUAL,
+                EmailVO.of("jane@doe.com"), null);
 
         assertThatThrownBy(() -> newService().create(command)).isInstanceOf(EmailAlreadyUsedException.class);
     }
 
     @Test
     void creating_a_party_with_an_already_used_phone_is_rejected() {
-        when(partyRepository.existsByEmail(any())).thenReturn(false);
-        when(partyRepository.existsByPhone("0600000000")).thenReturn(true);
+        when(partyRepository.existsByPropertyIdAndEmail(any(), any())).thenReturn(false);
+        when(partyRepository.existsByPropertyIdAndPhone(propertyId, "0600000000")).thenReturn(true);
 
-        CreatePartyCommand command = new CreatePartyCommand("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"),
-                "0600000000");
+        CreatePartyCommand command = new CreatePartyCommand(propertyId, "Jane Doe", PartyType.INDIVIDUAL,
+                EmailVO.of("jane@doe.com"), "0600000000");
 
         assertThatThrownBy(() -> newService().create(command)).isInstanceOf(PhoneAlreadyUsedException.class);
     }
 
     @Test
     void creating_a_party_without_a_phone_never_checks_phone_uniqueness() {
-        when(partyRepository.existsByEmail(any())).thenReturn(false);
+        when(partyRepository.existsByPropertyIdAndEmail(any(), any())).thenReturn(false);
         when(partyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CreatePartyCommand command = new CreatePartyCommand("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane@doe.com"), null);
+        CreatePartyCommand command = new CreatePartyCommand(propertyId, "Jane Doe", PartyType.INDIVIDUAL,
+                EmailVO.of("jane@doe.com"), null);
 
         newService().create(command);
 
-        verify(partyRepository, never()).existsByPhone(any());
+        verify(partyRepository, never()).existsByPropertyIdAndPhone(any(), any());
     }
 }

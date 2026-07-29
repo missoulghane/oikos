@@ -20,14 +20,22 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.auth.infrastructure.security.JwtService;
+import com.architek.oikos.property.application.dto.UnitView;
 import com.architek.oikos.property.application.port.in.AddUnitOwnerUseCase;
 import com.architek.oikos.property.application.port.in.AddUnitOwnershipUseCase;
+import com.architek.oikos.property.application.port.in.GetUnitUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitOwnershipsByUnitUseCase;
 import com.architek.oikos.property.application.port.in.RemoveUnitOwnershipUseCase;
+import com.architek.oikos.property.domain.valueobject.BuildingId;
+import com.architek.oikos.property.domain.valueobject.OwnershipStatus;
+import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.UnitOwnershipId;
+import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
+
+import java.math.BigDecimal;
 
 @WebMvcTest(controllers = UnitOwnershipController.class)
 @Import(WebSecuritySliceTestConfiguration.class)
@@ -50,6 +58,9 @@ class UnitOwnershipControllerWebMvcTest {
 
     @MockitoBean
     private RemoveUnitOwnershipUseCase removeUnitOwnershipUseCase;
+
+    @MockitoBean
+    private GetUnitUseCase getUnitUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
@@ -84,7 +95,12 @@ class UnitOwnershipControllerWebMvcTest {
 
     @Test
     void regular_user_is_forbidden_from_adding_an_owner() throws Exception {
-        mockMvc.perform(post("/api/v1/units/" + UnitId.newId() + "/owners")
+        UnitId unitId = UnitId.newId();
+        when(getUnitUseCase.getUnit(any())).thenReturn(
+                new UnitView(unitId, BuildingId.newId(), PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(),
+                        "Appartement", BigDecimal.TEN, OwnershipStatus.NOT_AFFECTED));
+
+        mockMvc.perform(post("/api/v1/units/" + unitId + "/owners")
                         .header("Authorization", bearerToken("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

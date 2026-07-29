@@ -3,6 +3,7 @@ package com.architek.oikos.property.web.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,7 +30,6 @@ import com.architek.oikos.property.web.response.UnitTypePriceResponse;
  * (ex: appartement: 300, box: 100). Un type sans prix configure n'a
  * simplement pas d'entree - aucune valeur par defaut, aucune erreur.
  */
-// Pour le moment aucune de gestion de droits (à mettre en place plus tard)
 @RestController
 public class UnitTypePricingController {
 
@@ -45,6 +45,7 @@ public class UnitTypePricingController {
         this.removeUnitTypePriceUseCase = removeUnitTypePriceUseCase;
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @GetMapping("/properties/{propertyId}/unit-type-prices")
     public List<UnitTypePriceResponse> list(@PathVariable String propertyId) {
         ListUnitTypePricesByPropertyQuery query = new ListUnitTypePricesByPropertyQuery(PropertyId.of(propertyId));
@@ -53,6 +54,7 @@ public class UnitTypePricingController {
                 .toList();
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @PutMapping("/properties/{propertyId}/unit-type-prices/{unitTypeId}")
     public UnitTypePriceResponse set(@PathVariable String propertyId, @PathVariable String unitTypeId,
                                        @Valid @RequestBody SetUnitTypePriceRequest request) {
@@ -61,6 +63,7 @@ public class UnitTypePricingController {
         return UnitTypePriceResponse.from(setUnitTypePriceUseCase.set(command));
     }
 
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/properties/{propertyId}/unit-type-prices/{unitTypeId}")
     public void remove(@PathVariable String propertyId, @PathVariable String unitTypeId) {
