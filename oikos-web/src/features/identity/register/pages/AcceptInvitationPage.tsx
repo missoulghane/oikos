@@ -21,10 +21,10 @@ export function AcceptInvitationPage() {
   return (
     <AuthLayout>
       <Card>
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">Invitation à rejoindre Oikos</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">Invitation à rejoindre Oikos</h2>
         {!token && <Alert message="Ce lien d'invitation est invalide." />}
         {token && isSuccess && (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-gray-600">
             Invitation acceptée. Vous pouvez maintenant vous connecter pour accéder à vos lots.
           </p>
         )}
@@ -35,7 +35,7 @@ export function AcceptInvitationPage() {
             errorMessage={error ? getErrorMessage(error) : undefined}
           />
         )}
-        <Link to="/login" className="mt-4 inline-block text-sm font-medium text-slate-900 underline">
+        <Link to="/login" className="mt-4 inline-block text-sm font-medium text-gray-900 underline">
           Retour à la connexion
         </Link>
       </Card>

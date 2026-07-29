@@ -12,8 +12,8 @@ export function BuildingSection({ building }: { building: Building }) {
     <Card className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-medium text-slate-900">{building.name}</h2>
-          <p className="text-sm text-slate-500">{building.floorCount} étage(s)</p>
+          <h2 className="font-medium text-gray-900">{building.name}</h2>
+          <p className="text-sm text-gray-500">{building.floorCount} étage(s)</p>
         </div>
         {!isAddingUnit && (
           <Button type="button" variant="secondary" onClick={() => setIsAddingUnit(true)}>
@@ -29,7 +29,7 @@ export function BuildingSection({ building }: { building: Building }) {
           onCancel={() => setIsAddingUnit(false)}
         />
       )}
-      <UnitList buildingId={building.id} />
+      <UnitList buildingId={building.id} propertyId={building.propertyId} />
     </Card>
   );
 }

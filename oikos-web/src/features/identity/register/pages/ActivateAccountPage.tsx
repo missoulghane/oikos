@@ -21,10 +21,10 @@ export function ActivateAccountPage() {
   return (
     <AuthLayout>
       <Card>
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">Activation du compte</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">Activation du compte</h2>
         {!token && <Alert message="Ce lien d'activation est invalide." />}
         {token && isSuccess && (
-          <p className="text-sm text-slate-600">Votre compte a bien été activé. Vous pouvez maintenant vous connecter.</p>
+          <p className="text-sm text-gray-600">Votre compte a bien été activé. Vous pouvez maintenant vous connecter.</p>
         )}
         {token && !isSuccess && (
           <ActivateAccountForm
@@ -33,7 +33,7 @@ export function ActivateAccountPage() {
             errorMessage={error ? getErrorMessage(error) : undefined}
           />
         )}
-        <Link to="/login" className="mt-4 inline-block text-sm font-medium text-slate-900 underline">
+        <Link to="/login" className="mt-4 inline-block text-sm font-medium text-gray-900 underline">
           Retour à la connexion
         </Link>
       </Card>

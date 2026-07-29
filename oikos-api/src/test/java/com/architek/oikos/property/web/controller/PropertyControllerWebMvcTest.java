@@ -32,6 +32,7 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
 import com.architek.oikos.user.application.port.in.AssignPropertyManagerUseCase;
 import com.architek.oikos.user.application.port.in.GrantCreatorAsManagerUseCase;
+import com.architek.oikos.user.application.usecase.EnforcePropertyCreationLimitService;
 
 @WebMvcTest(controllers = PropertyController.class)
 @Import(WebSecuritySliceTestConfiguration.class)
@@ -63,6 +64,9 @@ class PropertyControllerWebMvcTest {
 
     @MockitoBean
     private AssignPropertyManagerUseCase assignPropertyManagerUseCase;
+
+    @MockitoBean
+    private EnforcePropertyCreationLimitService enforcePropertyCreationLimitService;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));

@@ -24,6 +24,7 @@ import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.user.application.dto.UserAccessView;
 import com.architek.oikos.user.application.port.in.GetUserAccessUseCase;
 import com.architek.oikos.user.application.query.GetUserAccessQuery;
+import com.architek.oikos.user.domain.model.Permission;
 import com.architek.oikos.user.domain.valueobject.UserId;
 
 /**
@@ -120,15 +121,37 @@ public class PropertyAccessEvaluator {
         return access(authentication).managesProperty(propertyId);
     }
 
-    /** True for ADMIN, or for an account already managing at least one property. Used to
-     * gate the authenticated "create a property" endpoint: a plain owner-only USER with
-     * no property grant at all must not be able to create additional properties this way
-     * (the public self-registration bootstrap flow is a separate, unrelated code path). */
-    public boolean isManagerOfAny(Authentication authentication) {
+    /** True for ADMIN, or for an account holding property:create anywhere (any PROPERTY_BOARD_ADMIN/
+     * PROPERTY_MANAGER_ADMIN grant). Used to gate the authenticated "create a property" endpoint:
+     * a MEMBER-tier or OWNER account, or a plain USER with no property grant at all, must not be
+     * able to create additional properties this way (the public self-registration bootstrap flows
+     * are separate, unrelated code paths). Replaces the former role-name-based isManagerOfAny. */
+    public boolean canCreateProperty(Authentication authentication) {
         if (isAdminAuthority(authentication)) {
             return true;
         }
-        return !access(authentication).managedPropertyIds().isEmpty();
+        return access(authentication).canCreateProperty();
+    }
+
+    /** Permission-based check, scoped to a specific property: true for ADMIN, or if the caller's
+     * role on this property (or a global role) bundles the given permission. */
+    public boolean hasPermission(Authentication authentication, String propertyId, Permission permission) {
+        if (isAdminAuthority(authentication)) {
+            return true;
+        }
+        return access(authentication).hasPermission(propertyId, permission);
+    }
+
+    /** Gates POST /properties/{id}/managers: the property's own ADMIN-tier holder (board or
+     * manager-firm admin) may invite a MEMBER onto it, not just the platform admin. */
+    public boolean canInviteMemberOnProperty(Authentication authentication, String propertyId) {
+        return hasPermission(authentication, propertyId, Permission.PROPERTY_MEMBER_INVITE);
+    }
+
+    /** Concrete "accounting/installment write" example of a permission-scoped (rather than
+     * generic managesProperty) check. */
+    public boolean canWriteInstallmentCall(Authentication authentication, String propertyId) {
+        return hasPermission(authentication, propertyId, Permission.INSTALLMENT_CALL_WRITE);
     }
 
     /** Self-service: the current account's own linked party. */

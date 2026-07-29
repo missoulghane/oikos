@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -73,7 +74,7 @@ class UserMeControllerWebMvcTest {
         UUID currentUserId = UUID.randomUUID();
         UserId userId = UserId.of(currentUserId);
         when(getUserUseCase.getUser(any())).thenReturn(
-                new UserView(userId, "Jane Doe", "user@oikos.com", Set.of(Role.ROLE_USER), Set.of(), true, true));
+                new UserView(userId, "Jane Doe", "user@oikos.com", Set.of(Role.ROLE_USER), Map.of(), true, true));
 
         mockMvc.perform(get("/api/v1/users/me").header("Authorization", bearerTokenFor(currentUserId)))
                 .andExpect(status().isOk())

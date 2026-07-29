@@ -29,7 +29,6 @@ export const queryKeys = {
     detail: (id: string) => ['installment-calls', id, 'detail'] as const,
   },
   buildings: {
-    detail: (id: string) => ['buildings', 'detail', id] as const,
     units: (buildingId: string, page: number, size: number) =>
       ['buildings', buildingId, 'units', page, size] as const,
   },

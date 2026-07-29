@@ -1,5 +1,6 @@
 package com.architek.oikos.testsupport;
 
+import java.util.Map;
 import java.util.Set;
 
 import org.mockito.Mockito;
@@ -62,7 +63,7 @@ public class WebSecuritySliceTestConfiguration {
     @Bean
     GetUserAccessUseCase getUserAccessUseCase() {
         return Mockito.mock(GetUserAccessUseCase.class,
-                invocation -> new UserAccessView(Set.of(), Set.of(), Set.of()));
+                invocation -> new UserAccessView(Set.of(), Map.of(), Map.of(), Set.of(), Set.of()));
     }
 
     @Bean

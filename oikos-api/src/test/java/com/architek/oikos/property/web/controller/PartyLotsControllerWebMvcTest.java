@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -26,6 +27,7 @@ import com.architek.oikos.shared.domain.valueobject.PartyType;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
 import com.architek.oikos.user.application.dto.UserAccessView;
 import com.architek.oikos.user.application.port.in.GetUserAccessUseCase;
+import com.architek.oikos.user.domain.model.PropertyRole;
 
 @WebMvcTest(controllers = PartyLotsController.class)
 @Import(WebSecuritySliceTestConfiguration.class)
@@ -72,11 +74,12 @@ class PartyLotsControllerWebMvcTest {
                 new PartyView(PartyId.of(partyId.toString()),
                         EntityId.of(propertyId), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
         when(getUserAccessUseCase.getAccess(any()))
-                .thenReturn(new UserAccessView(Set.of(), Set.of(propertyId), Set.of()));
+                .thenReturn(new UserAccessView(Set.of(), Map.of(propertyId, Set.of(PropertyRole.PROPERTY_BOARD_ADMIN)),
+                        Map.of(), Set.of(), Set.of()));
         when(listLotsByPartyUseCase.listLots(any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/parties/" + partyId + "/lots")
-                        .header("Authorization", bearerToken("ROLE_PROPERTY_MANAGER")))
+                        .header("Authorization", bearerToken("PROPERTY_BOARD_ADMIN")))
                 .andExpect(status().isOk());
     }
 
@@ -87,7 +90,7 @@ class PartyLotsControllerWebMvcTest {
                 new PartyView(PartyId.of(partyId.toString()), EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL,
                         "jane@doe.com", null));
         when(getUserAccessUseCase.getAccess(any()))
-                .thenReturn(new UserAccessView(Set.of(), Set.of(), Set.of(partyId.toString())));
+                .thenReturn(new UserAccessView(Set.of(), Map.of(), Map.of(), Set.of(), Set.of(partyId.toString())));
         when(listLotsByPartyUseCase.listLots(any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/parties/" + partyId + "/lots")

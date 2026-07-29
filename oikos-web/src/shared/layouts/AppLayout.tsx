@@ -1,29 +1,36 @@
-import { Outlet, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '@/app/store';
-import { Button } from '@/shared/components/Button/Button';
+import { Outlet } from 'react-router-dom';
+import { SidebarProvider, useSidebar } from '@/shared/context/SidebarContext';
+import { AppSidebar } from '@/shared/layouts/AppSidebar';
+import { AppHeader } from '@/shared/layouts/AppHeader';
+import { Backdrop } from '@/shared/layouts/Backdrop';
 
-export function AppLayout() {
-  const navigate = useNavigate();
-  const clearSession = useAuthStore((state) => state.clearSession);
-
-  function handleLogout() {
-    clearSession();
-    navigate('/login', { replace: true });
-  }
+function LayoutContent() {
+  const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3 sm:px-6">
-          <span className="text-base font-semibold text-slate-900">Oikos</span>
-          <Button variant="secondary" onClick={handleLogout}>
-            Se déconnecter
-          </Button>
-        </div>
-      </header>
-      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
-        <Outlet />
-      </main>
+    <div className="min-h-screen bg-gray-50 xl:flex">
+      <div>
+        <AppSidebar />
+        <Backdrop />
+      </div>
+      <div
+        className={`flex-1 transition-all duration-300 ease-in-out ${
+          isExpanded || isHovered ? 'lg:ml-[290px]' : 'lg:ml-[90px]'
+        } ${isMobileOpen ? 'ml-0' : ''}`}
+      >
+        <AppHeader />
+        <main className="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
+          <Outlet />
+        </main>
+      </div>
     </div>
+  );
+}
+
+export function AppLayout() {
+  return (
+    <SidebarProvider>
+      <LayoutContent />
+    </SidebarProvider>
   );
 }

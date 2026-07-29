@@ -4,8 +4,11 @@ import { Loader } from '@/shared/components/Loader/Loader';
 
 const LoginPage = lazy(() => import('@/features/identity/auth').then((m) => ({ default: m.LoginPage })));
 const RegisterUserPage = lazy(() => import('@/features/identity/register').then((m) => ({ default: m.RegisterUserPage })));
-const RegisterPropertyManagerPage = lazy(() =>
-  import('@/features/identity/register').then((m) => ({ default: m.RegisterPropertyManagerPage })),
+const RegisterPropertyBoardAdminPage = lazy(() =>
+  import('@/features/identity/register').then((m) => ({ default: m.RegisterPropertyBoardAdminPage })),
+);
+const RegisterPropertyManagerAdminPage = lazy(() =>
+  import('@/features/identity/register').then((m) => ({ default: m.RegisterPropertyManagerAdminPage })),
 );
 const VerifyEmailPage = lazy(() => import('@/features/identity/register').then((m) => ({ default: m.VerifyEmailPage })));
 const ActivateAccountPage = lazy(() =>
@@ -33,10 +36,18 @@ export const publicRoutes: RouteObject[] = [
     ),
   },
   {
-    path: '/register/property-manager',
+    path: '/register/board-admin',
     element: (
       <Suspense fallback={<Loader />}>
-        <RegisterPropertyManagerPage />
+        <RegisterPropertyBoardAdminPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/register/manager-admin',
+    element: (
+      <Suspense fallback={<Loader />}>
+        <RegisterPropertyManagerAdminPage />
       </Suspense>
     ),
   },

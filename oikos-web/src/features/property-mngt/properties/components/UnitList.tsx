@@ -12,7 +12,7 @@ const OWNERSHIP_STATUS_LABELS = {
   NOT_AFFECTED: 'Non affecté',
 } as const;
 
-export function UnitList({ buildingId }: { buildingId: string }) {
+export function UnitList({ buildingId, propertyId }: { buildingId: string; propertyId: string }) {
   const [page, setPage] = useState(0);
   const { data, isLoading, isError, error } = useUnits(buildingId, page);
 
@@ -30,20 +30,20 @@ export function UnitList({ buildingId }: { buildingId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <ul className="flex flex-col divide-y divide-slate-200 rounded-md border border-slate-200">
+      <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
         {data.content.map((unit) => (
           <li key={unit.id}>
             <Link
-              to={`/units/${unit.id}`}
-              className="flex flex-col gap-1 px-3 py-2 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
+              to={`/properties/${propertyId}/units/${unit.id}`}
+              className="flex flex-col gap-1 px-3 py-2 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
-                <p className="text-sm font-medium text-slate-900">
+                <p className="text-sm font-medium text-gray-900">
                   Lot {unit.unitNumber} — {unit.unitTypeName}
                 </p>
-                <p className="text-sm text-slate-500">{unit.shares} tantièmes</p>
+                <p className="text-sm text-gray-500">{unit.shares} tantièmes</p>
               </div>
-              <span className="w-fit rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+              <span className="w-fit rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
                 {OWNERSHIP_STATUS_LABELS[unit.ownershipStatus]}
               </span>
             </Link>

@@ -1,18 +1,15 @@
-import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
+import { Link, Outlet, useParams } from 'react-router-dom';
 import { useProperty } from '@/features/property-mngt/properties/hooks/useProperty';
+import { useCurrentUser, isBoardTierOnProperty } from '@/features/identity/me';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
-
-const MENUS = [
-  { to: 'property', label: 'Ma copropriété' },
-  { to: 'installments', label: 'Gestion des échéances' },
-];
 
 export function PropertyDetailLayout() {
   const { id } = useParams<{ id: string }>();
   const propertyId = id ?? '';
   const property = useProperty(propertyId);
+  const currentUser = useCurrentUser();
 
   if (property.isLoading) {
     return <Loader label="Chargement de la copropriété…" />;
@@ -26,30 +23,20 @@ export function PropertyDetailLayout() {
     return null;
   }
 
+  // A board account only ever has this one property (see the RBAC creation
+  // cardinality cap) - there is nothing to "go back" to.
+  const showBackLink = !currentUser.data || !isBoardTierOnProperty(currentUser.data, propertyId);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link to="/properties" className="text-sm text-slate-500 hover:underline">
-          ← Retour aux copropriétés
-        </Link>
-        <h1 className="text-lg font-semibold text-slate-900">{property.data.name}</h1>
+        {showBackLink && (
+          <Link to="/properties" className="text-sm text-gray-500 hover:underline">
+            ← Retour aux copropriétés
+          </Link>
+        )}
+        <h1 className="text-lg font-semibold text-gray-900">{property.data.name}</h1>
       </div>
-
-      <nav className="flex gap-2 border-b border-slate-200 pb-2">
-        {MENUS.map((menu) => (
-          <NavLink
-            key={menu.label}
-            to={menu.to}
-            className={({ isActive }) =>
-              `rounded-md px-3 py-2 text-sm font-medium ${
-                isActive ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
-              }`
-            }
-          >
-            {menu.label}
-          </NavLink>
-        ))}
-      </nav>
 
       <Outlet context={{ property: property.data }} />
     </div>

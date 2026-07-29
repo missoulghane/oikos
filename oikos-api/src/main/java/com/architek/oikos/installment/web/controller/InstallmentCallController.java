@@ -65,7 +65,7 @@ public class InstallmentCallController {
         return ResponseEntity.status(HttpStatus.CREATED).body(InstallmentCallResponse.from(installmentIds));
     }
 
-    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
+    @PreAuthorize("@propertyAccess.canWriteInstallmentCall(authentication, #propertyId)")
     @PostMapping("/properties/{propertyId}/installment-calls")
     public ResponseEntity<GenerateInstallmentCallResponse> generate(@PathVariable String propertyId,
                                                                      @Valid @RequestBody GenerateInstallmentCallRequest request) {

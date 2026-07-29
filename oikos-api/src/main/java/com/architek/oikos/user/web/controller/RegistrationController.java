@@ -15,20 +15,23 @@ import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 import com.architek.oikos.user.application.command.AcceptPartyInvitationCommand;
 import com.architek.oikos.user.application.command.ActivateAccountCommand;
-import com.architek.oikos.user.application.command.RegisterPropertyManagerCommand;
+import com.architek.oikos.user.application.command.RegisterPropertyBoardAdminCommand;
+import com.architek.oikos.user.application.command.RegisterPropertyManagerAdminCommand;
 import com.architek.oikos.user.application.command.RegisterUserCommand;
 import com.architek.oikos.user.application.command.ResendVerificationCommand;
 import com.architek.oikos.user.application.command.VerifyAccountCommand;
 import com.architek.oikos.user.application.port.in.AcceptPartyInvitationUseCase;
 import com.architek.oikos.user.application.port.in.ActivateAccountUseCase;
-import com.architek.oikos.user.application.port.in.RegisterPropertyManagerUseCase;
+import com.architek.oikos.user.application.port.in.RegisterPropertyBoardAdminUseCase;
+import com.architek.oikos.user.application.port.in.RegisterPropertyManagerAdminUseCase;
 import com.architek.oikos.user.application.port.in.RegisterUserUseCase;
 import com.architek.oikos.user.application.port.in.ResendVerificationUseCase;
 import com.architek.oikos.user.application.port.in.VerifyAccountUseCase;
 import com.architek.oikos.user.domain.valueobject.UserId;
 import com.architek.oikos.user.web.request.AcceptInvitationRequest;
 import com.architek.oikos.user.web.request.ActivateAccountRequest;
-import com.architek.oikos.user.web.request.RegisterPropertyManagerRequest;
+import com.architek.oikos.user.web.request.RegisterPropertyBoardAdminRequest;
+import com.architek.oikos.user.web.request.RegisterPropertyManagerAdminRequest;
 import com.architek.oikos.user.web.request.RegisterUserRequest;
 import com.architek.oikos.user.web.request.ResendVerificationRequest;
 import com.architek.oikos.user.web.request.VerifyAccountRequest;
@@ -42,20 +45,23 @@ import com.architek.oikos.user.web.response.MessageResponse;
 public class RegistrationController {
 
     private final RegisterUserUseCase registerUserUseCase;
-    private final RegisterPropertyManagerUseCase registerPropertyManagerUseCase;
+    private final RegisterPropertyBoardAdminUseCase registerPropertyBoardAdminUseCase;
+    private final RegisterPropertyManagerAdminUseCase registerPropertyManagerAdminUseCase;
     private final VerifyAccountUseCase verifyAccountUseCase;
     private final ResendVerificationUseCase resendVerificationUseCase;
     private final ActivateAccountUseCase activateAccountUseCase;
     private final AcceptPartyInvitationUseCase acceptPartyInvitationUseCase;
 
     public RegistrationController(RegisterUserUseCase registerUserUseCase,
-                                   RegisterPropertyManagerUseCase registerPropertyManagerUseCase,
+                                   RegisterPropertyBoardAdminUseCase registerPropertyBoardAdminUseCase,
+                                   RegisterPropertyManagerAdminUseCase registerPropertyManagerAdminUseCase,
                                    VerifyAccountUseCase verifyAccountUseCase,
                                    ResendVerificationUseCase resendVerificationUseCase,
                                    ActivateAccountUseCase activateAccountUseCase,
                                    AcceptPartyInvitationUseCase acceptPartyInvitationUseCase) {
         this.registerUserUseCase = registerUserUseCase;
-        this.registerPropertyManagerUseCase = registerPropertyManagerUseCase;
+        this.registerPropertyBoardAdminUseCase = registerPropertyBoardAdminUseCase;
+        this.registerPropertyManagerAdminUseCase = registerPropertyManagerAdminUseCase;
         this.verifyAccountUseCase = verifyAccountUseCase;
         this.resendVerificationUseCase = resendVerificationUseCase;
         this.activateAccountUseCase = activateAccountUseCase;
@@ -73,16 +79,31 @@ public class RegistrationController {
         return ResponseEntity.created(URI.create("/api/v1/users/" + userId)).build();
     }
 
-    @PostMapping("/register-property-manager")
-    public ResponseEntity<Void> registerPropertyManager(@Valid @RequestBody RegisterPropertyManagerRequest request) {
-        RegisterPropertyManagerCommand command = new RegisterPropertyManagerCommand(
+    /** Volunteer syndic board admin - self-managed HOA, capped at one property (see EnforcePropertyCreationLimitService). */
+    @PostMapping("/register-property-board-admin")
+    public ResponseEntity<Void> registerPropertyBoardAdmin(@Valid @RequestBody RegisterPropertyBoardAdminRequest request) {
+        RegisterPropertyBoardAdminCommand command = new RegisterPropertyBoardAdminCommand(
                 request.fullName(),
                 EmailVO.of(request.email()),
                 request.phone(),
                 RawPassword.of(request.password()),
                 request.propertyName(),
                 request.propertyAddress());
-        UserId userId = registerPropertyManagerUseCase.register(command);
+        UserId userId = registerPropertyBoardAdminUseCase.register(command);
+        return ResponseEntity.created(URI.create("/api/v1/users/" + userId)).build();
+    }
+
+    /** Professional property-management firm admin - uncapped, may create further properties. */
+    @PostMapping("/register-property-manager-admin")
+    public ResponseEntity<Void> registerPropertyManagerAdmin(@Valid @RequestBody RegisterPropertyManagerAdminRequest request) {
+        RegisterPropertyManagerAdminCommand command = new RegisterPropertyManagerAdminCommand(
+                request.fullName(),
+                EmailVO.of(request.email()),
+                request.phone(),
+                RawPassword.of(request.password()),
+                request.propertyName(),
+                request.propertyAddress());
+        UserId userId = registerPropertyManagerAdminUseCase.register(command);
         return ResponseEntity.created(URI.create("/api/v1/users/" + userId)).build();
     }
 

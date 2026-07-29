@@ -29,23 +29,23 @@ export function PropertyContactsTab() {
   }
 
   return (
-    <ul className="flex flex-col divide-y divide-slate-200 rounded-md border border-slate-200">
+    <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
       {contacts.data.map((contact) => (
         <li key={contact.id} className="flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-900">
-              <Link to={`/parties/${contact.partyId}`} className="hover:underline">
+            <p className="text-sm font-medium text-gray-900">
+              <Link to={`/properties/${property.id}/parties/${contact.partyId}`} className="hover:underline">
                 {contact.partyFullName}
               </Link>{' '}
               ({PARTY_TYPE_LABELS[contact.partyType]})
             </p>
-            <p className="text-sm text-slate-500">
-              <Link to={`/units/${contact.unitId}`} className="hover:underline">
+            <p className="text-sm text-gray-500">
+              <Link to={`/properties/${property.id}/units/${contact.unitId}`} className="hover:underline">
                 {contact.buildingName} — Lot {contact.unitNumber}
               </Link>
             </p>
           </div>
-          <span className="w-fit rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+          <span className="w-fit rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
             {contact.ownershipShare}%
           </span>
         </li>

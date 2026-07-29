@@ -22,7 +22,7 @@ export function PartiesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-slate-900">Contacts</h1>
+      <h1 className="text-lg font-semibold text-gray-900">Contacts</h1>
       <Select
         label="Copropriété"
         value={propertyId}
@@ -62,20 +62,20 @@ export function PartiesPage() {
       )}
       {propertyId && parties.data && parties.data.content.length > 0 && (
         <div className="flex flex-col gap-3">
-          <ul className="flex flex-col divide-y divide-slate-200 rounded-md border border-slate-200">
+          <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
             {parties.data.content.map((party) => (
               <li key={party.id}>
                 <Link
-                  to={`/parties/${party.id}`}
-                  className="flex flex-col gap-1 px-3 py-2 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
+                  to={`/properties/${propertyId}/parties/${party.id}`}
+                  className="flex flex-col gap-1 px-3 py-2 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <p className="text-sm font-medium text-slate-900">
+                    <p className="text-sm font-medium text-gray-900">
                       {party.fullName} ({PARTY_TYPE_LABELS[party.partyType]})
                     </p>
-                    <p className="text-sm text-slate-500">{party.email}</p>
+                    <p className="text-sm text-gray-500">{party.email}</p>
                   </div>
-                  {party.phone && <span className="text-sm text-slate-500">{party.phone}</span>}
+                  {party.phone && <span className="text-sm text-gray-500">{party.phone}</span>}
                 </Link>
               </li>
             ))}

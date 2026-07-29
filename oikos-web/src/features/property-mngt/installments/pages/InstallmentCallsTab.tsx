@@ -42,9 +42,9 @@ export function InstallmentCallsTab() {
       )}
       {installmentCalls.data && installmentCalls.data.content.length > 0 && (
         <div className="flex flex-col gap-3">
-          <ul className="flex flex-col divide-y divide-slate-200 rounded-md border border-slate-200">
+          <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
             {installmentCalls.data.content.map((installmentCall) => (
-              <InstallmentCallRow key={installmentCall.id} installmentCall={installmentCall} />
+              <InstallmentCallRow key={installmentCall.id} installmentCall={installmentCall} propertyId={property.id} />
             ))}
           </ul>
           <Pagination

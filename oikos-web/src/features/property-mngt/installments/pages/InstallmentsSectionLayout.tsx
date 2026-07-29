@@ -12,7 +12,7 @@ export function InstallmentsSectionLayout() {
 
   return (
     <div className="flex flex-col gap-4">
-      <nav className="flex gap-4 border-b border-slate-200">
+      <nav className="flex gap-4 border-b border-gray-200">
         {TABS.map((tab) => (
           <NavLink
             key={tab.label}
@@ -21,8 +21,8 @@ export function InstallmentsSectionLayout() {
             className={({ isActive }) =>
               `-mb-px border-b-2 px-1 pb-2 text-sm font-medium ${
                 isActive
-                  ? 'border-slate-900 text-slate-900'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
+                  ? 'border-gray-900 text-gray-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
               }`
             }
           >

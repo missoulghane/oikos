@@ -54,7 +54,7 @@ export function InstallmentsListTab() {
       )}
       {installments.data && installments.data.content.length > 0 && (
         <div className="flex flex-col gap-3">
-          <InstallmentList installments={installments.data.content} />
+          <InstallmentList installments={installments.data.content} propertyId={property.id} />
           <Pagination
             pageNumber={installments.data.pageNumber}
             totalPages={installments.data.totalPages}

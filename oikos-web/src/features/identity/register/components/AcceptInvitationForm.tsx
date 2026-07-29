@@ -27,7 +27,7 @@ export function AcceptInvitationForm({ onSubmit, isSubmitting, errorMessage }: A
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {errorMessage && <Alert message={errorMessage} />}
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-gray-500">
         Si vous avez déjà un compte Oikos, laissez ce champ vide. Sinon, choisissez un mot de passe pour créer votre
         compte.
       </p>

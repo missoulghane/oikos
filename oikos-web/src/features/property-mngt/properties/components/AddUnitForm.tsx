@@ -30,7 +30,7 @@ export function AddUnitForm({ propertyId, buildingId, onSuccess, onCancel }: Add
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 rounded-md border border-slate-200 p-4" noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 rounded-lg border border-gray-200 p-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
       {unitTypes.isError && <Alert message={getErrorMessage(unitTypes.error)} />}
       <Input label="Numéro de lot" {...register('unitNumber')} errorMessage={errors.unitNumber?.message} />

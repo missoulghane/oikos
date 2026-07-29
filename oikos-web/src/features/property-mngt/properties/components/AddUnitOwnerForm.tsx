@@ -32,7 +32,7 @@ export function AddUnitOwnerForm({ unitId, onSuccess, onCancel }: AddUnitOwnerFo
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 rounded-md border border-slate-200 p-4" noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 rounded-lg border border-gray-200 p-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
       <Input label="Nom complet" {...register('fullName')} errorMessage={errors.fullName?.message} />
       <Select label="Type" {...register('partyType')} errorMessage={errors.partyType?.message} defaultValue="">

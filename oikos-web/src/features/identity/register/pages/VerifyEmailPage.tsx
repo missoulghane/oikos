@@ -32,14 +32,14 @@ export function VerifyEmailPage() {
   return (
     <AuthLayout>
       <Card>
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">Vérification de l'email</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">Vérification de l'email</h2>
         {!token && <Alert message="Ce lien de vérification est invalide." />}
         {token && status === 'pending' && <Loader label="Vérification en cours…" />}
         {token && status === 'success' && (
-          <p className="text-sm text-slate-600">Votre email a bien été vérifié. Vous pouvez maintenant vous connecter.</p>
+          <p className="text-sm text-gray-600">Votre email a bien été vérifié. Vous pouvez maintenant vous connecter.</p>
         )}
         {token && status === 'error' && <Alert message={errorMessage ?? 'La vérification a échoué.'} />}
-        <Link to="/login" className="mt-4 inline-block text-sm font-medium text-slate-900 underline">
+        <Link to="/login" className="mt-4 inline-block text-sm font-medium text-gray-900 underline">
           Retour à la connexion
         </Link>
       </Card>

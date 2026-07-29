@@ -11,7 +11,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
     return (
       <div className="flex flex-col gap-1">
-        <label htmlFor={inputId} className="text-sm font-medium text-slate-700">
+        <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
           {label}
         </label>
         <input
@@ -19,13 +19,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           aria-invalid={Boolean(errorMessage)}
           aria-describedby={errorMessage ? `${inputId}-error` : undefined}
-          className={`min-h-11 rounded-md border px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-slate-400 ${
-            errorMessage ? 'border-red-500' : 'border-slate-300'
+          className={`min-h-11 rounded-lg border bg-transparent px-3 py-2 text-base text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:outline-none focus:ring-3 ${
+            errorMessage
+              ? 'border-error-500 focus:border-error-300 focus:ring-error-500/20'
+              : 'border-gray-300 focus:border-brand-300 focus:ring-brand-500/20'
           } ${className}`}
           {...rest}
         />
         {errorMessage && (
-          <p id={`${inputId}-error`} className="text-sm text-red-600">
+          <p id={`${inputId}-error`} className="text-sm text-error-500">
             {errorMessage}
           </p>
         )}

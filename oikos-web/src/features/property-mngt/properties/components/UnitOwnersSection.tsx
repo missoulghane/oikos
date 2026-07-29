@@ -11,7 +11,7 @@ import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 
 type AddMode = 'none' | 'existing' | 'new';
 
-export function UnitOwnersSection({ unitId, propertyId }: { unitId: string; propertyId: string | undefined }) {
+export function UnitOwnersSection({ unitId, propertyId }: { unitId: string; propertyId: string }) {
   const [addMode, setAddMode] = useState<AddMode>('none');
   const { data, isLoading, isError, error } = useUnitOwners(unitId);
 
@@ -20,12 +20,12 @@ export function UnitOwnersSection({ unitId, propertyId }: { unitId: string; prop
   }
 
   return (
-    <div className="flex flex-col gap-2 border-t border-slate-100 pt-2">
+    <div className="flex flex-col gap-2 border-t border-gray-100 pt-2">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-slate-500">Propriétaires</p>
+        <p className="text-xs font-medium text-gray-500">Propriétaires</p>
         {addMode === 'none' && (
           <div className="flex gap-2">
-            <Button type="button" variant="secondary" disabled={!propertyId} onClick={() => setAddMode('existing')}>
+            <Button type="button" variant="secondary" onClick={() => setAddMode('existing')}>
               Party existante
             </Button>
             <Button type="button" variant="secondary" onClick={() => setAddMode('new')}>
@@ -43,19 +43,19 @@ export function UnitOwnersSection({ unitId, propertyId }: { unitId: string; prop
       {isLoading && <Loader label="Chargement des propriétaires…" />}
       {isError && <Alert message={getErrorMessage(error)} />}
       {data && data.length === 0 && addMode === 'none' && (
-        <p className="text-sm text-slate-400">Aucun propriétaire pour le moment.</p>
+        <p className="text-sm text-gray-400">Aucun propriétaire pour le moment.</p>
       )}
       {data && data.length > 0 && (
-        <ul className="flex flex-col divide-y divide-slate-100">
+        <ul className="flex flex-col divide-y divide-gray-100">
           {data.map((owner) => (
             <li key={owner.id} className="flex items-center justify-between py-1 text-sm">
-              <span className="text-slate-700">
-                <Link to={`/parties/${owner.partyId}`} className="hover:underline">
+              <span className="text-gray-700">
+                <Link to={`/properties/${propertyId}/parties/${owner.partyId}`} className="hover:underline">
                   {owner.partyFullName}
                 </Link>{' '}
                 ({PARTY_TYPE_LABELS[owner.partyType]}) — {owner.partyEmail}
               </span>
-              <span className="text-slate-500">{owner.ownershipShare}%</span>
+              <span className="text-gray-500">{owner.ownershipShare}%</span>
             </li>
           ))}
         </ul>

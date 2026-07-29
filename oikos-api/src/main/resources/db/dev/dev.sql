@@ -6,6 +6,79 @@
 -- =========================================================================
 
 -- =========================================================================
+-- 0. RBAC: role -> permission bundles. Flyway is disabled for the dev
+-- profile (ddl-auto: create-drop, schema regenerated from JPA entities), so
+-- this mirrors V2__rbac_permissions.sql's role_permission seed - kept in
+-- sync manually, same as the admin account below duplicating V1's seed row.
+-- No JPA entity maps the `permission` table itself (nothing in the app
+-- reads it directly, only role_permission is queried), so under
+-- Hibernate-generated schema (unlike the real V2 Flyway migration) that
+-- table - and its FK from role_permission - simply doesn't exist here;
+-- role_permission.permission_key is seeded as a plain string below.
+-- =========================================================================
+
+INSERT INTO role_permission (role_name, permission_key) VALUES
+    ('ROLE_ADMIN', 'property:read'),
+    ('ROLE_ADMIN', 'property:create'),
+    ('ROLE_ADMIN', 'property:update'),
+    ('ROLE_ADMIN', 'property:board:manage'),
+    ('ROLE_ADMIN', 'property:member:invite'),
+    ('ROLE_ADMIN', 'unit:read'),
+    ('ROLE_ADMIN', 'unit:write'),
+    ('ROLE_ADMIN', 'unit:ownership:write'),
+    ('ROLE_ADMIN', 'party:read'),
+    ('ROLE_ADMIN', 'party:write'),
+    ('ROLE_ADMIN', 'party:invite'),
+    ('ROLE_ADMIN', 'installment:read'),
+    ('ROLE_ADMIN', 'installment:call:write'),
+    ('ROLE_ADMIN', 'property:accounting:read'),
+    ('ROLE_ADMIN', 'property:accounting:write'),
+    ('ROLE_ADMIN', 'user:admin');
+
+INSERT INTO role_permission (role_name, permission_key) VALUES
+    ('PROPERTY_BOARD_ADMIN', 'property:read'),
+    ('PROPERTY_BOARD_ADMIN', 'property:create'),
+    ('PROPERTY_BOARD_ADMIN', 'property:update'),
+    ('PROPERTY_BOARD_ADMIN', 'property:board:manage'),
+    ('PROPERTY_BOARD_ADMIN', 'property:member:invite'),
+    ('PROPERTY_BOARD_ADMIN', 'unit:read'),
+    ('PROPERTY_BOARD_ADMIN', 'unit:write'),
+    ('PROPERTY_BOARD_ADMIN', 'unit:ownership:write'),
+    ('PROPERTY_BOARD_ADMIN', 'party:read'),
+    ('PROPERTY_BOARD_ADMIN', 'party:write'),
+    ('PROPERTY_BOARD_ADMIN', 'party:invite'),
+    ('PROPERTY_BOARD_ADMIN', 'installment:read'),
+    ('PROPERTY_BOARD_ADMIN', 'installment:call:write'),
+    ('PROPERTY_BOARD_ADMIN', 'property:accounting:read'),
+    ('PROPERTY_BOARD_ADMIN', 'property:accounting:write');
+
+INSERT INTO role_permission (role_name, permission_key) VALUES
+    ('PROPERTY_BOARD_MEMBER', 'property:read'),
+    ('PROPERTY_BOARD_MEMBER', 'property:update'),
+    ('PROPERTY_BOARD_MEMBER', 'property:board:manage'),
+    ('PROPERTY_BOARD_MEMBER', 'unit:read'),
+    ('PROPERTY_BOARD_MEMBER', 'unit:write'),
+    ('PROPERTY_BOARD_MEMBER', 'unit:ownership:write'),
+    ('PROPERTY_BOARD_MEMBER', 'party:read'),
+    ('PROPERTY_BOARD_MEMBER', 'party:write'),
+    ('PROPERTY_BOARD_MEMBER', 'party:invite'),
+    ('PROPERTY_BOARD_MEMBER', 'installment:read'),
+    ('PROPERTY_BOARD_MEMBER', 'installment:call:write'),
+    ('PROPERTY_BOARD_MEMBER', 'property:accounting:read'),
+    ('PROPERTY_BOARD_MEMBER', 'property:accounting:write');
+
+INSERT INTO role_permission (role_name, permission_key)
+SELECT 'PROPERTY_MANAGER_ADMIN', permission_key FROM role_permission WHERE role_name = 'PROPERTY_BOARD_ADMIN';
+
+INSERT INTO role_permission (role_name, permission_key)
+SELECT 'PROPERTY_MANAGER_MEMBER', permission_key FROM role_permission WHERE role_name = 'PROPERTY_BOARD_MEMBER';
+
+INSERT INTO role_permission (role_name, permission_key) VALUES
+    ('PROPERTY_OWNER', 'party:read'),
+    ('PROPERTY_OWNER', 'unit:read'),
+    ('PROPERTY_OWNER', 'installment:read');
+
+-- =========================================================================
 -- 1. PROPERTIES (created before any Party, which now belongs to one)
 -- =========================================================================
 
@@ -60,7 +133,7 @@ INSERT INTO user_role (user_id, role) VALUES
     ('402888b2-2370-4c5e-aba6-985da776bb17', 'ROLE_ADMIN');
 
 -- Property manager account: manager@oikos.com / Manager@2026 - linked to a
--- Party scoped to Résidence Test, with a property-scoped ROLE_PROPERTY_MANAGER
+-- Party scoped to Résidence Test, with a property-scoped PROPERTY_MANAGER_ADMIN
 -- grant; also seated on that property's board (see section 5).
 INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
     ('90000000-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 'Karim Alami', 'INDIVIDUAL', 'manager.party@oikos.com', '0600000000', now(), now(), 0);
@@ -78,7 +151,7 @@ INSERT INTO app_user_party (app_user_id, party_id) VALUES
 
 INSERT INTO app_user_party_role (app_user_id, party_id, property_id, role) VALUES
     ('90000000-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000001',
-     '11111111-0000-0000-0000-000000000001', 'ROLE_PROPERTY_MANAGER');
+     '11111111-0000-0000-0000-000000000001', 'PROPERTY_MANAGER_ADMIN');
 
 -- =========================================================================
 -- 3. PARTIES (copropriétaires) + unit ownerships

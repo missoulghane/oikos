@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
 
 import jakarta.validation.Valid;
 import com.architek.oikos.property.application.command.BuildingConfiguration;
@@ -50,16 +51,23 @@ import com.architek.oikos.user.application.port.in.AssignPropertyManagerUseCase;
 import com.architek.oikos.user.application.port.in.GetUserAccessUseCase;
 import com.architek.oikos.user.application.port.in.GrantCreatorAsManagerUseCase;
 import com.architek.oikos.user.application.query.GetUserAccessQuery;
+import com.architek.oikos.user.application.usecase.EnforcePropertyCreationLimitService;
+import com.architek.oikos.user.domain.model.PropertyRole;
 import com.architek.oikos.user.domain.valueobject.UserId;
 
 /**
  * Gestion administrative des copropriétés. list retourne toutes les
  * copropriétés pour ADMIN, uniquement celles gérées par l'appelant sinon.
- * create/configure sont ouverts à ADMIN et à tout compte gérant déjà au
- * moins une copropriété (voir PropertyAccessEvaluator.isManagerOfAny) - le
- * créateur devient automatiquement gestionnaire de la copropriété créée
- * (voir GrantCreatorAsManagerUseCase), à l'exception du flux d'auto-inscription
- * public (register-property-manager), qui reste un chemin de code distinct.
+ * create/configure sont ouverts à ADMIN et à tout compte détenant déjà un
+ * rôle ADMIN-tier (PROPERTY_BOARD_ADMIN/PROPERTY_MANAGER_ADMIN) sur au moins
+ * une copropriété (voir PropertyAccessEvaluator.canCreateProperty) - le
+ * créateur devient automatiquement gestionnaire de la copropriété créée,
+ * avec le même rôle ADMIN-tier que celui qu'il détient déjà ailleurs (voir
+ * GrantCreatorAsManagerUseCase), sous réserve du plafond de cardinalité
+ * (EnforcePropertyCreationLimitService - un compte PROPERTY_BOARD_ADMIN ne
+ * peut en créer qu'une seule) - à l'exception des flux d'auto-inscription
+ * publics (register-property-board-admin/register-property-manager-admin),
+ * qui restent des chemins de code distincts.
  */
 @RestController
 @RequestMapping("/properties")
@@ -73,6 +81,7 @@ public class PropertyController {
     private final GetUserAccessUseCase getUserAccessUseCase;
     private final GrantCreatorAsManagerUseCase grantCreatorAsManagerUseCase;
     private final AssignPropertyManagerUseCase assignPropertyManagerUseCase;
+    private final EnforcePropertyCreationLimitService enforcePropertyCreationLimitService;
 
     public PropertyController(CreatePropertyUseCase createPropertyUseCase,
                                   ConfigurePropertyUseCase configurePropertyUseCase,
@@ -81,7 +90,8 @@ public class PropertyController {
                                   UpdatePropertyUseCase updatePropertyUseCase,
                                   GetUserAccessUseCase getUserAccessUseCase,
                                   GrantCreatorAsManagerUseCase grantCreatorAsManagerUseCase,
-                                  AssignPropertyManagerUseCase assignPropertyManagerUseCase) {
+                                  AssignPropertyManagerUseCase assignPropertyManagerUseCase,
+                                  EnforcePropertyCreationLimitService enforcePropertyCreationLimitService) {
         this.createPropertyUseCase = createPropertyUseCase;
         this.configurePropertyUseCase = configurePropertyUseCase;
         this.getPropertyUseCase = getPropertyUseCase;
@@ -90,6 +100,7 @@ public class PropertyController {
         this.getUserAccessUseCase = getUserAccessUseCase;
         this.grantCreatorAsManagerUseCase = grantCreatorAsManagerUseCase;
         this.assignPropertyManagerUseCase = assignPropertyManagerUseCase;
+        this.enforcePropertyCreationLimitService = enforcePropertyCreationLimitService;
     }
 
     @GetMapping
@@ -113,12 +124,14 @@ public class PropertyController {
         return PropertyResponse.from(getPropertyUseCase.getProperty(new GetPropertyQuery(PropertyId.of(id))));
     }
 
-    @PreAuthorize("@propertyAccess.isManagerOfAny(authentication)")
+    @PreAuthorize("@propertyAccess.canCreateProperty(authentication)")
     @PostMapping
     public ResponseEntity<Void> create(@Valid @RequestBody CreatePropertyRequest request, Authentication authentication) {
+        UserId userId = currentUserId(authentication);
+        PropertyRole roleToGrant = resolveRoleToGrant(userId);
         PropertyId id = createPropertyUseCase.create(new CreatePropertyCommand(request.name(), request.address()));
         grantCreatorAsManagerUseCase.grant(
-                new GrantCreatorAsManagerCommand(currentUserId(authentication), EntityId.of(id.asUuid())));
+                new GrantCreatorAsManagerCommand(userId, EntityId.of(id.asUuid()), roleToGrant));
         return ResponseEntity.created(URI.create("/api/v1/properties/" + id)).build();
     }
 
@@ -129,25 +142,54 @@ public class PropertyController {
                 new UpdatePropertyCommand(PropertyId.of(id), request.name(), request.address())));
     }
 
-    @PreAuthorize("@propertyAccess.isManagerOfAny(authentication)")
+    @PreAuthorize("@propertyAccess.canCreateProperty(authentication)")
     @PostMapping("/configure")
     public ResponseEntity<Void> configure(@Valid @RequestBody ConfigurePropertyRequest request, Authentication authentication) {
+        UserId userId = currentUserId(authentication);
+        PropertyRole roleToGrant = resolveRoleToGrant(userId);
         PropertyId id = configurePropertyUseCase.configure(toCommand(request));
         grantCreatorAsManagerUseCase.grant(
-                new GrantCreatorAsManagerCommand(currentUserId(authentication), EntityId.of(id.asUuid())));
+                new GrantCreatorAsManagerCommand(userId, EntityId.of(id.asUuid()), roleToGrant));
         return ResponseEntity.created(URI.create("/api/v1/properties/" + id)).build();
     }
 
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("@propertyAccess.canInviteMemberOnProperty(authentication, #id)")
     @PostMapping("/{id}/managers")
-    public ResponseEntity<Void> assignManager(@PathVariable String id, @Valid @RequestBody AssignPropertyManagerRequest request) {
+    public ResponseEntity<Void> assignManager(@PathVariable String id, @Valid @RequestBody AssignPropertyManagerRequest request,
+                                               Authentication authentication) {
+        UserAccessView access = getUserAccessUseCase.getAccess(new GetUserAccessQuery(currentUserId(authentication)));
+        // The invited member's role mirrors the ADMIN-tier role the *caller* already holds on
+        // this specific property (a board admin invites a board member, a manager-firm admin
+        // invites a manager-firm member) - never a value the request payload controls. A global
+        // SYSTEM_ADMIN with no grant of their own on this property defaults to the manager-firm
+        // (uncapped) tier.
+        PropertyRole memberRole = access.rolesByProperty().getOrDefault(id, Set.of()).stream()
+                .filter(PropertyRole::isAdminTier)
+                .findFirst()
+                .map(PropertyRole::memberTierEquivalent)
+                .orElse(PropertyRole.PROPERTY_MANAGER_MEMBER);
         assignPropertyManagerUseCase.assign(
-                new AssignPropertyManagerCommand(EntityId.of(id), EmailVO.of(request.email())));
+                new AssignPropertyManagerCommand(EntityId.of(id), EmailVO.of(request.email()), memberRole));
         return ResponseEntity.noContent().build();
     }
 
     private static UserId currentUserId(Authentication authentication) {
         return UserId.of(authentication.getName());
+    }
+
+    /**
+     * The role to grant the creator of a new property: the same ADMIN-tier
+     * role they already hold elsewhere (board vs manager-firm track), or
+     * PROPERTY_MANAGER_ADMIN (uncapped) if they hold none yet - covers a
+     * platform SYSTEM_ADMIN using this authenticated endpoint directly.
+     * Assumes a caller holds at most one ADMIN-tier role type across all
+     * their properties (see UserAccessView.dominantAdminTierRole).
+     */
+    private PropertyRole resolveRoleToGrant(UserId userId) {
+        UserAccessView access = getUserAccessUseCase.getAccess(new GetUserAccessQuery(userId));
+        PropertyRole roleToGrant = access.dominantAdminTierRole().orElse(PropertyRole.PROPERTY_MANAGER_ADMIN);
+        enforcePropertyCreationLimitService.enforce(access, roleToGrant.category());
+        return roleToGrant;
     }
 
     private static ConfigurePropertyCommand toCommand(ConfigurePropertyRequest request) {

@@ -21,7 +21,7 @@ export function Pagination({ pageNumber, totalPages, onPageChange }: PaginationP
       >
         Précédent
       </Button>
-      <span className="text-sm text-slate-500">
+      <span className="text-sm text-gray-500">
         Page {pageNumber + 1} / {totalPages}
       </span>
       <Button

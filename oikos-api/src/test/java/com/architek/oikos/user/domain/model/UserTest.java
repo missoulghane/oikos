@@ -111,9 +111,9 @@ class UserTest {
         EntityId partyId = EntityId.newId();
         EntityId propertyId = EntityId.newId();
 
-        User updated = user.withPropertyRoleGrant(partyId, propertyId, PropertyRole.ROLE_PROPERTY_MANAGER);
+        User updated = user.withPropertyRoleGrant(partyId, propertyId, PropertyRole.PROPERTY_BOARD_ADMIN);
 
         assertThat(updated.getPropertyRoleGrants())
-                .containsExactly(new PropertyRoleGrant(partyId, propertyId, PropertyRole.ROLE_PROPERTY_MANAGER));
+                .containsExactly(new PropertyRoleGrant(partyId, propertyId, PropertyRole.PROPERTY_BOARD_ADMIN));
     }
 }

@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -70,7 +71,7 @@ class UserAdminControllerWebMvcTest {
     }
 
     private static UserView newUserView(UserId userId, boolean enabled) {
-        return new UserView(userId, "Jane Doe", "user@oikos.com", Set.of(Role.ROLE_USER), Set.of(), true, enabled);
+        return new UserView(userId, "Jane Doe", "user@oikos.com", Set.of(Role.ROLE_USER), Map.of(), true, enabled);
     }
 
     @Test

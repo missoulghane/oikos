@@ -123,11 +123,11 @@ class AuthenticationFlowIntegrationTest {
     }
 
     @Test
-    void registers_a_property_manager_with_its_property_and_logs_in_after_verification() throws Exception {
+    void registers_a_property_board_admin_with_its_property_and_logs_in_after_verification() throws Exception {
         String email = "flow-property-manager@oikos.com";
         String password = "password123456";
 
-        mockMvc.perform(post("/api/v1/users/register-property-manager")
+        mockMvc.perform(post("/api/v1/users/register-property-board-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"fullName":"Jane Doe","email":"%s","password":"%s",
@@ -156,7 +156,7 @@ class AuthenticationFlowIntegrationTest {
         String accessToken = JsonPath.read(loginResult.getResponse().getContentAsString(), "$.accessToken");
 
         // Global JWT roles only ever carry platform-wide roles (ROLE_USER/ROLE_ADMIN/ROLE_MASTER):
-        // ROLE_PROPERTY_MANAGER is now granted per-property through the linked Party, not embedded
+        // PROPERTY_BOARD_ADMIN is granted per-property through the linked Party, not embedded
         // in the token (see the deferred per-property authorization pass).
         mockMvc.perform(get("/api/v1/users/me").header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())

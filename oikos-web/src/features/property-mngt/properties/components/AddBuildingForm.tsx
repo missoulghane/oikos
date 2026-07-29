@@ -29,7 +29,7 @@ export function AddBuildingForm({ propertyId, onSuccess, onCancel }: AddBuilding
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 rounded-md border border-slate-200 p-4" noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 rounded-lg border border-gray-200 p-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
       <Input label="Nom de l'immeuble" {...register('name')} errorMessage={errors.name?.message} />
       <Input

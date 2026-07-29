@@ -44,7 +44,7 @@ export function AddExistingUnitOwnerForm({ unitId, propertyId, onSuccess, onCanc
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 rounded-md border border-slate-200 p-4" noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 rounded-lg border border-gray-200 p-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
       {parties.isError && <Alert message={getErrorMessage(parties.error)} />}
       <Input

@@ -29,6 +29,7 @@ public class AssignPropertyManagerService implements AssignPropertyManagerUseCas
         User user = userRepository.findByEmail(command.email().value())
                 .orElseThrow(() -> new UserNotFoundException(
                         "No account found for email: " + command.email().value() + " - ask them to register first"));
-        grantCreatorAsManagerUseCase.grant(new GrantCreatorAsManagerCommand(user.getId(), command.propertyId()));
+        grantCreatorAsManagerUseCase.grant(
+                new GrantCreatorAsManagerCommand(user.getId(), command.propertyId(), command.role()));
     }
 }

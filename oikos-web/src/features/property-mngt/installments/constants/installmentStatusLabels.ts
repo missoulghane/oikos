@@ -5,7 +5,7 @@ export const INSTALLMENT_STATUS_LABELS: Record<InstallmentStatus, string> = {
   OVERDUE: 'En retard',
 };
 
-export const INSTALLMENT_STATUS_CLASSES: Record<InstallmentStatus, string> = {
-  NOT_PAID: 'bg-slate-100 text-slate-600',
-  OVERDUE: 'bg-red-100 text-red-700',
+export const INSTALLMENT_STATUS_BADGE_COLORS: Record<InstallmentStatus, 'light' | 'error'> = {
+  NOT_PAID: 'light',
+  OVERDUE: 'error',
 };

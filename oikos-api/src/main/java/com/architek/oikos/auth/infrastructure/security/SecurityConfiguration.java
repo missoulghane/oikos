@@ -62,7 +62,9 @@ public class SecurityConfiguration {
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers("/api/v1/users/register-property-user", "/api/v1/users/register-property-manager",
+                        .requestMatchers("/api/v1/users/register-property-user",
+                                "/api/v1/users/register-property-board-admin",
+                                "/api/v1/users/register-property-manager-admin",
                                 "/api/v1/users/verify", "/api/v1/users/resend-verification",
                                 "/api/v1/users/activate-account", "/api/v1/users/accept-invitation").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()

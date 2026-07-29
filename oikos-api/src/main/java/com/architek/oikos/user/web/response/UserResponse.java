@@ -1,12 +1,13 @@
 package com.architek.oikos.user.web.response;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.architek.oikos.user.application.dto.UserView;
 
 public record UserResponse(String id, String fullName, String email, Set<String> roles,
-                            Set<String> managedPropertyIds, boolean verified, boolean enabled) {
+                            Map<String, String> roleByProperty, boolean verified, boolean enabled) {
 
     public static UserResponse from(UserView view) {
         return new UserResponse(
@@ -14,7 +15,8 @@ public record UserResponse(String id, String fullName, String email, Set<String>
                 view.fullName(),
                 view.email(),
                 view.roles().stream().map(Enum::name).collect(Collectors.toSet()),
-                view.managedPropertyIds(),
+                view.roleByProperty().entrySet().stream()
+                        .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().name())),
                 view.verified(),
                 view.enabled());
     }

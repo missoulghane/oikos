@@ -23,7 +23,7 @@ export function PropertyConfigurationPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-base font-semibold text-slate-900">Types de lot et prix</h2>
+      <h2 className="text-base font-semibold text-gray-900">Types de lot et prix</h2>
       {unitTypes.isError && <Alert message={getErrorMessage(unitTypes.error)} />}
       {unitTypePrices.isError && <Alert message={getErrorMessage(unitTypePrices.error)} />}
 
@@ -35,7 +35,7 @@ export function PropertyConfigurationPage() {
         </EmptyState>
       )}
       {unitTypes.data && unitTypes.data.length > 0 && (
-        <div className="rounded-md border border-slate-200 px-4">
+        <div className="rounded-lg border border-gray-200 px-4">
           {unitTypes.data.map((unitType) => (
             <UnitTypePriceRow
               key={`${unitType.id}-${priceByUnitTypeId.get(unitType.id) ?? 'none'}`}

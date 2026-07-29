@@ -10,7 +10,6 @@ import com.architek.oikos.user.application.port.out.PartyProvisioningDetails;
 import com.architek.oikos.user.application.port.out.PartyProvisioningPort;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningPort;
 import com.architek.oikos.user.domain.exception.UserNotFoundException;
-import com.architek.oikos.user.domain.model.PropertyRole;
 import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.repository.UserRepository;
 
@@ -37,10 +36,14 @@ public class GrantCreatorAsManagerService implements GrantCreatorAsManagerUseCas
 
         EntityId partyId = partyProvisioningPort.createParty(
                 new PartyProvisioningDetails(user.getFullName(), user.getEmail(), null, command.propertyId()));
-        propertyProvisioningPort.assignPropertyManager(command.propertyId(), partyId);
+        // Only ADMIN-tier grants (board admin / manager-firm admin) seat the party on the
+        // property's board - a MEMBER-tier invitee gets the auth grant only, no board seat.
+        if (command.role().isAdminTier()) {
+            propertyProvisioningPort.assignPropertyManager(command.propertyId(), partyId);
+        }
 
         User updated = user.withLinkedParty(partyId)
-                .withPropertyRoleGrant(partyId, command.propertyId(), PropertyRole.ROLE_PROPERTY_MANAGER);
+                .withPropertyRoleGrant(partyId, command.propertyId(), command.role());
         userRepository.save(updated);
     }
 }

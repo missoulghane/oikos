@@ -4,11 +4,57 @@ export function isAdmin(user: CurrentUser): boolean {
   return user.roles.includes('ROLE_ADMIN') || user.roles.includes('ROLE_MASTER');
 }
 
-export function isManagerOfAny(user: CurrentUser): boolean {
-  return user.managedPropertyIds.length > 0;
+/** Any staff role at all on at least one property (board or manager-firm, admin or member tier). */
+export function canManageProperties(user: CurrentUser): boolean {
+  return isAdmin(user) || Object.keys(user.roleByProperty).length > 0;
 }
 
-/** ADMIN, or a MANAGER of at least one property - the accounts allowed to administer properties. */
-export function canManageProperties(user: CurrentUser): boolean {
-  return isAdmin(user) || isManagerOfAny(user);
+/**
+ * Only a manager-firm admin (uncapped) - or the platform admin - may create an
+ * additional property. A board admin already holds their one and only
+ * allowed property from registration onward (see the backend's
+ * EnforcePropertyCreationLimitService), so this never lets them create a
+ * second one.
+ */
+export function canCreateProperty(user: CurrentUser): boolean {
+  return isAdmin(user) || Object.values(user.roleByProperty).includes('PROPERTY_MANAGER_ADMIN');
+}
+
+/** The single property this account is staff on, or null if it manages none or several. */
+export function singleManagedPropertyId(user: CurrentUser): string | null {
+  const propertyIds = Object.keys(user.roleByProperty);
+  return propertyIds.length === 1 ? propertyIds[0] : null;
+}
+
+/** True if the caller holds an ADMIN-tier role (board or manager-firm) on this specific property. */
+export function isAdminTierOnProperty(user: CurrentUser, propertyId: string): boolean {
+  const role = user.roleByProperty[propertyId];
+  return isAdmin(user) || role === 'PROPERTY_BOARD_ADMIN' || role === 'PROPERTY_MANAGER_ADMIN';
+}
+
+/** The id of the single property this account is a volunteer board member/admin of, or null. */
+export function boardPropertyId(user: CurrentUser): string | null {
+  const entry = Object.entries(user.roleByProperty).find(
+    ([, role]) => role === 'PROPERTY_BOARD_ADMIN' || role === 'PROPERTY_BOARD_MEMBER',
+  );
+  return entry ? entry[0] : null;
+}
+
+/** True if the caller holds a professional management-firm role (admin or member) on any property. */
+export function isManagerTier(user: CurrentUser): boolean {
+  return Object.values(user.roleByProperty).some(
+    (role) => role === 'PROPERTY_MANAGER_ADMIN' || role === 'PROPERTY_MANAGER_MEMBER',
+  );
+}
+
+/** True if the caller holds a board role (admin or member) specifically on this property. */
+export function isBoardTierOnProperty(user: CurrentUser, propertyId: string): boolean {
+  const role = user.roleByProperty[propertyId];
+  return role === 'PROPERTY_BOARD_ADMIN' || role === 'PROPERTY_BOARD_MEMBER';
+}
+
+/** True if the caller holds a manager-firm role (admin or member) specifically on this property. */
+export function isManagerTierOnProperty(user: CurrentUser, propertyId: string): boolean {
+  const role = user.roleByProperty[propertyId];
+  return role === 'PROPERTY_MANAGER_ADMIN' || role === 'PROPERTY_MANAGER_MEMBER';
 }

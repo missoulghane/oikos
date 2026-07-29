@@ -15,7 +15,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.user.application.port.in.AcceptPartyInvitationUseCase;
 import com.architek.oikos.user.application.port.in.ActivateAccountUseCase;
-import com.architek.oikos.user.application.port.in.RegisterPropertyManagerUseCase;
+import com.architek.oikos.user.application.port.in.RegisterPropertyBoardAdminUseCase;
+import com.architek.oikos.user.application.port.in.RegisterPropertyManagerAdminUseCase;
 import com.architek.oikos.user.application.port.in.RegisterUserUseCase;
 import com.architek.oikos.user.application.port.in.ResendVerificationUseCase;
 import com.architek.oikos.user.application.port.in.VerifyAccountUseCase;
@@ -32,7 +33,10 @@ class RegistrationControllerWebMvcTest {
     private RegisterUserUseCase registerUserUseCase;
 
     @MockitoBean
-    private RegisterPropertyManagerUseCase registerPropertyManagerUseCase;
+    private RegisterPropertyBoardAdminUseCase registerPropertyBoardAdminUseCase;
+
+    @MockitoBean
+    private RegisterPropertyManagerAdminUseCase registerPropertyManagerAdminUseCase;
 
     @MockitoBean
     private VerifyAccountUseCase verifyAccountUseCase;
@@ -104,14 +108,14 @@ class RegistrationControllerWebMvcTest {
     }
 
     @Test
-    void register_property_manager_with_valid_body_returns_201_with_location() throws Exception {
+    void register_property_board_admin_with_valid_body_returns_201_with_location() throws Exception {
         UserId userId = UserId.newId();
-        when(registerPropertyManagerUseCase.register(any())).thenReturn(userId);
+        when(registerPropertyBoardAdminUseCase.register(any())).thenReturn(userId);
 
-        mockMvc.perform(post("/api/v1/users/register-property-manager")
+        mockMvc.perform(post("/api/v1/users/register-property-board-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"fullName":"Jane Doe","email":"manager@oikos.com","password":"password123",
+                                {"fullName":"Jane Doe","email":"board-admin@oikos.com","password":"password123",
                                 "propertyName":"Residence A","propertyAddress":"1 rue de Paris"}
                                 """))
                 .andExpect(status().isCreated())
@@ -119,11 +123,36 @@ class RegistrationControllerWebMvcTest {
     }
 
     @Test
-    void register_property_manager_with_missing_property_fields_returns_400() throws Exception {
-        mockMvc.perform(post("/api/v1/users/register-property-manager")
+    void register_property_board_admin_with_missing_property_fields_returns_400() throws Exception {
+        mockMvc.perform(post("/api/v1/users/register-property-board-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"fullName":"Jane Doe","email":"manager@oikos.com","password":"password123"}
+                                {"fullName":"Jane Doe","email":"board-admin@oikos.com","password":"password123"}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void register_property_manager_admin_with_valid_body_returns_201_with_location() throws Exception {
+        UserId userId = UserId.newId();
+        when(registerPropertyManagerAdminUseCase.register(any())).thenReturn(userId);
+
+        mockMvc.perform(post("/api/v1/users/register-property-manager-admin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fullName":"Jane Doe","email":"manager-admin@oikos.com","password":"password123",
+                                "propertyName":"Residence A","propertyAddress":"1 rue de Paris"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/users/" + userId));
+    }
+
+    @Test
+    void register_property_manager_admin_with_missing_property_fields_returns_400() throws Exception {
+        mockMvc.perform(post("/api/v1/users/register-property-manager-admin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fullName":"Jane Doe","email":"manager-admin@oikos.com","password":"password123"}
                                 """))
                 .andExpect(status().isBadRequest());
     }

@@ -4,7 +4,7 @@ export interface RegisterUserPayload {
   password: string;
 }
 
-export interface RegisterPropertyManagerPayload extends RegisterUserPayload {
+export interface RegisterPropertyAdminPayload extends RegisterUserPayload {
   phone?: string;
   propertyName: string;
   propertyAddress: string;

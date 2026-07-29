@@ -14,7 +14,12 @@ function formatPeriod(period: string): string {
   return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 }
 
-export function InstallmentCallRow({ installmentCall }: { installmentCall: InstallmentCallSummary }) {
+interface InstallmentCallRowProps {
+  installmentCall: InstallmentCallSummary;
+  propertyId: string;
+}
+
+export function InstallmentCallRow({ installmentCall, propertyId }: InstallmentCallRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const detail = useInstallmentCallDetail(installmentCall.id, isExpanded);
 
@@ -22,8 +27,8 @@ export function InstallmentCallRow({ installmentCall }: { installmentCall: Insta
     <li className="flex flex-col gap-2 px-3 py-2">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium capitalize text-slate-900">{formatPeriod(installmentCall.period)}</p>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm font-medium capitalize text-gray-900">{formatPeriod(installmentCall.period)}</p>
+          <p className="text-sm text-gray-500">
             Échéance le {new Date(installmentCall.dueDate).toLocaleDateString('fr-FR')} · {installmentCall.unitCount} lot(s)
             {' · '}
             {installmentCall.totalAmount} MAD
@@ -44,7 +49,7 @@ export function InstallmentCallRow({ installmentCall }: { installmentCall: Insta
             </EmptyState>
           )}
           {detail.data && detail.data.installments.length > 0 && (
-            <InstallmentList installments={detail.data.installments} />
+            <InstallmentList installments={detail.data.installments} propertyId={propertyId} />
           )}
         </div>
       )}

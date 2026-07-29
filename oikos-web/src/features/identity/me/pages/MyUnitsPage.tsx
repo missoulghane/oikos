@@ -11,7 +11,7 @@ export function MyUnitsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-slate-900">Mes lots</h1>
+      <h1 className="text-lg font-semibold text-gray-900">Mes lots</h1>
 
       <Card className="flex flex-col gap-2">
         {units.isLoading && <Loader label="Chargement de vos lots…" />}
@@ -20,13 +20,13 @@ export function MyUnitsPage() {
           <EmptyState title="Aucun lot">Vous n'êtes propriétaire d'aucun lot pour le moment.</EmptyState>
         )}
         {units.data && units.data.length > 0 && (
-          <ul className="flex flex-col divide-y divide-slate-100">
+          <ul className="flex flex-col divide-y divide-gray-100">
             {units.data.map((unit) => (
               <li key={unit.unitId} className="flex items-center justify-between py-2 text-sm">
-                <Link to={`/units/${unit.unitId}`} className="text-slate-700 hover:underline">
+                <Link to={`/properties/${unit.propertyId}/units/${unit.unitId}`} className="text-gray-700 hover:underline">
                   {unit.propertyName} — {unit.buildingName} — Lot {unit.unitNumber}
                 </Link>
-                <span className="text-slate-500">{unit.ownershipShare}%</span>
+                <span className="text-gray-500">{unit.ownershipShare}%</span>
               </li>
             ))}
           </ul>
