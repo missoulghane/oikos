@@ -94,4 +94,5 @@ export interface PropertyContact {
   unitNumber: string;
   buildingName: string;
   ownershipShare: number;
+  hasLinkedAccount: boolean;
 }

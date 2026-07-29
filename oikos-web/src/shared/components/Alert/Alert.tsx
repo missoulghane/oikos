@@ -1,11 +1,21 @@
-type AlertVariant = 'error' | 'success';
+type AlertVariant = 'error' | 'success' | 'warning';
 
 const VARIANT_CLASSES: Record<AlertVariant, string> = {
   error: 'border-error-500 bg-error-50 text-error-600',
   success: 'border-success-500 bg-success-50 text-success-600',
+  warning: 'border-warning-500 bg-warning-50 text-warning-600',
 };
 
 const ICONS: Record<AlertVariant, React.ReactNode> = {
+  warning: (
+    <svg className="fill-current" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12.0002 2.25C12.4144 2.25 12.7502 2.58579 12.7502 3V4.5C12.7502 4.91421 12.4144 5.25 12.0002 5.25C11.586 5.25 11.2502 4.91421 11.2502 4.5V3C11.2502 2.58579 11.586 2.25 12.0002 2.25ZM10.5525 8.60693C11.1476 7.5754 12.6357 7.5754 13.2308 8.60693L19.5216 19.4816C20.1198 20.5185 19.3712 21.8155 18.1745 21.8155H5.79284C4.5961 21.8155 3.84754 20.5185 4.44571 19.4816L10.5525 8.60693ZM12.0002 10.6155L6.30257 20.3155H17.6979L12.0002 10.6155ZM12.0002 13.5C12.4144 13.5 12.7502 13.8358 12.7502 14.25V16.5C12.7502 16.9142 12.4144 17.25 12.0002 17.25C11.586 17.25 11.2502 16.9142 11.2502 16.5V14.25C11.2502 13.8358 11.586 13.5 12.0002 13.5ZM12.0002 18C12.5525 18 13.0002 18.4477 13.0002 19C13.0002 19.5523 12.5525 20 12.0002 20C11.448 20 11.0002 19.5523 11.0002 19C11.0002 18.4477 11.448 18 12.0002 18Z"
+      />
+    </svg>
+  ),
   success: (
     <svg className="fill-current" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path

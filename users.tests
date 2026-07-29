@@ -1,0 +1,11 @@
+admin@oikos.com => administrateur systeme
+
+manager1@oikos.com => manager pro d'une copros (Copro 1 : contient un batiement et deux units de type appartement (prix = 200))
+copr1_user1@oikos.com => user associé à l'unit 1 (type Appartment) du batiment 1 de la copro
+copr1_user2@oikos.com => user associé à l'unit 2 (type Appartment)  du batiment 1 de la copro
+
+manager2@oikos.com => manager pro de deux copros (Copro 2.1 et Copro 2.2, meme config que la copro 1)
+copr21_user1@oikos.com => user1 associé à l'unit 1 (type Appartment) du batiment 1 de la copro pro 2.1 
+copr21_user2@oikos.com => user1 associé à l'unit 2 (type Appartment) du batiment 1 de la copro pro 2.1 
+copr22_user1@oikos.com => user1 associé à l'unit 1 (type Appartment) du batiment 1 de la copro pro 2.2
+copr22_user2@oikos.com => user1 associé à l'unit 2 (type Appartment) du batiment 1 de la copro pro 2.2 

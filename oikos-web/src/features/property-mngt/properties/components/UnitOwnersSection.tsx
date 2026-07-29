@@ -26,10 +26,10 @@ export function UnitOwnersSection({ unitId, propertyId }: { unitId: string; prop
         {addMode === 'none' && (
           <div className="flex gap-2">
             <Button type="button" variant="secondary" onClick={() => setAddMode('existing')}>
-              Party existante
+              Rattacher à un contact
             </Button>
             <Button type="button" variant="secondary" onClick={() => setAddMode('new')}>
-              Nouvelle party
+              Nouveau contact
             </Button>
           </div>
         )}
@@ -38,7 +38,9 @@ export function UnitOwnersSection({ unitId, propertyId }: { unitId: string; prop
       {addMode === 'existing' && (
         <AddExistingUnitOwnerForm unitId={unitId} propertyId={propertyId} onSuccess={close} onCancel={close} />
       )}
-      {addMode === 'new' && <AddUnitOwnerForm unitId={unitId} onSuccess={close} onCancel={close} />}
+      {addMode === 'new' && (
+        <AddUnitOwnerForm unitId={unitId} propertyId={propertyId} onSuccess={close} onCancel={close} />
+      )}
 
       {isLoading && <Loader label="Chargement des propriétaires…" />}
       {isError && <Alert message={getErrorMessage(error)} />}

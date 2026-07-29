@@ -1,7 +1,11 @@
 package com.architek.oikos.user.infrastructure.adapter;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -54,6 +58,12 @@ public class UserRepositoryAdapter implements UserRepository {
     @Override
     public boolean existsByLinkedPartyId(EntityId partyId) {
         return jpaRepository.existsByLinkedPartyId(partyId.value());
+    }
+
+    @Override
+    public Set<EntityId> findLinkedPartyIds(Collection<EntityId> partyIds) {
+        List<UUID> ids = partyIds.stream().map(EntityId::value).toList();
+        return jpaRepository.findLinkedPartyIds(ids).stream().map(EntityId::of).collect(Collectors.toSet());
     }
 
     @Override

@@ -35,6 +35,9 @@ oikos:
     board-tier:
       max-properties: 1
   mail:
+    # Set to false to skip real SMTP sending and log the email content instead
+    # (see GmailEmailAdapter / LoggingEmailAdapter). Overridden to false in dev.
+    enabled: ${MAIL_ENABLED:true}
     from: ${MAIL_FROM:no-reply@oikos.ma}
     verification-base-url: ${APP_VERIFICATION_BASE_URL:http://localhost:5173/verify-email}
     verification-token-ttl-hours: 24

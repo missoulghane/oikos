@@ -1,6 +1,7 @@
 package com.architek.oikos.shared.infrastructure.email;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -17,10 +18,12 @@ import com.architek.oikos.shared.exception.EmailDeliveryException;
 /**
  * SMTP adapter (Gmail-compatible) implementing the generic EmailSenderPort. Holds
  * no business/domain concept: subject and body are supplied by the calling feature.
+ * Disabled via oikos.mail.enabled=false, in favor of {@link LoggingEmailAdapter}.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "oikos.mail", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class GmailEmailAdapter implements EmailSenderPort {
 
     private final JavaMailSender mailSender;

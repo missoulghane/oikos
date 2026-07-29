@@ -11,12 +11,12 @@ import com.architek.oikos.shared.domain.valueobject.PartyType;
 
 public record PropertyContactView(UnitOwnershipId id, EntityId partyId, String partyFullName, PartyType partyType,
                                       String partyEmail, UnitId unitId, String unitNumber, String buildingName,
-                                      BigDecimal ownershipShare) {
+                                      BigDecimal ownershipShare, boolean hasLinkedAccount) {
 
     public static PropertyContactView from(UnitOwnership unitOwnership, PartyDetails partyDetails,
-                                            String unitNumber, String buildingName) {
+                                            String unitNumber, String buildingName, boolean hasLinkedAccount) {
         return new PropertyContactView(unitOwnership.getId(), unitOwnership.getPartyId(), partyDetails.fullName(),
                 partyDetails.partyType(), partyDetails.email().value(), unitOwnership.getUnitId(), unitNumber,
-                buildingName, unitOwnership.getOwnershipShare().value());
+                buildingName, unitOwnership.getOwnershipShare().value(), hasLinkedAccount);
     }
 }

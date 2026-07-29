@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.property.application.dto.PropertyContactView;
 import com.architek.oikos.property.application.port.in.ListContactsByPropertyUseCase;
+import com.architek.oikos.property.application.port.out.AccountLinkingPort;
 import com.architek.oikos.property.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.property.application.query.ListContactsByPropertyQuery;
 import com.architek.oikos.property.domain.exception.PropertyNotFoundException;
@@ -25,6 +27,7 @@ import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
  * Lists every contact (party, via UnitOwnership) attached to any lot of a
@@ -43,15 +46,17 @@ public class ListContactsByPropertyService implements ListContactsByPropertyUseC
     private final UnitRepository unitRepository;
     private final UnitOwnershipRepository unitOwnershipRepository;
     private final PartyDirectoryPort partyDirectoryPort;
+    private final AccountLinkingPort accountLinkingPort;
 
     public ListContactsByPropertyService(PropertyRepository propertyRepository, BuildingRepository buildingRepository,
                                           UnitRepository unitRepository, UnitOwnershipRepository unitOwnershipRepository,
-                                          PartyDirectoryPort partyDirectoryPort) {
+                                          PartyDirectoryPort partyDirectoryPort, AccountLinkingPort accountLinkingPort) {
         this.propertyRepository = propertyRepository;
         this.buildingRepository = buildingRepository;
         this.unitRepository = unitRepository;
         this.unitOwnershipRepository = unitOwnershipRepository;
         this.partyDirectoryPort = partyDirectoryPort;
+        this.accountLinkingPort = accountLinkingPort;
     }
 
     @Override
@@ -72,11 +77,15 @@ public class ListContactsByPropertyService implements ListContactsByPropertyUseC
 
         List<UnitOwnership> unitOwnerships = unitOwnershipRepository.findAllByUnitIds(List.copyOf(unitInfoById.keySet()));
 
+        Set<EntityId> linkedPartyIds = accountLinkingPort.findLinkedPartyIds(
+                unitOwnerships.stream().map(UnitOwnership::getPartyId).toList());
+
         return unitOwnerships.stream()
                 .map(unitOwnership -> {
                     UnitInfo unitInfo = unitInfoById.get(unitOwnership.getUnitId());
                     return PropertyContactView.from(unitOwnership, partyDirectoryPort.getPartyById(unitOwnership.getPartyId()),
-                            unitInfo.unitNumber(), unitInfo.buildingName());
+                            unitInfo.unitNumber(), unitInfo.buildingName(),
+                            linkedPartyIds.contains(unitOwnership.getPartyId()));
                 })
                 .toList();
     }

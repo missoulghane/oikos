@@ -1,6 +1,8 @@
 package com.architek.oikos.user.domain.repository;
 
+import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
@@ -20,6 +22,13 @@ public interface UserRepository {
     boolean existsByEmail(String email);
 
     boolean existsByLinkedPartyId(EntityId partyId);
+
+    /**
+     * Batch counterpart of {@link #existsByLinkedPartyId(EntityId)}: the subset of
+     * {@code partyIds} that already have a linked AppUser account (single query,
+     * no N+1), used by list views showing several parties at once.
+     */
+    Set<EntityId> findLinkedPartyIds(Collection<EntityId> partyIds);
 
     Page<User> findAll(PageRequest pageRequest, UserSearchCriteria criteria);
 

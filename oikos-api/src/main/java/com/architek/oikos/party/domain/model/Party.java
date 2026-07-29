@@ -35,7 +35,10 @@ public final class Party {
         this.fullName = requireNonBlank(fullName, "fullName");
         this.partyType = Objects.requireNonNull(partyType, "partyType must not be null");
         this.email = Objects.requireNonNull(email, "email must not be null");
-        this.phone = phone;
+        // Normalized to null rather than blank: uk_party_property_phone (property_id, phone)
+        // relies on SQL NULL <> NULL to let several parties in the same property have no
+        // phone - a blank string would collide with itself under that constraint.
+        this.phone = (phone == null || phone.isBlank()) ? null : phone;
     }
 
     public static Party create(PartyId id, EntityId propertyId, String fullName, PartyType partyType, EmailVO email,

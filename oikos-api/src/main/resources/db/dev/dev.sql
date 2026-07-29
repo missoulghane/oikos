@@ -3,6 +3,20 @@
 -- buildings, units, ownerships, board) and party together, so the whole
 -- application can be explored manually (Swagger UI, H2 console) without
 -- going through the use cases first.
+--
+-- Accounts seeded here (every account below shares the same password, Oikos@2026):
+--   admin@oikos.com         - system administrator (ROLE_MASTER + ROLE_ADMIN)
+--   manager1@oikos.com      - PROPERTY_MANAGER_ADMIN of Copro 1
+--   copr1_user1@oikos.com   - PROPERTY_OWNER, Bâtiment 1 / Appartement 1, Copro 1
+--   copr1_user2@oikos.com   - PROPERTY_OWNER, Bâtiment 1 / Appartement 2, Copro 1
+--   manager2@oikos.com      - PROPERTY_MANAGER_ADMIN of Copro 2.1 and Copro 2.2
+--   copr21_user1@oikos.com  - PROPERTY_OWNER, Bâtiment 1 / Appartement 1, Copro 2.1
+--   copr21_user2@oikos.com  - PROPERTY_OWNER, Bâtiment 1 / Appartement 2, Copro 2.1
+--   copr22_user1@oikos.com  - PROPERTY_OWNER, Bâtiment 1 / Appartement 1, Copro 2.2
+--   copr22_user2@oikos.com  - PROPERTY_OWNER, Bâtiment 1 / Appartement 2, Copro 2.2
+--   syndic1@oikos.com       - PROPERTY_BOARD_ADMIN of Copro 3 (syndic bénévole)
+--   copr3_user1@oikos.com   - PROPERTY_OWNER, Bâtiment 1 / Appartement 1, Copro 3
+--   copr3_user2@oikos.com   - PROPERTY_OWNER, Bâtiment 1 / Appartement 2, Copro 3
 -- =========================================================================
 
 -- =========================================================================
@@ -79,120 +93,289 @@ INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_OWNER', 'installment:read');
 
 -- =========================================================================
--- 1. PROPERTIES (created before any Party, which now belongs to one)
--- =========================================================================
-
--- PROPERTY 1: Résidence Test - 2 buildings, 4 units (1 unsold)
-INSERT INTO property (id, name, address, created_date, last_modified_date, version) VALUES
-    ('11111111-0000-0000-0000-000000000001', 'Résidence Test', '1 rue de la Paix, Casablanca', now(), now(), 0);
-
-INSERT INTO building (id, property_id, name, floor_count, created_date, last_modified_date, version) VALUES
-    ('11111111-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000001', 'Bâtiment A', 3, now(), now(), 0),
-    ('11111111-0000-0000-0000-000000000006', '11111111-0000-0000-0000-000000000001', 'Bâtiment B', 2, now(), now(), 0);
-
-INSERT INTO unit_type_definition (id, property_id, name, created_date, last_modified_date, version) VALUES
-    ('11111111-0000-0000-0000-000000000020', '11111111-0000-0000-0000-000000000001', 'Appartement', now(), now(), 0),
-    ('11111111-0000-0000-0000-000000000021', '11111111-0000-0000-0000-000000000001', 'Box', now(), now(), 0);
-
-INSERT INTO unit (id, building_id, property_id, unit_number, unit_type_id, shares, created_date, last_modified_date, version) VALUES
-    ('11111111-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000001', 'Appartement 1', '11111111-0000-0000-0000-000000000020', 100.00, now(), now(), 0),
-    ('11111111-0000-0000-0000-000000000004', '11111111-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000001', 'Appartement 2', '11111111-0000-0000-0000-000000000020', 100.00, now(), now(), 0),
-    -- Unsold: no unit_ownership row (RG-LOT-01 -> reported as UNSOLD_DEVELOPER at read time).
-    ('11111111-0000-0000-0000-000000000005', '11111111-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000001', 'Box 1', '11111111-0000-0000-0000-000000000021', 10.00, now(), now(), 0),
-    ('11111111-0000-0000-0000-000000000007', '11111111-0000-0000-0000-000000000006', '11111111-0000-0000-0000-000000000001', 'Appartement 1', '11111111-0000-0000-0000-000000000020', 100.00, now(), now(), 0);
-
--- PROPERTY 2: Résidence Les Oliviers - 1 building, 2 units
-INSERT INTO property (id, name, address, created_date, last_modified_date, version) VALUES
-    ('22222222-0000-0000-0000-000000000001', 'Résidence Les Oliviers', '12 avenue Hassan II, Rabat', now(), now(), 0);
-
-INSERT INTO building (id, property_id, name, floor_count, created_date, last_modified_date, version) VALUES
-    ('22222222-0000-0000-0000-000000000002', '22222222-0000-0000-0000-000000000001', 'Bâtiment Unique', 4, now(), now(), 0);
-
-INSERT INTO unit_type_definition (id, property_id, name, created_date, last_modified_date, version) VALUES
-    ('22222222-0000-0000-0000-000000000020', '22222222-0000-0000-0000-000000000001', 'Appartement', now(), now(), 0);
-
-INSERT INTO unit (id, building_id, property_id, unit_number, unit_type_id, shares, created_date, last_modified_date, version) VALUES
-    ('22222222-0000-0000-0000-000000000003', '22222222-0000-0000-0000-000000000002', '22222222-0000-0000-0000-000000000001', 'Appartement 1', '22222222-0000-0000-0000-000000000020', 100.00, now(), now(), 0),
-    -- Unsold: no unit_ownership row.
-    ('22222222-0000-0000-0000-000000000004', '22222222-0000-0000-0000-000000000002', '22222222-0000-0000-0000-000000000001', 'Appartement 2', '22222222-0000-0000-0000-000000000020', 100.00, now(), now(), 0);
-
--- =========================================================================
--- 2. USERS
--- =========================================================================
-
--- Admin / master account: admin@oikos.com / Iss0ulgh@ne - platform-wide,
--- not tied to any property, so no Party is created for it.
--- Password hash below is BCrypt("Iss0ulgh@ne"), generated with the same
+-- 1. ADMIN: platform-wide master account, not tied to any property, so no
+-- Party is created for it.
+-- Password hash below is BCrypt("Oikos@2026"), generated with the same
 -- algorithm/strength as com.architek.oikos.shared.infrastructure.configuration.PasswordEncoderConfiguration.
+-- =========================================================================
+
 INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
     ('402888b2-2370-4c5e-aba6-985da776bb17', 'admin@oikos.com', 'Oikos Admin',
-     '$2b$10$fD6RhlvoiU6Mf9MKR2ukBeIoXa51FfdrZwRQ2TZc.wWr/yzxmMLbW', TRUE, TRUE, now(), now(), 0);
+     '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
 
 INSERT INTO user_role (user_id, role) VALUES
     ('402888b2-2370-4c5e-aba6-985da776bb17', 'ROLE_MASTER'),
     ('402888b2-2370-4c5e-aba6-985da776bb17', 'ROLE_ADMIN');
 
--- Property manager account: manager@oikos.com / Manager@2026 - linked to a
--- Party scoped to Résidence Test, with a property-scoped PROPERTY_MANAGER_ADMIN
--- grant; also seated on that property's board (see section 5).
-INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
-    ('90000000-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 'Karim Alami', 'INDIVIDUAL', 'manager.party@oikos.com', '0600000000', now(), now(), 0);
+-- =========================================================================
+-- 2. COPRO 1 (property 'a1111111-...-0001'): 1 building, 1 unit type
+-- (Appartement, price 200), 2 units. Manager: manager1@oikos.com.
+-- Owners: copr1_user1@oikos.com (unit 1), copr1_user2@oikos.com (unit 2).
+-- =========================================================================
 
--- Password hash below is BCrypt("Manager@2026"), same algorithm/strength as above.
+INSERT INTO property (id, name, address, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000001', 'Copro 1', '1 rue de la Paix, Casablanca', now(), now(), 0);
+
+INSERT INTO building (id, property_id, name, floor_count, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000002', 'a1111111-0000-0000-0000-000000000001', 'Bâtiment 1', 3, now(), now(), 0);
+
+INSERT INTO unit_type_definition (id, property_id, name, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000010', 'a1111111-0000-0000-0000-000000000001', 'Appartement', now(), now(), 0);
+
+INSERT INTO unit_type_pricing (id, property_id, unit_type_id, price, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000011', 'a1111111-0000-0000-0000-000000000001', 'a1111111-0000-0000-0000-000000000010', 200.00, now(), now(), 0);
+
+INSERT INTO unit (id, building_id, property_id, unit_number, unit_type_id, shares, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000003', 'a1111111-0000-0000-0000-000000000002', 'a1111111-0000-0000-0000-000000000001', 'Appartement 1', 'a1111111-0000-0000-0000-000000000010', 100.00, now(), now(), 0),
+    ('a1111111-0000-0000-0000-000000000004', 'a1111111-0000-0000-0000-000000000002', 'a1111111-0000-0000-0000-000000000001', 'Appartement 2', 'a1111111-0000-0000-0000-000000000010', 100.00, now(), now(), 0);
+
+-- Manager: party + login account, PROPERTY_MANAGER_ADMIN on Copro 1, seated on its board.
+INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000005', 'a1111111-0000-0000-0000-000000000001', 'Manager Copro 1', 'INDIVIDUAL', 'manager1.party@oikos.com', '0600000001', now(), now(), 0);
+
+-- Password hash below is BCrypt("Oikos@2026"), same algorithm/strength as above.
 INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
-    ('90000000-0000-0000-0000-000000000001', 'manager@oikos.com', 'Karim Alami',
-     '$2b$10$iq6wNFfKe5VVvvHD9qaGYuONnhcgElfUOW7WNlSFccQ7tmIHZqKHC', TRUE, TRUE, now(), now(), 0);
+    ('a1111111-0000-0000-0000-000000000005', 'manager1@oikos.com', 'Manager Copro 1',
+     '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
 
 INSERT INTO user_role (user_id, role) VALUES
-    ('90000000-0000-0000-0000-000000000001', 'ROLE_USER');
+    ('a1111111-0000-0000-0000-000000000005', 'ROLE_USER');
 
 INSERT INTO app_user_party (app_user_id, party_id) VALUES
-    ('90000000-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000001');
+    ('a1111111-0000-0000-0000-000000000005', 'a1111111-0000-0000-0000-000000000005');
 
 INSERT INTO app_user_party_role (app_user_id, party_id, property_id, role) VALUES
-    ('90000000-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000001',
-     '11111111-0000-0000-0000-000000000001', 'PROPERTY_MANAGER_ADMIN');
+    ('a1111111-0000-0000-0000-000000000005', 'a1111111-0000-0000-0000-000000000005',
+     'a1111111-0000-0000-0000-000000000001', 'PROPERTY_MANAGER_ADMIN');
+
+INSERT INTO board_member (id, property_id, party_id, board_role, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000006', 'a1111111-0000-0000-0000-000000000001', 'a1111111-0000-0000-0000-000000000005', 'PROPERTY_MANAGER', now(), now(), 0);
+
+-- Owners: party + login account + PROPERTY_OWNER role + unit ownership.
+INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000007', 'a1111111-0000-0000-0000-000000000001', 'Copro 1 - User 1', 'INDIVIDUAL', 'copr1_user1.party@oikos.com', NULL, now(), now(), 0),
+    ('a1111111-0000-0000-0000-000000000008', 'a1111111-0000-0000-0000-000000000001', 'Copro 1 - User 2', 'INDIVIDUAL', 'copr1_user2.party@oikos.com', NULL, now(), now(), 0);
+
+-- Password hashes below are BCrypt("Oikos@2026").
+INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000007', 'copr1_user1@oikos.com', 'Copro 1 - User 1',
+     '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0),
+    ('a1111111-0000-0000-0000-000000000008', 'copr1_user2@oikos.com', 'Copro 1 - User 2',
+     '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
+
+INSERT INTO user_role (user_id, role) VALUES
+    ('a1111111-0000-0000-0000-000000000007', 'ROLE_USER'),
+    ('a1111111-0000-0000-0000-000000000008', 'ROLE_USER');
+
+INSERT INTO app_user_party (app_user_id, party_id) VALUES
+    ('a1111111-0000-0000-0000-000000000007', 'a1111111-0000-0000-0000-000000000007'),
+    ('a1111111-0000-0000-0000-000000000008', 'a1111111-0000-0000-0000-000000000008');
+
+INSERT INTO app_user_party_role (app_user_id, party_id, property_id, role) VALUES
+    ('a1111111-0000-0000-0000-000000000007', 'a1111111-0000-0000-0000-000000000007', 'a1111111-0000-0000-0000-000000000001', 'PROPERTY_OWNER'),
+    ('a1111111-0000-0000-0000-000000000008', 'a1111111-0000-0000-0000-000000000008', 'a1111111-0000-0000-0000-000000000001', 'PROPERTY_OWNER');
+
+INSERT INTO unit_ownership (id, unit_id, party_id, property_id, ownership_share, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000012', 'a1111111-0000-0000-0000-000000000003', 'a1111111-0000-0000-0000-000000000007', 'a1111111-0000-0000-0000-000000000001', 100.00, now(), now(), 0),
+    ('a1111111-0000-0000-0000-000000000013', 'a1111111-0000-0000-0000-000000000004', 'a1111111-0000-0000-0000-000000000008', 'a1111111-0000-0000-0000-000000000001', 100.00, now(), now(), 0);
 
 -- =========================================================================
--- 3. PARTIES (copropriétaires) + unit ownerships
+-- 3. COPRO 2.1 (property 'a2222221-...-0001'): same configuration as
+-- Copro 1. Manager: manager2@oikos.com (also manages Copro 2.2, section 4).
+-- Owners: copr21_user1@oikos.com (unit 1), copr21_user2@oikos.com (unit 2).
+-- =========================================================================
+
+INSERT INTO property (id, name, address, created_date, last_modified_date, version) VALUES
+    ('a2222221-0000-0000-0000-000000000001', 'Copro 2.1', '2 avenue Hassan II, Rabat', now(), now(), 0);
+
+INSERT INTO building (id, property_id, name, floor_count, created_date, last_modified_date, version) VALUES
+    ('a2222221-0000-0000-0000-000000000002', 'a2222221-0000-0000-0000-000000000001', 'Bâtiment 1', 3, now(), now(), 0);
+
+INSERT INTO unit_type_definition (id, property_id, name, created_date, last_modified_date, version) VALUES
+    ('a2222221-0000-0000-0000-000000000010', 'a2222221-0000-0000-0000-000000000001', 'Appartement', now(), now(), 0);
+
+INSERT INTO unit_type_pricing (id, property_id, unit_type_id, price, created_date, last_modified_date, version) VALUES
+    ('a2222221-0000-0000-0000-000000000011', 'a2222221-0000-0000-0000-000000000001', 'a2222221-0000-0000-0000-000000000010', 200.00, now(), now(), 0);
+
+INSERT INTO unit (id, building_id, property_id, unit_number, unit_type_id, shares, created_date, last_modified_date, version) VALUES
+    ('a2222221-0000-0000-0000-000000000003', 'a2222221-0000-0000-0000-000000000002', 'a2222221-0000-0000-0000-000000000001', 'Appartement 1', 'a2222221-0000-0000-0000-000000000010', 100.00, now(), now(), 0),
+    ('a2222221-0000-0000-0000-000000000004', 'a2222221-0000-0000-0000-000000000002', 'a2222221-0000-0000-0000-000000000001', 'Appartement 2', 'a2222221-0000-0000-0000-000000000010', 100.00, now(), now(), 0);
+
+INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
+    ('a2222221-0000-0000-0000-000000000007', 'a2222221-0000-0000-0000-000000000001', 'Copro 2.1 - User 1', 'INDIVIDUAL', 'copr21_user1.party@oikos.com', NULL, now(), now(), 0),
+    ('a2222221-0000-0000-0000-000000000008', 'a2222221-0000-0000-0000-000000000001', 'Copro 2.1 - User 2', 'INDIVIDUAL', 'copr21_user2.party@oikos.com', NULL, now(), now(), 0);
+
+-- Password hashes below are BCrypt("Oikos@2026").
+INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
+    ('a2222221-0000-0000-0000-000000000007', 'copr21_user1@oikos.com', 'Copro 2.1 - User 1',
+     '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0),
+    ('a2222221-0000-0000-0000-000000000008', 'copr21_user2@oikos.com', 'Copro 2.1 - User 2',
+     '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
+
+INSERT INTO user_role (user_id, role) VALUES
+    ('a2222221-0000-0000-0000-000000000007', 'ROLE_USER'),
+    ('a2222221-0000-0000-0000-000000000008', 'ROLE_USER');
+
+INSERT INTO app_user_party (app_user_id, party_id) VALUES
+    ('a2222221-0000-0000-0000-000000000007', 'a2222221-0000-0000-0000-000000000007'),
+    ('a2222221-0000-0000-0000-000000000008', 'a2222221-0000-0000-0000-000000000008');
+
+INSERT INTO app_user_party_role (app_user_id, party_id, property_id, role) VALUES
+    ('a2222221-0000-0000-0000-000000000007', 'a2222221-0000-0000-0000-000000000007', 'a2222221-0000-0000-0000-000000000001', 'PROPERTY_OWNER'),
+    ('a2222221-0000-0000-0000-000000000008', 'a2222221-0000-0000-0000-000000000008', 'a2222221-0000-0000-0000-000000000001', 'PROPERTY_OWNER');
+
+INSERT INTO unit_ownership (id, unit_id, party_id, property_id, ownership_share, created_date, last_modified_date, version) VALUES
+    ('a2222221-0000-0000-0000-000000000012', 'a2222221-0000-0000-0000-000000000003', 'a2222221-0000-0000-0000-000000000007', 'a2222221-0000-0000-0000-000000000001', 100.00, now(), now(), 0),
+    ('a2222221-0000-0000-0000-000000000013', 'a2222221-0000-0000-0000-000000000004', 'a2222221-0000-0000-0000-000000000008', 'a2222221-0000-0000-0000-000000000001', 100.00, now(), now(), 0);
+
+-- =========================================================================
+-- 4. COPRO 2.2 (property 'a2222222-...-0001'): same configuration as
+-- Copro 1. Manager: manager2@oikos.com (also manages Copro 2.1, section 3).
+-- Owners: copr22_user1@oikos.com (unit 1), copr22_user2@oikos.com (unit 2).
+-- =========================================================================
+
+INSERT INTO property (id, name, address, created_date, last_modified_date, version) VALUES
+    ('a2222222-0000-0000-0000-000000000001', 'Copro 2.2', '3 avenue Hassan II, Rabat', now(), now(), 0);
+
+INSERT INTO building (id, property_id, name, floor_count, created_date, last_modified_date, version) VALUES
+    ('a2222222-0000-0000-0000-000000000002', 'a2222222-0000-0000-0000-000000000001', 'Bâtiment 1', 3, now(), now(), 0);
+
+INSERT INTO unit_type_definition (id, property_id, name, created_date, last_modified_date, version) VALUES
+    ('a2222222-0000-0000-0000-000000000010', 'a2222222-0000-0000-0000-000000000001', 'Appartement', now(), now(), 0);
+
+INSERT INTO unit_type_pricing (id, property_id, unit_type_id, price, created_date, last_modified_date, version) VALUES
+    ('a2222222-0000-0000-0000-000000000011', 'a2222222-0000-0000-0000-000000000001', 'a2222222-0000-0000-0000-000000000010', 200.00, now(), now(), 0);
+
+INSERT INTO unit (id, building_id, property_id, unit_number, unit_type_id, shares, created_date, last_modified_date, version) VALUES
+    ('a2222222-0000-0000-0000-000000000003', 'a2222222-0000-0000-0000-000000000002', 'a2222222-0000-0000-0000-000000000001', 'Appartement 1', 'a2222222-0000-0000-0000-000000000010', 100.00, now(), now(), 0),
+    ('a2222222-0000-0000-0000-000000000004', 'a2222222-0000-0000-0000-000000000002', 'a2222222-0000-0000-0000-000000000001', 'Appartement 2', 'a2222222-0000-0000-0000-000000000010', 100.00, now(), now(), 0);
+
+INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
+    ('a2222222-0000-0000-0000-000000000007', 'a2222222-0000-0000-0000-000000000001', 'Copro 2.2 - User 1', 'INDIVIDUAL', 'copr22_user1.party@oikos.com', NULL, now(), now(), 0),
+    ('a2222222-0000-0000-0000-000000000008', 'a2222222-0000-0000-0000-000000000001', 'Copro 2.2 - User 2', 'INDIVIDUAL', 'copr22_user2.party@oikos.com', NULL, now(), now(), 0);
+
+-- Password hashes below are BCrypt("Oikos@2026").
+INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
+    ('a2222222-0000-0000-0000-000000000007', 'copr22_user1@oikos.com', 'Copro 2.2 - User 1',
+     '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0),
+    ('a2222222-0000-0000-0000-000000000008', 'copr22_user2@oikos.com', 'Copro 2.2 - User 2',
+     '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
+
+INSERT INTO user_role (user_id, role) VALUES
+    ('a2222222-0000-0000-0000-000000000007', 'ROLE_USER'),
+    ('a2222222-0000-0000-0000-000000000008', 'ROLE_USER');
+
+INSERT INTO app_user_party (app_user_id, party_id) VALUES
+    ('a2222222-0000-0000-0000-000000000007', 'a2222222-0000-0000-0000-000000000007'),
+    ('a2222222-0000-0000-0000-000000000008', 'a2222222-0000-0000-0000-000000000008');
+
+INSERT INTO app_user_party_role (app_user_id, party_id, property_id, role) VALUES
+    ('a2222222-0000-0000-0000-000000000007', 'a2222222-0000-0000-0000-000000000007', 'a2222222-0000-0000-0000-000000000001', 'PROPERTY_OWNER'),
+    ('a2222222-0000-0000-0000-000000000008', 'a2222222-0000-0000-0000-000000000008', 'a2222222-0000-0000-0000-000000000001', 'PROPERTY_OWNER');
+
+INSERT INTO unit_ownership (id, unit_id, party_id, property_id, ownership_share, created_date, last_modified_date, version) VALUES
+    ('a2222222-0000-0000-0000-000000000012', 'a2222222-0000-0000-0000-000000000003', 'a2222222-0000-0000-0000-000000000007', 'a2222222-0000-0000-0000-000000000001', 100.00, now(), now(), 0),
+    ('a2222222-0000-0000-0000-000000000013', 'a2222222-0000-0000-0000-000000000004', 'a2222222-0000-0000-0000-000000000008', 'a2222222-0000-0000-0000-000000000001', 100.00, now(), now(), 0);
+
+-- =========================================================================
+-- 5. MANAGER 2: single login account managing both Copro 2.1 and Copro 2.2.
+-- A party belongs to exactly one property, so manager2 gets one party per
+-- managed copro, both linked to the same app_user via app_user_party.
 -- =========================================================================
 
 INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
-    ('33333333-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 'Jean Dupont', 'INDIVIDUAL', 'jean.dupont@example.com', NULL, now(), now(), 0),
-    ('33333333-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000001', 'Marie Martin', 'INDIVIDUAL', 'marie.martin@example.com', NULL, now(), now(), 0),
-    ('33333333-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000001', 'Ahmed Benali', 'INDIVIDUAL', 'ahmed.benali@example.com', NULL, now(), now(), 0),
-    ('33333333-0000-0000-0000-000000000004', '22222222-0000-0000-0000-000000000001', 'Sophie Bernard', 'INDIVIDUAL', 'sophie.bernard@example.com', NULL, now(), now(), 0);
+    ('b0000000-0000-0000-0000-000000000001', 'a2222221-0000-0000-0000-000000000001', 'Manager Copro 2', 'INDIVIDUAL', 'manager2.copro21.party@oikos.com', '0600000002', now(), now(), 0),
+    ('b0000000-0000-0000-0000-000000000002', 'a2222222-0000-0000-0000-000000000001', 'Manager Copro 2', 'INDIVIDUAL', 'manager2.copro22.party@oikos.com', '0600000002', now(), now(), 0);
 
-INSERT INTO unit_ownership (id, unit_id, party_id, property_id, ownership_share, created_date, last_modified_date, version) VALUES
-    -- Jean Dupont owns Résidence Test / Bâtiment A / Appartement 1
-    ('88888888-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000003', '33333333-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 100.00, now(), now(), 0),
-    -- Marie Martin owns Résidence Test / Bâtiment A / Appartement 2
-    ('88888888-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000004', '33333333-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000001', 100.00, now(), now(), 0),
-    -- Ahmed Benali owns Résidence Test / Bâtiment B / Appartement 1
-    ('88888888-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000007', '33333333-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000001', 100.00, now(), now(), 0),
-    -- Sophie Bernard owns Résidence Les Oliviers / Appartement 1
-    ('88888888-0000-0000-0000-000000000004', '22222222-0000-0000-0000-000000000003', '33333333-0000-0000-0000-000000000004', '22222222-0000-0000-0000-000000000001', 100.00, now(), now(), 0);
+-- Password hash below is BCrypt("Oikos@2026"), same algorithm/strength as above.
+INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
+    ('b0000000-0000-0000-0000-000000000000', 'manager2@oikos.com', 'Manager Copro 2',
+     '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
 
--- =========================================================================
--- 4. BOARD: the property manager's party sits on Résidence Test's board
--- =========================================================================
+INSERT INTO user_role (user_id, role) VALUES
+    ('b0000000-0000-0000-0000-000000000000', 'ROLE_USER');
+
+INSERT INTO app_user_party (app_user_id, party_id) VALUES
+    ('b0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000001'),
+    ('b0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000002');
+
+INSERT INTO app_user_party_role (app_user_id, party_id, property_id, role) VALUES
+    ('b0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000001', 'a2222221-0000-0000-0000-000000000001', 'PROPERTY_MANAGER_ADMIN'),
+    ('b0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000002', 'a2222222-0000-0000-0000-000000000001', 'PROPERTY_MANAGER_ADMIN');
 
 INSERT INTO board_member (id, property_id, party_id, board_role, created_date, last_modified_date, version) VALUES
-    ('99999999-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000001', 'PROPERTY_MANAGER', now(), now(), 0);
+    ('b0000000-0000-0000-0000-000000000011', 'a2222221-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'PROPERTY_MANAGER', now(), now(), 0),
+    ('b0000000-0000-0000-0000-000000000012', 'a2222222-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002', 'PROPERTY_MANAGER', now(), now(), 0);
 
 -- =========================================================================
--- 5. INSTALLMENTS: one per lot, illustrating the two possible statuses
--- (NOT_PAID / OVERDUE - never stored, computed from due_date at read time).
+-- 6. COPRO 3 (property 'a3333333-...-0001'): same configuration as Copro 1.
+-- Manager: syndic1@oikos.com, a volunteer syndic (PROPERTY_BOARD_ADMIN),
+-- unlike manager1/manager2 who are professional firms (PROPERTY_MANAGER_ADMIN).
+-- Owners: copr3_user1@oikos.com (unit 1), copr3_user2@oikos.com (unit 2).
 -- =========================================================================
 
--- Jean Dupont's lot: not yet due (NOT_PAID).
-INSERT INTO installment (id, unit_id, due_date, amount, created_date, last_modified_date, version) VALUES
-    ('55555555-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000003', '2030-01-01', 250.00, now(), now(), 0);
+INSERT INTO property (id, name, address, created_date, last_modified_date, version) VALUES
+    ('a3333333-0000-0000-0000-000000000001', 'Copro 3', '4 avenue Hassan II, Rabat', now(), now(), 0);
 
--- Marie Martin's lot: not yet due (NOT_PAID).
-INSERT INTO installment (id, unit_id, due_date, amount, created_date, last_modified_date, version) VALUES
-    ('55555555-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000004', '2030-06-01', 300.00, now(), now(), 0);
+INSERT INTO building (id, property_id, name, floor_count, created_date, last_modified_date, version) VALUES
+    ('a3333333-0000-0000-0000-000000000002', 'a3333333-0000-0000-0000-000000000001', 'Bâtiment 1', 3, now(), now(), 0);
 
--- Ahmed Benali's lot: past due (OVERDUE).
-INSERT INTO installment (id, unit_id, due_date, amount, created_date, last_modified_date, version) VALUES
-    ('55555555-0000-0000-0000-000000000004', '11111111-0000-0000-0000-000000000007', '2024-01-01', 300.00, now(), now(), 0);
+INSERT INTO unit_type_definition (id, property_id, name, created_date, last_modified_date, version) VALUES
+    ('a3333333-0000-0000-0000-000000000010', 'a3333333-0000-0000-0000-000000000001', 'Appartement', now(), now(), 0);
+
+INSERT INTO unit_type_pricing (id, property_id, unit_type_id, price, created_date, last_modified_date, version) VALUES
+    ('a3333333-0000-0000-0000-000000000011', 'a3333333-0000-0000-0000-000000000001', 'a3333333-0000-0000-0000-000000000010', 200.00, now(), now(), 0);
+
+INSERT INTO unit (id, building_id, property_id, unit_number, unit_type_id, shares, created_date, last_modified_date, version) VALUES
+    ('a3333333-0000-0000-0000-000000000003', 'a3333333-0000-0000-0000-000000000002', 'a3333333-0000-0000-0000-000000000001', 'Appartement 1', 'a3333333-0000-0000-0000-000000000010', 100.00, now(), now(), 0),
+    ('a3333333-0000-0000-0000-000000000004', 'a3333333-0000-0000-0000-000000000002', 'a3333333-0000-0000-0000-000000000001', 'Appartement 2', 'a3333333-0000-0000-0000-000000000010', 100.00, now(), now(), 0);
+
+-- Volunteer syndic: party + login account, PROPERTY_BOARD_ADMIN on Copro 3, seated on its board.
+INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
+    ('a3333333-0000-0000-0000-000000000005', 'a3333333-0000-0000-0000-000000000001', 'Syndic Copro 3', 'INDIVIDUAL', 'syndic1.party@oikos.com', '0600000003', now(), now(), 0);
+
+-- Password hash below is BCrypt("Oikos@2026"), same algorithm/strength as above.
+INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
+    ('a3333333-0000-0000-0000-000000000005', 'syndic1@oikos.com', 'Syndic Copro 3',
+     '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
+
+INSERT INTO user_role (user_id, role) VALUES
+    ('a3333333-0000-0000-0000-000000000005', 'ROLE_USER');
+
+INSERT INTO app_user_party (app_user_id, party_id) VALUES
+    ('a3333333-0000-0000-0000-000000000005', 'a3333333-0000-0000-0000-000000000005');
+
+INSERT INTO app_user_party_role (app_user_id, party_id, property_id, role) VALUES
+    ('a3333333-0000-0000-0000-000000000005', 'a3333333-0000-0000-0000-000000000005',
+     'a3333333-0000-0000-0000-000000000001', 'PROPERTY_BOARD_ADMIN');
+
+INSERT INTO board_member (id, property_id, party_id, board_role, created_date, last_modified_date, version) VALUES
+    ('a3333333-0000-0000-0000-000000000006', 'a3333333-0000-0000-0000-000000000001', 'a3333333-0000-0000-0000-000000000005', 'PROPERTY_MANAGER', now(), now(), 0);
+
+-- Owners: party + login account + PROPERTY_OWNER role + unit ownership.
+INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
+    ('a3333333-0000-0000-0000-000000000007', 'a3333333-0000-0000-0000-000000000001', 'Copro 3 - User 1', 'INDIVIDUAL', 'copr3_user1.party@oikos.com', NULL, now(), now(), 0),
+    ('a3333333-0000-0000-0000-000000000008', 'a3333333-0000-0000-0000-000000000001', 'Copro 3 - User 2', 'INDIVIDUAL', 'copr3_user2.party@oikos.com', NULL, now(), now(), 0);
+
+-- Password hashes below are BCrypt("Oikos@2026").
+INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
+    ('a3333333-0000-0000-0000-000000000007', 'copr3_user1@oikos.com', 'Copro 3 - User 1',
+     '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0),
+    ('a3333333-0000-0000-0000-000000000008', 'copr3_user2@oikos.com', 'Copro 3 - User 2',
+     '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
+
+INSERT INTO user_role (user_id, role) VALUES
+    ('a3333333-0000-0000-0000-000000000007', 'ROLE_USER'),
+    ('a3333333-0000-0000-0000-000000000008', 'ROLE_USER');
+
+INSERT INTO app_user_party (app_user_id, party_id) VALUES
+    ('a3333333-0000-0000-0000-000000000007', 'a3333333-0000-0000-0000-000000000007'),
+    ('a3333333-0000-0000-0000-000000000008', 'a3333333-0000-0000-0000-000000000008');
+
+INSERT INTO app_user_party_role (app_user_id, party_id, property_id, role) VALUES
+    ('a3333333-0000-0000-0000-000000000007', 'a3333333-0000-0000-0000-000000000007', 'a3333333-0000-0000-0000-000000000001', 'PROPERTY_OWNER'),
+    ('a3333333-0000-0000-0000-000000000008', 'a3333333-0000-0000-0000-000000000008', 'a3333333-0000-0000-0000-000000000001', 'PROPERTY_OWNER');
+
+INSERT INTO unit_ownership (id, unit_id, party_id, property_id, ownership_share, created_date, last_modified_date, version) VALUES
+    ('a3333333-0000-0000-0000-000000000012', 'a3333333-0000-0000-0000-000000000003', 'a3333333-0000-0000-0000-000000000007', 'a3333333-0000-0000-0000-000000000001', 100.00, now(), now(), 0),
+    ('a3333333-0000-0000-0000-000000000013', 'a3333333-0000-0000-0000-000000000004', 'a3333333-0000-0000-0000-000000000008', 'a3333333-0000-0000-0000-000000000001', 100.00, now(), now(), 0);
