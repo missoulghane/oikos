@@ -154,6 +154,18 @@ public class PropertyAccessEvaluator {
         return hasPermission(authentication, propertyId, Permission.INSTALLMENT_CALL_WRITE);
     }
 
+    /** Gates read access to the accounting module (exercises, financial accounts, journal,
+     * expenses, unit accounts of the whole property) - board/manager tiers only. */
+    public boolean canReadAccounting(Authentication authentication, String propertyId) {
+        return hasPermission(authentication, propertyId, Permission.ACCOUNTING_READ);
+    }
+
+    /** Gates write access to the accounting module (opening an exercise, recording expenses/
+     * transfers/payments/regularizations). */
+    public boolean canWriteAccounting(Authentication authentication, String propertyId) {
+        return hasPermission(authentication, propertyId, Permission.ACCOUNTING_WRITE);
+    }
+
     /** Self-service: the current account's own linked party. */
     public boolean ownsParty(Authentication authentication, String partyId) {
         return access(authentication).ownedPartyIds().contains(partyId);

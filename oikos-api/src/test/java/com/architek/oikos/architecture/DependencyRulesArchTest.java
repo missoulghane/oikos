@@ -30,4 +30,22 @@ class DependencyRulesArchTest {
             .should().dependOnClassesThat().resideInAnyPackage("..web..", "..infrastructure..")
             .because("dependencies must flow web -> application -> domain <- infrastructure (rule 1)");
 
+    /**
+     * accounting reads property/installment data only through their public port-in
+     * use cases, DTOs, id value objects and exceptions (see
+     * AccountingPropertyDirectoryAdapter/AccountingUnitDirectoryAdapter) - never
+     * their domain model, repository or infrastructure internals directly (rule
+     * 4/6). Scoped to accounting only (the newest module), mirroring the same
+     * convention installment already follows for property.
+     */
+    @ArchTest
+    static final ArchRule accounting_must_not_depend_on_other_modules_internals = noClasses()
+            .that().resideInAPackage("com.architek.oikos.accounting..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "com.architek.oikos.property.domain.model..", "com.architek.oikos.property.domain.repository..",
+                    "com.architek.oikos.property.infrastructure..",
+                    "com.architek.oikos.installment.domain.model..", "com.architek.oikos.installment.domain.repository..",
+                    "com.architek.oikos.installment.infrastructure..")
+            .because("cross-feature access must go through a port-in use case, never another module's domain model/repository/infrastructure directly (rule 4/6)");
+
 }

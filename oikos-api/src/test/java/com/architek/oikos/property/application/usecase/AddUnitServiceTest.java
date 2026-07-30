@@ -2,6 +2,7 @@ package com.architek.oikos.property.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -13,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.property.application.command.AddUnitCommand;
+import com.architek.oikos.property.application.port.out.UnitAccountProvisioningPort;
 import com.architek.oikos.property.domain.exception.BuildingNotFoundException;
 import com.architek.oikos.property.domain.exception.UnitTypeDefinitionNotFoundException;
 import com.architek.oikos.property.domain.model.Building;
@@ -36,8 +38,12 @@ class AddUnitServiceTest {
     @Mock
     private UnitTypeDefinitionRepository unitTypeDefinitionRepository;
 
+    @Mock
+    private UnitAccountProvisioningPort unitAccountProvisioningPort;
+
     private AddUnitService newService() {
-        return new AddUnitService(unitRepository, buildingRepository, unitTypeDefinitionRepository);
+        return new AddUnitService(unitRepository, buildingRepository, unitTypeDefinitionRepository,
+                unitAccountProvisioningPort);
     }
 
     @Test
@@ -52,6 +58,8 @@ class AddUnitServiceTest {
         when(unitRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         newService().add(new AddUnitCommand(buildingId, "A12", unitTypeId, new BigDecimal("150")));
+
+        verify(unitAccountProvisioningPort).provisionAccount(any(), any());
     }
 
     @Test

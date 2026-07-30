@@ -1,8 +1,9 @@
 -- =========================================================================
 -- dev-only: complete dataset covering user/auth, property (properties,
--- buildings, units, ownerships, board) and party together, so the whole
--- application can be explored manually (Swagger UI, H2 console) without
--- going through the use cases first.
+-- buildings, units, ownerships, board), party and accounting (exercise,
+-- financial account, unit account) together, so the whole application can
+-- be explored manually (Swagger UI, H2 console) without going through the
+-- use cases first.
 --
 -- Accounts seeded here (every account below shares the same password, Oikos@2026):
 --   admin@oikos.com         - system administrator (ROLE_MASTER + ROLE_ADMIN)
@@ -379,3 +380,34 @@ INSERT INTO app_user_party_role (app_user_id, party_id, property_id, role) VALUE
 INSERT INTO unit_ownership (id, unit_id, party_id, property_id, ownership_share, created_date, last_modified_date, version) VALUES
     ('a3333333-0000-0000-0000-000000000012', 'a3333333-0000-0000-0000-000000000003', 'a3333333-0000-0000-0000-000000000007', 'a3333333-0000-0000-0000-000000000001', 100.00, now(), now(), 0),
     ('a3333333-0000-0000-0000-000000000013', 'a3333333-0000-0000-0000-000000000004', 'a3333333-0000-0000-0000-000000000008', 'a3333333-0000-0000-0000-000000000001', 100.00, now(), now(), 0);
+
+-- =========================================================================
+-- 7. ACCOUNTING (Phase 1): one open exercise + one "Caisse" financial
+-- account per copro, and one unit_account per seeded unit (mirrors what
+-- CreateUnitAccountService provisions automatically when a real Unit is
+-- created through the API - these seeded units are inserted as raw SQL
+-- above, bypassing that use case, so their accounts are seeded by hand here
+-- to keep the dev dataset consistent with what the app would produce).
+-- =========================================================================
+
+INSERT INTO accounting_exercise (id, property_id, label, start_date, end_date, status, closed_at, closed_by_user_id, comment, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000020', 'a1111111-0000-0000-0000-000000000001', 'Exercice 2026', '2026-01-01', '2026-12-31', 'OPEN', NULL, NULL, NULL, now(), now(), 0),
+    ('a2222221-0000-0000-0000-000000000020', 'a2222221-0000-0000-0000-000000000001', 'Exercice 2026', '2026-01-01', '2026-12-31', 'OPEN', NULL, NULL, NULL, now(), now(), 0),
+    ('a2222222-0000-0000-0000-000000000020', 'a2222222-0000-0000-0000-000000000001', 'Exercice 2026', '2026-01-01', '2026-12-31', 'OPEN', NULL, NULL, NULL, now(), now(), 0),
+    ('a3333333-0000-0000-0000-000000000020', 'a3333333-0000-0000-0000-000000000001', 'Exercice 2026', '2026-01-01', '2026-12-31', 'OPEN', NULL, NULL, NULL, now(), now(), 0);
+
+INSERT INTO financial_account (id, property_id, name, type, currency, balance, status, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000021', 'a1111111-0000-0000-0000-000000000001', 'Caisse', 'CASH', 'MAD', 0.00, 'ACTIVE', now(), now(), 0),
+    ('a2222221-0000-0000-0000-000000000021', 'a2222221-0000-0000-0000-000000000001', 'Caisse', 'CASH', 'MAD', 0.00, 'ACTIVE', now(), now(), 0),
+    ('a2222222-0000-0000-0000-000000000021', 'a2222222-0000-0000-0000-000000000001', 'Caisse', 'CASH', 'MAD', 0.00, 'ACTIVE', now(), now(), 0),
+    ('a3333333-0000-0000-0000-000000000021', 'a3333333-0000-0000-0000-000000000001', 'Caisse', 'CASH', 'MAD', 0.00, 'ACTIVE', now(), now(), 0);
+
+INSERT INTO unit_account (id, unit_id, property_id, balance, last_updated_date, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000022', 'a1111111-0000-0000-0000-000000000003', 'a1111111-0000-0000-0000-000000000001', 0.00, now(), now(), now(), 0),
+    ('a1111111-0000-0000-0000-000000000023', 'a1111111-0000-0000-0000-000000000004', 'a1111111-0000-0000-0000-000000000001', 0.00, now(), now(), now(), 0),
+    ('a2222221-0000-0000-0000-000000000022', 'a2222221-0000-0000-0000-000000000003', 'a2222221-0000-0000-0000-000000000001', 0.00, now(), now(), now(), 0),
+    ('a2222221-0000-0000-0000-000000000023', 'a2222221-0000-0000-0000-000000000004', 'a2222221-0000-0000-0000-000000000001', 0.00, now(), now(), now(), 0),
+    ('a2222222-0000-0000-0000-000000000022', 'a2222222-0000-0000-0000-000000000003', 'a2222222-0000-0000-0000-000000000001', 0.00, now(), now(), now(), 0),
+    ('a2222222-0000-0000-0000-000000000023', 'a2222222-0000-0000-0000-000000000004', 'a2222222-0000-0000-0000-000000000001', 0.00, now(), now(), now(), 0),
+    ('a3333333-0000-0000-0000-000000000022', 'a3333333-0000-0000-0000-000000000003', 'a3333333-0000-0000-0000-000000000001', 0.00, now(), now(), now(), 0),
+    ('a3333333-0000-0000-0000-000000000023', 'a3333333-0000-0000-0000-000000000004', 'a3333333-0000-0000-0000-000000000001', 0.00, now(), now(), now(), 0);

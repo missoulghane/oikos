@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.property.application.command.AddUnitCommand;
 import com.architek.oikos.property.application.port.in.AddUnitUseCase;
+import com.architek.oikos.property.application.port.out.UnitAccountProvisioningPort;
 import com.architek.oikos.property.domain.exception.BuildingNotFoundException;
 import com.architek.oikos.property.domain.exception.UnitTypeDefinitionNotFoundException;
 import com.architek.oikos.property.domain.model.Building;
@@ -21,12 +22,15 @@ public class AddUnitService implements AddUnitUseCase {
     private final UnitRepository unitRepository;
     private final BuildingRepository buildingRepository;
     private final UnitTypeDefinitionRepository unitTypeDefinitionRepository;
+    private final UnitAccountProvisioningPort unitAccountProvisioningPort;
 
     public AddUnitService(UnitRepository unitRepository, BuildingRepository buildingRepository,
-                           UnitTypeDefinitionRepository unitTypeDefinitionRepository) {
+                           UnitTypeDefinitionRepository unitTypeDefinitionRepository,
+                           UnitAccountProvisioningPort unitAccountProvisioningPort) {
         this.unitRepository = unitRepository;
         this.buildingRepository = buildingRepository;
         this.unitTypeDefinitionRepository = unitTypeDefinitionRepository;
+        this.unitAccountProvisioningPort = unitAccountProvisioningPort;
     }
 
     @Override
@@ -41,6 +45,10 @@ public class AddUnitService implements AddUnitUseCase {
 
         Unit unit = Unit.create(UnitId.newId(), command.buildingId(), building.getPropertyId(), command.unitNumber(),
                 command.unitTypeId(), Shares.of(command.shares()));
-        return unitRepository.save(unit).getId();
+        Unit savedUnit = unitRepository.save(unit);
+
+        unitAccountProvisioningPort.provisionAccount(savedUnit.getId().value(), savedUnit.getPropertyId().value());
+
+        return savedUnit.getId();
     }
 }

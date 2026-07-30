@@ -12,6 +12,7 @@ import com.architek.oikos.property.application.command.BuildingConfiguration;
 import com.architek.oikos.property.application.command.ConfigurePropertyCommand;
 import com.architek.oikos.property.application.command.UnitTypeConfiguration;
 import com.architek.oikos.property.application.port.in.ConfigurePropertyUseCase;
+import com.architek.oikos.property.application.port.out.UnitAccountProvisioningPort;
 import com.architek.oikos.property.domain.exception.PropertyConfigurationLimitExceededException;
 import com.architek.oikos.property.domain.model.Building;
 import com.architek.oikos.property.domain.model.Property;
@@ -45,17 +46,20 @@ public class ConfigurePropertyService implements ConfigurePropertyUseCase {
     private final BuildingRepository buildingRepository;
     private final UnitRepository unitRepository;
     private final UnitTypeDefinitionRepository unitTypeDefinitionRepository;
+    private final UnitAccountProvisioningPort unitAccountProvisioningPort;
     private final int maxUnitsPerRequest;
 
     public ConfigurePropertyService(PropertyRepository propertyRepository,
                                      BuildingRepository buildingRepository,
                                      UnitRepository unitRepository,
                                      UnitTypeDefinitionRepository unitTypeDefinitionRepository,
+                                     UnitAccountProvisioningPort unitAccountProvisioningPort,
                                      @Value("${oikos.property.configure.max-units}") int maxUnitsPerRequest) {
         this.propertyRepository = propertyRepository;
         this.buildingRepository = buildingRepository;
         this.unitRepository = unitRepository;
         this.unitTypeDefinitionRepository = unitTypeDefinitionRepository;
+        this.unitAccountProvisioningPort = unitAccountProvisioningPort;
         this.maxUnitsPerRequest = maxUnitsPerRequest;
     }
 
@@ -98,8 +102,9 @@ public class ConfigurePropertyService implements ConfigurePropertyUseCase {
     private void createUnits(BuildingId buildingId, PropertyId propertyId, String unitTypeName,
                               UnitTypeDefinitionId unitTypeId, int count) {
         for (int sequence = 1; sequence <= count; sequence++) {
-            unitRepository.save(Unit.create(UnitId.newId(), buildingId, propertyId, unitTypeName + " " + sequence,
-                    unitTypeId, Shares.of(BigDecimal.ZERO)));
+            Unit savedUnit = unitRepository.save(Unit.create(UnitId.newId(), buildingId, propertyId,
+                    unitTypeName + " " + sequence, unitTypeId, Shares.of(BigDecimal.ZERO)));
+            unitAccountProvisioningPort.provisionAccount(savedUnit.getId().value(), propertyId.value());
         }
     }
 }
