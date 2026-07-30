@@ -1,7 +1,5 @@
 package com.architek.oikos.installment.application.usecase;
 
-import java.time.Clock;
-import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
@@ -20,13 +18,11 @@ public class ListInstallmentsByPropertyService implements ListInstallmentsByProp
 
     private final PropertyUnitDirectoryPort propertyUnitDirectoryPort;
     private final InstallmentRepository installmentRepository;
-    private final Clock clock;
 
     public ListInstallmentsByPropertyService(PropertyUnitDirectoryPort propertyUnitDirectoryPort,
-                                              InstallmentRepository installmentRepository, Clock clock) {
+                                              InstallmentRepository installmentRepository) {
         this.propertyUnitDirectoryPort = propertyUnitDirectoryPort;
         this.installmentRepository = installmentRepository;
-        this.clock = clock;
     }
 
     @Override
@@ -37,8 +33,7 @@ public class ListInstallmentsByPropertyService implements ListInstallmentsByProp
             return Page.of(List.of(), query.pageRequest().pageNumber(), query.pageRequest().pageSize(), 0);
         }
 
-        LocalDate today = LocalDate.now(clock);
-        return installmentRepository.findPageByUnitIds(unitIds, query.filter(), today, query.pageRequest())
-                .map(installment -> InstallmentViewFactory.build(installment, today));
+        return installmentRepository.findPageByUnitIds(unitIds, query.filter(), query.pageRequest())
+                .map(InstallmentViewFactory::build);
     }
 }

@@ -1,12 +1,13 @@
 import type { Paged } from '@/shared/types/pagination.types';
 
-export type InstallmentStatus = 'NOT_PAID' | 'OVERDUE';
+export type InstallmentStatus = 'NOT_SETTLED' | 'PARTIALLY_SETTLED' | 'SETTLED';
 
 export interface Installment {
   id: string;
   unitId: string;
   dueDate: string;
   amount: number;
+  outstandingAmount: number;
   status: InstallmentStatus;
 }
 

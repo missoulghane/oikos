@@ -1,6 +1,5 @@
 package com.architek.oikos.installment.domain.repository;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,11 +21,5 @@ public interface InstallmentRepository {
 
     List<Installment> findAllByInstallmentCallId(InstallmentCallId installmentCallId);
 
-    /**
-     * today drives the OVERDUE branch of the status filter (RG011: status is
-     * never stored, so it is recomputed here from dueDate/amount/allocations
-     * rather than read off the entity) - passed in rather than read from a
-     * Clock so the repository stays a pure query given its inputs.
-     */
-    Page<Installment> findPageByUnitIds(List<EntityId> unitIds, InstallmentFilter filter, LocalDate today, PageRequest pageRequest);
+    Page<Installment> findPageByUnitIds(List<EntityId> unitIds, InstallmentFilter filter, PageRequest pageRequest);
 }

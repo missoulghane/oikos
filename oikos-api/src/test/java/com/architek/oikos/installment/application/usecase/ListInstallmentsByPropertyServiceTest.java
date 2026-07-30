@@ -8,10 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -40,10 +37,8 @@ class ListInstallmentsByPropertyServiceTest {
     @Mock
     private InstallmentRepository installmentRepository;
 
-    private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-07-22T00:00:00Z"), ZoneOffset.UTC);
-
     private ListInstallmentsByPropertyService newService() {
-        return new ListInstallmentsByPropertyService(propertyUnitDirectoryPort, installmentRepository, FIXED_CLOCK);
+        return new ListInstallmentsByPropertyService(propertyUnitDirectoryPort, installmentRepository);
     }
 
     @Test
@@ -56,7 +51,7 @@ class ListInstallmentsByPropertyServiceTest {
 
         assertThat(page.content()).isEmpty();
         assertThat(page.totalElements()).isZero();
-        verify(installmentRepository, never()).findPageByUnitIds(any(), any(), any(), any());
+        verify(installmentRepository, never()).findPageByUnitIds(any(), any(), any());
     }
 
     @Test
@@ -70,7 +65,7 @@ class ListInstallmentsByPropertyServiceTest {
                 LocalDate.of(2026, 8, 1), Amount.of(new BigDecimal("150")));
         InstallmentFilter filter = InstallmentFilter.defaultFilter();
         PageRequest pageRequest = PageRequest.of(0, 20);
-        when(installmentRepository.findPageByUnitIds(eq(unitIds), eq(filter), eq(LocalDate.now(FIXED_CLOCK)), eq(pageRequest)))
+        when(installmentRepository.findPageByUnitIds(eq(unitIds), eq(filter), eq(pageRequest)))
                 .thenReturn(Page.of(List.of(installment), 0, 20, 1));
 
         Page<InstallmentView> page = newService().listInstallments(new ListInstallmentsByPropertyQuery(propertyId, filter, pageRequest));

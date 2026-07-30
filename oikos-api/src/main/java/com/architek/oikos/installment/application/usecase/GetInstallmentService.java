@@ -1,8 +1,5 @@
 package com.architek.oikos.installment.application.usecase;
 
-import java.time.Clock;
-import java.time.LocalDate;
-
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,11 +14,9 @@ import com.architek.oikos.installment.domain.repository.InstallmentRepository;
 public class GetInstallmentService implements GetInstallmentUseCase {
 
     private final InstallmentRepository installmentRepository;
-    private final Clock clock;
 
-    public GetInstallmentService(InstallmentRepository installmentRepository, Clock clock) {
+    public GetInstallmentService(InstallmentRepository installmentRepository) {
         this.installmentRepository = installmentRepository;
-        this.clock = clock;
     }
 
     @Override
@@ -29,6 +24,6 @@ public class GetInstallmentService implements GetInstallmentUseCase {
     public InstallmentView getInstallment(GetInstallmentQuery query) {
         Installment installment = installmentRepository.findById(query.id())
                 .orElseThrow(() -> new InstallmentNotFoundException(query.id()));
-        return InstallmentViewFactory.build(installment, LocalDate.now(clock));
+        return InstallmentViewFactory.build(installment);
     }
 }

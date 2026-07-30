@@ -44,6 +44,27 @@ const InstallmentCallsTab = lazy(() =>
 const InstallmentsOtherTab = lazy(() =>
   import('@/features/property-mngt/installments').then((m) => ({ default: m.InstallmentsOtherTab })),
 );
+const AccountingSectionLayout = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingSectionLayout })),
+);
+const AccountingTreasuryTab = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingTreasuryTab })),
+);
+const AccountingFinancialAccountsTab = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingFinancialAccountsTab })),
+);
+const AccountingExpensesTab = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingExpensesTab })),
+);
+const AccountingUnitsTab = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingUnitsTab })),
+);
+const AccountingJournalTab = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingJournalTab })),
+);
+const AccountingLettrageTab = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingLettrageTab })),
+);
 const PropertyConfigurationPage = lazy(() =>
   import('@/features/property-mngt/pricing').then((m) => ({ default: m.PropertyConfigurationPage })),
 );
@@ -168,6 +189,64 @@ export const privateRoutes: RouteObject[] = [
                 element: (
                   <Suspense fallback={<Loader />}>
                     <InstallmentsOtherTab />
+                  </Suspense>
+                ),
+              },
+            ],
+          },
+          {
+            path: 'accounting',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <AccountingSectionLayout />
+              </Suspense>
+            ),
+            children: [
+              {
+                index: true,
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <AccountingTreasuryTab />
+                  </Suspense>
+                ),
+              },
+              {
+                path: 'financial-accounts',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <AccountingFinancialAccountsTab />
+                  </Suspense>
+                ),
+              },
+              {
+                path: 'expenses',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <AccountingExpensesTab />
+                  </Suspense>
+                ),
+              },
+              {
+                path: 'units',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <AccountingUnitsTab />
+                  </Suspense>
+                ),
+              },
+              {
+                path: 'journal',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <AccountingJournalTab />
+                  </Suspense>
+                ),
+              },
+              {
+                path: 'lettrage',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <AccountingLettrageTab />
                   </Suspense>
                 ),
               },

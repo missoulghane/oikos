@@ -17,6 +17,7 @@ export function InstallmentList({ installments, propertyId }: { installments: In
           <div>
             <p className="text-sm font-medium text-gray-900">
               Échéance du {new Date(installment.dueDate).toLocaleDateString('fr-FR')} — {installment.amount} MAD
+              {installment.status === 'PARTIALLY_SETTLED' && ` (reste ${installment.outstandingAmount} MAD)`}
             </p>
             <p className="text-sm text-gray-500">
               <Link to={`/properties/${propertyId}/units/${installment.unitId}`} className="hover:underline">

@@ -58,3 +58,18 @@ export function isManagerTierOnProperty(user: CurrentUser, propertyId: string): 
   const role = user.roleByProperty[propertyId];
   return role === 'PROPERTY_MANAGER_ADMIN' || role === 'PROPERTY_MANAGER_MEMBER';
 }
+
+/**
+ * Gates the accounting module (property:accounting:read) - board/manager
+ * tiers only, admin or member (see V2__rbac_permissions.sql: both tiers
+ * hold the identical bundle for this property, unlike some other
+ * permissions that split by tier).
+ */
+export function canReadAccounting(user: CurrentUser, propertyId: string): boolean {
+  return isAdmin(user) || isBoardTierOnProperty(user, propertyId) || isManagerTierOnProperty(user, propertyId);
+}
+
+/** property:accounting:write - same population as canReadAccounting today (see above). */
+export function canWriteAccounting(user: CurrentUser, propertyId: string): boolean {
+  return canReadAccounting(user, propertyId);
+}

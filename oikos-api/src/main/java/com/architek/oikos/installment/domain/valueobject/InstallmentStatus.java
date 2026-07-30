@@ -1,10 +1,11 @@
 package com.architek.oikos.installment.domain.valueobject;
 
 /**
- * Never persisted: always computed at read time from dueDate vs the current
- * date.
+ * Derived from amount vs outstandingAmount (kept in sync by accounting via
+ * lettrage validation) - never itself persisted.
  */
 public enum InstallmentStatus {
-    NOT_PAID,
-    OVERDUE
+    NOT_SETTLED,
+    PARTIALLY_SETTLED,
+    SETTLED
 }

@@ -84,7 +84,7 @@ class InstallmentControllerWebMvcTest {
                         .param("size", "5")
                         .param("sortBy", "AMOUNT")
                         .param("sortDirection", "DESC")
-                        .param("status", "OVERDUE", "NOT_PAID")
+                        .param("status", "PARTIALLY_SETTLED", "NOT_SETTLED")
                         .param("dueDateFrom", "2026-01-01")
                         .param("dueDateTo", "2026-12-31")
                         .header("Authorization", bearerToken("ROLE_ADMIN")))
@@ -95,7 +95,8 @@ class InstallmentControllerWebMvcTest {
     void gets_an_installment_by_id() throws Exception {
         InstallmentId id = InstallmentId.newId();
         when(getInstallmentUseCase.getInstallment(any())).thenReturn(new InstallmentView(id,
-                EntityId.newId(), LocalDate.of(2027, 1, 1), new BigDecimal("250"), InstallmentStatus.NOT_PAID));
+                EntityId.newId(), LocalDate.of(2027, 1, 1), new BigDecimal("250"), new BigDecimal("250"),
+                InstallmentStatus.NOT_SETTLED));
 
         mockMvc.perform(get("/api/v1/installments/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());

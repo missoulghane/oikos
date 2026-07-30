@@ -1,6 +1,5 @@
 package com.architek.oikos.installment.infrastructure.adapter;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -57,7 +56,7 @@ public class InstallmentRepositoryAdapter implements InstallmentRepository {
     }
 
     @Override
-    public Page<Installment> findPageByUnitIds(List<EntityId> unitIds, InstallmentFilter filter, LocalDate today, PageRequest pageRequest) {
+    public Page<Installment> findPageByUnitIds(List<EntityId> unitIds, InstallmentFilter filter, PageRequest pageRequest) {
         List<UUID> ids = unitIds.stream().map(EntityId::value).toList();
         boolean hasStatusFilter = !filter.statuses().isEmpty();
 
@@ -66,9 +65,10 @@ public class InstallmentRepositoryAdapter implements InstallmentRepository {
 
         org.springframework.data.domain.Page<InstallmentEntity> page = jpaRepository.search(ids,
                 filter.dueDateFrom(), filter.dueDateTo(), hasStatusFilter,
-                filter.statuses().contains(InstallmentStatus.NOT_PAID),
-                filter.statuses().contains(InstallmentStatus.OVERDUE),
-                today, pageable);
+                filter.statuses().contains(InstallmentStatus.NOT_SETTLED),
+                filter.statuses().contains(InstallmentStatus.PARTIALLY_SETTLED),
+                filter.statuses().contains(InstallmentStatus.SETTLED),
+                pageable);
 
         List<Installment> content = page.getContent().stream().map(mapper::toDomain).toList();
         return Page.of(content, page.getNumber(), page.getSize(), page.getTotalElements());

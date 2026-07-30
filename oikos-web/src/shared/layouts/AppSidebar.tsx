@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSidebar } from '@/shared/context/SidebarContext';
 import { useCurrentUser, boardPropertyId, isManagerTier, isManagerTierOnProperty } from '@/features/identity/me';
-import { GridIcon, PieChartIcon, DollarLineIcon, ChevronDownIcon, HorizontaLDots } from '@/shared/icons';
+import { GridIcon, PieChartIcon, DollarLineIcon, DocsIcon, ChevronDownIcon, HorizontaLDots } from '@/shared/icons';
 
 interface NavItem {
   name: string;
@@ -29,6 +29,15 @@ const INSTALLMENT_TABS = [
   { name: 'Autres', path: '/other' },
 ];
 
+const ACCOUNTING_TABS = [
+  { name: 'Trésorerie', path: '' },
+  { name: 'Comptes financiers', path: '/financial-accounts' },
+  { name: 'Dépenses', path: '/expenses' },
+  { name: 'Comptes des lots', path: '/units' },
+  { name: 'Journal', path: '/journal' },
+  { name: 'Lettrage', path: '/lettrage' },
+];
+
 function propertyContextGroups(propertyId: string): NavGroup[] {
   return [
     {
@@ -47,6 +56,14 @@ function propertyContextGroups(propertyId: string): NavGroup[] {
         path: `/properties/${propertyId}/installments${tab.path}`,
       })),
     },
+    {
+      name: 'Comptabilité',
+      icon: <DocsIcon />,
+      children: ACCOUNTING_TABS.map((tab) => ({
+        name: tab.name,
+        path: `/properties/${propertyId}/accounting${tab.path}`,
+      })),
+    },
   ];
 }
 
@@ -57,7 +74,7 @@ export function AppSidebar() {
   // Both groups start expanded (matching the previous always-open behaviour);
   // the user can collapse either one independently from there.
   const [openGroups, setOpenGroups] = useState<Set<string>>(
-    () => new Set(['Ma copropriété', 'Gestion des échéances']),
+    () => new Set(['Ma copropriété', 'Gestion des échéances', 'Comptabilité']),
   );
 
   const showExpanded = isExpanded || isHovered || isMobileOpen;

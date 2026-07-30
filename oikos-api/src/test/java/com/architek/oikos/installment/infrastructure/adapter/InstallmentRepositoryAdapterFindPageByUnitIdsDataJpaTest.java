@@ -38,23 +38,29 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
 
     private EntityId unitA;
     private EntityId unitB;
-    private Installment notPaid;
-    private Installment overdue;
-    private Installment otherNotPaid;
+    private Installment notSettled;
+    private Installment partiallySettled;
+    private Installment settled;
+    private Installment otherNotSettled;
 
     private void seed() {
         unitA = EntityId.newId();
         unitB = EntityId.newId();
         EntityId otherUnit = EntityId.newId();
 
-        notPaid = Installment.create(InstallmentId.newId(), unitA, TODAY.plusDays(10), Amount.of(new BigDecimal("100")));
-        installmentAdapter.save(notPaid);
+        notSettled = Installment.create(InstallmentId.newId(), unitA, TODAY.plusDays(10), Amount.of(new BigDecimal("100")));
+        installmentAdapter.save(notSettled);
 
-        overdue = Installment.create(InstallmentId.newId(), unitA, TODAY.minusDays(5), Amount.of(new BigDecimal("200")));
-        installmentAdapter.save(overdue);
+        partiallySettled = Installment.create(InstallmentId.newId(), unitA, TODAY.minusDays(5), Amount.of(new BigDecimal("200")))
+                .withOutstandingAmount(new BigDecimal("80"));
+        installmentAdapter.save(partiallySettled);
 
-        otherNotPaid = Installment.create(InstallmentId.newId(), unitB, TODAY.plusDays(20), Amount.of(new BigDecimal("300")));
-        installmentAdapter.save(otherNotPaid);
+        settled = Installment.create(InstallmentId.newId(), unitA, TODAY.minusDays(10), Amount.of(new BigDecimal("50")))
+                .withOutstandingAmount(BigDecimal.ZERO);
+        installmentAdapter.save(settled);
+
+        otherNotSettled = Installment.create(InstallmentId.newId(), unitB, TODAY.plusDays(20), Amount.of(new BigDecimal("300")));
+        installmentAdapter.save(otherNotSettled);
 
         // belongs to a unit outside the residence being queried - must never appear
         installmentAdapter.save(Installment.create(InstallmentId.newId(), otherUnit, TODAY, Amount.of(new BigDecimal("999"))));
@@ -66,11 +72,11 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
 
         Page<Installment> page = installmentAdapter.findPageByUnitIds(List.of(unitA, unitB),
                 new InstallmentFilter(Set.of(), null, null, InstallmentSortField.AMOUNT, SortDirection.DESC),
-                TODAY, PageRequest.of(0, 10));
+                PageRequest.of(0, 10));
 
-        assertThat(page.totalElements()).isEqualTo(3);
+        assertThat(page.totalElements()).isEqualTo(4);
         assertThat(page.content()).extracting(i -> i.getAmount().value().doubleValue())
-                .containsExactly(300d, 200d, 100d);
+                .containsExactly(300d, 200d, 100d, 50d);
     }
 
     @Test
@@ -78,15 +84,21 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
         seed();
         List<EntityId> unitIds = List.of(unitA, unitB);
 
-        Page<Installment> overduePage = installmentAdapter.findPageByUnitIds(unitIds,
-                new InstallmentFilter(Set.of(InstallmentStatus.OVERDUE), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC),
-                TODAY, PageRequest.of(0, 10));
-        assertThat(overduePage.content()).extracting(Installment::getId).containsExactly(overdue.getId());
+        Page<Installment> notSettledPage = installmentAdapter.findPageByUnitIds(unitIds,
+                new InstallmentFilter(Set.of(InstallmentStatus.NOT_SETTLED), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC),
+                PageRequest.of(0, 10));
+        assertThat(notSettledPage.content()).extracting(Installment::getId)
+                .containsExactly(notSettled.getId(), otherNotSettled.getId());
 
-        Page<Installment> notPaidPage = installmentAdapter.findPageByUnitIds(unitIds,
-                new InstallmentFilter(Set.of(InstallmentStatus.NOT_PAID), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC),
-                TODAY, PageRequest.of(0, 10));
-        assertThat(notPaidPage.content()).extracting(Installment::getId).containsExactly(notPaid.getId(), otherNotPaid.getId());
+        Page<Installment> partiallySettledPage = installmentAdapter.findPageByUnitIds(unitIds,
+                new InstallmentFilter(Set.of(InstallmentStatus.PARTIALLY_SETTLED), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC),
+                PageRequest.of(0, 10));
+        assertThat(partiallySettledPage.content()).extracting(Installment::getId).containsExactly(partiallySettled.getId());
+
+        Page<Installment> settledPage = installmentAdapter.findPageByUnitIds(unitIds,
+                new InstallmentFilter(Set.of(InstallmentStatus.SETTLED), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC),
+                PageRequest.of(0, 10));
+        assertThat(settledPage.content()).extracting(Installment::getId).containsExactly(settled.getId());
     }
 
     @Test
@@ -95,9 +107,9 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
 
         Page<Installment> page = installmentAdapter.findPageByUnitIds(List.of(unitA, unitB),
                 new InstallmentFilter(Set.of(), TODAY, TODAY.plusDays(15), InstallmentSortField.DUE_DATE, SortDirection.ASC),
-                TODAY, PageRequest.of(0, 10));
+                PageRequest.of(0, 10));
 
-        assertThat(page.content()).extracting(Installment::getId).containsExactly(notPaid.getId());
+        assertThat(page.content()).extracting(Installment::getId).containsExactly(notSettled.getId());
     }
 
     @Test
@@ -105,10 +117,10 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
         seed();
 
         Page<Installment> firstPage = installmentAdapter.findPageByUnitIds(List.of(unitA, unitB),
-                InstallmentFilter.defaultFilter(), TODAY, PageRequest.of(0, 2));
+                InstallmentFilter.defaultFilter(), PageRequest.of(0, 2));
 
         assertThat(firstPage.content()).hasSize(2);
-        assertThat(firstPage.totalElements()).isEqualTo(3);
+        assertThat(firstPage.totalElements()).isEqualTo(4);
         assertThat(firstPage.totalPages()).isEqualTo(2);
     }
 }

@@ -18,11 +18,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.architek.oikos.accounting.application.dto.LettrageProposalView;
 import com.architek.oikos.accounting.application.dto.UnitAccountView;
 import com.architek.oikos.accounting.application.port.in.GetUnitAccountUseCase;
+import com.architek.oikos.accounting.application.port.in.GetUnitLettrageProposalUseCase;
 import com.architek.oikos.accounting.application.port.in.ListUnitAccountMovementsUseCase;
 import com.architek.oikos.accounting.application.port.in.RecordOwnerPaymentUseCase;
 import com.architek.oikos.accounting.application.port.in.RecordUnitAccountRegularizationUseCase;
+import com.architek.oikos.accounting.application.port.in.ValidateUnitLettrageUseCase;
 import com.architek.oikos.accounting.domain.valueobject.UnitAccountId;
 import com.architek.oikos.accounting.domain.valueobject.UnitAccountMovementId;
 import com.architek.oikos.auth.infrastructure.security.JwtService;
@@ -51,6 +54,12 @@ class UnitAccountControllerWebMvcTest {
 
     @MockitoBean
     private RecordUnitAccountRegularizationUseCase recordUnitAccountRegularizationUseCase;
+
+    @MockitoBean
+    private GetUnitLettrageProposalUseCase getUnitLettrageProposalUseCase;
+
+    @MockitoBean
+    private ValidateUnitLettrageUseCase validateUnitLettrageUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
@@ -104,6 +113,24 @@ class UnitAccountControllerWebMvcTest {
                                 {"amount":50,"direction":"CREDIT","label":"Remise","reason":"Geste commercial"}
                                 """))
                 .andExpect(status().isCreated());
+    }
+
+    @Test
+    void admin_can_get_the_lettrage_proposal() throws Exception {
+        when(getUnitLettrageProposalUseCase.get(any())).thenReturn(new LettrageProposalView(EntityId.newId(),
+                java.util.List.of(), java.util.List.of(), java.util.List.of(), java.math.BigDecimal.ZERO,
+                java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO));
+
+        mockMvc.perform(get("/api/v1/properties/" + UUID.randomUUID() + "/accounting/units/" + UUID.randomUUID()
+                        + "/lettrage-proposal").header("Authorization", bearerToken("ROLE_ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void admin_can_validate_the_lettrage() throws Exception {
+        mockMvc.perform(post("/api/v1/properties/" + UUID.randomUUID() + "/accounting/units/" + UUID.randomUUID()
+                        + "/lettrage/validate").header("Authorization", bearerToken("ROLE_ADMIN")))
+                .andExpect(status().isNoContent());
     }
 
     @Test

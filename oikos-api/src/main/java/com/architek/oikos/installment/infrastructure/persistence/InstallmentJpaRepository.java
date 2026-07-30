@@ -17,10 +17,10 @@ public interface InstallmentJpaRepository extends JpaRepository<InstallmentEntit
     List<InstallmentEntity> findAllByInstallmentCallId(UUID installmentCallId);
 
     /**
-     * Status (NOT_PAID/OVERDUE) is never stored, so it is expressed here from
-     * dueDate vs today, mirroring InstallmentStatusCalculator exactly.
-     * hasStatusFilter lets an empty status set mean "no filter" without a
-     * separate query.
+     * Status (NOT_SETTLED/PARTIALLY_SETTLED/SETTLED) is never stored as such,
+     * so it is expressed here from outstandingAmount vs amount, mirroring
+     * InstallmentStatusCalculator exactly. hasStatusFilter lets an empty
+     * status set mean "no filter" without a separate query.
      */
     @Query("""
             select i from InstallmentEntity i
@@ -28,16 +28,17 @@ public interface InstallmentJpaRepository extends JpaRepository<InstallmentEntit
               and (:dueDateFrom is null or i.dueDate >= :dueDateFrom)
               and (:dueDateTo is null or i.dueDate <= :dueDateTo)
               and (:hasStatusFilter = false or (
-                    (:wantOverdue = true and i.dueDate < :today)
-                 or (:wantNotPaid = true and i.dueDate >= :today)
+                    (:wantNotSettled = true and i.outstandingAmount >= i.amount)
+                 or (:wantPartiallySettled = true and i.outstandingAmount > 0 and i.outstandingAmount < i.amount)
+                 or (:wantSettled = true and i.outstandingAmount <= 0)
               ))
             """)
     Page<InstallmentEntity> search(@Param("unitIds") List<UUID> unitIds,
                                     @Param("dueDateFrom") LocalDate dueDateFrom,
                                     @Param("dueDateTo") LocalDate dueDateTo,
                                     @Param("hasStatusFilter") boolean hasStatusFilter,
-                                    @Param("wantNotPaid") boolean wantNotPaid,
-                                    @Param("wantOverdue") boolean wantOverdue,
-                                    @Param("today") LocalDate today,
+                                    @Param("wantNotSettled") boolean wantNotSettled,
+                                    @Param("wantPartiallySettled") boolean wantPartiallySettled,
+                                    @Param("wantSettled") boolean wantSettled,
                                     Pageable pageable);
 }

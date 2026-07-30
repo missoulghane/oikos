@@ -34,4 +34,7 @@ public class InstallmentEntity extends AuditableEntity {
 
     @Column(name = "installment_call_id")
     private UUID installmentCallId;
+
+    @Column(name = "outstanding_amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal outstandingAmount;
 }

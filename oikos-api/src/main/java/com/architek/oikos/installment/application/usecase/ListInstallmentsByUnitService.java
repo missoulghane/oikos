@@ -1,7 +1,5 @@
 package com.architek.oikos.installment.application.usecase;
 
-import java.time.Clock;
-import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
@@ -16,19 +14,16 @@ import com.architek.oikos.installment.domain.repository.InstallmentRepository;
 public class ListInstallmentsByUnitService implements ListInstallmentsByUnitUseCase {
 
     private final InstallmentRepository installmentRepository;
-    private final Clock clock;
 
-    public ListInstallmentsByUnitService(InstallmentRepository installmentRepository, Clock clock) {
+    public ListInstallmentsByUnitService(InstallmentRepository installmentRepository) {
         this.installmentRepository = installmentRepository;
-        this.clock = clock;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<InstallmentView> listInstallments(ListInstallmentsByUnitQuery query) {
-        LocalDate today = LocalDate.now(clock);
         return installmentRepository.findAllByUnitId(query.unitId()).stream()
-                .map(installment -> InstallmentViewFactory.build(installment, today))
+                .map(InstallmentViewFactory::build)
                 .toList();
     }
 }

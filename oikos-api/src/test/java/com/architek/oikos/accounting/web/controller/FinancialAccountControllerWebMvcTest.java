@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.accounting.application.port.in.CreateFinancialAccountUseCase;
 import com.architek.oikos.accounting.application.port.in.ListFinancialAccountsByPropertyUseCase;
+import com.architek.oikos.accounting.application.port.in.RecordExceptionalDepositUseCase;
 import com.architek.oikos.accounting.application.port.in.TransferBetweenFinancialAccountsUseCase;
 import com.architek.oikos.accounting.domain.valueobject.FinancialAccountId;
 import com.architek.oikos.auth.infrastructure.security.JwtService;
@@ -44,6 +45,9 @@ class FinancialAccountControllerWebMvcTest {
 
     @MockitoBean
     private TransferBetweenFinancialAccountsUseCase transferBetweenFinancialAccountsUseCase;
+
+    @MockitoBean
+    private RecordExceptionalDepositUseCase recordExceptionalDepositUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
@@ -86,6 +90,28 @@ class FinancialAccountControllerWebMvcTest {
                                 {"fromAccountId":"%s","toAccountId":"%s","amount":100,"date":"2026-03-01","label":"Depot"}
                                 """.formatted(UUID.randomUUID(), UUID.randomUUID())))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void admin_can_record_an_exceptional_deposit() throws Exception {
+        mockMvc.perform(post("/api/v1/properties/" + UUID.randomUUID() + "/accounting/financial-accounts/deposits")
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"financialAccountId":"%s","amount":5000,"date":"2026-01-05","label":"Solde d'ouverture"}
+                                """.formatted(UUID.randomUUID())))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void regular_user_is_forbidden_from_recording_a_deposit() throws Exception {
+        mockMvc.perform(post("/api/v1/properties/" + UUID.randomUUID() + "/accounting/financial-accounts/deposits")
+                        .header("Authorization", bearerToken("ROLE_USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"financialAccountId":"%s","amount":5000,"date":"2026-01-05","label":"Solde d'ouverture"}
+                                """.formatted(UUID.randomUUID())))
+                .andExpect(status().isForbidden());
     }
 
     @Test

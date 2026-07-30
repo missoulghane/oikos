@@ -1,7 +1,5 @@
 package com.architek.oikos.installment.application.usecase;
 
-import java.time.LocalDate;
-
 import com.architek.oikos.installment.application.dto.InstallmentView;
 import com.architek.oikos.installment.domain.model.Installment;
 import com.architek.oikos.installment.domain.model.InstallmentStatusCalculator;
@@ -16,10 +14,11 @@ final class InstallmentViewFactory {
     private InstallmentViewFactory() {
     }
 
-    static InstallmentView build(Installment installment, LocalDate today) {
-        InstallmentStatus status = InstallmentStatusCalculator.compute(installment, today);
+    static InstallmentView build(Installment installment) {
+        InstallmentStatus status = InstallmentStatusCalculator.compute(installment.getAmount().value(),
+                installment.getOutstandingAmount());
 
         return new InstallmentView(installment.getId(), installment.getUnitId(),
-                installment.getDueDate(), installment.getAmount().value(), status);
+                installment.getDueDate(), installment.getAmount().value(), installment.getOutstandingAmount(), status);
     }
 }

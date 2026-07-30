@@ -30,6 +30,7 @@ export function UnitInstallmentsSection({ unitId }: { unitId: string }) {
           <div>
             <p className="text-gray-700">
               Échéance du {new Date(installment.dueDate).toLocaleDateString('fr-FR')} — {installment.amount} MAD
+              {installment.status === 'PARTIALLY_SETTLED' && ` (reste ${installment.outstandingAmount} MAD)`}
             </p>
           </div>
           <Badge color={INSTALLMENT_STATUS_BADGE_COLORS[installment.status]}>

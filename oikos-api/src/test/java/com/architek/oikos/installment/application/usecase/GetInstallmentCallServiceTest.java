@@ -5,11 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,10 +36,8 @@ class GetInstallmentCallServiceTest {
     @Mock
     private InstallmentRepository installmentRepository;
 
-    private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-02-01T00:00:00Z"), ZoneOffset.UTC);
-
     private GetInstallmentCallService newService() {
-        return new GetInstallmentCallService(installmentCallRepository, installmentRepository, FIXED_CLOCK);
+        return new GetInstallmentCallService(installmentCallRepository, installmentRepository);
     }
 
     @Test

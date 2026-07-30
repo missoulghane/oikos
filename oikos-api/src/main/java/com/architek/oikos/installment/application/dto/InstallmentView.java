@@ -8,5 +8,5 @@ import com.architek.oikos.installment.domain.valueobject.InstallmentStatus;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 public record InstallmentView(InstallmentId id, EntityId unitId, LocalDate dueDate,
-                                  BigDecimal amount, InstallmentStatus status) {
+                                  BigDecimal amount, BigDecimal outstandingAmount, InstallmentStatus status) {
 }

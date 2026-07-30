@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useUnit } from '@/features/property-mngt/properties/hooks/useUnit';
 import { UnitOwnersSection } from '@/features/property-mngt/properties/components/UnitOwnersSection';
 import { UnitInstallmentsSection } from '@/features/property-mngt/installments/components/UnitInstallmentsSection';
+import { UnitAccountSection } from '@/features/property-mngt/accounting/components/UnitAccountSection';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
@@ -54,6 +55,11 @@ export function UnitDetailPage() {
       <Card className="flex flex-col gap-2">
         <h2 className="text-base font-semibold text-gray-900">Échéances</h2>
         <UnitInstallmentsSection unitId={id} />
+      </Card>
+
+      <Card className="flex flex-col gap-2">
+        <h2 className="text-base font-semibold text-gray-900">Compte du lot</h2>
+        <UnitAccountSection propertyId={propertyId ?? ''} unitId={id} />
       </Card>
     </div>
   );

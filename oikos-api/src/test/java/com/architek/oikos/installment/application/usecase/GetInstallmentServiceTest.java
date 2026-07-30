@@ -4,10 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -30,14 +27,12 @@ class GetInstallmentServiceTest {
     @Mock
     private InstallmentRepository installmentRepository;
 
-    private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2027-06-15T00:00:00Z"), ZoneOffset.UTC);
-
     private GetInstallmentService newService() {
-        return new GetInstallmentService(installmentRepository, FIXED_CLOCK);
+        return new GetInstallmentService(installmentRepository);
     }
 
     @Test
-    void an_installment_not_yet_due_is_reported_as_not_paid() {
+    void an_installment_with_nothing_settled_is_reported_as_not_settled() {
         Installment installment = Installment.create(InstallmentId.newId(), EntityId.newId(),
                 LocalDate.of(2027, 12, 1), Amount.of(new BigDecimal("250")));
         when(installmentRepository.findById(installment.getId())).thenReturn(Optional.of(installment));
@@ -45,17 +40,30 @@ class GetInstallmentServiceTest {
         InstallmentView view = newService().getInstallment(new GetInstallmentQuery(installment.getId()));
 
         assertThat(view.amount()).isEqualByComparingTo("250");
-        assertThat(view.status()).isEqualTo(InstallmentStatus.NOT_PAID);
+        assertThat(view.outstandingAmount()).isEqualByComparingTo("250");
+        assertThat(view.status()).isEqualTo(InstallmentStatus.NOT_SETTLED);
     }
 
     @Test
-    void an_installment_past_its_due_date_is_reported_as_overdue() {
+    void a_fully_settled_installment_is_reported_as_settled() {
         Installment installment = Installment.create(InstallmentId.newId(), EntityId.newId(),
-                LocalDate.of(2027, 1, 1), Amount.of(new BigDecimal("250")));
+                LocalDate.of(2027, 1, 1), Amount.of(new BigDecimal("250"))).withOutstandingAmount(BigDecimal.ZERO);
         when(installmentRepository.findById(installment.getId())).thenReturn(Optional.of(installment));
 
         InstallmentView view = newService().getInstallment(new GetInstallmentQuery(installment.getId()));
 
-        assertThat(view.status()).isEqualTo(InstallmentStatus.OVERDUE);
+        assertThat(view.status()).isEqualTo(InstallmentStatus.SETTLED);
+    }
+
+    @Test
+    void a_partially_settled_installment_is_reported_as_partially_settled() {
+        Installment installment = Installment.create(InstallmentId.newId(), EntityId.newId(),
+                LocalDate.of(2027, 1, 1), Amount.of(new BigDecimal("250"))).withOutstandingAmount(new BigDecimal("100"));
+        when(installmentRepository.findById(installment.getId())).thenReturn(Optional.of(installment));
+
+        InstallmentView view = newService().getInstallment(new GetInstallmentQuery(installment.getId()));
+
+        assertThat(view.outstandingAmount()).isEqualByComparingTo("100");
+        assertThat(view.status()).isEqualTo(InstallmentStatus.PARTIALLY_SETTLED);
     }
 }

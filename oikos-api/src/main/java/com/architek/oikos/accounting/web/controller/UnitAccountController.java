@@ -15,16 +15,21 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import com.architek.oikos.accounting.application.command.RecordOwnerPaymentCommand;
 import com.architek.oikos.accounting.application.command.RecordUnitAccountRegularizationCommand;
+import com.architek.oikos.accounting.application.command.ValidateUnitLettrageCommand;
 import com.architek.oikos.accounting.application.port.in.GetUnitAccountUseCase;
+import com.architek.oikos.accounting.application.port.in.GetUnitLettrageProposalUseCase;
 import com.architek.oikos.accounting.application.port.in.ListUnitAccountMovementsUseCase;
 import com.architek.oikos.accounting.application.port.in.RecordOwnerPaymentUseCase;
 import com.architek.oikos.accounting.application.port.in.RecordUnitAccountRegularizationUseCase;
+import com.architek.oikos.accounting.application.port.in.ValidateUnitLettrageUseCase;
 import com.architek.oikos.accounting.application.query.GetUnitAccountQuery;
+import com.architek.oikos.accounting.application.query.GetUnitLettrageProposalQuery;
 import com.architek.oikos.accounting.application.query.ListUnitAccountMovementsQuery;
 import com.architek.oikos.accounting.domain.valueobject.FinancialAccountId;
 import com.architek.oikos.accounting.domain.valueobject.UnitAccountMovementId;
 import com.architek.oikos.accounting.web.request.RecordOwnerPaymentRequest;
 import com.architek.oikos.accounting.web.request.RecordUnitAccountRegularizationRequest;
+import com.architek.oikos.accounting.web.response.LettrageProposalResponse;
 import com.architek.oikos.accounting.web.response.PagedUnitAccountMovementResponse;
 import com.architek.oikos.accounting.web.response.UnitAccountResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
@@ -37,15 +42,21 @@ public class UnitAccountController {
     private final ListUnitAccountMovementsUseCase listUnitAccountMovementsUseCase;
     private final RecordOwnerPaymentUseCase recordOwnerPaymentUseCase;
     private final RecordUnitAccountRegularizationUseCase recordUnitAccountRegularizationUseCase;
+    private final GetUnitLettrageProposalUseCase getUnitLettrageProposalUseCase;
+    private final ValidateUnitLettrageUseCase validateUnitLettrageUseCase;
 
     public UnitAccountController(GetUnitAccountUseCase getUnitAccountUseCase,
                                   ListUnitAccountMovementsUseCase listUnitAccountMovementsUseCase,
                                   RecordOwnerPaymentUseCase recordOwnerPaymentUseCase,
-                                  RecordUnitAccountRegularizationUseCase recordUnitAccountRegularizationUseCase) {
+                                  RecordUnitAccountRegularizationUseCase recordUnitAccountRegularizationUseCase,
+                                  GetUnitLettrageProposalUseCase getUnitLettrageProposalUseCase,
+                                  ValidateUnitLettrageUseCase validateUnitLettrageUseCase) {
         this.getUnitAccountUseCase = getUnitAccountUseCase;
         this.listUnitAccountMovementsUseCase = listUnitAccountMovementsUseCase;
         this.recordOwnerPaymentUseCase = recordOwnerPaymentUseCase;
         this.recordUnitAccountRegularizationUseCase = recordUnitAccountRegularizationUseCase;
+        this.getUnitLettrageProposalUseCase = getUnitLettrageProposalUseCase;
+        this.validateUnitLettrageUseCase = validateUnitLettrageUseCase;
     }
 
     @PreAuthorize("@propertyAccess.managesUnit(authentication, #unitId) or @propertyAccess.ownsUnit(authentication, #unitId)")
@@ -86,6 +97,22 @@ public class UnitAccountController {
         return ResponseEntity
                 .created(URI.create("/api/v1/units/" + unitId + "/account/movements/" + id))
                 .build();
+    }
+
+    @PreAuthorize("@propertyAccess.canReadAccounting(authentication, #propertyId)")
+    @GetMapping("/properties/{propertyId}/accounting/units/{unitId}/lettrage-proposal")
+    public LettrageProposalResponse getLettrageProposal(@PathVariable String propertyId, @PathVariable String unitId) {
+        return LettrageProposalResponse
+                .from(getUnitLettrageProposalUseCase.get(new GetUnitLettrageProposalQuery(EntityId.of(unitId))));
+    }
+
+    @PreAuthorize("@propertyAccess.canWriteAccounting(authentication, #propertyId)")
+    @PostMapping("/properties/{propertyId}/accounting/units/{unitId}/lettrage/validate")
+    public ResponseEntity<Void> validateLettrage(@PathVariable String propertyId, @PathVariable String unitId,
+                                                  Authentication authentication) {
+        validateUnitLettrageUseCase
+                .validate(new ValidateUnitLettrageCommand(EntityId.of(unitId), currentUserId(authentication)));
+        return ResponseEntity.noContent().build();
     }
 
     private static EntityId currentUserId(Authentication authentication) {

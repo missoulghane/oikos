@@ -14,13 +14,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import com.architek.oikos.accounting.application.command.CreateFinancialAccountCommand;
+import com.architek.oikos.accounting.application.command.RecordExceptionalDepositCommand;
 import com.architek.oikos.accounting.application.command.TransferBetweenFinancialAccountsCommand;
 import com.architek.oikos.accounting.application.port.in.CreateFinancialAccountUseCase;
 import com.architek.oikos.accounting.application.port.in.ListFinancialAccountsByPropertyUseCase;
+import com.architek.oikos.accounting.application.port.in.RecordExceptionalDepositUseCase;
 import com.architek.oikos.accounting.application.port.in.TransferBetweenFinancialAccountsUseCase;
 import com.architek.oikos.accounting.application.query.ListFinancialAccountsByPropertyQuery;
 import com.architek.oikos.accounting.domain.valueobject.FinancialAccountId;
 import com.architek.oikos.accounting.web.request.CreateFinancialAccountRequest;
+import com.architek.oikos.accounting.web.request.RecordExceptionalDepositRequest;
 import com.architek.oikos.accounting.web.request.TransferBetweenFinancialAccountsRequest;
 import com.architek.oikos.accounting.web.response.FinancialAccountResponse;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -31,13 +34,16 @@ public class FinancialAccountController {
     private final CreateFinancialAccountUseCase createFinancialAccountUseCase;
     private final ListFinancialAccountsByPropertyUseCase listFinancialAccountsByPropertyUseCase;
     private final TransferBetweenFinancialAccountsUseCase transferBetweenFinancialAccountsUseCase;
+    private final RecordExceptionalDepositUseCase recordExceptionalDepositUseCase;
 
     public FinancialAccountController(CreateFinancialAccountUseCase createFinancialAccountUseCase,
                                        ListFinancialAccountsByPropertyUseCase listFinancialAccountsByPropertyUseCase,
-                                       TransferBetweenFinancialAccountsUseCase transferBetweenFinancialAccountsUseCase) {
+                                       TransferBetweenFinancialAccountsUseCase transferBetweenFinancialAccountsUseCase,
+                                       RecordExceptionalDepositUseCase recordExceptionalDepositUseCase) {
         this.createFinancialAccountUseCase = createFinancialAccountUseCase;
         this.listFinancialAccountsByPropertyUseCase = listFinancialAccountsByPropertyUseCase;
         this.transferBetweenFinancialAccountsUseCase = transferBetweenFinancialAccountsUseCase;
+        this.recordExceptionalDepositUseCase = recordExceptionalDepositUseCase;
     }
 
     @PreAuthorize("@propertyAccess.canWriteAccounting(authentication, #propertyId)")
@@ -69,6 +75,17 @@ public class FinancialAccountController {
                 EntityId.of(propertyId), FinancialAccountId.of(request.fromAccountId()),
                 FinancialAccountId.of(request.toAccountId()), request.amount(), request.date(), request.label(),
                 currentUserId(authentication)));
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("@propertyAccess.canWriteAccounting(authentication, #propertyId)")
+    @PostMapping("/properties/{propertyId}/accounting/financial-accounts/deposits")
+    public ResponseEntity<Void> recordDeposit(@PathVariable String propertyId,
+                                               @Valid @RequestBody RecordExceptionalDepositRequest request,
+                                               Authentication authentication) {
+        recordExceptionalDepositUseCase.record(new RecordExceptionalDepositCommand(EntityId.of(propertyId),
+                FinancialAccountId.of(request.financialAccountId()), request.amount(), request.date(),
+                request.label(), currentUserId(authentication)));
         return ResponseEntity.noContent().build();
     }
 

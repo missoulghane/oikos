@@ -10,5 +10,7 @@ export {
   isManagerTier,
   isBoardTierOnProperty,
   isManagerTierOnProperty,
+  canReadAccounting,
+  canWriteAccounting,
 } from '@/features/identity/me/utils/access';
 export type { CurrentUser, OwnedUnit, PropertyRoleName } from '@/features/identity/me/types/me.types';
