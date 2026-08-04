@@ -14,6 +14,7 @@ export function PropertyLotsTab() {
   const { property } = useOutletContext<{ property: Property }>();
   const buildings = useBuildings(property.id);
   const [isAddingBuilding, setIsAddingBuilding] = useState(false);
+  const showShares = property.duesCalculationMode === 'SHARES';
 
   if (buildings.isLoading) {
     return <Loader label="Chargement des immeubles…" />;
@@ -28,7 +29,7 @@ export function PropertyLotsTab() {
         </EmptyState>
       )}
       {buildings.data?.content.map((building) => (
-        <BuildingSection key={building.id} building={building} />
+        <BuildingSection key={building.id} building={building} showShares={showShares} />
       ))}
       {isAddingBuilding ? (
         <AddBuildingForm

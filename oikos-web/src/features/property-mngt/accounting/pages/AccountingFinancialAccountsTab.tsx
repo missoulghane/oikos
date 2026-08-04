@@ -1,10 +1,7 @@
-import { useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { useCurrentUser, canWriteAccounting } from '@/features/identity/me';
 import { useFinancialAccounts } from '@/features/property-mngt/accounting/hooks/useFinancialAccounts';
-import { CreateFinancialAccountForm } from '@/features/property-mngt/accounting/components/CreateFinancialAccountForm';
 import { FinancialAccountRow } from '@/features/property-mngt/accounting/components/FinancialAccountRow';
-import { TransferForm } from '@/features/property-mngt/accounting/components/TransferForm';
-import { RecordExceptionalDepositForm } from '@/features/property-mngt/accounting/components/RecordExceptionalDepositForm';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
@@ -20,7 +17,35 @@ export function AccountingFinancialAccountsTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      {canWrite && <CreateFinancialAccountForm propertyId={property.id} />}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-gray-900">Comptes financiers</h2>
+        {canWrite && (
+          <div className="flex flex-wrap gap-3">
+            {financialAccounts.data && financialAccounts.data.length > 0 && (
+              <Link
+                to={`/properties/${property.id}/accounting/financial-accounts/deposit`}
+                className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+              >
+                Dépôt exceptionnel
+              </Link>
+            )}
+            {financialAccounts.data && financialAccounts.data.length >= 2 && (
+              <Link
+                to={`/properties/${property.id}/accounting/financial-accounts/transfer`}
+                className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+              >
+                Virement entre comptes
+              </Link>
+            )}
+            <Link
+              to={`/properties/${property.id}/accounting/financial-accounts/new`}
+              className="inline-flex min-h-11 items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+            >
+              Créer le compte
+            </Link>
+          </div>
+        )}
+      </div>
 
       {financialAccounts.isLoading && <Loader label="Chargement des comptes financiers…" />}
       {financialAccounts.isError && <Alert message={getErrorMessage(financialAccounts.error)} />}
@@ -35,20 +60,6 @@ export function AccountingFinancialAccountsTab() {
             <FinancialAccountRow key={account.id} account={account} />
           ))}
         </ul>
-      )}
-
-      {canWrite && financialAccounts.data && financialAccounts.data.length >= 2 && (
-        <div className="flex flex-col gap-4">
-          <h2 className="text-base font-semibold text-gray-900">Virement entre comptes</h2>
-          <TransferForm propertyId={property.id} accounts={financialAccounts.data} />
-        </div>
-      )}
-
-      {canWrite && financialAccounts.data && financialAccounts.data.length > 0 && (
-        <div className="flex flex-col gap-4">
-          <h2 className="text-base font-semibold text-gray-900">Dépôt exceptionnel</h2>
-          <RecordExceptionalDepositForm propertyId={property.id} accounts={financialAccounts.data} />
-        </div>
       )}
     </div>
   );

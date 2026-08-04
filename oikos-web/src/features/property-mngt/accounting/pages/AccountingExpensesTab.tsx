@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { useCurrentUser, canWriteAccounting } from '@/features/identity/me';
 import { useFinancialAccounts } from '@/features/property-mngt/accounting/hooks/useFinancialAccounts';
 import { useExpenses } from '@/features/property-mngt/accounting/hooks/useExpenses';
-import { RecordExpenseForm } from '@/features/property-mngt/accounting/components/RecordExpenseForm';
 import { ExpenseRow } from '@/features/property-mngt/accounting/components/ExpenseRow';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
@@ -25,7 +24,17 @@ export function AccountingExpensesTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      {canWrite && <RecordExpenseForm propertyId={property.id} accounts={financialAccounts.data ?? []} />}
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold text-gray-900">Dépenses</h2>
+        {canWrite && (
+          <Link
+            to={`/properties/${property.id}/accounting/expenses/new`}
+            className="inline-flex min-h-11 items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+          >
+            Nouvelle dépense
+          </Link>
+        )}
+      </div>
 
       {expenses.isLoading && <Loader label="Chargement des dépenses…" />}
       {expenses.isError && <Alert message={getErrorMessage(expenses.error)} />}

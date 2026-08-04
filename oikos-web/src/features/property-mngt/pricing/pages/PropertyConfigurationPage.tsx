@@ -3,6 +3,8 @@ import { useUnitTypeDefinitions } from '@/features/property-mngt/properties/hook
 import { AddUnitTypeForm } from '@/features/property-mngt/properties/components/AddUnitTypeForm';
 import { useUnitTypePrices } from '@/features/property-mngt/pricing/hooks/useUnitTypePrices';
 import { UnitTypePriceRow } from '@/features/property-mngt/pricing/components/UnitTypePriceRow';
+import { DuesCalculationModeForm } from '@/features/property-mngt/pricing/components/DuesCalculationModeForm';
+import { ProjectedBudgetForm } from '@/features/property-mngt/pricing/components/ProjectedBudgetForm';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
@@ -22,29 +24,45 @@ export function PropertyConfigurationPage() {
   const priceByUnitTypeId = new Map(unitTypePrices.data?.map((entry) => [entry.unitTypeId, entry.price]));
 
   return (
-    <div className="flex flex-col gap-4">
-      <h2 className="text-base font-semibold text-gray-900">Types de lot et prix</h2>
-      {unitTypes.isError && <Alert message={getErrorMessage(unitTypes.error)} />}
-      {unitTypePrices.isError && <Alert message={getErrorMessage(unitTypePrices.error)} />}
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
+        <h2 className="text-base font-semibold text-gray-900">Mode de gestion des cotisations</h2>
+        <DuesCalculationModeForm propertyId={propertyId} currentMode={property.duesCalculationMode} />
+      </div>
 
-      <AddUnitTypeForm propertyId={propertyId} />
-
-      {unitTypes.data && unitTypes.data.length === 0 && (
-        <EmptyState title="Aucun type de lot pour le moment">
-          Ajoutez un type de lot pour pouvoir lui associer un prix.
-        </EmptyState>
+      {property.duesCalculationMode === 'SHARES' && (
+        <div className="flex flex-col gap-4">
+          <h2 className="text-base font-semibold text-gray-900">Budget prévisionnel</h2>
+          <ProjectedBudgetForm propertyId={propertyId} currentProjectedBudget={property.projectedBudget} />
+        </div>
       )}
-      {unitTypes.data && unitTypes.data.length > 0 && (
-        <div className="rounded-lg border border-gray-200 px-4">
-          {unitTypes.data.map((unitType) => (
-            <UnitTypePriceRow
-              key={`${unitType.id}-${priceByUnitTypeId.get(unitType.id) ?? 'none'}`}
-              propertyId={propertyId}
-              unitTypeId={unitType.id}
-              label={unitType.name}
-              currentPrice={priceByUnitTypeId.get(unitType.id)}
-            />
-          ))}
+
+      {property.duesCalculationMode === 'FLAT_RATE' && (
+        <div className="flex flex-col gap-4">
+          <h2 className="text-base font-semibold text-gray-900">Types de lot et prix</h2>
+          {unitTypes.isError && <Alert message={getErrorMessage(unitTypes.error)} />}
+          {unitTypePrices.isError && <Alert message={getErrorMessage(unitTypePrices.error)} />}
+
+          <AddUnitTypeForm propertyId={propertyId} />
+
+          {unitTypes.data && unitTypes.data.length === 0 && (
+            <EmptyState title="Aucun type de lot pour le moment">
+              Ajoutez un type de lot pour pouvoir lui associer un prix.
+            </EmptyState>
+          )}
+          {unitTypes.data && unitTypes.data.length > 0 && (
+            <div className="rounded-lg border border-gray-200 px-4">
+              {unitTypes.data.map((unitType) => (
+                <UnitTypePriceRow
+                  key={`${unitType.id}-${priceByUnitTypeId.get(unitType.id) ?? 'none'}`}
+                  propertyId={propertyId}
+                  unitTypeId={unitType.id}
+                  label={unitType.name}
+                  currentPrice={priceByUnitTypeId.get(unitType.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

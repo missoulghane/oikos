@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/shared/components/Input/Input';
 import { Select } from '@/shared/components/Select/Select';
@@ -18,16 +19,16 @@ interface RecordExceptionalDepositFormProps {
 }
 
 export function RecordExceptionalDepositForm({ propertyId, accounts }: RecordExceptionalDepositFormProps) {
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<RecordExceptionalDepositFormValues>({ resolver: zodResolver(recordExceptionalDepositSchema) });
   const { mutate, isPending, error } = useRecordExceptionalDeposit(propertyId);
 
   function onSubmit(values: RecordExceptionalDepositFormValues) {
-    mutate(values, { onSuccess: () => reset() });
+    mutate(values, { onSuccess: () => navigate(`/properties/${propertyId}/accounting/financial-accounts`) });
   }
 
   return (

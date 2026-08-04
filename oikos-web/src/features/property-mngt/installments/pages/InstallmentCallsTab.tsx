@@ -28,7 +28,9 @@ export function InstallmentCallsTab() {
           message={
             lastResult.skippedUnitIds.length === 0
               ? `Appel généré : ${lastResult.chargedUnitIds.length} lot(s) facturé(s).`
-              : `Appel généré : ${lastResult.chargedUnitIds.length} lot(s) facturé(s), ${lastResult.skippedUnitIds.length} lot(s) ignoré(s) (prix non configuré).`
+              : `Appel généré : ${lastResult.chargedUnitIds.length} lot(s) facturé(s), ${lastResult.skippedUnitIds.length} lot(s) ignoré(s) (${
+                  property.duesCalculationMode === 'SHARES' ? 'tantième non configuré' : 'prix non configuré'
+                }).`
           }
         />
       )}

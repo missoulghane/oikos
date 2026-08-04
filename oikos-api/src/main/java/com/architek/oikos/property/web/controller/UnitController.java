@@ -14,18 +14,22 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import com.architek.oikos.property.application.command.AddUnitCommand;
+import com.architek.oikos.property.application.command.UpdateUnitSharesCommand;
 import com.architek.oikos.property.application.port.in.AddUnitUseCase;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitsByBuildingUseCase;
+import com.architek.oikos.property.application.port.in.UpdateUnitSharesUseCase;
 import com.architek.oikos.property.application.query.GetUnitQuery;
 import com.architek.oikos.property.application.query.ListUnitsByBuildingQuery;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.property.web.request.AddUnitRequest;
+import com.architek.oikos.property.web.request.UpdateUnitSharesRequest;
 import com.architek.oikos.property.web.response.UnitResponse;
 import com.architek.oikos.property.web.response.PagedUnitResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import org.springframework.web.bind.annotation.PutMapping;
 
 @RestController
 public class UnitController {
@@ -33,13 +37,16 @@ public class UnitController {
     private final AddUnitUseCase addUnitUseCase;
     private final GetUnitUseCase getUnitUseCase;
     private final ListUnitsByBuildingUseCase listUnitsByBuildingUseCase;
+    private final UpdateUnitSharesUseCase updateUnitSharesUseCase;
 
     public UnitController(AddUnitUseCase addUnitUseCase,
                           GetUnitUseCase getUnitUseCase,
-                          ListUnitsByBuildingUseCase listUnitsByBuildingUseCase) {
+                          ListUnitsByBuildingUseCase listUnitsByBuildingUseCase,
+                          UpdateUnitSharesUseCase updateUnitSharesUseCase) {
         this.addUnitUseCase = addUnitUseCase;
         this.getUnitUseCase = getUnitUseCase;
         this.listUnitsByBuildingUseCase = listUnitsByBuildingUseCase;
+        this.updateUnitSharesUseCase = updateUnitSharesUseCase;
     }
 
     @PreAuthorize("@propertyAccess.managesBuilding(authentication, #buildingId)")
@@ -55,6 +62,13 @@ public class UnitController {
     @GetMapping("/units/{id}")
     public UnitResponse getById(@PathVariable String id) {
         return UnitResponse.from(getUnitUseCase.getUnit(new GetUnitQuery(UnitId.of(id))));
+    }
+
+    @PreAuthorize("@propertyAccess.managesUnit(authentication, #id)")
+    @PutMapping("/units/{id}/shares")
+    public UnitResponse updateShares(@PathVariable String id, @Valid @RequestBody UpdateUnitSharesRequest request) {
+        return UnitResponse.from(updateUnitSharesUseCase.updateShares(
+                new UpdateUnitSharesCommand(UnitId.of(id), request.shares())));
     }
 
     @PreAuthorize("@propertyAccess.managesBuilding(authentication, #buildingId)")

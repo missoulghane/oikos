@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/shared/components/Input/Input';
 import { Select } from '@/shared/components/Select/Select';
@@ -15,16 +16,16 @@ interface TransferFormProps {
 }
 
 export function TransferForm({ propertyId, accounts }: TransferFormProps) {
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<TransferFormValues>({ resolver: zodResolver(transferSchema) });
   const { mutate, isPending, error } = useTransferBetweenFinancialAccounts(propertyId);
 
   function onSubmit(values: TransferFormValues) {
-    mutate(values, { onSuccess: () => reset() });
+    mutate(values, { onSuccess: () => navigate(`/properties/${propertyId}/accounting/financial-accounts`) });
   }
 
   return (

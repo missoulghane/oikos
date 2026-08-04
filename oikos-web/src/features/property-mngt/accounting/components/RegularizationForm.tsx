@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/shared/components/Input/Input';
 import { Select } from '@/shared/components/Select/Select';
@@ -18,16 +19,16 @@ interface RegularizationFormProps {
 }
 
 export function RegularizationForm({ propertyId, unitId }: RegularizationFormProps) {
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<RegularizationFormValues>({ resolver: zodResolver(regularizationSchema) });
   const { mutate, isPending, error } = useRecordUnitAccountRegularization(propertyId, unitId);
 
   function onSubmit(values: RegularizationFormValues) {
-    mutate(values, { onSuccess: () => reset() });
+    mutate(values, { onSuccess: () => navigate(`/properties/${propertyId}/units/${unitId}`) });
   }
 
   return (

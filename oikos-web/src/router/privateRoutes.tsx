@@ -65,6 +65,24 @@ const AccountingJournalTab = lazy(() =>
 const AccountingLettrageTab = lazy(() =>
   import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingLettrageTab })),
 );
+const CreateExpensePage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.CreateExpensePage })),
+);
+const CreateFinancialAccountPage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.CreateFinancialAccountPage })),
+);
+const RecordDepositPage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.RecordDepositPage })),
+);
+const TransferPage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.TransferPage })),
+);
+const RecordPaymentPage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.RecordPaymentPage })),
+);
+const RegularizationPage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.RegularizationPage })),
+);
 const PropertyConfigurationPage = lazy(() =>
   import('@/features/property-mngt/pricing').then((m) => ({ default: m.PropertyConfigurationPage })),
 );
@@ -252,6 +270,38 @@ export const privateRoutes: RouteObject[] = [
               },
             ],
           },
+          {
+            path: 'accounting/expenses/new',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <CreateExpensePage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'accounting/financial-accounts/new',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <CreateFinancialAccountPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'accounting/financial-accounts/deposit',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <RecordDepositPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'accounting/financial-accounts/transfer',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <TransferPage />
+              </Suspense>
+            ),
+          },
         ],
       },
       {
@@ -259,6 +309,22 @@ export const privateRoutes: RouteObject[] = [
         element: (
           <Suspense fallback={<Loader />}>
             <UnitDetailPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/properties/:propertyId/units/:unitId/payment',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <RecordPaymentPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/properties/:propertyId/units/:unitId/regularization',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <RegularizationPage />
           </Suspense>
         ),
       },

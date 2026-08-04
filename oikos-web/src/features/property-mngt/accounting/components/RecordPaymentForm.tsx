@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/shared/components/Input/Input';
 import { Select } from '@/shared/components/Select/Select';
@@ -19,16 +20,16 @@ interface RecordPaymentFormProps {
 }
 
 export function RecordPaymentForm({ propertyId, unitId, accounts }: RecordPaymentFormProps) {
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<RecordOwnerPaymentFormValues>({ resolver: zodResolver(recordOwnerPaymentSchema) });
   const { mutate, isPending, error } = useRecordOwnerPayment(propertyId, unitId);
 
   function onSubmit(values: RecordOwnerPaymentFormValues) {
-    mutate(values, { onSuccess: () => reset() });
+    mutate(values, { onSuccess: () => navigate(`/properties/${propertyId}/units/${unitId}`) });
   }
 
   return (

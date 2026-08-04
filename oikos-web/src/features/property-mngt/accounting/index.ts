@@ -5,3 +5,9 @@ export { AccountingExpensesTab } from '@/features/property-mngt/accounting/pages
 export { AccountingUnitsTab } from '@/features/property-mngt/accounting/pages/AccountingUnitsTab';
 export { AccountingJournalTab } from '@/features/property-mngt/accounting/pages/AccountingJournalTab';
 export { AccountingLettrageTab } from '@/features/property-mngt/accounting/pages/AccountingLettrageTab';
+export { CreateExpensePage } from '@/features/property-mngt/accounting/pages/CreateExpensePage';
+export { CreateFinancialAccountPage } from '@/features/property-mngt/accounting/pages/CreateFinancialAccountPage';
+export { RecordDepositPage } from '@/features/property-mngt/accounting/pages/RecordDepositPage';
+export { TransferPage } from '@/features/property-mngt/accounting/pages/TransferPage';
+export { RecordPaymentPage } from '@/features/property-mngt/accounting/pages/RecordPaymentPage';
+export { RegularizationPage } from '@/features/property-mngt/accounting/pages/RegularizationPage';

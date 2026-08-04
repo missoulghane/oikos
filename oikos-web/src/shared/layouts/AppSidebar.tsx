@@ -2,7 +2,26 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSidebar } from '@/shared/context/SidebarContext';
 import { useCurrentUser, boardPropertyId, isManagerTier, isManagerTierOnProperty } from '@/features/identity/me';
-import { GridIcon, PieChartIcon, DollarLineIcon, DocsIcon, ChevronDownIcon, HorizontaLDots } from '@/shared/icons';
+import {
+  GridIcon,
+  PieChartIcon,
+  DollarLineIcon,
+  DocsIcon,
+  ChevronDownIcon,
+  HorizontaLDots,
+  FileIcon,
+  BoxIconLine,
+  GroupIcon,
+  PlugInIcon,
+  TimeIcon,
+  PaperPlaneIcon,
+  MoreDotIcon,
+  FolderIcon,
+  ArrowDownIcon,
+  ListIcon,
+  CheckLineIcon,
+} from '@/shared/icons';
+import { SidebarWidget } from './SidebarWidget';
 
 interface NavItem {
   name: string;
@@ -13,29 +32,29 @@ interface NavItem {
 interface NavGroup {
   name: string;
   icon: React.ReactNode;
-  children: { name: string; path: string }[];
+  children: { name: string; path: string; icon: React.ReactNode }[];
 }
 
 const PROPERTY_INFO_TABS = [
-  { name: 'Informations générales', path: '' },
-  { name: 'Lots', path: '/lots' },
-  { name: 'Contacts', path: '/contacts' },
-  { name: 'Configuration', path: '/configuration' },
+  { name: 'Informations générales', path: '', icon: <FileIcon /> },
+  { name: 'Lots', path: '/lots', icon: <BoxIconLine /> },
+  { name: 'Contacts', path: '/contacts', icon: <GroupIcon /> },
+  { name: 'Configuration', path: '/configuration', icon: <PlugInIcon /> },
 ];
 
 const INSTALLMENT_TABS = [
-  { name: 'Échéances', path: '' },
-  { name: 'Appels à cotisations', path: '/calls' },
-  { name: 'Autres', path: '/other' },
+  { name: 'Échéances', path: '', icon: <TimeIcon /> },
+  { name: 'Appels à cotisations', path: '/calls', icon: <PaperPlaneIcon /> },
+  { name: 'Autres', path: '/other', icon: <MoreDotIcon /> },
 ];
 
 const ACCOUNTING_TABS = [
-  { name: 'Trésorerie', path: '' },
-  { name: 'Comptes financiers', path: '/financial-accounts' },
-  { name: 'Dépenses', path: '/expenses' },
-  { name: 'Comptes des lots', path: '/units' },
-  { name: 'Journal', path: '/journal' },
-  { name: 'Lettrage', path: '/lettrage' },
+  { name: 'Trésorerie', path: '', icon: <DollarLineIcon /> },
+  { name: 'Comptes financiers', path: '/financial-accounts', icon: <FolderIcon /> },
+  { name: 'Dépenses', path: '/expenses', icon: <ArrowDownIcon /> },
+  { name: 'Comptes des lots', path: '/units', icon: <BoxIconLine /> },
+  { name: 'Journal', path: '/journal', icon: <ListIcon /> },
+  { name: 'Lettrage', path: '/lettrage', icon: <CheckLineIcon /> },
 ];
 
 function propertyContextGroups(propertyId: string): NavGroup[] {
@@ -46,6 +65,7 @@ function propertyContextGroups(propertyId: string): NavGroup[] {
       children: PROPERTY_INFO_TABS.map((tab) => ({
         name: tab.name,
         path: `/properties/${propertyId}/property${tab.path}`,
+        icon: tab.icon,
       })),
     },
     {
@@ -54,6 +74,7 @@ function propertyContextGroups(propertyId: string): NavGroup[] {
       children: INSTALLMENT_TABS.map((tab) => ({
         name: tab.name,
         path: `/properties/${propertyId}/installments${tab.path}`,
+        icon: tab.icon,
       })),
     },
     {
@@ -62,6 +83,7 @@ function propertyContextGroups(propertyId: string): NavGroup[] {
       children: ACCOUNTING_TABS.map((tab) => ({
         name: tab.name,
         path: `/properties/${propertyId}/accounting${tab.path}`,
+        icon: tab.icon,
       })),
     },
   ];
@@ -189,20 +211,28 @@ export function AppSidebar() {
                     }`}
                   >
                     <ul className="mt-2 ml-9 space-y-1 overflow-hidden">
-                      {group.children.map((child) => (
-                        <li key={child.path}>
-                          <Link
-                            to={child.path}
-                            className={`menu-dropdown-item ${
-                              location.pathname === child.path
-                                ? 'menu-dropdown-item-active'
-                                : 'menu-dropdown-item-inactive'
-                            }`}
-                          >
-                            {child.name}
-                          </Link>
-                        </li>
-                      ))}
+                      {group.children.map((child) => {
+                        const childActive = location.pathname === child.path;
+                        return (
+                          <li key={child.path}>
+                            <Link
+                              to={child.path}
+                              className={`menu-dropdown-item ${
+                                childActive ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'
+                              }`}
+                            >
+                              <span
+                                className={`[&_svg]:size-4 ${
+                                  childActive ? 'menu-item-icon-active' : 'menu-item-icon-inactive'
+                                }`}
+                              >
+                                {child.icon}
+                              </span>
+                              {child.name}
+                            </Link>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
@@ -211,6 +241,7 @@ export function AppSidebar() {
           })}
         </ul>
       </nav>
+      {showExpanded && <SidebarWidget />}
     </aside>
   );
 }

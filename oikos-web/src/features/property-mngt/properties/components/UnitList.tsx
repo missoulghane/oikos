@@ -12,7 +12,13 @@ const OWNERSHIP_STATUS_LABELS = {
   NOT_AFFECTED: 'Non affecté',
 } as const;
 
-export function UnitList({ buildingId, propertyId }: { buildingId: string; propertyId: string }) {
+interface UnitListProps {
+  buildingId: string;
+  propertyId: string;
+  showShares: boolean;
+}
+
+export function UnitList({ buildingId, propertyId, showShares }: UnitListProps) {
   const [page, setPage] = useState(0);
   const { data, isLoading, isError, error } = useUnits(buildingId, page);
 
@@ -41,7 +47,7 @@ export function UnitList({ buildingId, propertyId }: { buildingId: string; prope
                 <p className="text-sm font-medium text-gray-900">
                   Lot {unit.unitNumber} — {unit.unitTypeName}
                 </p>
-                <p className="text-sm text-gray-500">{unit.shares} tantièmes</p>
+                {showShares && <p className="text-sm text-gray-500">{unit.shares} tantièmes</p>}
               </div>
               <span className="w-fit rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
                 {OWNERSHIP_STATUS_LABELS[unit.ownershipStatus]}

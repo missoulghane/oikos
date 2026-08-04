@@ -11,7 +11,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.architek.oikos.installment.application.port.out.PropertyDuesConfigurationView;
 import com.architek.oikos.installment.application.port.out.UnitPriceLine;
+import com.architek.oikos.installment.application.port.out.UnitShareLine;
+import com.architek.oikos.installment.domain.valueobject.DuesCalculationMode;
 import com.architek.oikos.property.application.dto.BuildingView;
 import com.architek.oikos.property.application.dto.UnitTypePriceView;
 import com.architek.oikos.property.application.dto.UnitView;
@@ -61,11 +64,45 @@ class InstallmentPropertyDirectoryAdapterTest {
         EntityId propertyId = EntityId.newId();
         PropertyId propertyIdValue = new PropertyId(propertyId);
         when(getPropertyUseCase.getProperty(new GetPropertyQuery(propertyIdValue)))
-                .thenReturn(new PropertyView(propertyIdValue, "Residence", "1 rue Test"));
+                .thenReturn(new PropertyView(propertyIdValue, "Residence", "1 rue Test",
+                        com.architek.oikos.property.domain.valueobject.DuesCalculationMode.FLAT_RATE, null));
 
         boolean exists = newAdapter().exists(propertyId);
 
         assertThat(exists).isTrue();
+    }
+
+    @Test
+    void resolves_the_property_s_dues_configuration() {
+        EntityId propertyId = EntityId.newId();
+        PropertyId propertyIdValue = new PropertyId(propertyId);
+        when(getPropertyUseCase.getProperty(new GetPropertyQuery(propertyIdValue)))
+                .thenReturn(new PropertyView(propertyIdValue, "Residence", "1 rue Test",
+                        com.architek.oikos.property.domain.valueobject.DuesCalculationMode.SHARES, new BigDecimal("1000")));
+
+        PropertyDuesConfigurationView view = newAdapter().getDuesConfiguration(propertyId);
+
+        assertThat(view).isEqualTo(new PropertyDuesConfigurationView(DuesCalculationMode.SHARES, new BigDecimal("1000")));
+    }
+
+    @Test
+    void resolves_each_unit_s_shares() {
+        EntityId propertyId = EntityId.newId();
+        PropertyId propertyIdValue = new PropertyId(propertyId);
+        BuildingId buildingA = BuildingId.newId();
+        UnitId unitA1 = UnitId.newId();
+
+        when(listBuildingsByPropertyUseCase.listBuildings(new ListBuildingsByPropertyQuery(propertyIdValue, PageRequest.of(0, 100))))
+                .thenReturn(Page.of(List.of(new BuildingView(buildingA, propertyIdValue, "A", 3)), 0, 100, 1));
+        when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingA, PageRequest.of(0, 100))))
+                .thenReturn(Page.of(List.of(
+                        new UnitView(unitA1, buildingA, propertyIdValue, "A1", UnitTypeDefinitionId.newId(), "Appartement",
+                                new BigDecimal("150"), OwnershipStatus.AFFECTED)),
+                        0, 100, 1));
+
+        List<UnitShareLine> lines = newAdapter().listUnitShares(propertyId);
+
+        assertThat(lines).containsExactly(new UnitShareLine(unitA1.value(), new BigDecimal("150")));
     }
 
     @Test

@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useUnit } from '@/features/property-mngt/properties/hooks/useUnit';
+import { useProperty } from '@/features/property-mngt/properties/hooks/useProperty';
 import { UnitOwnersSection } from '@/features/property-mngt/properties/components/UnitOwnersSection';
+import { EditUnitSharesForm } from '@/features/property-mngt/properties/components/EditUnitSharesForm';
 import { UnitInstallmentsSection } from '@/features/property-mngt/installments/components/UnitInstallmentsSection';
 import { UnitAccountSection } from '@/features/property-mngt/accounting/components/UnitAccountSection';
+import { Button } from '@/shared/components/Button/Button';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
@@ -17,6 +21,9 @@ export function UnitDetailPage() {
   const { propertyId, unitId } = useParams<{ propertyId: string; unitId: string }>();
   const id = unitId ?? '';
   const unit = useUnit(id);
+  const property = useProperty(propertyId ?? '');
+  const [isEditingShares, setIsEditingShares] = useState(false);
+  const showShares = property.data?.duesCalculationMode === 'SHARES';
 
   if (unit.isLoading) {
     return <Loader label="Chargement du lot…" />;
@@ -44,7 +51,23 @@ export function UnitDetailPage() {
             {OWNERSHIP_STATUS_LABELS[unit.data.ownershipStatus]}
           </span>
         </div>
-        <p className="text-sm text-gray-500">{unit.data.shares} tantièmes</p>
+        {showShares &&
+          (isEditingShares ? (
+            <div className="mt-2 max-w-xs">
+              <EditUnitSharesForm
+                unit={unit.data}
+                onSuccess={() => setIsEditingShares(false)}
+                onCancel={() => setIsEditingShares(false)}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-gray-500">{unit.data.shares} tantièmes</p>
+              <Button type="button" variant="secondary" className="min-h-0 px-2 py-1 text-xs" onClick={() => setIsEditingShares(true)}>
+                Modifier
+              </Button>
+            </div>
+          ))}
       </div>
 
       <Card className="flex flex-col gap-2">

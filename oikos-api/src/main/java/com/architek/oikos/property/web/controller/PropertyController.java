@@ -21,13 +21,17 @@ import jakarta.validation.Valid;
 import com.architek.oikos.property.application.command.BuildingConfiguration;
 import com.architek.oikos.property.application.command.ConfigurePropertyCommand;
 import com.architek.oikos.property.application.command.CreatePropertyCommand;
+import com.architek.oikos.property.application.command.SetProjectedBudgetCommand;
 import com.architek.oikos.property.application.command.UnitTypeConfiguration;
+import com.architek.oikos.property.application.command.UpdateDuesCalculationModeCommand;
 import com.architek.oikos.property.application.command.UpdatePropertyCommand;
 import com.architek.oikos.property.application.dto.PropertyView;
 import com.architek.oikos.property.application.port.in.ConfigurePropertyUseCase;
 import com.architek.oikos.property.application.port.in.CreatePropertyUseCase;
 import com.architek.oikos.property.application.port.in.GetPropertyUseCase;
 import com.architek.oikos.property.application.port.in.ListPropertiesUseCase;
+import com.architek.oikos.property.application.port.in.SetProjectedBudgetUseCase;
+import com.architek.oikos.property.application.port.in.UpdateDuesCalculationModeUseCase;
 import com.architek.oikos.property.application.port.in.UpdatePropertyUseCase;
 import com.architek.oikos.property.application.query.GetPropertyQuery;
 import com.architek.oikos.property.application.query.ListPropertiesQuery;
@@ -36,7 +40,9 @@ import com.architek.oikos.property.web.request.AssignPropertyManagerRequest;
 import com.architek.oikos.property.web.request.BuildingConfigurationRequest;
 import com.architek.oikos.property.web.request.ConfigurePropertyRequest;
 import com.architek.oikos.property.web.request.CreatePropertyRequest;
+import com.architek.oikos.property.web.request.SetProjectedBudgetRequest;
 import com.architek.oikos.property.web.request.UnitTypeConfigurationRequest;
+import com.architek.oikos.property.web.request.UpdateDuesCalculationModeRequest;
 import com.architek.oikos.property.web.request.UpdatePropertyRequest;
 import com.architek.oikos.property.web.response.PropertyResponse;
 import com.architek.oikos.property.web.response.PagedPropertyResponse;
@@ -78,6 +84,8 @@ public class PropertyController {
     private final GetPropertyUseCase getPropertyUseCase;
     private final ListPropertiesUseCase listPropertiesUseCase;
     private final UpdatePropertyUseCase updatePropertyUseCase;
+    private final UpdateDuesCalculationModeUseCase updateDuesCalculationModeUseCase;
+    private final SetProjectedBudgetUseCase setProjectedBudgetUseCase;
     private final GetUserAccessUseCase getUserAccessUseCase;
     private final GrantCreatorAsManagerUseCase grantCreatorAsManagerUseCase;
     private final AssignPropertyManagerUseCase assignPropertyManagerUseCase;
@@ -88,6 +96,8 @@ public class PropertyController {
                                   GetPropertyUseCase getPropertyUseCase,
                                   ListPropertiesUseCase listPropertiesUseCase,
                                   UpdatePropertyUseCase updatePropertyUseCase,
+                                  UpdateDuesCalculationModeUseCase updateDuesCalculationModeUseCase,
+                                  SetProjectedBudgetUseCase setProjectedBudgetUseCase,
                                   GetUserAccessUseCase getUserAccessUseCase,
                                   GrantCreatorAsManagerUseCase grantCreatorAsManagerUseCase,
                                   AssignPropertyManagerUseCase assignPropertyManagerUseCase,
@@ -97,6 +107,8 @@ public class PropertyController {
         this.getPropertyUseCase = getPropertyUseCase;
         this.listPropertiesUseCase = listPropertiesUseCase;
         this.updatePropertyUseCase = updatePropertyUseCase;
+        this.updateDuesCalculationModeUseCase = updateDuesCalculationModeUseCase;
+        this.setProjectedBudgetUseCase = setProjectedBudgetUseCase;
         this.getUserAccessUseCase = getUserAccessUseCase;
         this.grantCreatorAsManagerUseCase = grantCreatorAsManagerUseCase;
         this.assignPropertyManagerUseCase = assignPropertyManagerUseCase;
@@ -140,6 +152,22 @@ public class PropertyController {
     public PropertyResponse update(@PathVariable String id, @Valid @RequestBody UpdatePropertyRequest request) {
         return PropertyResponse.from(updatePropertyUseCase.update(
                 new UpdatePropertyCommand(PropertyId.of(id), request.name(), request.address())));
+    }
+
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #id)")
+    @PutMapping("/{id}/dues-calculation-mode")
+    public PropertyResponse updateDuesCalculationMode(@PathVariable String id,
+                                                        @Valid @RequestBody UpdateDuesCalculationModeRequest request) {
+        return PropertyResponse.from(updateDuesCalculationModeUseCase.updateMode(
+                new UpdateDuesCalculationModeCommand(PropertyId.of(id), request.mode())));
+    }
+
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #id)")
+    @PutMapping("/{id}/projected-budget")
+    public PropertyResponse setProjectedBudget(@PathVariable String id,
+                                                @Valid @RequestBody SetProjectedBudgetRequest request) {
+        return PropertyResponse.from(setProjectedBudgetUseCase.setProjectedBudget(
+                new SetProjectedBudgetCommand(PropertyId.of(id), request.projectedBudget())));
     }
 
     @PreAuthorize("@propertyAccess.canCreateProperty(authentication)")

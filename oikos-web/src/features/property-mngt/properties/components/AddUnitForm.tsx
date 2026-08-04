@@ -12,16 +12,17 @@ import { addUnitSchema, type AddUnitFormValues } from '@/features/property-mngt/
 interface AddUnitFormProps {
   propertyId: string;
   buildingId: string;
+  showShares: boolean;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function AddUnitForm({ propertyId, buildingId, onSuccess, onCancel }: AddUnitFormProps) {
+export function AddUnitForm({ propertyId, buildingId, showShares, onSuccess, onCancel }: AddUnitFormProps) {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<AddUnitFormValues>({ resolver: zodResolver(addUnitSchema) });
+  } = useForm<AddUnitFormValues>({ resolver: zodResolver(addUnitSchema), defaultValues: { shares: 0 } });
   const { mutate, isPending, error } = useAddUnit(buildingId);
   const unitTypes = useUnitTypeDefinitions(propertyId);
 
@@ -50,14 +51,18 @@ export function AddUnitForm({ propertyId, buildingId, onSuccess, onCancel }: Add
           </option>
         ))}
       </Select>
-      <Input
-        label="Tantièmes"
-        type="number"
-        min={0}
-        step="any"
-        {...register('shares', { valueAsNumber: true })}
-        errorMessage={errors.shares?.message}
-      />
+      {showShares ? (
+        <Input
+          label="Tantièmes"
+          type="number"
+          min={0}
+          step="any"
+          {...register('shares', { valueAsNumber: true })}
+          errorMessage={errors.shares?.message}
+        />
+      ) : (
+        <input type="hidden" {...register('shares', { valueAsNumber: true })} />
+      )}
       <div className="mt-2 flex gap-2">
         <Button type="submit" isLoading={isPending}>
           Ajouter le lot

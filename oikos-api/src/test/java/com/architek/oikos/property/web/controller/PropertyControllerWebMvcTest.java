@@ -25,7 +25,10 @@ import com.architek.oikos.property.application.port.in.ConfigurePropertyUseCase;
 import com.architek.oikos.property.application.port.in.CreatePropertyUseCase;
 import com.architek.oikos.property.application.port.in.GetPropertyUseCase;
 import com.architek.oikos.property.application.port.in.ListPropertiesUseCase;
+import com.architek.oikos.property.application.port.in.SetProjectedBudgetUseCase;
+import com.architek.oikos.property.application.port.in.UpdateDuesCalculationModeUseCase;
 import com.architek.oikos.property.application.port.in.UpdatePropertyUseCase;
+import com.architek.oikos.property.domain.valueobject.DuesCalculationMode;
 import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -58,6 +61,12 @@ class PropertyControllerWebMvcTest {
 
     @MockitoBean
     private UpdatePropertyUseCase updatePropertyUseCase;
+
+    @MockitoBean
+    private UpdateDuesCalculationModeUseCase updateDuesCalculationModeUseCase;
+
+    @MockitoBean
+    private SetProjectedBudgetUseCase setProjectedBudgetUseCase;
 
     @MockitoBean
     private GrantCreatorAsManagerUseCase grantCreatorAsManagerUseCase;
@@ -94,7 +103,8 @@ class PropertyControllerWebMvcTest {
     @Test
     void admin_can_get_a_property_by_id() throws Exception {
         PropertyId id = PropertyId.newId();
-        when(getPropertyUseCase.getProperty(any())).thenReturn(new PropertyView(id, "Copro", "Address"));
+        when(getPropertyUseCase.getProperty(any()))
+                .thenReturn(new PropertyView(id, "Copro", "Address", DuesCalculationMode.FLAT_RATE, null));
 
         mockMvc.perform(get("/api/v1/properties/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
@@ -169,7 +179,8 @@ class PropertyControllerWebMvcTest {
     @Test
     void admin_can_update_a_property_name_and_address() throws Exception {
         PropertyId id = PropertyId.newId();
-        when(updatePropertyUseCase.update(any())).thenReturn(new PropertyView(id, "Copro Renamed", "New address"));
+        when(updatePropertyUseCase.update(any()))
+                .thenReturn(new PropertyView(id, "Copro Renamed", "New address", DuesCalculationMode.FLAT_RATE, null));
 
         mockMvc.perform(put("/api/v1/properties/" + id)
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
@@ -187,6 +198,47 @@ class PropertyControllerWebMvcTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":" ","address":"New address"}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void admin_can_switch_the_dues_calculation_mode_to_shares() throws Exception {
+        PropertyId id = PropertyId.newId();
+        when(updateDuesCalculationModeUseCase.updateMode(any()))
+                .thenReturn(new PropertyView(id, "Copro", "Address", DuesCalculationMode.SHARES, null));
+
+        mockMvc.perform(put("/api/v1/properties/" + id + "/dues-calculation-mode")
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"mode":"SHARES"}
+                                """))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void admin_can_set_the_projected_budget() throws Exception {
+        PropertyId id = PropertyId.newId();
+        when(setProjectedBudgetUseCase.setProjectedBudget(any()))
+                .thenReturn(new PropertyView(id, "Copro", "Address", DuesCalculationMode.SHARES, new java.math.BigDecimal("1000")));
+
+        mockMvc.perform(put("/api/v1/properties/" + id + "/projected-budget")
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"projectedBudget":1000}
+                                """))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void setting_a_zero_projected_budget_returns_400() throws Exception {
+        mockMvc.perform(put("/api/v1/properties/" + PropertyId.newId() + "/projected-budget")
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"projectedBudget":0}
                                 """))
                 .andExpect(status().isBadRequest());
     }

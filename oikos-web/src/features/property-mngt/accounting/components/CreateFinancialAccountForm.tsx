@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/shared/components/Input/Input';
 import { Select } from '@/shared/components/Select/Select';
@@ -17,10 +18,10 @@ interface CreateFinancialAccountFormProps {
 }
 
 export function CreateFinancialAccountForm({ propertyId }: CreateFinancialAccountFormProps) {
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<CreateFinancialAccountFormValues>({
     resolver: zodResolver(createFinancialAccountSchema),
@@ -29,7 +30,7 @@ export function CreateFinancialAccountForm({ propertyId }: CreateFinancialAccoun
   const { mutate, isPending, error } = useCreateFinancialAccount(propertyId);
 
   function onSubmit(values: CreateFinancialAccountFormValues) {
-    mutate(values, { onSuccess: () => reset({ name: '', currency: 'MAD', type: values.type }) });
+    mutate(values, { onSuccess: () => navigate(`/properties/${propertyId}/accounting/financial-accounts`) });
   }
 
   return (

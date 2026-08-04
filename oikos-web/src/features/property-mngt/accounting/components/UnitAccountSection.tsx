@@ -1,11 +1,9 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useCurrentUser, canWriteAccounting } from '@/features/identity/me';
 import { useUnitAccount } from '@/features/property-mngt/accounting/hooks/useUnitAccount';
 import { useUnitAccountMovements } from '@/features/property-mngt/accounting/hooks/useUnitAccountMovements';
-import { useFinancialAccounts } from '@/features/property-mngt/accounting/hooks/useFinancialAccounts';
 import { UnitAccountMovementRow } from '@/features/property-mngt/accounting/components/UnitAccountMovementRow';
-import { RecordPaymentForm } from '@/features/property-mngt/accounting/components/RecordPaymentForm';
-import { RegularizationForm } from '@/features/property-mngt/accounting/components/RegularizationForm';
 import { LettrageProposalCard } from '@/features/property-mngt/accounting/components/LettrageProposalCard';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
@@ -30,7 +28,6 @@ export function UnitAccountSection({ propertyId, unitId }: UnitAccountSectionPro
   const account = useUnitAccount(unitId);
   const movements = useUnitAccountMovements(unitId, page);
   const canWrite = currentUser.data ? canWriteAccounting(currentUser.data, propertyId) : false;
-  const financialAccounts = useFinancialAccounts(propertyId, canWrite);
 
   return (
     <div className="flex flex-col gap-4">
@@ -61,9 +58,19 @@ export function UnitAccountSection({ propertyId, unitId }: UnitAccountSectionPro
       {canWrite && <LettrageProposalCard propertyId={propertyId} unitId={unitId} />}
 
       {canWrite && (
-        <div className="flex flex-col gap-4 border-t border-gray-200 pt-4">
-          <RecordPaymentForm propertyId={propertyId} unitId={unitId} accounts={financialAccounts.data ?? []} />
-          <RegularizationForm propertyId={propertyId} unitId={unitId} />
+        <div className="flex flex-wrap gap-3 border-t border-gray-200 pt-4">
+          <Link
+            to={`/properties/${propertyId}/units/${unitId}/payment`}
+            className="inline-flex min-h-11 items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+          >
+            Enregistrer un paiement
+          </Link>
+          <Link
+            to={`/properties/${propertyId}/units/${unitId}/regularization`}
+            className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+          >
+            Enregistrer une régularisation
+          </Link>
         </div>
       )}
     </div>

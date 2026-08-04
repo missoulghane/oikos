@@ -1,9 +1,14 @@
 import type { Paged } from '@/shared/types/pagination.types';
 
+export const DUES_CALCULATION_MODES = ['FLAT_RATE', 'SHARES'] as const;
+export type DuesCalculationMode = (typeof DUES_CALCULATION_MODES)[number];
+
 export interface Property {
   id: string;
   name: string;
   address: string;
+  duesCalculationMode: DuesCalculationMode;
+  projectedBudget: number | null;
 }
 
 export type PagedProperties = Paged<Property>;
@@ -55,6 +60,10 @@ export type PagedUnits = Paged<Unit>;
 export interface AddUnitPayload {
   unitNumber: string;
   unitTypeId: string;
+  shares: number;
+}
+
+export interface UpdateUnitSharesPayload {
   shares: number;
 }
 

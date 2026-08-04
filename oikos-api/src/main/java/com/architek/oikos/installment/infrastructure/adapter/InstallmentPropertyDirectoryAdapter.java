@@ -9,10 +9,14 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 import com.architek.oikos.installment.application.port.out.PropertyDirectoryPort;
+import com.architek.oikos.installment.application.port.out.PropertyDuesConfigurationView;
 import com.architek.oikos.installment.application.port.out.PropertyUnitDirectoryPort;
 import com.architek.oikos.installment.application.port.out.PropertyUnitPricingPort;
 import com.architek.oikos.installment.application.port.out.UnitPriceLine;
+import com.architek.oikos.installment.application.port.out.UnitShareLine;
+import com.architek.oikos.installment.domain.valueobject.DuesCalculationMode;
 import com.architek.oikos.property.application.dto.BuildingView;
+import com.architek.oikos.property.application.dto.PropertyView;
 import com.architek.oikos.property.application.dto.UnitTypePriceView;
 import com.architek.oikos.property.application.dto.UnitView;
 import com.architek.oikos.property.application.port.in.GetPropertyUseCase;
@@ -71,6 +75,13 @@ public class InstallmentPropertyDirectoryAdapter implements PropertyUnitDirector
     }
 
     @Override
+    public PropertyDuesConfigurationView getDuesConfiguration(EntityId propertyId) {
+        PropertyView property = getPropertyUseCase.getProperty(new GetPropertyQuery(new PropertyId(propertyId)));
+        DuesCalculationMode mode = DuesCalculationMode.valueOf(property.duesCalculationMode().name());
+        return new PropertyDuesConfigurationView(mode, property.projectedBudget());
+    }
+
+    @Override
     public List<EntityId> listUnitIds(EntityId propertyId) {
         List<EntityId> unitIds = new ArrayList<>();
         for (BuildingView building : listAllBuildings(new PropertyId(propertyId))) {
@@ -92,6 +103,18 @@ public class InstallmentPropertyDirectoryAdapter implements PropertyUnitDirector
         for (BuildingView building : listAllBuildings(typedPropertyId)) {
             for (UnitView unit : listAllUnits(building.id())) {
                 lines.add(new UnitPriceLine(unit.id().value(), priceByUnitTypeId.get(unit.unitTypeId())));
+            }
+        }
+        return lines;
+    }
+
+    @Override
+    public List<UnitShareLine> listUnitShares(EntityId propertyId) {
+        PropertyId typedPropertyId = new PropertyId(propertyId);
+        List<UnitShareLine> lines = new ArrayList<>();
+        for (BuildingView building : listAllBuildings(typedPropertyId)) {
+            for (UnitView unit : listAllUnits(building.id())) {
+                lines.add(new UnitShareLine(unit.id().value(), unit.shares()));
             }
         }
         return lines;

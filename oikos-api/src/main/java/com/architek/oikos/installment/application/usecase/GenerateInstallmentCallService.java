@@ -1,5 +1,7 @@
 package com.architek.oikos.installment.application.usecase;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,11 +13,15 @@ import com.architek.oikos.installment.application.dto.InstallmentCallView;
 import com.architek.oikos.installment.application.dto.GenerateInstallmentCallResult;
 import com.architek.oikos.installment.application.port.in.GenerateInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.out.PropertyDirectoryPort;
+import com.architek.oikos.installment.application.port.out.PropertyDuesConfigurationView;
 import com.architek.oikos.installment.application.port.out.PropertyUnitPricingPort;
 import com.architek.oikos.installment.application.port.out.UnitAccountLedgerPort;
 import com.architek.oikos.installment.application.port.out.UnitPriceLine;
+import com.architek.oikos.installment.application.port.out.UnitShareLine;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.installment.domain.exception.InstallmentCallAlreadyExistsException;
+import com.architek.oikos.installment.domain.exception.NoUnitSharesConfiguredException;
+import com.architek.oikos.installment.domain.exception.ProjectedBudgetNotConfiguredException;
 import com.architek.oikos.installment.domain.exception.PropertyNotFoundException;
 import com.architek.oikos.installment.domain.exception.UnitAccountNotFoundException;
 import com.architek.oikos.installment.domain.model.InstallmentCall;
@@ -28,9 +34,12 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
  * Generates a full installment call for a property in one batch: one
- * Installment per unit, priced from UnitTypePricing. A unit is skipped and
- * reported rather than blocking the whole property when its type has no
- * configured price (not an error - see UnitTypePricing).
+ * Installment per unit, priced according to the property's dues calculation
+ * mode - FLAT_RATE (price from UnitTypePricing) or SHARES (property's
+ * projected budget prorated by each unit's shares/tantiemes). A unit is
+ * skipped and reported rather than blocking the whole property when it has
+ * no basis to be charged (no price configured for its type, or zero shares -
+ * not an error either way, see UnitTypePricing / Unit.shares).
  */
 @Component
 public class GenerateInstallmentCallService implements GenerateInstallmentCallUseCase {
@@ -65,7 +74,11 @@ public class GenerateInstallmentCallService implements GenerateInstallmentCallUs
             throw new InstallmentCallAlreadyExistsException(command.propertyId(), command.period());
         }
 
-        List<UnitPriceLine> unitPrices = propertyUnitPricingPort.listUnitPrices(command.propertyId());
+        PropertyDuesConfigurationView duesConfiguration = propertyDirectoryPort.getDuesConfiguration(command.propertyId());
+        List<UnitPriceLine> unitPrices = switch (duesConfiguration.mode()) {
+            case FLAT_RATE -> propertyUnitPricingPort.listUnitPrices(command.propertyId());
+            case SHARES -> resolveShareBasedAmounts(command.propertyId(), duesConfiguration.projectedBudget());
+        };
         List<UnitPriceLine> priced = unitPrices.stream().filter(line -> line.price() != null).toList();
         List<EntityId> skippedUnitIds = new ArrayList<>(unitPrices.stream().filter(line -> line.price() == null)
                 .map(UnitPriceLine::unitId).toList());
@@ -88,5 +101,41 @@ public class GenerateInstallmentCallService implements GenerateInstallmentCallUs
         }
 
         return new GenerateInstallmentCallResult(InstallmentCallView.from(savedCall), chargedUnitIds, skippedUnitIds);
+    }
+
+    /**
+     * Prorates projectedBudget across every unit in proportion to its shares
+     * (tantiemes). A unit with zero shares gets a null price (skipped, same
+     * convention as FLAT_RATE's unpriced units). Per-unit amounts are rounded
+     * to 2 decimals, except the last shared unit which absorbs the rounding
+     * remainder so the sum of charged amounts always equals projectedBudget
+     * exactly - required for the budget to reconcile with what is actually
+     * called.
+     */
+    private List<UnitPriceLine> resolveShareBasedAmounts(EntityId propertyId, BigDecimal projectedBudget) {
+        if (projectedBudget == null) {
+            throw new ProjectedBudgetNotConfiguredException(propertyId);
+        }
+
+        List<UnitShareLine> unitShares = propertyUnitPricingPort.listUnitShares(propertyId);
+        BigDecimal totalShares = unitShares.stream().map(UnitShareLine::shares).reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (totalShares.signum() <= 0) {
+            throw new NoUnitSharesConfiguredException(propertyId);
+        }
+
+        List<UnitShareLine> sharedUnits = unitShares.stream().filter(line -> line.shares().signum() > 0).toList();
+        List<UnitPriceLine> lines = new ArrayList<>();
+        BigDecimal allocated = BigDecimal.ZERO;
+        for (int i = 0; i < sharedUnits.size(); i++) {
+            UnitShareLine line = sharedUnits.get(i);
+            BigDecimal amount = i == sharedUnits.size() - 1
+                    ? projectedBudget.subtract(allocated)
+                    : projectedBudget.multiply(line.shares()).divide(totalShares, 2, RoundingMode.HALF_UP);
+            allocated = allocated.add(amount);
+            lines.add(new UnitPriceLine(line.unitId(), amount));
+        }
+        unitShares.stream().filter(line -> line.shares().signum() <= 0)
+                .forEach(line -> lines.add(new UnitPriceLine(line.unitId(), null)));
+        return lines;
     }
 }

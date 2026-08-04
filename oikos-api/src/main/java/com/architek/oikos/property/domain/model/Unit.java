@@ -44,6 +44,10 @@ public final class Unit {
         return new Unit(id, buildingId, propertyId, unitNumber, unitTypeId, shares);
     }
 
+    public Unit withShares(Shares newShares) {
+        return new Unit(id, buildingId, propertyId, unitNumber, unitTypeId, newShares);
+    }
+
     private static String requireNonBlank(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " must not be blank");

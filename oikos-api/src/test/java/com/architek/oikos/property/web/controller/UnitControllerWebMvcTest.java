@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
@@ -26,6 +27,7 @@ import com.architek.oikos.property.application.port.in.AddUnitUseCase;
 import com.architek.oikos.property.application.port.in.GetBuildingUseCase;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitsByBuildingUseCase;
+import com.architek.oikos.property.application.port.in.UpdateUnitSharesUseCase;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
@@ -56,6 +58,9 @@ class UnitControllerWebMvcTest {
 
     @MockitoBean
     private GetBuildingUseCase getBuildingUseCase;
+
+    @MockitoBean
+    private UpdateUnitSharesUseCase updateUnitSharesUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
@@ -100,6 +105,22 @@ class UnitControllerWebMvcTest {
                                 {"unitNumber":"A12","unitTypeId":"%s","shares":150}
                                 """.formatted(UnitTypeDefinitionId.newId())))
                 .andExpect(status().isCreated());
+    }
+
+    @Test
+    void admin_can_update_a_unit_s_shares() throws Exception {
+        UnitId id = UnitId.newId();
+        when(updateUnitSharesUseCase.updateShares(any())).thenReturn(
+                new UnitView(id, BuildingId.newId(), PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(), "Appartement",
+                        new BigDecimal("150"), OwnershipStatus.NOT_AFFECTED));
+
+        mockMvc.perform(put("/api/v1/units/" + id + "/shares")
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"shares":150}
+                                """))
+                .andExpect(status().isOk());
     }
 
     @Test

@@ -5,7 +5,12 @@ import { UnitList } from '@/features/property-mngt/properties/components/UnitLis
 import { AddUnitForm } from '@/features/property-mngt/properties/components/AddUnitForm';
 import type { Building } from '@/features/property-mngt/properties/types/property.types';
 
-export function BuildingSection({ building }: { building: Building }) {
+interface BuildingSectionProps {
+  building: Building;
+  showShares: boolean;
+}
+
+export function BuildingSection({ building, showShares }: BuildingSectionProps) {
   const [isAddingUnit, setIsAddingUnit] = useState(false);
 
   return (
@@ -25,11 +30,12 @@ export function BuildingSection({ building }: { building: Building }) {
         <AddUnitForm
           propertyId={building.propertyId}
           buildingId={building.id}
+          showShares={showShares}
           onSuccess={() => setIsAddingUnit(false)}
           onCancel={() => setIsAddingUnit(false)}
         />
       )}
-      <UnitList buildingId={building.id} propertyId={building.propertyId} />
+      <UnitList buildingId={building.id} propertyId={building.propertyId} showShares={showShares} />
     </Card>
   );
 }
