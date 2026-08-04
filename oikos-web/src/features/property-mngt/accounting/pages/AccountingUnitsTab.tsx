@@ -1,6 +1,7 @@
 import { useOutletContext } from 'react-router-dom';
 import { useUnitAccountSummaries } from '@/features/property-mngt/accounting/hooks/useUnitAccountSummaries';
 import { UnitAccountSummaryRow } from '@/features/property-mngt/accounting/components/UnitAccountSummaryRow';
+import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
@@ -12,7 +13,7 @@ export function AccountingUnitsTab() {
   const unitAccountSummaries = useUnitAccountSummaries(property.id);
 
   return (
-    <div className="flex flex-col gap-6">
+    <Card className="flex flex-col gap-4">
       {unitAccountSummaries.isLoading && <Loader label="Chargement des comptes des lots…" />}
       {unitAccountSummaries.isError && <Alert message={getErrorMessage(unitAccountSummaries.error)} />}
       {unitAccountSummaries.data && unitAccountSummaries.data.length === 0 && (
@@ -25,6 +26,6 @@ export function AccountingUnitsTab() {
           ))}
         </ul>
       )}
-    </div>
+    </Card>
   );
 }

@@ -4,7 +4,7 @@ import type { Property } from '@/features/property-mngt/properties/types/propert
 
 export function PropertyCard({ property }: { property: Property }) {
   return (
-    <Link to={`/properties/${property.id}`} className="block">
+    <Link to={`/property-mngt/properties/${property.id}`} className="block">
       <Card>
         <h2 className="font-medium text-gray-900">{property.name}</h2>
         <p className="text-sm text-gray-500">{property.address}</p>

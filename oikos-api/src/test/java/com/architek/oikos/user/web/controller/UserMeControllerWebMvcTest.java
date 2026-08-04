@@ -8,6 +8,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -25,9 +28,12 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
 import com.architek.oikos.user.application.dto.UserView;
 import com.architek.oikos.user.application.port.in.ChangePasswordUseCase;
+import com.architek.oikos.user.application.port.in.GetMyInstallmentsUseCase;
 import com.architek.oikos.user.application.port.in.GetMyUnitsUseCase;
 import com.architek.oikos.user.application.port.in.GetUserUseCase;
 import com.architek.oikos.user.application.port.in.UpdateUserProfileUseCase;
+import com.architek.oikos.user.application.port.out.OwnedInstallmentStatus;
+import com.architek.oikos.user.application.port.out.OwnedInstallmentView;
 import com.architek.oikos.user.domain.model.Role;
 import com.architek.oikos.user.domain.valueobject.UserId;
 
@@ -60,6 +66,9 @@ class UserMeControllerWebMvcTest {
     @MockitoBean
     private GetMyUnitsUseCase getMyUnitsUseCase;
 
+    @MockitoBean
+    private GetMyInstallmentsUseCase getMyInstallmentsUseCase;
+
     private String bearerTokenFor(UUID userId) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(userId), Set.of("ROLE_USER"));
     }
@@ -79,6 +88,18 @@ class UserMeControllerWebMvcTest {
         mockMvc.perform(get("/api/v1/users/me").header("Authorization", bearerTokenFor(currentUserId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email", is("user@oikos.com")));
+    }
+
+    @Test
+    void my_installments_returns_the_aggregated_list_across_owned_units() throws Exception {
+        UUID currentUserId = UUID.randomUUID();
+        when(getMyInstallmentsUseCase.getMyInstallments(any())).thenReturn(List.of(
+                new OwnedInstallmentView(EntityId.newId(), EntityId.newId(), LocalDate.now(),
+                        new BigDecimal("100"), new BigDecimal("100"), OwnedInstallmentStatus.NOT_SETTLED)));
+
+        mockMvc.perform(get("/api/v1/users/me/installments").header("Authorization", bearerTokenFor(currentUserId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].status", is("NOT_SETTLED")));
     }
 
     @Test

@@ -27,7 +27,7 @@ export function UnitAccountSummaryRow({ propertyId, summary }: UnitAccountSummar
         {unit.isLoading && <Loader label="Chargement…" />}
         {unit.data && (
           <Link
-            to={`/properties/${propertyId}/units/${summary.unitId}`}
+            to={`/property-mngt/properties/${propertyId}/units/${summary.unitId}`}
             className="text-sm font-medium text-gray-900 hover:underline"
           >
             Lot {unit.data.unitNumber}

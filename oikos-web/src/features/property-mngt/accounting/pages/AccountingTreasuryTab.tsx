@@ -23,12 +23,12 @@ export function AccountingTreasuryTab() {
   const noOpenExercise = isAxiosError(openExercise.error) && openExercise.error.response?.status === 400;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {treasurySummary.isLoading && <Loader label="Chargement de la trésorerie…" />}
       {treasurySummary.isError && <Alert message={getErrorMessage(treasurySummary.error)} />}
       {treasurySummary.data && <TreasurySummaryCards summary={treasurySummary.data} />}
 
-      <div className="flex flex-col gap-4">
+      <Card className="flex flex-col gap-4">
         <h2 className="text-base font-semibold text-gray-900">Exercice comptable</h2>
 
         {openExercise.isLoading && <Loader label="Chargement de l'exercice…" />}
@@ -46,7 +46,7 @@ export function AccountingTreasuryTab() {
         )}
 
         {openExercise.data && (
-          <Card className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 rounded-lg border border-gray-200 p-3">
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium text-gray-900">{openExercise.data.label}</p>
               <Badge color="success">Ouvert</Badge>
@@ -56,9 +56,9 @@ export function AccountingTreasuryTab() {
               {new Date(openExercise.data.endDate).toLocaleDateString('fr-FR')}
             </p>
             {openExercise.data.comment && <p className="text-sm text-gray-500">{openExercise.data.comment}</p>}
-          </Card>
+          </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

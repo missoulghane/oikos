@@ -27,7 +27,7 @@ export function PendingLettrageRow({ propertyId, pending }: PendingLettrageRowPr
           {unit.isLoading && <Loader label="Chargement…" />}
           {unit.data && (
             <Link
-              to={`/properties/${propertyId}/units/${pending.unitId}`}
+              to={`/property-mngt/properties/${propertyId}/units/${pending.unitId}`}
               className="text-sm font-medium text-gray-900 hover:underline"
             >
               Lot {unit.data.unitNumber}

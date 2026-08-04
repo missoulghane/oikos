@@ -23,7 +23,7 @@ export function CreateExpensePage() {
     <div className="flex flex-col gap-6">
       <div>
         <Link
-          to={`/properties/${propertyId}/accounting/expenses`}
+          to={`/property-mngt/properties/${propertyId}/accounting/expenses`}
           className="text-sm text-gray-500 hover:underline"
         >
           ← Retour aux dépenses

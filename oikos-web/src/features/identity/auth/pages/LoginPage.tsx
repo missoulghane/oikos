@@ -11,7 +11,9 @@ export function LoginPage() {
   const { mutate, isPending, error } = useLogin();
 
   function handleSubmit(values: LoginFormValues) {
-    mutate(values, { onSuccess: () => navigate('/properties', { replace: true }) });
+    // LandingPage ("/") sorts board/manager vs plain-owner accounts into
+    // /property-mngt or /property-ownership - no need to duplicate that logic here.
+    mutate(values, { onSuccess: () => navigate('/', { replace: true }) });
   }
 
   return (

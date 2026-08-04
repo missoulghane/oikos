@@ -94,10 +94,10 @@ class InstallmentPropertyDirectoryAdapterTest {
 
         when(listBuildingsByPropertyUseCase.listBuildings(new ListBuildingsByPropertyQuery(propertyIdValue, PageRequest.of(0, 100))))
                 .thenReturn(Page.of(List.of(new BuildingView(buildingA, propertyIdValue, "A", 3)), 0, 100, 1));
-        when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingA, PageRequest.of(0, 100))))
+        when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingA, PageRequest.of(0, 100), null)))
                 .thenReturn(Page.of(List.of(
                         new UnitView(unitA1, buildingA, propertyIdValue, "A1", UnitTypeDefinitionId.newId(), "Appartement",
-                                new BigDecimal("150"), OwnershipStatus.AFFECTED)),
+                                new BigDecimal("150"), OwnershipStatus.AFFECTED, List.of())),
                         0, 100, 1));
 
         List<UnitShareLine> lines = newAdapter().listUnitShares(propertyId);
@@ -133,16 +133,16 @@ class InstallmentPropertyDirectoryAdapterTest {
                         new BuildingView(buildingB, propertyIdValue, "B", 2)), 0, 100, 2));
 
         when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingA,
-                PageRequest.of(0, 100))))
+                PageRequest.of(0, 100), null)))
                 .thenReturn(Page.of(List.of(
                         new UnitView(unitA1, buildingA, propertyIdValue, "A1", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
-                                OwnershipStatus.AFFECTED)), 0, 100, 1));
+                                OwnershipStatus.AFFECTED, List.of())), 0, 100, 1));
 
         when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingB,
-                PageRequest.of(0, 100))))
+                PageRequest.of(0, 100), null)))
                 .thenReturn(Page.of(List.of(
                         new UnitView(unitB1, buildingB, propertyIdValue, "B1", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
-                                OwnershipStatus.AFFECTED)), 0, 100, 1));
+                                OwnershipStatus.AFFECTED, List.of())), 0, 100, 1));
 
         List<EntityId> unitIds = newAdapter().listUnitIds(propertyId);
 
@@ -173,10 +173,10 @@ class InstallmentPropertyDirectoryAdapterTest {
 
         when(listBuildingsByPropertyUseCase.listBuildings(new ListBuildingsByPropertyQuery(propertyIdValue, PageRequest.of(0, 100))))
                 .thenReturn(Page.of(List.of(new BuildingView(buildingA, propertyIdValue, "A", 3)), 0, 100, 1));
-        when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingA, PageRequest.of(0, 100))))
+        when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingA, PageRequest.of(0, 100), null)))
                 .thenReturn(Page.of(List.of(
-                        new UnitView(pricedUnit, buildingA, propertyIdValue, "A1", pricedTypeId, "Appartement", BigDecimal.TEN, OwnershipStatus.AFFECTED),
-                        new UnitView(unpricedUnit, buildingA, propertyIdValue, "A2", unpricedTypeId, "Box", BigDecimal.TEN, OwnershipStatus.AFFECTED)),
+                        new UnitView(pricedUnit, buildingA, propertyIdValue, "A1", pricedTypeId, "Appartement", BigDecimal.TEN, OwnershipStatus.AFFECTED, List.of()),
+                        new UnitView(unpricedUnit, buildingA, propertyIdValue, "A2", unpricedTypeId, "Box", BigDecimal.TEN, OwnershipStatus.AFFECTED, List.of())),
                         0, 100, 2));
         when(listUnitTypePricesByPropertyUseCase.listUnitTypePrices(new ListUnitTypePricesByPropertyQuery(propertyIdValue)))
                 .thenReturn(List.of(new UnitTypePriceView(UnitTypePricingId.newId(), propertyIdValue, pricedTypeId,

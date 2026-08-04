@@ -29,7 +29,7 @@ export function RecordPaymentForm({ propertyId, unitId, accounts }: RecordPaymen
   const { mutate, isPending, error } = useRecordOwnerPayment(propertyId, unitId);
 
   function onSubmit(values: RecordOwnerPaymentFormValues) {
-    mutate(values, { onSuccess: () => navigate(`/properties/${propertyId}/units/${unitId}`) });
+    mutate(values, { onSuccess: () => navigate(`/property-mngt/properties/${propertyId}/units/${unitId}`) });
   }
 
   return (

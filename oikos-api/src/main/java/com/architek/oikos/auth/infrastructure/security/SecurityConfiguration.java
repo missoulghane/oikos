@@ -27,7 +27,7 @@ import java.util.List;
  * HttpSecurity bean is available even in narrow test slices that import this
  * configuration directly (e.g. @WebMvcTest).
  */
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfiguration {
@@ -76,10 +76,11 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                     CorsConfigurationSource corsConfigurationSource) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint(authenticationEntryPoint)
@@ -91,6 +92,7 @@ public class SecurityConfiguration {
                                 "/api/v1/users/register-property-manager-admin",
                                 "/api/v1/users/verify", "/api/v1/users/resend-verification",
                                 "/api/v1/users/activate-account", "/api/v1/users/accept-invitation").permitAll()
+                        .requestMatchers("/api/v1/invitations/by-token/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()

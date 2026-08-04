@@ -10,13 +10,13 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
 
 public record PropertyContactView(UnitOwnershipId id, EntityId partyId, String partyFullName, PartyType partyType,
-                                      String partyEmail, UnitId unitId, String unitNumber, String buildingName,
-                                      BigDecimal ownershipShare, boolean hasLinkedAccount) {
+                                      String partyEmail, String partyPhone, UnitId unitId, String unitNumber,
+                                      String buildingName, BigDecimal ownershipShare, boolean hasLinkedAccount) {
 
     public static PropertyContactView from(UnitOwnership unitOwnership, PartyDetails partyDetails,
                                             String unitNumber, String buildingName, boolean hasLinkedAccount) {
         return new PropertyContactView(unitOwnership.getId(), unitOwnership.getPartyId(), partyDetails.fullName(),
-                partyDetails.partyType(), partyDetails.email().value(), unitOwnership.getUnitId(), unitNumber,
-                buildingName, unitOwnership.getOwnershipShare().value(), hasLinkedAccount);
+                partyDetails.partyType(), partyDetails.email().value(), partyDetails.phone(), unitOwnership.getUnitId(),
+                unitNumber, buildingName, unitOwnership.getOwnershipShare().value(), hasLinkedAccount);
     }
 }

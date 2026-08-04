@@ -43,7 +43,7 @@ export function AppHeader() {
             )}
           </button>
 
-          <Link to="/properties" className="text-base font-semibold text-gray-900 lg:hidden">
+          <Link to="/" className="text-base font-semibold text-gray-900 lg:hidden">
             Oikos
           </Link>
         </div>

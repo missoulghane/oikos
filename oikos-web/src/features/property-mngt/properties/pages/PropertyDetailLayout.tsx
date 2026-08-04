@@ -31,7 +31,7 @@ export function PropertyDetailLayout() {
     <div className="flex flex-col gap-6">
       <div>
         {showBackLink && (
-          <Link to="/properties" className="text-sm text-gray-500 hover:underline">
+          <Link to="/property-mngt/properties" className="text-sm text-gray-500 hover:underline">
             ← Retour aux copropriétés
           </Link>
         )}

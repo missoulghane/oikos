@@ -36,7 +36,11 @@ public class AddUnitOwnershipService implements AddUnitOwnershipUseCase {
     @Override
     @Transactional
     public UnitOwnershipId add(AddUnitOwnershipCommand command) {
-        Unit unit = unitRepository.findById(command.unitId()).orElseThrow(() -> new UnitNotFoundException(command.unitId()));
+        // Locks the unit row for the rest of this transaction, so two concurrent
+        // callers targeting the same unit serialize instead of both reading the
+        // same stale ownership-share total below (see UnitRepository#findByIdForUpdate).
+        Unit unit = unitRepository.findByIdForUpdate(command.unitId())
+                .orElseThrow(() -> new UnitNotFoundException(command.unitId()));
         partyDirectoryPort.getPartyById(command.partyId());
 
         if (unitOwnershipRepository.existsByUnitIdAndPartyId(command.unitId(), command.partyId())) {

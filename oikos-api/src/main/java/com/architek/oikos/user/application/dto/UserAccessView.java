@@ -26,9 +26,20 @@ public record UserAccessView(Set<String> globalRoles,
         return globalRoles.contains("ROLE_ADMIN") || globalRoles.contains("ROLE_MASTER");
     }
 
-    /** True for any property-scoped role at all (ADMIN or MEMBER tier, including OWNER). */
+    /**
+     * True for a STAFF property-scoped role (ADMIN or MEMBER tier) - excludes a plain
+     * PROPERTY_OWNER-only grant, same population as {@link #managedPropertyIds()}. A bare
+     * unit owner must never satisfy this: it gates the whole gérant/syndic surface
+     * (property CRUD, buildings, unit types/pricing, board members, property-wide
+     * contacts/installments lists, party CRUD) via managesUnit/managesBuilding/managesParty/
+     * managesInstallmentCall, all of which delegate here.
+     */
     public boolean managesProperty(String propertyId) {
-        return isAdmin() || rolesByProperty.containsKey(propertyId);
+        if (isAdmin()) {
+            return true;
+        }
+        Set<PropertyRole> roles = rolesByProperty.get(propertyId);
+        return roles != null && roles.stream().anyMatch(role -> role != PropertyRole.PROPERTY_OWNER);
     }
 
     public boolean hasPermission(String propertyId, Permission permission) {

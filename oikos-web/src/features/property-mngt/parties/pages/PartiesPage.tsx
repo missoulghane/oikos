@@ -66,7 +66,7 @@ export function PartiesPage() {
             {parties.data.content.map((party) => (
               <li key={party.id}>
                 <Link
-                  to={`/properties/${propertyId}/parties/${party.id}`}
+                  to={`/parties/${propertyId}/${party.id}`}
                   className="flex flex-col gap-1 px-3 py-2 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>

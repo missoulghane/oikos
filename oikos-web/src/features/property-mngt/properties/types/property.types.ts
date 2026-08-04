@@ -53,6 +53,7 @@ export interface Unit {
   unitTypeName: string;
   shares: number;
   ownershipStatus: OwnershipStatus;
+  ownerFullNames: string[];
 }
 
 export type PagedUnits = Paged<Unit>;
@@ -99,9 +100,12 @@ export interface PropertyContact {
   partyFullName: string;
   partyType: PartyType;
   partyEmail: string;
+  partyPhone: string | null;
   unitId: string;
   unitNumber: string;
   buildingName: string;
   ownershipShare: number;
   hasLinkedAccount: boolean;
 }
+
+export type PagedPropertyContacts = Paged<PropertyContact>;

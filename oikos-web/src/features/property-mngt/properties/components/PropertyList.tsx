@@ -26,7 +26,7 @@ export function PropertyList() {
         title="Aucune copropriété pour le moment"
         action={
           <Link
-            to="/properties/new"
+            to="/property-mngt/properties/new"
             className="inline-flex min-h-11 items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
           >
             Créer une copropriété

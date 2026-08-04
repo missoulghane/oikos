@@ -3,6 +3,7 @@ import { usePendingLettrages } from '@/features/property-mngt/accounting/hooks/u
 import { useValidateBulkLettrage } from '@/features/property-mngt/accounting/hooks/useValidateBulkLettrage';
 import { PendingLettrageRow } from '@/features/property-mngt/accounting/components/PendingLettrageRow';
 import { Button } from '@/shared/components/Button/Button';
+import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
@@ -15,7 +16,7 @@ export function AccountingLettrageTab() {
   const validateBulk = useValidateBulkLettrage(property.id);
 
   return (
-    <div className="flex flex-col gap-4">
+    <Card className="flex flex-col gap-4">
       {pendingLettrages.isLoading && <Loader label="Chargement du lettrage…" />}
       {pendingLettrages.isError && <Alert message={getErrorMessage(pendingLettrages.error)} />}
       {validateBulk.error && <Alert message={getErrorMessage(validateBulk.error)} />}
@@ -43,6 +44,6 @@ export function AccountingLettrageTab() {
           </ul>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

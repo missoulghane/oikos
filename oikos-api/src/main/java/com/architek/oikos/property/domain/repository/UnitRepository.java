@@ -15,6 +15,15 @@ public interface UnitRepository {
 
     Optional<Unit> findById(UnitId id);
 
+    /**
+     * Same lookup as {@link #findById}, but takes a pessimistic write lock on
+     * the unit row for the duration of the caller's transaction. Callers that
+     * are about to add a UnitOwnership for this unit must use this instead of
+     * findById, so two concurrent writers targeting the same unit serialize
+     * on it rather than both reading a stale ownership-share total.
+     */
+    Optional<Unit> findByIdForUpdate(UnitId id);
+
     Page<Unit> findAllByBuildingId(BuildingId buildingId, PageRequest pageRequest);
 
     boolean existsByUnitTypeId(UnitTypeDefinitionId unitTypeId);

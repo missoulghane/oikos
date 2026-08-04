@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSidebar } from '@/shared/context/SidebarContext';
-import { useCurrentUser, boardPropertyId, isManagerTier, isManagerTierOnProperty } from '@/features/identity/me';
+import {
+  useCurrentUser,
+  boardPropertyId,
+  canManageProperties,
+  isManagerTier,
+  isManagerTierOnProperty,
+} from '@/features/identity/me';
 import {
   GridIcon,
   PieChartIcon,
@@ -20,6 +26,7 @@ import {
   ArrowDownIcon,
   ListIcon,
   CheckLineIcon,
+  MailIcon,
 } from '@/shared/icons';
 import { SidebarWidget } from './SidebarWidget';
 
@@ -39,6 +46,7 @@ const PROPERTY_INFO_TABS = [
   { name: 'Informations générales', path: '', icon: <FileIcon /> },
   { name: 'Lots', path: '/lots', icon: <BoxIconLine /> },
   { name: 'Contacts', path: '/contacts', icon: <GroupIcon /> },
+  { name: 'Invitations', path: '/invitations', icon: <MailIcon /> },
   { name: 'Configuration', path: '/configuration', icon: <PlugInIcon /> },
 ];
 
@@ -64,7 +72,7 @@ function propertyContextGroups(propertyId: string): NavGroup[] {
       icon: <GridIcon />,
       children: PROPERTY_INFO_TABS.map((tab) => ({
         name: tab.name,
-        path: `/properties/${propertyId}/property${tab.path}`,
+        path: `/property-mngt/properties/${propertyId}/property${tab.path}`,
         icon: tab.icon,
       })),
     },
@@ -73,7 +81,7 @@ function propertyContextGroups(propertyId: string): NavGroup[] {
       icon: <DollarLineIcon />,
       children: INSTALLMENT_TABS.map((tab) => ({
         name: tab.name,
-        path: `/properties/${propertyId}/installments${tab.path}`,
+        path: `/property-mngt/properties/${propertyId}/installments${tab.path}`,
         icon: tab.icon,
       })),
     },
@@ -82,7 +90,7 @@ function propertyContextGroups(propertyId: string): NavGroup[] {
       icon: <DocsIcon />,
       children: ACCOUNTING_TABS.map((tab) => ({
         name: tab.name,
-        path: `/properties/${propertyId}/accounting${tab.path}`,
+        path: `/property-mngt/properties/${propertyId}/accounting${tab.path}`,
         icon: tab.icon,
       })),
     },
@@ -104,7 +112,7 @@ export function AppSidebar() {
   const user = currentUser.data;
   const boardId = user ? boardPropertyId(user) : null;
   const managerTier = user ? isManagerTier(user) : false;
-  const currentPropertyId = location.pathname.match(/^\/properties\/([^/]+)/)?.[1] ?? null;
+  const currentPropertyId = location.pathname.match(/^\/property-mngt\/properties\/([^/]+)/)?.[1] ?? null;
   const isInOwnManagedProperty =
     managerTier && currentPropertyId !== null && user !== undefined && isManagerTierOnProperty(user, currentPropertyId);
 
@@ -114,9 +122,20 @@ export function AppSidebar() {
       ? propertyContextGroups(currentPropertyId)
       : [];
 
+  const canManage = user ? canManageProperties(user) : false;
+
   const navItems: NavItem[] = [
     ...(boardId || managerTier ? [{ name: 'Tableau de bord', path: '/dashboard', icon: <PieChartIcon /> }] : []),
-    ...(!boardId ? [{ name: 'Copropriétés', path: '/properties', icon: <GridIcon /> }] : []),
+    ...(!boardId && canManage
+      ? [{ name: 'Copropriétés', path: '/property-mngt/properties', icon: <GridIcon /> }]
+      : []),
+    // Plain owner accounts (no board/manager role on any property) get their
+    // own personal space instead of the staff property list.
+    ...(!canManage ? [{ name: 'Mon tableau de bord', path: '/dashboard', icon: <PieChartIcon /> }] : []),
+    ...(!canManage ? [{ name: 'Mes lots', path: '/property-ownership/units', icon: <BoxIconLine /> }] : []),
+    ...(!canManage
+      ? [{ name: 'Mes échéances', path: '/property-ownership/installments', icon: <TimeIcon /> }]
+      : []),
   ];
 
   function toggleGroup(name: string) {
@@ -132,10 +151,11 @@ export function AppSidebar() {
   }
 
   function isActive(path: string) {
-    // When a property context group is shown, "/properties" itself only
-    // highlights on the list page - its nested paths are represented by the
-    // contextual groups below, not by this item, to avoid double-highlighting.
-    if (path === '/properties' && groups.length > 0) {
+    // When a property context group is shown, the top-level properties list
+    // itself only highlights on the list page - its nested paths are
+    // represented by the contextual groups below, not by this item, to avoid
+    // double-highlighting.
+    if (path === '/property-mngt/properties' && groups.length > 0) {
       return location.pathname === path;
     }
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -150,7 +170,7 @@ export function AppSidebar() {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className={`flex py-8 ${!showExpanded ? 'lg:justify-center' : 'justify-start'}`}>
-        <Link to="/properties" className="text-xl font-semibold text-gray-900">
+        <Link to="/" className="text-xl font-semibold text-gray-900">
           {showExpanded ? 'Oikos' : 'O'}
         </Link>
       </div>

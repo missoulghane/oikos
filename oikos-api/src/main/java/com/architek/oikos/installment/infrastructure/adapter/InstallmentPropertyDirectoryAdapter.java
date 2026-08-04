@@ -139,7 +139,7 @@ public class InstallmentPropertyDirectoryAdapter implements PropertyUnitDirector
         Page<UnitView> page;
         do {
             page = listUnitsByBuildingUseCase.listUnits(
-                    new ListUnitsByBuildingQuery(buildingId, PageRequest.of(pageNumber, PAGE_SIZE)));
+                    new ListUnitsByBuildingQuery(buildingId, PageRequest.of(pageNumber, PAGE_SIZE), null));
             units.addAll(page.content());
             pageNumber++;
         } while (page.hasNext());

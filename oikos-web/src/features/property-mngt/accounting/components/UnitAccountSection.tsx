@@ -60,13 +60,13 @@ export function UnitAccountSection({ propertyId, unitId }: UnitAccountSectionPro
       {canWrite && (
         <div className="flex flex-wrap gap-3 border-t border-gray-200 pt-4">
           <Link
-            to={`/properties/${propertyId}/units/${unitId}/payment`}
+            to={`/property-mngt/properties/${propertyId}/units/${unitId}/payment`}
             className="inline-flex min-h-11 items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
           >
             Enregistrer un paiement
           </Link>
           <Link
-            to={`/properties/${propertyId}/units/${unitId}/regularization`}
+            to={`/property-mngt/properties/${propertyId}/units/${unitId}/regularization`}
             className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
           >
             Enregistrer une régularisation

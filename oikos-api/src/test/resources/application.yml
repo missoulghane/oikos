@@ -37,6 +37,8 @@ oikos:
     password-reset-token-ttl-hours: 1
     party-invitation-base-url: http://localhost:5173/accept-invitation
     party-invitation-token-ttl-hours: 168
+    invitation-base-url: http://localhost:5173/invitations
+    invitation-token-ttl-days: 30
 
 logging:
   level:

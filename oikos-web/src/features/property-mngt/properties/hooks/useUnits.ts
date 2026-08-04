@@ -4,10 +4,11 @@ import { queryKeys } from '@/shared/constants/queryKeys';
 
 const DEFAULT_PAGE_SIZE = 20;
 
-export function useUnits(buildingId: string, page: number, size: number = DEFAULT_PAGE_SIZE) {
+export function useUnits(buildingId: string, page: number, search?: string, size: number = DEFAULT_PAGE_SIZE) {
   return useQuery({
-    queryKey: queryKeys.buildings.units(buildingId, page, size),
-    queryFn: () => getUnits({ buildingId, page, size }),
+    queryKey: queryKeys.buildings.units(buildingId, page, size, search),
+    queryFn: () => getUnits({ buildingId, page, size, search }),
+    enabled: Boolean(buildingId),
     placeholderData: (previousData) => previousData,
   });
 }

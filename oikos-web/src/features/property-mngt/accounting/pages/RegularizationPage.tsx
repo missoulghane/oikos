@@ -22,7 +22,7 @@ export function RegularizationPage() {
     <div className="flex flex-col gap-6">
       <div>
         <Link
-          to={`/properties/${currentPropertyId}/units/${currentUnitId}`}
+          to={`/property-mngt/properties/${currentPropertyId}/units/${currentUnitId}`}
           className="text-sm text-gray-500 hover:underline"
         >
           ← Retour au lot

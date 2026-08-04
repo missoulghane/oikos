@@ -74,7 +74,8 @@ class ListContactsByPropertyServiceTest {
         PropertyId propertyId = PropertyId.newId();
         when(propertyRepository.findById(propertyId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> newService().listContacts(new ListContactsByPropertyQuery(propertyId)))
+        assertThatThrownBy(() -> newService()
+                .listContacts(new ListContactsByPropertyQuery(propertyId, PageRequest.of(0, 20), null)))
                 .isInstanceOf(PropertyNotFoundException.class);
     }
 
@@ -103,7 +104,8 @@ class ListContactsByPropertyServiceTest {
                 .thenReturn(new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"), null));
         when(accountLinkingPort.findLinkedPartyIds(anyList())).thenReturn(Set.of(partyId));
 
-        List<PropertyContactView> contacts = newService().listContacts(new ListContactsByPropertyQuery(propertyId));
+        List<PropertyContactView> contacts = newService()
+                .listContacts(new ListContactsByPropertyQuery(propertyId, PageRequest.of(0, 20), null)).content();
 
         assertThat(contacts).hasSize(1);
         PropertyContactView contact = contacts.get(0);
@@ -139,9 +141,49 @@ class ListContactsByPropertyServiceTest {
                 .thenReturn(new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"), null));
         when(accountLinkingPort.findLinkedPartyIds(anyList())).thenReturn(Set.of());
 
-        List<PropertyContactView> contacts = newService().listContacts(new ListContactsByPropertyQuery(propertyId));
+        List<PropertyContactView> contacts = newService()
+                .listContacts(new ListContactsByPropertyQuery(propertyId, PageRequest.of(0, 20), null)).content();
 
         assertThat(contacts).hasSize(1);
         assertThat(contacts.get(0).hasLinkedAccount()).isFalse();
+    }
+
+    @Test
+    void searching_by_phone_keeps_only_the_matching_party_s_units_and_paginates_by_distinct_party() {
+        PropertyId propertyId = PropertyId.newId();
+        when(propertyRepository.findById(propertyId)).thenReturn(
+                Optional.of(Property.create(propertyId, "Copro Test", "1 rue de la Paix")));
+
+        BuildingId buildingId = BuildingId.newId();
+        Building building = Building.create(buildingId, propertyId, "Bâtiment A", 3);
+        when(buildingRepository.findAllByPropertyId(propertyId, PageRequest.of(0, 100)))
+                .thenReturn(Page.of(List.of(building), 0, 100, 1));
+
+        UnitId unitId1 = UnitId.newId();
+        UnitId unitId2 = UnitId.newId();
+        Unit unit1 = Unit.create(unitId1, buildingId, propertyId, "A12", UnitTypeDefinitionId.newId(),
+                Shares.of(new BigDecimal("150")));
+        Unit unit2 = Unit.create(unitId2, buildingId, propertyId, "A13", UnitTypeDefinitionId.newId(),
+                Shares.of(new BigDecimal("100")));
+        when(unitRepository.findAllByBuildingId(buildingId, PageRequest.of(0, 100)))
+                .thenReturn(Page.of(List.of(unit1, unit2), 0, 100, 2));
+
+        EntityId matchingPartyId = EntityId.newId();
+        EntityId otherPartyId = EntityId.newId();
+        UnitOwnership matchingOwnership = UnitOwnership.create(UnitOwnershipId.newId(), unitId1, matchingPartyId, propertyId,
+                OwnershipShare.of(new BigDecimal("50")));
+        UnitOwnership otherOwnership = UnitOwnership.create(UnitOwnershipId.newId(), unitId2, otherPartyId, propertyId,
+                OwnershipShare.of(new BigDecimal("50")));
+        when(unitOwnershipRepository.findAllByUnitIds(anyList())).thenReturn(List.of(matchingOwnership, otherOwnership));
+        when(partyDirectoryPort.getPartyById(matchingPartyId)).thenReturn(
+                new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"), "0601020304"));
+        when(partyDirectoryPort.getPartyById(otherPartyId)).thenReturn(
+                new PartyDetails("John Smith", PartyType.INDIVIDUAL, EmailVO.of("john.smith@example.com"), "0699999999"));
+        when(accountLinkingPort.findLinkedPartyIds(anyList())).thenReturn(Set.of());
+
+        var page = newService().listContacts(new ListContactsByPropertyQuery(propertyId, PageRequest.of(0, 20), "0102"));
+
+        assertThat(page.content()).extracting(PropertyContactView::partyFullName).containsExactly("Jane Doe");
+        assertThat(page.totalElements()).isEqualTo(1);
     }
 }

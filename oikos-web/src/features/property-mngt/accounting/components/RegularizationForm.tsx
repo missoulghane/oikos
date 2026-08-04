@@ -28,7 +28,7 @@ export function RegularizationForm({ propertyId, unitId }: RegularizationFormPro
   const { mutate, isPending, error } = useRecordUnitAccountRegularization(propertyId, unitId);
 
   function onSubmit(values: RegularizationFormValues) {
-    mutate(values, { onSuccess: () => navigate(`/properties/${propertyId}/units/${unitId}`) });
+    mutate(values, { onSuccess: () => navigate(`/property-mngt/properties/${propertyId}/units/${unitId}`) });
   }
 
   return (

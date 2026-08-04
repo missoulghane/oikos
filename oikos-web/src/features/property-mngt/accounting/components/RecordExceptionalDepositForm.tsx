@@ -28,7 +28,7 @@ export function RecordExceptionalDepositForm({ propertyId, accounts }: RecordExc
   const { mutate, isPending, error } = useRecordExceptionalDeposit(propertyId);
 
   function onSubmit(values: RecordExceptionalDepositFormValues) {
-    mutate(values, { onSuccess: () => navigate(`/properties/${propertyId}/accounting/financial-accounts`) });
+    mutate(values, { onSuccess: () => navigate(`/property-mngt/properties/${propertyId}/accounting/financial-accounts`) });
   }
 
   return (

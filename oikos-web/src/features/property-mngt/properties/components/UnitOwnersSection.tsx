@@ -11,7 +11,14 @@ import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 
 type AddMode = 'none' | 'existing' | 'new';
 
-export function UnitOwnersSection({ unitId, propertyId }: { unitId: string; propertyId: string }) {
+interface UnitOwnersSectionProps {
+  unitId: string;
+  propertyId: string;
+  /** Hides the attach/create-owner actions for callers without ownership-management rights (e.g. the owner's own read-only lot page). */
+  canManage?: boolean;
+}
+
+export function UnitOwnersSection({ unitId, propertyId, canManage = true }: UnitOwnersSectionProps) {
   const [addMode, setAddMode] = useState<AddMode>('none');
   const { data, isLoading, isError, error } = useUnitOwners(unitId);
 
@@ -23,7 +30,7 @@ export function UnitOwnersSection({ unitId, propertyId }: { unitId: string; prop
     <div className="flex flex-col gap-2 border-t border-gray-100 pt-2">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-gray-500">Propriétaires</p>
-        {addMode === 'none' && (
+        {canManage && addMode === 'none' && (
           <div className="flex gap-2">
             <Button type="button" variant="secondary" onClick={() => setAddMode('existing')}>
               Rattacher à un contact
@@ -35,10 +42,10 @@ export function UnitOwnersSection({ unitId, propertyId }: { unitId: string; prop
         )}
       </div>
 
-      {addMode === 'existing' && (
+      {canManage && addMode === 'existing' && (
         <AddExistingUnitOwnerForm unitId={unitId} propertyId={propertyId} onSuccess={close} onCancel={close} />
       )}
-      {addMode === 'new' && (
+      {canManage && addMode === 'new' && (
         <AddUnitOwnerForm unitId={unitId} propertyId={propertyId} onSuccess={close} onCancel={close} />
       )}
 
@@ -52,7 +59,7 @@ export function UnitOwnersSection({ unitId, propertyId }: { unitId: string; prop
           {data.map((owner) => (
             <li key={owner.id} className="flex items-center justify-between py-1 text-sm">
               <span className="text-gray-700">
-                <Link to={`/properties/${propertyId}/parties/${owner.partyId}`} className="hover:underline">
+                <Link to={`/parties/${propertyId}/${owner.partyId}`} className="hover:underline">
                   {owner.partyFullName}
                 </Link>{' '}
                 ({PARTY_TYPE_LABELS[owner.partyType]}) — {owner.partyEmail}

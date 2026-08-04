@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -28,6 +29,7 @@ import com.architek.oikos.party.application.port.in.CreatePartyUseCase;
 import com.architek.oikos.party.application.port.in.DeletePartyUseCase;
 import com.architek.oikos.party.application.port.in.GetPartyUseCase;
 import com.architek.oikos.party.application.port.in.ListPartiesUseCase;
+import com.architek.oikos.party.application.port.in.UpdatePartyPhoneUseCase;
 import com.architek.oikos.party.application.port.in.UpdatePartyUseCase;
 import com.architek.oikos.party.domain.valueobject.PartyId;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
@@ -60,6 +62,9 @@ class PartyControllerWebMvcTest {
 
     @MockitoBean
     private UpdatePartyUseCase updatePartyUseCase;
+
+    @MockitoBean
+    private UpdatePartyPhoneUseCase updatePartyPhoneUseCase;
 
     @MockitoBean
     private ListPartiesUseCase listPartiesUseCase;
@@ -189,6 +194,61 @@ class PartyControllerWebMvcTest {
                                 {"fullName":"Janet Smith","partyType":"COMPANY","email":"janet@smith.com"}
                                 """))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void owner_can_update_their_own_party_phone() throws Exception {
+        PartyId id = PartyId.newId();
+        when(updatePartyPhoneUseCase.updatePhone(any()))
+                .thenReturn(new PartyView(id, EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", "0700000000"));
+        when(getPartyUseCase.getParty(any()))
+                .thenReturn(new PartyView(id, EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
+        when(getUserAccessUseCase.getAccess(any()))
+                .thenReturn(new UserAccessView(Set.of(), Map.of(), Map.of(), Set.of(), Set.of(id.toString())));
+
+        mockMvc.perform(patch("/api/v1/parties/" + id + "/phone")
+                        .header("Authorization", bearerToken("ROLE_USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"phone":"0700000000"}
+                                """))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void property_manager_can_update_a_managed_party_phone() throws Exception {
+        String propertyId = UUID.randomUUID().toString();
+        PartyId id = PartyId.newId();
+        when(updatePartyPhoneUseCase.updatePhone(any()))
+                .thenReturn(new PartyView(id, EntityId.of(propertyId), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", "0700000000"));
+        when(getPartyUseCase.getParty(any()))
+                .thenReturn(new PartyView(id, EntityId.of(propertyId), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
+        when(getUserAccessUseCase.getAccess(any()))
+                .thenReturn(new UserAccessView(Set.of(), Map.of(propertyId, Set.of(PropertyRole.PROPERTY_BOARD_ADMIN)),
+                        Map.of(), Set.of(), Set.of()));
+
+        mockMvc.perform(patch("/api/v1/parties/" + id + "/phone")
+                        .header("Authorization", bearerToken("PROPERTY_BOARD_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"phone":"0700000000"}
+                                """))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void regular_user_is_forbidden_from_updating_someone_elses_party_phone() throws Exception {
+        PartyId id = PartyId.newId();
+        when(getPartyUseCase.getParty(any()))
+                .thenReturn(new PartyView(id, EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
+
+        mockMvc.perform(patch("/api/v1/parties/" + id + "/phone")
+                        .header("Authorization", bearerToken("ROLE_USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"phone":"0700000000"}
+                                """))
+                .andExpect(status().isForbidden());
     }
 
     @Test

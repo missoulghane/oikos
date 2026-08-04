@@ -48,7 +48,8 @@ INSERT INTO role_permission (role_name, permission_key) VALUES
     ('ROLE_ADMIN', 'installment:call:write'),
     ('ROLE_ADMIN', 'property:accounting:read'),
     ('ROLE_ADMIN', 'property:accounting:write'),
-    ('ROLE_ADMIN', 'user:admin');
+    ('ROLE_ADMIN', 'user:admin'),
+    ('ROLE_ADMIN', 'invitation:manage');
 
 INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_ADMIN', 'property:read'),
@@ -65,7 +66,8 @@ INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_ADMIN', 'installment:read'),
     ('PROPERTY_BOARD_ADMIN', 'installment:call:write'),
     ('PROPERTY_BOARD_ADMIN', 'property:accounting:read'),
-    ('PROPERTY_BOARD_ADMIN', 'property:accounting:write');
+    ('PROPERTY_BOARD_ADMIN', 'property:accounting:write'),
+    ('PROPERTY_BOARD_ADMIN', 'invitation:manage');
 
 INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_MEMBER', 'property:read'),

@@ -6,6 +6,7 @@ import {
   type InstallmentFiltersValue,
 } from '@/features/property-mngt/installments/components/InstallmentFilters';
 import { InstallmentList } from '@/features/property-mngt/installments/components/InstallmentList';
+import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
@@ -44,7 +45,7 @@ export function InstallmentsListTab() {
   const installments = usePropertyInstallments(property.id, page, queryFilters);
 
   return (
-    <div className="flex flex-col gap-4">
+    <Card className="flex flex-col gap-4">
       <InstallmentFilters value={filters} onChange={handleFiltersChange} />
 
       {installments.isLoading && <Loader label="Chargement des échéances…" />}
@@ -62,6 +63,6 @@ export function InstallmentsListTab() {
           />
         </div>
       )}
-    </div>
+    </Card>
   );
 }

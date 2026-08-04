@@ -17,6 +17,9 @@ const ActivateAccountPage = lazy(() =>
 const AcceptInvitationPage = lazy(() =>
   import('@/features/identity/register').then((m) => ({ default: m.AcceptInvitationPage })),
 );
+const InvitationLandingPage = lazy(() =>
+  import('@/features/identity/invitations').then((m) => ({ default: m.InvitationLandingPage })),
+);
 
 export const publicRoutes: RouteObject[] = [
   {
@@ -72,6 +75,14 @@ export const publicRoutes: RouteObject[] = [
     element: (
       <Suspense fallback={<Loader />}>
         <AcceptInvitationPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/invitations',
+    element: (
+      <Suspense fallback={<Loader />}>
+        <InvitationLandingPage />
       </Suspense>
     ),
   },

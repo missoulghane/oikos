@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useInstallmentCallsByProperty } from '@/features/property-mngt/installments/hooks/useInstallmentCallsByProperty';
 import { GenerateInstallmentCallForm } from '@/features/property-mngt/installments/components/GenerateInstallmentCallForm';
 import { InstallmentCallRow } from '@/features/property-mngt/installments/components/InstallmentCallRow';
+import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
@@ -19,7 +20,7 @@ export function InstallmentCallsTab() {
   const installmentCalls = useInstallmentCallsByProperty(property.id, page);
 
   return (
-    <div className="flex flex-col gap-4">
+    <Card className="flex flex-col gap-4">
       <GenerateInstallmentCallForm propertyId={property.id} onGenerated={setLastResult} />
 
       {lastResult && (
@@ -56,6 +57,6 @@ export function InstallmentCallsTab() {
           />
         </div>
       )}
-    </div>
+    </Card>
   );
 }

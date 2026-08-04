@@ -1,11 +1,10 @@
 package com.architek.oikos.property.application.port.in;
 
-import java.util.List;
-
 import com.architek.oikos.property.application.dto.PropertyContactView;
 import com.architek.oikos.property.application.query.ListContactsByPropertyQuery;
+import com.architek.oikos.shared.domain.pagination.Page;
 
 public interface ListContactsByPropertyUseCase {
 
-    List<PropertyContactView> listContacts(ListContactsByPropertyQuery query);
+    Page<PropertyContactView> listContacts(ListContactsByPropertyQuery query);
 }

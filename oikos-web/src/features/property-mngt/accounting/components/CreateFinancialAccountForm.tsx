@@ -30,7 +30,7 @@ export function CreateFinancialAccountForm({ propertyId }: CreateFinancialAccoun
   const { mutate, isPending, error } = useCreateFinancialAccount(propertyId);
 
   function onSubmit(values: CreateFinancialAccountFormValues) {
-    mutate(values, { onSuccess: () => navigate(`/properties/${propertyId}/accounting/financial-accounts`) });
+    mutate(values, { onSuccess: () => navigate(`/property-mngt/properties/${propertyId}/accounting/financial-accounts`) });
   }
 
   return (

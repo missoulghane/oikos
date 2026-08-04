@@ -5,6 +5,7 @@ import { useUnitTypePrices } from '@/features/property-mngt/pricing/hooks/useUni
 import { UnitTypePriceRow } from '@/features/property-mngt/pricing/components/UnitTypePriceRow';
 import { DuesCalculationModeForm } from '@/features/property-mngt/pricing/components/DuesCalculationModeForm';
 import { ProjectedBudgetForm } from '@/features/property-mngt/pricing/components/ProjectedBudgetForm';
+import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
@@ -24,21 +25,21 @@ export function PropertyConfigurationPage() {
   const priceByUnitTypeId = new Map(unitTypePrices.data?.map((entry) => [entry.unitTypeId, entry.price]));
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
+      <Card className="flex flex-col gap-4">
         <h2 className="text-base font-semibold text-gray-900">Mode de gestion des cotisations</h2>
         <DuesCalculationModeForm propertyId={propertyId} currentMode={property.duesCalculationMode} />
-      </div>
+      </Card>
 
       {property.duesCalculationMode === 'SHARES' && (
-        <div className="flex flex-col gap-4">
+        <Card className="flex flex-col gap-4">
           <h2 className="text-base font-semibold text-gray-900">Budget prévisionnel</h2>
           <ProjectedBudgetForm propertyId={propertyId} currentProjectedBudget={property.projectedBudget} />
-        </div>
+        </Card>
       )}
 
       {property.duesCalculationMode === 'FLAT_RATE' && (
-        <div className="flex flex-col gap-4">
+        <Card className="flex flex-col gap-4">
           <h2 className="text-base font-semibold text-gray-900">Types de lot et prix</h2>
           {unitTypes.isError && <Alert message={getErrorMessage(unitTypes.error)} />}
           {unitTypePrices.isError && <Alert message={getErrorMessage(unitTypePrices.error)} />}
@@ -63,7 +64,7 @@ export function PropertyConfigurationPage() {
               ))}
             </div>
           )}
-        </div>
+        </Card>
       )}
     </div>
   );

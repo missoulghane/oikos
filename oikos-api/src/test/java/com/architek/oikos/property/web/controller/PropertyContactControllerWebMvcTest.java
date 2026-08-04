@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.property.application.port.in.ListContactsByPropertyUseCase;
 import com.architek.oikos.property.domain.valueobject.PropertyId;
+import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
 
@@ -46,7 +47,7 @@ class PropertyContactControllerWebMvcTest {
 
     @Test
     void admin_can_list_contacts_of_a_property() throws Exception {
-        when(listContactsByPropertyUseCase.listContacts(any())).thenReturn(List.of());
+        when(listContactsByPropertyUseCase.listContacts(any())).thenReturn(Page.of(List.of(), 0, 20, 0));
 
         mockMvc.perform(get("/api/v1/properties/" + PropertyId.newId() + "/contacts")
                         .header("Authorization", bearerToken("ROLE_ADMIN")))

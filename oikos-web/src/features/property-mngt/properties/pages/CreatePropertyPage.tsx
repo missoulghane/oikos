@@ -10,7 +10,7 @@ export function CreatePropertyPage() {
   const { mutate, isPending, error } = useCreateProperty();
 
   function handleSubmit(values: CreatePropertyFormValues) {
-    mutate(values, { onSuccess: () => navigate('/properties', { replace: true }) });
+    mutate(values, { onSuccess: () => navigate('/property-mngt/properties', { replace: true }) });
   }
 
   return (

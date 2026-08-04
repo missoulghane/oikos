@@ -10,6 +10,12 @@ import com.architek.oikos.installment.application.query.GetInstallmentCallQuery;
 import com.architek.oikos.installment.application.query.GetInstallmentQuery;
 import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
+import com.architek.oikos.invitation.application.port.in.GetInvitationUseCase;
+import com.architek.oikos.invitation.application.port.in.GetMembershipRequestUseCase;
+import com.architek.oikos.invitation.application.query.GetInvitationQuery;
+import com.architek.oikos.invitation.application.query.GetMembershipRequestQuery;
+import com.architek.oikos.invitation.domain.valueobject.InvitationId;
+import com.architek.oikos.invitation.domain.valueobject.MembershipRequestId;
 import com.architek.oikos.party.application.port.in.GetPartyUseCase;
 import com.architek.oikos.party.application.query.GetPartyQuery;
 import com.architek.oikos.party.domain.valueobject.PartyId;
@@ -46,6 +52,8 @@ public class PropertyAccessEvaluator {
     private final GetInstallmentCallUseCase getInstallmentCallUseCase;
     private final ListUnitOwnershipsByUnitUseCase listUnitOwnershipsByUnitUseCase;
     private final GetPartyUseCase getPartyUseCase;
+    private final GetInvitationUseCase getInvitationUseCase;
+    private final GetMembershipRequestUseCase getMembershipRequestUseCase;
 
     public PropertyAccessEvaluator(GetUserAccessUseCase getUserAccessUseCase,
                                     GetUnitUseCase getUnitUseCase,
@@ -53,7 +61,9 @@ public class PropertyAccessEvaluator {
                                     GetInstallmentUseCase getInstallmentUseCase,
                                     GetInstallmentCallUseCase getInstallmentCallUseCase,
                                     ListUnitOwnershipsByUnitUseCase listUnitOwnershipsByUnitUseCase,
-                                    GetPartyUseCase getPartyUseCase) {
+                                    GetPartyUseCase getPartyUseCase,
+                                    GetInvitationUseCase getInvitationUseCase,
+                                    GetMembershipRequestUseCase getMembershipRequestUseCase) {
         this.getUserAccessUseCase = getUserAccessUseCase;
         this.getUnitUseCase = getUnitUseCase;
         this.getBuildingUseCase = getBuildingUseCase;
@@ -61,6 +71,8 @@ public class PropertyAccessEvaluator {
         this.getInstallmentCallUseCase = getInstallmentCallUseCase;
         this.listUnitOwnershipsByUnitUseCase = listUnitOwnershipsByUnitUseCase;
         this.getPartyUseCase = getPartyUseCase;
+        this.getInvitationUseCase = getInvitationUseCase;
+        this.getMembershipRequestUseCase = getMembershipRequestUseCase;
     }
 
     /** ADMIN is a global, JWT-embedded authority (same trust boundary as the existing
@@ -146,6 +158,37 @@ public class PropertyAccessEvaluator {
      * manager-firm admin) may invite a MEMBER onto it, not just the platform admin. */
     public boolean canInviteMemberOnProperty(Authentication authentication, String propertyId) {
         return hasPermission(authentication, propertyId, Permission.PROPERTY_MEMBER_INVITE);
+    }
+
+    /** Gates the invitation module's manager-facing endpoints scoped by property id
+     * (create/list invitations, list membership requests) - manager and board admin have
+     * identical rights here (see invitation:manage's bundle in V7__invitation.sql). */
+    public boolean canManageInvitations(Authentication authentication, String propertyId) {
+        return hasPermission(authentication, propertyId, Permission.INVITATION_MANAGE);
+    }
+
+    /** Same check as canManageInvitations, but for endpoints addressed by invitation id
+     * rather than property id (get/disable a single invitation) - resolves the owning
+     * property first. */
+    public boolean canManageInvitation(Authentication authentication, String invitationId) {
+        if (isAdminAuthority(authentication)) {
+            return true;
+        }
+        String propertyId = getInvitationUseCase.getInvitation(new GetInvitationQuery(InvitationId.of(invitationId)))
+                .propertyId().toString();
+        return access(authentication).hasPermission(propertyId, Permission.INVITATION_MANAGE);
+    }
+
+    /** Same check as canManageInvitations, but for endpoints addressed by membership
+     * request id (accept/reject a candidacy) - resolves the owning property first. */
+    public boolean canManageMembershipRequest(Authentication authentication, String membershipRequestId) {
+        if (isAdminAuthority(authentication)) {
+            return true;
+        }
+        String propertyId = getMembershipRequestUseCase
+                .getMembershipRequest(new GetMembershipRequestQuery(MembershipRequestId.of(membershipRequestId)))
+                .propertyId().toString();
+        return access(authentication).hasPermission(propertyId, Permission.INVITATION_MANAGE);
     }
 
     /** Concrete "accounting/installment write" example of a permission-scoped (rather than

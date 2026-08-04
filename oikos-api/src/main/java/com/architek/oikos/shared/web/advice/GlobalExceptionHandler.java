@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import com.architek.oikos.shared.exception.BusinessException;
+import com.architek.oikos.shared.exception.ConflictException;
 import com.architek.oikos.shared.exception.ResourceNotFoundException;
 import com.architek.oikos.shared.exception.UnauthorizedException;
 
@@ -62,6 +63,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLock(OptimisticLockingFailureException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "The resource was modified concurrently, please retry", request);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
     /**

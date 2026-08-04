@@ -2,6 +2,7 @@ export const queryKeys = {
   me: {
     detail: () => ['me', 'detail'] as const,
     units: () => ['me', 'units'] as const,
+    installments: () => ['me', 'installments'] as const,
   },
   properties: {
     list: (page: number, size: number) => ['properties', 'list', page, size] as const,
@@ -23,7 +24,8 @@ export const queryKeys = {
     unitTypes: (propertyId: string) => ['properties', propertyId, 'unit-types'] as const,
     installmentCalls: (propertyId: string, page: number, size: number) =>
       ['properties', propertyId, 'installment-calls', page, size] as const,
-    contacts: (propertyId: string) => ['properties', propertyId, 'contacts'] as const,
+    contacts: (propertyId: string, page: number, size: number, search: string | undefined) =>
+      ['properties', propertyId, 'contacts', page, size, search] as const,
     accountingOpenExercise: (propertyId: string) =>
       ['properties', propertyId, 'accounting', 'open-exercise'] as const,
     accountingTreasurySummary: (propertyId: string) =>
@@ -51,8 +53,8 @@ export const queryKeys = {
     detail: (id: string) => ['installment-calls', id, 'detail'] as const,
   },
   buildings: {
-    units: (buildingId: string, page: number, size: number) =>
-      ['buildings', buildingId, 'units', page, size] as const,
+    units: (buildingId: string, page: number, size: number, search: string | undefined) =>
+      ['buildings', buildingId, 'units', page, size, search] as const,
   },
   units: {
     detail: (unitId: string) => ['units', unitId, 'detail'] as const,
@@ -68,5 +70,12 @@ export const queryKeys = {
       ['parties', 'list', propertyId, page, size, search] as const,
     detail: (id: string) => ['parties', 'detail', id] as const,
     lots: (id: string) => ['parties', id, 'lots'] as const,
+  },
+  invitations: {
+    preview: (token: string) => ['invitations', 'preview', token] as const,
+    availableUnits: (token: string) => ['invitations', token, 'available-units'] as const,
+    list: (propertyId: string, page: number, size: number) => ['invitations', propertyId, 'list', page, size] as const,
+    membershipRequests: (propertyId: string, page: number, size: number) =>
+      ['invitations', propertyId, 'membership-requests', page, size] as const,
   },
 };

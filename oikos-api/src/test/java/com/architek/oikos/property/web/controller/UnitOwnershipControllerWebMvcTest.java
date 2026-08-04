@@ -98,7 +98,7 @@ class UnitOwnershipControllerWebMvcTest {
         UnitId unitId = UnitId.newId();
         when(getUnitUseCase.getUnit(any())).thenReturn(
                 new UnitView(unitId, BuildingId.newId(), PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(),
-                        "Appartement", BigDecimal.TEN, OwnershipStatus.NOT_AFFECTED));
+                        "Appartement", BigDecimal.TEN, OwnershipStatus.NOT_AFFECTED, List.of()));
 
         mockMvc.perform(post("/api/v1/units/" + unitId + "/owners")
                         .header("Authorization", bearerToken("ROLE_USER"))

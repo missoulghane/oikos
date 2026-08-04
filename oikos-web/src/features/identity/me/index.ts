@@ -1,5 +1,5 @@
-export { MyUnitsPage } from '@/features/identity/me/pages/MyUnitsPage';
 export { useCurrentUser } from '@/features/identity/me/hooks/useCurrentUser';
+export { ProfilePage } from '@/features/identity/me/pages/ProfilePage';
 export {
   isAdmin,
   canManageProperties,
@@ -13,4 +13,4 @@ export {
   canReadAccounting,
   canWriteAccounting,
 } from '@/features/identity/me/utils/access';
-export type { CurrentUser, OwnedUnit, PropertyRoleName } from '@/features/identity/me/types/me.types';
+export type { CurrentUser, PropertyRoleName } from '@/features/identity/me/types/me.types';

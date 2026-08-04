@@ -20,7 +20,7 @@ export function InstallmentList({ installments, propertyId }: { installments: In
               {installment.status === 'PARTIALLY_SETTLED' && ` (reste ${installment.outstandingAmount} MAD)`}
             </p>
             <p className="text-sm text-gray-500">
-              <Link to={`/properties/${propertyId}/units/${installment.unitId}`} className="hover:underline">
+              <Link to={`/property-mngt/properties/${propertyId}/units/${installment.unitId}`} className="hover:underline">
                 Lot {installment.unitId}
               </Link>
             </p>

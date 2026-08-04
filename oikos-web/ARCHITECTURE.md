@@ -15,7 +15,14 @@ src/
 │
 ├── router/               # Routage, séparé public/privé
 │   ├── publicRoutes.tsx  # /login
-│   ├── privateRoutes.tsx # /properties, /properties/new (sous AppLayout)
+│   ├── privateRoutes.tsx # sous AppLayout, préfixé par module :
+│   │                     #   /property-mngt/*      (gérant/syndic - RequireAccess
+│   │                     #                          canManageProperties sur tout le sous-arbre)
+│   │                     #   /property-ownership/*  (copropriétaire - ouvert à tout
+│   │                     #                          utilisateur authentifié)
+│   │                     #   /parties/:propertyId/:partyId, /dashboard, /profile
+│   │                     #   restent neutres (dual-purpose, hors des deux préfixes)
+│   ├── RequireAccess.tsx # Garde générique pilotée par un prédicat (voir access.ts)
 │   ├── ProtectedRoute.tsx
 │   └── index.tsx
 │
@@ -30,23 +37,57 @@ src/
 │   │   │   ├── types/
 │   │   │   └── index.ts   # Point d'entrée public de la feature
 │   │   │
-│   │   └── register/      # Inscription, activation de compte
-│   │       ├── api/ / components/ / hooks/ / pages/ / schemas/ / types/
+│   │   ├── register/      # Inscription, activation de compte
+│   │   │   ├── api/ / components/ / hooks/ / pages/ / schemas/ / types/
+│   │   │   └── index.ts
+│   │   │
+│   │   └── me/            # Le compte courant : lecture (CurrentUser, rôles,
+│   │       │               # règles d'accès `access.ts`) et édition de son
+│   │       │               # propre profil (fullName/email) — transverse à
+│   │       │               # tous les rôles, indépendant de property-ownership.
+│   │       ├── api/       # getCurrentUser, updateProfile
+│   │       ├── components/ # EditProfileForm
+│   │       ├── hooks/     # useCurrentUser, useUpdateProfile
+│   │       ├── pages/     # ProfilePage (/my/profile)
+│   │       ├── schemas/
+│   │       ├── types/     # CurrentUser, PropertyRoleName
+│   │       ├── utils/     # access.ts (isAdmin, canManageProperties, ...)
 │   │       └── index.ts
 │   │
-│   └── property-mngt/      # Coeur métier copropriété
-│       ├── properties/     # Structure : copropriétés, immeubles, lots, copropriétaires
-│       │   ├── api/        # getProperties, createProperty, getUnits, ...
-│       │   ├── components/ # PropertyCard, PropertyList, CreatePropertyForm, ...
-│       │   ├── hooks/      # useProperties, useCreateProperty, ...
-│       │   ├── pages/      # PropertiesPage, CreatePropertyPage, ...
-│       │   ├── schemas/
-│       │   ├── types/
+│   ├── property-mngt/      # Coeur métier copropriété (vue gérant/syndic)
+│   │   ├── properties/     # Structure : copropriétés, immeubles, lots, copropriétaires
+│   │   │   ├── api/        # getProperties, createProperty, getUnits, ...
+│   │   │   ├── components/ # PropertyCard, PropertyList, CreatePropertyForm, ...
+│   │   │   ├── hooks/      # useProperties, useCreateProperty, ...
+│   │   │   ├── pages/      # PropertiesPage, CreatePropertyPage, ...
+│   │   │   ├── schemas/
+│   │   │   ├── types/
+│   │   │   └── index.ts
+│   │   ├── parties/        # Contacts (copropriétaires, tiers) rattachés à une property
+│   │   │   ├── api/ / components/ / hooks/ / pages/ / schemas/ / types/
+│   │   │   └── index.ts
+│   │   ├── installments/   # Échéances, appels à cotisation (vue gérant, par lot/property)
+│   │   ├── pricing/        # Paramétrage des prix par type de lot
+│   │   └── accounting/     # Gestion financière (comptes, mouvements, lettrage)
+│   │
+│   └── property-ownership/ # Espace self-service du copropriétaire (vue "mes lots",
+│       │                   # pas la vue gérant) — accès en lecture sur ses propres
+│       │                   # lots, gated côté API par `ownsUnit`/`ownsParty`.
+│       ├── units/          # "Mes lots" : liste + détail en lecture seule, réutilise
+│       │   │                # les sections partagées de `property-mngt` (comptes,
+│       │   │                # échéances, propriétaires) plutôt que de les dupliquer.
+│       │   ├── api/        # getMyUnits
+│       │   ├── hooks/      # useMyUnits
+│       │   ├── pages/      # MyUnitsPage (/my/units), MyUnitDetailPage
+│       │   ├── types/      # OwnedUnit
 │       │   └── index.ts
-│       └── accounting/        # Gestion financière (comptes, échéances, appels de
-│                            # cotisation) — pas encore créé : ce qui existe
-│                            # aujourd'hui (échéances d'un lot) vit encore dans
-│                            # `properties/`, à extraire dans une passe dédiée.
+│       └── installments/   # "Mes échéances" : vue consolidée tous lots (agrégée côté
+│           │                # API par `GET /users/me/installments`, jointe côté front
+│           │                # à `useMyUnits()` pour l'étiquette property/lot).
+│           ├── api/        # getMyInstallments
+│           ├── hooks/      # useMyInstallments
+│           ├── pages/      # MyInstallmentsPage (/my/installments)
+│           └── index.ts
 │
 ├── shared/
 │   ├── api/httpClient.ts       # Instance Axios + intercepteurs JWT/refresh
@@ -64,10 +105,16 @@ src/
 ```
 
 Les features sont regroupées par domaine métier : `identity` (`auth`,
-`register`) pour les comptes et l'accès, `property-mngt` (`properties`,
-`accounting`) pour le coeur métier copropriété. Le périmètre réduit de cette
-version ne justifie pas encore d'autres groupes (`dashboard`, etc.)
-évoqués dans le guide.
+`register`, `me`) pour les comptes et l'accès, `property-mngt` (`properties`,
+`parties`, `installments`, `pricing`, `accounting`) pour le coeur métier
+copropriété côté gérant/syndic, `property-ownership` (`units`) pour l'espace
+self-service du copropriétaire. Cette dernière distinction suit le
+découpage d'autorisation de l'API (`managesX` vs `ownsX`, voir
+`PropertyAccessEvaluator` côté `oikos-api`) : `property-mngt` regroupe les
+écrans où l'action nécessite un rôle gérant/syndic sur la property,
+`property-ownership` les écrans qu'un simple copropriétaire peut utiliser sur
+ses propres lots — quitte à réutiliser sans duplication les sections déjà
+écrites dans `property-mngt` (ex. `UnitAccountSection`, `UnitInstallmentsSection`).
 
 ## 2. Flux de dépendances
 

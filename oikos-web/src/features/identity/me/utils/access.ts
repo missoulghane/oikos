@@ -4,9 +4,14 @@ export function isAdmin(user: CurrentUser): boolean {
   return user.roles.includes('ROLE_ADMIN') || user.roles.includes('ROLE_MASTER');
 }
 
-/** Any staff role at all on at least one property (board or manager-firm, admin or member tier). */
+/**
+ * Any STAFF role at all on at least one property (board or manager-firm, admin or member
+ * tier) - a bare PROPERTY_OWNER grant must not satisfy this (mirrors the backend's
+ * UserAccessView.managesProperty - see oikos-api). Gates the whole /property-mngt route
+ * subtree; getting this wrong lets a plain unit owner into the gérant/syndic UI shell.
+ */
 export function canManageProperties(user: CurrentUser): boolean {
-  return isAdmin(user) || Object.keys(user.roleByProperty).length > 0;
+  return isAdmin(user) || Object.values(user.roleByProperty).some((role) => role !== 'PROPERTY_OWNER');
 }
 
 /**
@@ -22,8 +27,10 @@ export function canCreateProperty(user: CurrentUser): boolean {
 
 /** The single property this account is staff on, or null if it manages none or several. */
 export function singleManagedPropertyId(user: CurrentUser): string | null {
-  const propertyIds = Object.keys(user.roleByProperty);
-  return propertyIds.length === 1 ? propertyIds[0] : null;
+  const managedPropertyIds = Object.entries(user.roleByProperty)
+    .filter(([, role]) => role !== 'PROPERTY_OWNER')
+    .map(([propertyId]) => propertyId);
+  return managedPropertyIds.length === 1 ? managedPropertyIds[0] : null;
 }
 
 /** True if the caller holds an ADMIN-tier role (board or manager-firm) on this specific property. */

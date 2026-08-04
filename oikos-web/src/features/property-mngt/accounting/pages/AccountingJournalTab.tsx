@@ -4,6 +4,7 @@ import { useFinancialAccounts } from '@/features/property-mngt/accounting/hooks/
 import { useFinancialJournal } from '@/features/property-mngt/accounting/hooks/useFinancialJournal';
 import { JournalFilters, type JournalFiltersValue } from '@/features/property-mngt/accounting/components/JournalFilters';
 import { JournalEntryRow } from '@/features/property-mngt/accounting/components/JournalEntryRow';
+import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
@@ -36,7 +37,7 @@ export function AccountingJournalTab() {
   const accountNameById = new Map((financialAccounts.data ?? []).map((account) => [account.id, account.name]));
 
   return (
-    <div className="flex flex-col gap-4">
+    <Card className="flex flex-col gap-4">
       <JournalFilters value={filters} onChange={handleFiltersChange} accounts={financialAccounts.data ?? []} />
 
       {journal.isLoading && <Loader label="Chargement du journal…" />}
@@ -58,6 +59,6 @@ export function AccountingJournalTab() {
           <Pagination pageNumber={journal.data.pageNumber} totalPages={journal.data.totalPages} onPageChange={setPage} />
         </div>
       )}
-    </div>
+    </Card>
   );
 }

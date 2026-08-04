@@ -4,6 +4,7 @@ import { useCurrentUser, canWriteAccounting } from '@/features/identity/me';
 import { useFinancialAccounts } from '@/features/property-mngt/accounting/hooks/useFinancialAccounts';
 import { useExpenses } from '@/features/property-mngt/accounting/hooks/useExpenses';
 import { ExpenseRow } from '@/features/property-mngt/accounting/components/ExpenseRow';
+import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
@@ -23,12 +24,12 @@ export function AccountingExpensesTab() {
   const accountNameById = new Map((financialAccounts.data ?? []).map((account) => [account.id, account.name]));
 
   return (
-    <div className="flex flex-col gap-6">
+    <Card className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-gray-900">Dépenses</h2>
         {canWrite && (
           <Link
-            to={`/properties/${property.id}/accounting/expenses/new`}
+            to={`/property-mngt/properties/${property.id}/accounting/expenses/new`}
             className="inline-flex min-h-11 items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
           >
             Nouvelle dépense
@@ -57,6 +58,6 @@ export function AccountingExpensesTab() {
           <Pagination pageNumber={expenses.data.pageNumber} totalPages={expenses.data.totalPages} onPageChange={setPage} />
         </div>
       )}
-    </div>
+    </Card>
   );
 }

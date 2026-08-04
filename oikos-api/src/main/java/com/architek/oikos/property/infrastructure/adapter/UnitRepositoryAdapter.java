@@ -41,6 +41,11 @@ public class UnitRepositoryAdapter implements UnitRepository {
     }
 
     @Override
+    public Optional<Unit> findByIdForUpdate(UnitId id) {
+        return jpaRepository.findByIdForUpdate(id.asUuid()).map(mapper::toDomain);
+    }
+
+    @Override
     public Page<Unit> findAllByBuildingId(BuildingId buildingId, PageRequest pageRequest) {
         Pageable pageable = Pageable.ofSize(pageRequest.pageSize()).withPage(pageRequest.pageNumber());
         org.springframework.data.domain.Page<UnitEntity> springPage =

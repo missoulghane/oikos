@@ -2,9 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { getPropertyContacts } from '@/features/property-mngt/properties/api/getPropertyContacts';
 import { queryKeys } from '@/shared/constants/queryKeys';
 
-export function usePropertyContacts(propertyId: string) {
+const DEFAULT_PAGE_SIZE = 20;
+
+export function usePropertyContacts(propertyId: string, page: number, search?: string, size: number = DEFAULT_PAGE_SIZE) {
   return useQuery({
-    queryKey: queryKeys.properties.contacts(propertyId),
-    queryFn: () => getPropertyContacts(propertyId),
+    queryKey: queryKeys.properties.contacts(propertyId, page, size, search),
+    queryFn: () => getPropertyContacts({ propertyId, page, size, search }),
+    placeholderData: (previousData) => previousData,
   });
 }

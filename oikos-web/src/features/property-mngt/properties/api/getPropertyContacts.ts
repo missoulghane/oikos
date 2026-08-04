@@ -1,7 +1,21 @@
 import { httpClient } from '@/shared/api/httpClient';
-import type { PropertyContact } from '@/features/property-mngt/properties/types/property.types';
+import type { PagedPropertyContacts } from '@/features/property-mngt/properties/types/property.types';
 
-export async function getPropertyContacts(propertyId: string): Promise<PropertyContact[]> {
-  const { data } = await httpClient.get<PropertyContact[]>(`/properties/${propertyId}/contacts`);
+export interface GetPropertyContactsParams {
+  propertyId: string;
+  page: number;
+  size: number;
+  search?: string;
+}
+
+export async function getPropertyContacts({
+  propertyId,
+  page,
+  size,
+  search,
+}: GetPropertyContactsParams): Promise<PagedPropertyContacts> {
+  const { data } = await httpClient.get<PagedPropertyContacts>(`/properties/${propertyId}/contacts`, {
+    params: { page, size, search },
+  });
   return data;
 }

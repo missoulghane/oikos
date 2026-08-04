@@ -4,6 +4,7 @@ import { useUnits } from '@/features/property-mngt/properties/hooks/useUnits';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { Alert } from '@/shared/components/Alert/Alert';
+import { Input } from '@/shared/components/Input/Input';
 import { Pagination } from '@/shared/components/Pagination/Pagination';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 
@@ -20,7 +21,8 @@ interface UnitListProps {
 
 export function UnitList({ buildingId, propertyId, showShares }: UnitListProps) {
   const [page, setPage] = useState(0);
-  const { data, isLoading, isError, error } = useUnits(buildingId, page);
+  const [search, setSearch] = useState('');
+  const { data, isLoading, isError, error } = useUnits(buildingId, page, search || undefined);
 
   if (isLoading) {
     return <Loader label="Chargement des lots…" />;
@@ -30,33 +32,52 @@ export function UnitList({ buildingId, propertyId, showShares }: UnitListProps) 
     return <Alert message={getErrorMessage(error)} />;
   }
 
-  if (!data || data.content.length === 0) {
-    return <EmptyState title="Aucun lot pour le moment">Ajoutez le premier lot de cet immeuble.</EmptyState>;
-  }
-
   return (
     <div className="flex flex-col gap-3">
-      <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
-        {data.content.map((unit) => (
-          <li key={unit.id}>
-            <Link
-              to={`/properties/${propertyId}/units/${unit.id}`}
-              className="flex flex-col gap-1 px-3 py-2 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="text-sm font-medium text-gray-900">
-                  Lot {unit.unitNumber} — {unit.unitTypeName}
-                </p>
-                {showShares && <p className="text-sm text-gray-500">{unit.shares} tantièmes</p>}
-              </div>
-              <span className="w-fit rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
-                {OWNERSHIP_STATUS_LABELS[unit.ownershipStatus]}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <Pagination pageNumber={data.pageNumber} totalPages={data.totalPages} onPageChange={setPage} />
+      <Input
+        label="Rechercher un lot (propriétaire : nom, téléphone)"
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setPage(0);
+        }}
+      />
+      {data && data.content.length === 0 && (
+        <EmptyState title={search ? 'Aucun lot trouvé' : 'Aucun lot pour le moment'}>
+          {search ? 'Ajustez votre recherche.' : "Ajoutez le premier lot de cet immeuble."}
+        </EmptyState>
+      )}
+      {data && data.content.length > 0 && (
+        <>
+          <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
+            {data.content.map((unit) => {
+              const secondaryLine = [showShares ? `${unit.shares} tantièmes` : null, unit.ownerFullNames.join(', ') || null]
+                .filter(Boolean)
+                .join(' · ');
+
+              return (
+                <li key={unit.id}>
+                  <Link
+                    to={`/property-mngt/properties/${propertyId}/units/${unit.id}`}
+                    className="flex items-center justify-between gap-2 px-3 py-2 hover:bg-gray-50"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-gray-900">
+                        Lot {unit.unitNumber} — {unit.unitTypeName}
+                      </p>
+                      {secondaryLine && <p className="truncate text-sm text-gray-500">{secondaryLine}</p>}
+                    </div>
+                    <span className="w-fit shrink-0 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                      {OWNERSHIP_STATUS_LABELS[unit.ownershipStatus]}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          <Pagination pageNumber={data.pageNumber} totalPages={data.totalPages} onPageChange={setPage} />
+        </>
+      )}
     </div>
   );
 }

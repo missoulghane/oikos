@@ -25,7 +25,8 @@ public enum Permission {
     INSTALLMENT_CALL_WRITE("installment:call:write"),
     ACCOUNTING_READ("property:accounting:read"),
     ACCOUNTING_WRITE("property:accounting:write"),
-    USER_ADMIN("user:admin");
+    USER_ADMIN("user:admin"),
+    INVITATION_MANAGE("invitation:manage");
 
     private final String key;
 

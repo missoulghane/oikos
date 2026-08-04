@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { useCurrentUser, boardPropertyId, isManagerTier } from '@/features/identity/me';
 import { useProperty } from '@/features/property-mngt/properties/hooks/useProperty';
 import { useProperties } from '@/features/property-mngt/properties/hooks/useProperties';
+import { useMyUnits } from '@/features/property-ownership/units';
+import { useMyInstallments } from '@/features/property-ownership/installments/hooks/useMyInstallments';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
@@ -30,13 +32,13 @@ function BoardDashboard({ propertyId }: { propertyId: string }) {
       </div>
       <div className="flex flex-wrap gap-3">
         <Link
-          to={`/properties/${propertyId}/property`}
+          to={`/property-mngt/properties/${propertyId}/property`}
           className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
         >
           Ma copropriété
         </Link>
         <Link
-          to={`/properties/${propertyId}/installments`}
+          to={`/property-mngt/properties/${propertyId}/installments`}
           className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
         >
           Gestion des échéances
@@ -67,11 +69,56 @@ function ManagerDashboard() {
         </h2>
       </div>
       <Link
-        to="/properties"
+        to="/property-mngt/properties"
         className="w-fit rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
       >
         Voir mes copropriétés
       </Link>
+    </Card>
+  );
+}
+
+function OwnerDashboard() {
+  const units = useMyUnits();
+  const installments = useMyInstallments();
+
+  if (units.isLoading) {
+    return <Loader label="Chargement de vos lots…" />;
+  }
+
+  if (units.isError) {
+    return <Alert message={getErrorMessage(units.error)} />;
+  }
+
+  const count = units.data?.length ?? 0;
+  const unpaidCount = installments.data?.filter((installment) => installment.status !== 'SETTLED').length ?? 0;
+
+  return (
+    <Card className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-base font-semibold text-gray-900">
+          Vous possédez {count} lot{count > 1 ? 's' : ''}
+        </h2>
+        {unpaidCount > 0 && (
+          <p className="text-sm text-gray-500">
+            {unpaidCount} échéance{unpaidCount > 1 ? 's' : ''} en attente de règlement
+          </p>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          to="/property-ownership/units"
+          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+        >
+          Mes lots
+        </Link>
+        <Link
+          to="/property-ownership/installments"
+          className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+        >
+          Mes échéances
+        </Link>
+      </div>
     </Card>
   );
 }
@@ -94,9 +141,7 @@ export function DashboardPage() {
       ) : isManager ? (
         <ManagerDashboard />
       ) : (
-        <Card>
-          <p className="text-sm text-gray-600">Bienvenue sur Oikos.</p>
-        </Card>
+        <OwnerDashboard />
       )}
     </div>
   );

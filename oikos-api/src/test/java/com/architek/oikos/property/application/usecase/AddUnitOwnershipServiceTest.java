@@ -63,7 +63,7 @@ class AddUnitOwnershipServiceTest {
     @Test
     void adding_an_owner_within_the_available_share_persists_it() {
         UnitId unitId = UnitId.newId();
-        when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
+        when(unitRepository.findByIdForUpdate(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
         when(partyDirectoryPort.getPartyById(any())).thenReturn(existingParty());
         when(unitOwnershipRepository.existsByUnitIdAndPartyId(any(), any())).thenReturn(false);
         when(unitOwnershipRepository.findAllByUnitId(unitId)).thenReturn(List.of());
@@ -75,7 +75,7 @@ class AddUnitOwnershipServiceTest {
     @Test
     void adding_an_owner_that_would_push_the_total_share_above_100_is_rejected() {
         UnitId unitId = UnitId.newId();
-        when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
+        when(unitRepository.findByIdForUpdate(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
         when(partyDirectoryPort.getPartyById(any())).thenReturn(existingParty());
         when(unitOwnershipRepository.existsByUnitIdAndPartyId(any(), any())).thenReturn(false);
         when(unitOwnershipRepository.findAllByUnitId(unitId)).thenReturn(List.of(
@@ -89,7 +89,7 @@ class AddUnitOwnershipServiceTest {
     @Test
     void adding_the_same_party_twice_on_the_same_unit_is_rejected() {
         UnitId unitId = UnitId.newId();
-        when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
+        when(unitRepository.findByIdForUpdate(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
         when(partyDirectoryPort.getPartyById(any())).thenReturn(existingParty());
         when(unitOwnershipRepository.existsByUnitIdAndPartyId(any(), any())).thenReturn(true);
 
@@ -100,7 +100,7 @@ class AddUnitOwnershipServiceTest {
     @Test
     void adding_an_owner_to_an_unknown_unit_is_rejected() {
         UnitId unitId = UnitId.newId();
-        when(unitRepository.findById(unitId)).thenReturn(Optional.empty());
+        when(unitRepository.findByIdForUpdate(unitId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> newService().add(new AddUnitOwnershipCommand(unitId, EntityId.newId(), BigDecimal.TEN)))
                 .isInstanceOf(UnitNotFoundException.class);
@@ -109,7 +109,7 @@ class AddUnitOwnershipServiceTest {
     @Test
     void adding_an_unknown_party_as_owner_is_rejected() {
         UnitId unitId = UnitId.newId();
-        when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
+        when(unitRepository.findByIdForUpdate(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
         when(partyDirectoryPort.getPartyById(any())).thenThrow(new ResourceNotFoundException("Party not found"));
 
         assertThatThrownBy(() -> newService().add(new AddUnitOwnershipCommand(unitId, EntityId.newId(), BigDecimal.TEN)))

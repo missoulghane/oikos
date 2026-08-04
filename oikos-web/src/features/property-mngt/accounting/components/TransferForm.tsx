@@ -25,7 +25,7 @@ export function TransferForm({ propertyId, accounts }: TransferFormProps) {
   const { mutate, isPending, error } = useTransferBetweenFinancialAccounts(propertyId);
 
   function onSubmit(values: TransferFormValues) {
-    mutate(values, { onSuccess: () => navigate(`/properties/${propertyId}/accounting/financial-accounts`) });
+    mutate(values, { onSuccess: () => navigate(`/property-mngt/properties/${propertyId}/accounting/financial-accounts`) });
   }
 
   return (

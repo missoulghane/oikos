@@ -53,8 +53,10 @@ public class UnitController {
     @GetMapping("/buildings/{buildingId}/units")
     public PagedUnitResponse list(@PathVariable String buildingId,
                                   @RequestParam(defaultValue = "0") int page,
-                                  @RequestParam(defaultValue = "20") int size) {
-        ListUnitsByBuildingQuery query = new ListUnitsByBuildingQuery(BuildingId.of(buildingId), PageRequest.of(page, size));
+                                  @RequestParam(defaultValue = "20") int size,
+                                  @RequestParam(required = false) String search) {
+        ListUnitsByBuildingQuery query =
+                new ListUnitsByBuildingQuery(BuildingId.of(buildingId), PageRequest.of(page, size), search);
         return PagedUnitResponse.from(listUnitsByBuildingUseCase.listUnits(query));
     }
 

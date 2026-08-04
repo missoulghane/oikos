@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,17 +21,20 @@ import jakarta.validation.Valid;
 import com.architek.oikos.party.application.command.CreatePartyCommand;
 import com.architek.oikos.party.application.command.DeletePartyCommand;
 import com.architek.oikos.party.application.command.UpdatePartyCommand;
+import com.architek.oikos.party.application.command.UpdatePartyPhoneCommand;
 import com.architek.oikos.party.application.dto.PartyView;
 import com.architek.oikos.party.application.port.in.CreatePartyUseCase;
 import com.architek.oikos.party.application.port.in.DeletePartyUseCase;
 import com.architek.oikos.party.application.port.in.GetPartyUseCase;
 import com.architek.oikos.party.application.port.in.ListPartiesUseCase;
+import com.architek.oikos.party.application.port.in.UpdatePartyPhoneUseCase;
 import com.architek.oikos.party.application.port.in.UpdatePartyUseCase;
 import com.architek.oikos.party.application.query.GetPartyQuery;
 import com.architek.oikos.party.application.query.ListPartiesQuery;
 import com.architek.oikos.party.domain.valueobject.PartyId;
 import com.architek.oikos.party.domain.valueobject.PartySearchCriteria;
 import com.architek.oikos.party.web.request.CreatePartyRequest;
+import com.architek.oikos.party.web.request.UpdatePartyPhoneRequest;
 import com.architek.oikos.party.web.request.UpdatePartyRequest;
 import com.architek.oikos.party.web.response.InvitePartyResponse;
 import com.architek.oikos.party.web.response.PartyResponse;
@@ -56,6 +60,7 @@ public class PartyController {
     private final CreatePartyUseCase createPartyUseCase;
     private final GetPartyUseCase getPartyUseCase;
     private final UpdatePartyUseCase updatePartyUseCase;
+    private final UpdatePartyPhoneUseCase updatePartyPhoneUseCase;
     private final ListPartiesUseCase listPartiesUseCase;
     private final DeletePartyUseCase deletePartyUseCase;
     private final InvitePartyUseCase invitePartyUseCase;
@@ -63,12 +68,14 @@ public class PartyController {
     public PartyController(CreatePartyUseCase createPartyUseCase,
                               GetPartyUseCase getPartyUseCase,
                               UpdatePartyUseCase updatePartyUseCase,
+                              UpdatePartyPhoneUseCase updatePartyPhoneUseCase,
                               ListPartiesUseCase listPartiesUseCase,
                               DeletePartyUseCase deletePartyUseCase,
                               InvitePartyUseCase invitePartyUseCase) {
         this.createPartyUseCase = createPartyUseCase;
         this.getPartyUseCase = getPartyUseCase;
         this.updatePartyUseCase = updatePartyUseCase;
+        this.updatePartyPhoneUseCase = updatePartyPhoneUseCase;
         this.listPartiesUseCase = listPartiesUseCase;
         this.deletePartyUseCase = deletePartyUseCase;
         this.invitePartyUseCase = invitePartyUseCase;
@@ -106,6 +113,18 @@ public class PartyController {
         UpdatePartyCommand command = new UpdatePartyCommand(
                 PartyId.of(id), request.fullName(), request.partyType(), EmailVO.of(request.email()), request.phone());
         return PartyResponse.from(updatePartyUseCase.update(command));
+    }
+
+    /**
+     * Narrower self-service edit: lets the party's own linked account (ownsParty) keep its phone
+     * number current, without the identity fields (fullName/partyType/email) that stay
+     * manager/admin-only via {@link #update}.
+     */
+    @PreAuthorize("@propertyAccess.managesParty(authentication, #id) or @propertyAccess.ownsParty(authentication, #id)")
+    @PatchMapping("/{id}/phone")
+    public PartyResponse updatePhone(@PathVariable String id, @Valid @RequestBody UpdatePartyPhoneRequest request) {
+        UpdatePartyPhoneCommand command = new UpdatePartyPhoneCommand(PartyId.of(id), request.phone());
+        return PartyResponse.from(updatePartyPhoneUseCase.updatePhone(command));
     }
 
     @PreAuthorize("@propertyAccess.managesParty(authentication, #id)")

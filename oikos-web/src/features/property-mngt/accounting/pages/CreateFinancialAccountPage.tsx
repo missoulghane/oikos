@@ -21,7 +21,7 @@ export function CreateFinancialAccountPage() {
     <div className="flex flex-col gap-6">
       <div>
         <Link
-          to={`/properties/${propertyId}/accounting/financial-accounts`}
+          to={`/property-mngt/properties/${propertyId}/accounting/financial-accounts`}
           className="text-sm text-gray-500 hover:underline"
         >
           ← Retour aux comptes financiers

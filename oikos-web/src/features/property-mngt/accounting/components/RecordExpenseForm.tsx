@@ -28,7 +28,7 @@ export function RecordExpenseForm({ propertyId, accounts }: RecordExpenseFormPro
   const { mutate, isPending, error } = useRecordExpense(propertyId);
 
   function onSubmit(values: RecordExpenseFormValues) {
-    mutate(values, { onSuccess: () => navigate(`/properties/${propertyId}/accounting/expenses`) });
+    mutate(values, { onSuccess: () => navigate(`/property-mngt/properties/${propertyId}/accounting/expenses`) });
   }
 
   return (

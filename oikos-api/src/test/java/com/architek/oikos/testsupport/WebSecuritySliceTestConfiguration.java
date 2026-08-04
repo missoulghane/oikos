@@ -17,6 +17,8 @@ import com.architek.oikos.auth.infrastructure.security.RestAuthenticationEntryPo
 import com.architek.oikos.auth.infrastructure.security.SecurityConfiguration;
 import com.architek.oikos.installment.application.port.in.GetInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.GetInstallmentUseCase;
+import com.architek.oikos.invitation.application.port.in.GetInvitationUseCase;
+import com.architek.oikos.invitation.application.port.in.GetMembershipRequestUseCase;
 import com.architek.oikos.party.application.port.in.GetPartyUseCase;
 import com.architek.oikos.property.application.port.in.GetBuildingUseCase;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
@@ -73,13 +75,17 @@ public class WebSecuritySliceTestConfiguration {
                                             ObjectProvider<GetInstallmentUseCase> getInstallmentUseCase,
                                             ObjectProvider<GetInstallmentCallUseCase> getInstallmentCallUseCase,
                                             ObjectProvider<ListUnitOwnershipsByUnitUseCase> listUnitOwnershipsByUnitUseCase,
-                                            ObjectProvider<GetPartyUseCase> getPartyUseCase) {
+                                            ObjectProvider<GetPartyUseCase> getPartyUseCase,
+                                            ObjectProvider<GetInvitationUseCase> getInvitationUseCase,
+                                            ObjectProvider<GetMembershipRequestUseCase> getMembershipRequestUseCase) {
         return new PropertyAccessEvaluator(getUserAccessUseCase,
                 getUnitUseCase.getIfAvailable(() -> Mockito.mock(GetUnitUseCase.class)),
                 getBuildingUseCase.getIfAvailable(() -> Mockito.mock(GetBuildingUseCase.class)),
                 getInstallmentUseCase.getIfAvailable(() -> Mockito.mock(GetInstallmentUseCase.class)),
                 getInstallmentCallUseCase.getIfAvailable(() -> Mockito.mock(GetInstallmentCallUseCase.class)),
                 listUnitOwnershipsByUnitUseCase.getIfAvailable(() -> Mockito.mock(ListUnitOwnershipsByUnitUseCase.class)),
-                getPartyUseCase.getIfAvailable(() -> Mockito.mock(GetPartyUseCase.class)));
+                getPartyUseCase.getIfAvailable(() -> Mockito.mock(GetPartyUseCase.class)),
+                getInvitationUseCase.getIfAvailable(() -> Mockito.mock(GetInvitationUseCase.class)),
+                getMembershipRequestUseCase.getIfAvailable(() -> Mockito.mock(GetMembershipRequestUseCase.class)));
     }
 }

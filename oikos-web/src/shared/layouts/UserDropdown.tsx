@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/app/store';
 import { useCurrentUser } from '@/features/identity/me';
 import { Dropdown } from '@/shared/components/Dropdown/Dropdown';
@@ -48,6 +48,13 @@ export function UserDropdown() {
           <span className="block text-sm font-medium text-gray-700">{currentUser.data?.fullName}</span>
           <span className="mt-0.5 block text-xs text-gray-500">{currentUser.data?.email}</span>
         </div>
+        <Link
+          to="/profile"
+          onClick={() => setIsOpen(false)}
+          className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
+        >
+          Mes informations
+        </Link>
         <button
           onClick={handleLogout}
           className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
