@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getInvitations } from '@/features/property-mngt/invitations/api/getInvitations';
 import { queryKeys } from '@/shared/constants/queryKeys';
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 5;
 
 export function useInvitations(propertyId: string, page: number, size: number = DEFAULT_PAGE_SIZE) {
   return useQuery({

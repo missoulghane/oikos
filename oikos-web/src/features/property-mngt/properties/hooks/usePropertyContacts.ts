@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getPropertyContacts } from '@/features/property-mngt/properties/api/getPropertyContacts';
 import { queryKeys } from '@/shared/constants/queryKeys';
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 5;
 
 export function usePropertyContacts(propertyId: string, page: number, search?: string, size: number = DEFAULT_PAGE_SIZE) {
   return useQuery({

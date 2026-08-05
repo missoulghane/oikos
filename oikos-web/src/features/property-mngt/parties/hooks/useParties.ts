@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getParties } from '@/features/property-mngt/parties/api/getParties';
 import { queryKeys } from '@/shared/constants/queryKeys';
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 5;
 
 export function useParties(
   propertyId: string | undefined,

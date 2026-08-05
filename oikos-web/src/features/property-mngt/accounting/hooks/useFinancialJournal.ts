@@ -3,7 +3,7 @@ import { getFinancialJournal } from '@/features/property-mngt/accounting/api/get
 import { queryKeys } from '@/shared/constants/queryKeys';
 import type { JournalFilters } from '@/features/property-mngt/accounting/types/accounting.types';
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 5;
 
 export function useFinancialJournal(
   propertyId: string,

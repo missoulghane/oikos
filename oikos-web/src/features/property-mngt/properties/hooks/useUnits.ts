@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getUnits } from '@/features/property-mngt/properties/api/getUnits';
 import { queryKeys } from '@/shared/constants/queryKeys';
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 5;
 
 export function useUnits(buildingId: string, page: number, search?: string, size: number = DEFAULT_PAGE_SIZE) {
   return useQuery({

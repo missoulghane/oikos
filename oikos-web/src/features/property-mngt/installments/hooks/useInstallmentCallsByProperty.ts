@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getInstallmentCallsByProperty } from '@/features/property-mngt/installments/api/getInstallmentCallsByProperty';
 import { queryKeys } from '@/shared/constants/queryKeys';
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 5;
 
 export function useInstallmentCallsByProperty(propertyId: string, page: number, size: number = DEFAULT_PAGE_SIZE) {
   return useQuery({

@@ -3,7 +3,7 @@ import { getPropertyInstallments } from '@/features/property-mngt/installments/a
 import { queryKeys } from '@/shared/constants/queryKeys';
 import type { InstallmentListFilters } from '@/features/property-mngt/installments/types/installment.types';
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 5;
 
 export function usePropertyInstallments(
   propertyId: string,
