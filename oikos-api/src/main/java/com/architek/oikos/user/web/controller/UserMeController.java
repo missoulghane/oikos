@@ -17,16 +17,19 @@ import com.architek.oikos.user.application.command.UpdateUserProfileCommand;
 import com.architek.oikos.user.application.dto.UserView;
 import com.architek.oikos.user.application.port.in.ChangePasswordUseCase;
 import com.architek.oikos.user.application.port.in.GetMyInstallmentsUseCase;
+import com.architek.oikos.user.application.port.in.GetMyMembershipRequestsUseCase;
 import com.architek.oikos.user.application.port.in.GetMyUnitsUseCase;
 import com.architek.oikos.user.application.port.in.GetUserUseCase;
 import com.architek.oikos.user.application.port.in.UpdateUserProfileUseCase;
 import com.architek.oikos.user.application.query.GetMyInstallmentsQuery;
+import com.architek.oikos.user.application.query.GetMyMembershipRequestsQuery;
 import com.architek.oikos.user.application.query.GetMyUnitsQuery;
 import com.architek.oikos.user.application.query.GetUserQuery;
 import com.architek.oikos.user.domain.valueobject.UserId;
 import com.architek.oikos.user.web.request.ChangePasswordRequest;
 import com.architek.oikos.user.web.request.UpdateProfileRequest;
 import com.architek.oikos.user.web.response.OwnedInstallmentResponse;
+import com.architek.oikos.user.web.response.OwnedMembershipRequestResponse;
 import com.architek.oikos.user.web.response.OwnedUnitResponse;
 import com.architek.oikos.user.web.response.UserResponse;
 
@@ -43,17 +46,20 @@ public class UserMeController {
     private final ChangePasswordUseCase changePasswordUseCase;
     private final GetMyUnitsUseCase getMyUnitsUseCase;
     private final GetMyInstallmentsUseCase getMyInstallmentsUseCase;
+    private final GetMyMembershipRequestsUseCase getMyMembershipRequestsUseCase;
 
     public UserMeController(GetUserUseCase getUserUseCase,
                              UpdateUserProfileUseCase updateUserProfileUseCase,
                              ChangePasswordUseCase changePasswordUseCase,
                              GetMyUnitsUseCase getMyUnitsUseCase,
-                             GetMyInstallmentsUseCase getMyInstallmentsUseCase) {
+                             GetMyInstallmentsUseCase getMyInstallmentsUseCase,
+                             GetMyMembershipRequestsUseCase getMyMembershipRequestsUseCase) {
         this.getUserUseCase = getUserUseCase;
         this.updateUserProfileUseCase = updateUserProfileUseCase;
         this.changePasswordUseCase = changePasswordUseCase;
         this.getMyUnitsUseCase = getMyUnitsUseCase;
         this.getMyInstallmentsUseCase = getMyInstallmentsUseCase;
+        this.getMyMembershipRequestsUseCase = getMyMembershipRequestsUseCase;
     }
 
     @GetMapping
@@ -73,6 +79,14 @@ public class UserMeController {
     public List<OwnedInstallmentResponse> myInstallments(Authentication authentication) {
         return getMyInstallmentsUseCase.getMyInstallments(new GetMyInstallmentsQuery(currentUserId(authentication))).stream()
                 .map(OwnedInstallmentResponse::from)
+                .toList();
+    }
+
+    @GetMapping("/membership-requests")
+    public List<OwnedMembershipRequestResponse> myMembershipRequests(Authentication authentication) {
+        return getMyMembershipRequestsUseCase.getMyMembershipRequests(new GetMyMembershipRequestsQuery(currentUserId(authentication)))
+                .stream()
+                .map(OwnedMembershipRequestResponse::from)
                 .toList();
     }
 

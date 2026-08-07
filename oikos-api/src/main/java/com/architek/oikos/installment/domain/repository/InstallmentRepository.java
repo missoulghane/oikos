@@ -22,4 +22,6 @@ public interface InstallmentRepository {
     List<Installment> findAllByInstallmentCallId(InstallmentCallId installmentCallId);
 
     Page<Installment> findPageByUnitIds(List<EntityId> unitIds, InstallmentFilter filter, PageRequest pageRequest);
+
+    void deleteAllByInstallmentCallId(InstallmentCallId installmentCallId);
 }

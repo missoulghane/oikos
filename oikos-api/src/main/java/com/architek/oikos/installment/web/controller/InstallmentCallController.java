@@ -6,17 +6,21 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import com.architek.oikos.installment.application.command.InstallmentCallLine;
+import com.architek.oikos.installment.application.command.DeleteInstallmentCallCommand;
 import com.architek.oikos.installment.application.command.GenerateInstallmentCallCommand;
 import com.architek.oikos.installment.application.command.RecordInstallmentCallCommand;
+import com.architek.oikos.installment.application.port.in.DeleteInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.GenerateInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.GetInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.ListInstallmentCallsByPropertyUseCase;
@@ -42,15 +46,18 @@ public class InstallmentCallController {
     private final GenerateInstallmentCallUseCase generateInstallmentCallUseCase;
     private final ListInstallmentCallsByPropertyUseCase listInstallmentCallsByPropertyUseCase;
     private final GetInstallmentCallUseCase getInstallmentCallUseCase;
+    private final DeleteInstallmentCallUseCase deleteInstallmentCallUseCase;
 
     public InstallmentCallController(RecordInstallmentCallUseCase recordInstallmentCallUseCase,
                                      GenerateInstallmentCallUseCase generateInstallmentCallUseCase,
                                      ListInstallmentCallsByPropertyUseCase listInstallmentCallsByPropertyUseCase,
-                                     GetInstallmentCallUseCase getInstallmentCallUseCase) {
+                                     GetInstallmentCallUseCase getInstallmentCallUseCase,
+                                     DeleteInstallmentCallUseCase deleteInstallmentCallUseCase) {
         this.recordInstallmentCallUseCase = recordInstallmentCallUseCase;
         this.generateInstallmentCallUseCase = generateInstallmentCallUseCase;
         this.listInstallmentCallsByPropertyUseCase = listInstallmentCallsByPropertyUseCase;
         this.getInstallmentCallUseCase = getInstallmentCallUseCase;
+        this.deleteInstallmentCallUseCase = deleteInstallmentCallUseCase;
     }
 
     // No propertyId in the path here (the request body carries arbitrary unitIds
@@ -88,6 +95,13 @@ public class InstallmentCallController {
     public InstallmentCallDetailResponse getById(@PathVariable String id) {
         return InstallmentCallDetailResponse.from(
                 getInstallmentCallUseCase.getInstallmentCall(new GetInstallmentCallQuery(InstallmentCallId.of(id))));
+    }
+
+    @PreAuthorize("@propertyAccess.managesInstallmentCall(authentication, #id)")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @DeleteMapping("/installment-calls/{id}")
+    public void delete(@PathVariable String id) {
+        deleteInstallmentCallUseCase.delete(new DeleteInstallmentCallCommand(InstallmentCallId.of(id)));
     }
 
     private static InstallmentCallLine toLine(InstallmentCallLineRequest request) {

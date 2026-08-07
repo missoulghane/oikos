@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { usePropertyInstallments } from '@/features/property-mngt/installments/hooks/usePropertyInstallments';
 import {
   InstallmentFilters,
@@ -19,15 +19,30 @@ const DEFAULT_FILTERS: InstallmentFiltersValue = {
   status: '',
   dueDateFrom: '',
   dueDateTo: '',
+  installmentCallId: '',
   sortBy: 'DUE_DATE',
   sortDirection: 'ASC',
 };
 
 export function InstallmentsListTab() {
+  const [searchParams] = useSearchParams();
+  const installmentCallIdFromUrl = searchParams.get('installmentCallId') ?? '';
+
+  // Keyed on the url param: "Voir les échéances" on the Appels de fonds tab
+  // links here with ?installmentCallId=... - remounting (instead of syncing
+  // via an effect) resets the filter state to that value, including when
+  // clicking that link again for a different call while already on this tab.
+  return <InstallmentsListTabContent key={installmentCallIdFromUrl} installmentCallIdFromUrl={installmentCallIdFromUrl} />;
+}
+
+function InstallmentsListTabContent({ installmentCallIdFromUrl }: { installmentCallIdFromUrl: string }) {
   const { property } = useOutletContext<{ property: Property }>();
 
   const [page, setPage] = useState(0);
-  const [filters, setFilters] = useState<InstallmentFiltersValue>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<InstallmentFiltersValue>({
+    ...DEFAULT_FILTERS,
+    installmentCallId: installmentCallIdFromUrl,
+  });
 
   function handleFiltersChange(next: InstallmentFiltersValue) {
     setFilters(next);
@@ -38,6 +53,7 @@ export function InstallmentsListTab() {
     status: filters.status ? [filters.status] : undefined,
     dueDateFrom: filters.dueDateFrom || undefined,
     dueDateTo: filters.dueDateTo || undefined,
+    installmentCallId: filters.installmentCallId || undefined,
     sortBy: filters.sortBy,
     sortDirection: filters.sortDirection,
   };
@@ -46,7 +62,7 @@ export function InstallmentsListTab() {
 
   return (
     <Card className="flex flex-col gap-4">
-      <InstallmentFilters value={filters} onChange={handleFiltersChange} />
+      <InstallmentFilters propertyId={property.id} value={filters} onChange={handleFiltersChange} />
 
       {installments.isLoading && <Loader label="Chargement des échéances…" />}
       {installments.isError && <Alert message={getErrorMessage(installments.error)} />}
@@ -55,7 +71,7 @@ export function InstallmentsListTab() {
       )}
       {installments.data && installments.data.content.length > 0 && (
         <div className="flex flex-col gap-3">
-          <InstallmentList installments={installments.data.content} propertyId={property.id} />
+          <InstallmentList installments={installments.data.content} />
           <Pagination
             pageNumber={installments.data.pageNumber}
             totalPages={installments.data.totalPages}

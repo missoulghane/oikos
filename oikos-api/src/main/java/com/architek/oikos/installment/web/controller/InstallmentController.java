@@ -16,6 +16,7 @@ import com.architek.oikos.installment.application.port.in.ListInstallmentsByUnit
 import com.architek.oikos.installment.application.query.GetInstallmentQuery;
 import com.architek.oikos.installment.application.query.ListInstallmentsByPropertyQuery;
 import com.architek.oikos.installment.application.query.ListInstallmentsByUnitQuery;
+import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentFilter;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentSortField;
@@ -58,8 +59,10 @@ public class InstallmentController {
                                                      @RequestParam(defaultValue = "ASC") SortDirection sortDirection,
                                                      @RequestParam(required = false) Set<InstallmentStatus> status,
                                                      @RequestParam(required = false) LocalDate dueDateFrom,
-                                                     @RequestParam(required = false) LocalDate dueDateTo) {
-        InstallmentFilter filter = new InstallmentFilter(status, dueDateFrom, dueDateTo, sortBy, sortDirection);
+                                                     @RequestParam(required = false) LocalDate dueDateTo,
+                                                     @RequestParam(required = false) String installmentCallId) {
+        InstallmentFilter filter = new InstallmentFilter(status, dueDateFrom, dueDateTo, sortBy, sortDirection,
+                installmentCallId != null ? InstallmentCallId.of(installmentCallId) : null);
         return PagedInstallmentResponse.from(listInstallmentsByPropertyUseCase.listInstallments(
                 new ListInstallmentsByPropertyQuery(EntityId.of(propertyId), filter, PageRequest.of(page, size))));
     }

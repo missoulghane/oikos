@@ -7,7 +7,7 @@ import com.architek.oikos.invitation.domain.valueobject.MembershipRequestId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
- * A single candidacy against a PUBLIC invitation: one candidate, one chosen
+ * A single membership request against a PUBLIC invitation: one candidate, one chosen
  * unit. Multiple pending requests can target the same unit at once (the
  * unit stays selectable while pending, per product decision) - accepting one
  * auto-rejects the others on that unit (see AcceptMembershipRequestService).

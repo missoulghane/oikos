@@ -27,6 +27,7 @@ import {
   ListIcon,
   CheckLineIcon,
   MailIcon,
+  UserCircleIcon,
 } from '@/shared/icons';
 import { SidebarWidget } from './SidebarWidget';
 
@@ -47,12 +48,13 @@ const PROPERTY_INFO_TABS = [
   { name: 'Lots', path: '/lots', icon: <BoxIconLine /> },
   { name: 'Contacts', path: '/contacts', icon: <GroupIcon /> },
   { name: 'Invitations', path: '/invitations', icon: <MailIcon /> },
+  { name: 'Bureau', path: '/board', icon: <UserCircleIcon /> },
   { name: 'Configuration', path: '/configuration', icon: <PlugInIcon /> },
 ];
 
 const INSTALLMENT_TABS = [
+  { name: 'Appels de fonds', path: '/calls', icon: <PaperPlaneIcon /> },
   { name: 'Échéances', path: '', icon: <TimeIcon /> },
-  { name: 'Appels à cotisations', path: '/calls', icon: <PaperPlaneIcon /> },
   { name: 'Autres', path: '/other', icon: <MoreDotIcon /> },
 ];
 
@@ -135,6 +137,9 @@ export function AppSidebar() {
     ...(!canManage ? [{ name: 'Mes lots', path: '/property-ownership/units', icon: <BoxIconLine /> }] : []),
     ...(!canManage
       ? [{ name: 'Mes échéances', path: '/property-ownership/installments', icon: <TimeIcon /> }]
+      : []),
+    ...(!canManage
+      ? [{ name: 'Mes invitations', path: '/property-ownership/membership-requests', icon: <MailIcon /> }]
       : []),
   ];
 

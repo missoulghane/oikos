@@ -1,3 +1,9 @@
+######################### Bench mails #########################
+kaoutar.salami.1990@gmail.com/Oikos@2026
+###############################################################
+
+
+######################### Oikos mails #########################
 admin@oikos.com => administrateur systeme
 
 manager1@oikos.com => manager pro d'une copros (Copro 1 : contient un batiement et deux units de type appartement (prix = 200))
@@ -15,3 +21,4 @@ copr3_user1@oikos.com => user associé à l'unit 1 (type Appartment) du batiment
 copr3_user2@oikos.com => user associé à l'unit 2 (type Appartment)  du batiment 1 de la copro
 
 Mot de passe globale : Oikos@2026
+###############################################################

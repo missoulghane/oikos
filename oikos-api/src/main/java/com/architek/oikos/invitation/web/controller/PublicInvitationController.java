@@ -1,7 +1,6 @@
 package com.architek.oikos.invitation.web.controller;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,20 +23,21 @@ import com.architek.oikos.invitation.web.request.AcceptInvitationRequest;
 import com.architek.oikos.invitation.web.response.InvitationPreviewResponse;
 import com.architek.oikos.invitation.web.response.PagedAvailableUnitResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
-import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
-import com.architek.oikos.shared.domain.valueobject.RawPassword;
 
 /**
- * Public/anonymous invitation consumption. Every endpoint here is
- * permitAll'd (see SecurityConfiguration's "/api/v1/invitations/by-token/**"
- * entry), but accept/candidacies still branch on Authentication: if the
- * request carries a valid JWT (JwtAuthenticationFilter runs for every
- * request regardless of permitAll status), it's treated as "log in and
- * resume" - the caller's own account/party is reused instead of provisioning
- * a new one. This is the whole mechanism behind the invitation landing
- * page's inline "I already have an account" flow: no separate authenticated
- * endpoint, no returnTo/redirect plumbing needed.
+ * Preview and available-units stay anonymous (see SecurityConfiguration's
+ * GET-only permitAll entry for "/api/v1/invitations/by-token/**") so the
+ * landing page can render before the visitor logs in. accept/membership-
+ * requests, on the other hand, require an authenticated caller - enforced by
+ * SecurityConfiguration's URL matcher (falls through to
+ * .anyRequest().authenticated()) rather than a @PreAuthorize here, so a
+ * missing/expired token is rejected before reaching this controller (401,
+ * same as every other secured endpoint) instead of surfacing as a 403 that
+ * the frontend's token-refresh interceptor doesn't retry: account creation
+ * now always happens upstream, through the standard registration + email-
+ * verification flow, before the invitation wizard's second step ever calls
+ * these two endpoints.
  */
 @RestController
 @RequestMapping("/invitations/by-token")
@@ -75,47 +75,26 @@ public class PublicInvitationController {
     public ResponseEntity<Void> accept(@PathVariable String token,
                                         @RequestBody(required = false) AcceptInvitationRequest request,
                                         Authentication authentication) {
-        EntityId actingUserId = actingUserId(authentication);
         EntityId unitId = request != null && request.unitId() != null ? EntityId.of(request.unitId()) : null;
-        AcceptInvitationCommand command = actingUserId != null
-                ? new AcceptInvitationCommand(token, actingUserId, null, null, null, unitId)
-                : new AcceptInvitationCommand(token, null,
-                        request != null && request.email() != null ? EmailVO.of(request.email()) : null,
-                        request != null ? request.fullName() : null,
-                        request != null && request.password() != null ? RawPassword.of(request.password()) : null,
-                        unitId);
-        acceptInvitationUseCase.accept(command);
+        acceptInvitationUseCase.accept(new AcceptInvitationCommand(token, actingUserId(authentication), unitId));
         return ResponseEntity.noContent().build();
     }
 
     /**
      * PUBLIC-type counterpart of accept: creates a PENDING MembershipRequest
      * instead of granting access immediately - a manager/board admin must
-     * accept it first (see MembershipRequestController). Reuses
-     * AcceptInvitationRequest's shape (email/fullName/password/unitId) since
-     * the frontend form is identical either way.
+     * accept it first (see MembershipRequestController).
      */
-    @PostMapping("/{token}/candidacies")
-    public ResponseEntity<Void> submitCandidacy(@PathVariable String token,
-                                                 @RequestBody(required = false) AcceptInvitationRequest request,
-                                                 Authentication authentication) {
-        EntityId actingUserId = actingUserId(authentication);
+    @PostMapping("/{token}/membership-requests")
+    public ResponseEntity<Void> submitMembershipRequest(@PathVariable String token,
+                                                          @RequestBody(required = false) AcceptInvitationRequest request,
+                                                          Authentication authentication) {
         EntityId unitId = request != null && request.unitId() != null ? EntityId.of(request.unitId()) : null;
-        SubmitMembershipRequestCommand command = actingUserId != null
-                ? new SubmitMembershipRequestCommand(token, actingUserId, null, null, null, unitId)
-                : new SubmitMembershipRequestCommand(token, null,
-                        request != null && request.email() != null ? EmailVO.of(request.email()) : null,
-                        request != null ? request.fullName() : null,
-                        request != null && request.password() != null ? RawPassword.of(request.password()) : null,
-                        unitId);
-        submitMembershipRequestUseCase.submit(command);
+        submitMembershipRequestUseCase.submit(new SubmitMembershipRequestCommand(token, actingUserId(authentication), unitId));
         return ResponseEntity.noContent().build();
     }
 
     private EntityId actingUserId(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
-            return null;
-        }
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         return EntityId.of(principal.getUserId());
     }

@@ -8,8 +8,7 @@ import type { Invitation, InvitationStatus, InvitationType } from '@/features/pr
 
 const TYPE_LABELS: Record<InvitationType, string> = {
   PUBLIC: 'Lien public',
-  PRIVATE_WITH_UNIT: 'Privée (lot attribué)',
-  PRIVATE_WITHOUT_UNIT: 'Privée (lot au choix)',
+  PRIVATE: 'Privée',
 };
 
 const STATUS_BADGE: Record<InvitationStatus, { label: string; color: 'success' | 'light' | 'error' }> = {
@@ -34,6 +33,9 @@ export function InvitationRow({ propertyId, invitation }: InvitationRowProps) {
           <p className="flex items-center gap-2 text-sm font-medium text-gray-900">
             {TYPE_LABELS[invitation.type]}
             <Badge color={STATUS_BADGE[invitation.status].color}>{STATUS_BADGE[invitation.status].label}</Badge>
+            {invitation.emailMismatch && (
+              <Badge color="warning">⚠ Acceptée par un autre email que celui ciblé</Badge>
+            )}
           </p>
           {invitation.targetEmail && <p className="truncate text-sm text-gray-500">{invitation.targetEmail}</p>}
           <p className="truncate text-xs text-gray-400">

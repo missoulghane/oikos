@@ -2,6 +2,7 @@ package com.architek.oikos.auth.infrastructure.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -92,7 +93,13 @@ public class SecurityConfiguration {
                                 "/api/v1/users/register-property-manager-admin",
                                 "/api/v1/users/verify", "/api/v1/users/resend-verification",
                                 "/api/v1/users/activate-account", "/api/v1/users/accept-invitation").permitAll()
-                        .requestMatchers("/api/v1/invitations/by-token/**").permitAll()
+                        // GET (preview/available-units) stays anonymous so the invitation
+                        // landing page renders before the visitor logs in; the POST endpoints
+                        // (accept/membership-requests) fall through to .anyRequest().authenticated()
+                        // below so a missing/expired token is rejected at this filter (401,
+                        // triggers the frontend's silent-refresh-and-retry) instead of reaching
+                        // the controller's @PreAuthorize check (403, no retry).
+                        .requestMatchers(HttpMethod.GET, "/api/v1/invitations/by-token/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()

@@ -3,6 +3,7 @@ export const queryKeys = {
     detail: () => ['me', 'detail'] as const,
     units: () => ['me', 'units'] as const,
     installments: () => ['me', 'installments'] as const,
+    membershipRequests: () => ['me', 'membership-requests'] as const,
   },
   properties: {
     list: (page: number, size: number) => ['properties', 'list', page, size] as const,
@@ -16,10 +17,23 @@ export const queryKeys = {
       status: string[] | undefined,
       dueDateFrom: string | undefined,
       dueDateTo: string | undefined,
+      installmentCallId: string | undefined,
       sortBy: string,
       sortDirection: string,
     ) =>
-      ['properties', propertyId, 'installments', page, size, status, dueDateFrom, dueDateTo, sortBy, sortDirection] as const,
+      [
+        'properties',
+        propertyId,
+        'installments',
+        page,
+        size,
+        status,
+        dueDateFrom,
+        dueDateTo,
+        installmentCallId,
+        sortBy,
+        sortDirection,
+      ] as const,
     unitTypePrices: (propertyId: string) => ['properties', propertyId, 'unit-type-prices'] as const,
     unitTypes: (propertyId: string) => ['properties', propertyId, 'unit-types'] as const,
     installmentCalls: (propertyId: string, page: number, size: number) =>
@@ -77,5 +91,8 @@ export const queryKeys = {
     list: (propertyId: string, page: number, size: number) => ['invitations', propertyId, 'list', page, size] as const,
     membershipRequests: (propertyId: string, page: number, size: number) =>
       ['invitations', propertyId, 'membership-requests', page, size] as const,
+  },
+  boardMembers: {
+    list: (propertyId: string) => ['board-members', propertyId, 'list'] as const,
   },
 };

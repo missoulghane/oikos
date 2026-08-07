@@ -3,14 +3,12 @@ package com.architek.oikos.installment.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.installment.application.command.InstallmentCallLine;
 import com.architek.oikos.installment.application.command.RecordInstallmentCallCommand;
-import com.architek.oikos.installment.application.port.out.UnitAccountLedgerPort;
 import com.architek.oikos.installment.application.port.out.UnitDirectoryPort;
 import com.architek.oikos.installment.domain.exception.UnitNotFoundException;
 import com.architek.oikos.installment.domain.model.Installment;
@@ -37,20 +34,15 @@ class RecordInstallmentCallServiceTest {
     @Mock
     private UnitDirectoryPort unitDirectoryPort;
 
-    @Mock
-    private UnitAccountLedgerPort unitAccountLedgerPort;
-
     private RecordInstallmentCallService newService() {
-        return new RecordInstallmentCallService(installmentRepository, unitDirectoryPort, unitAccountLedgerPort);
+        return new RecordInstallmentCallService(installmentRepository, unitDirectoryPort);
     }
 
     @Test
     void recording_a_installment_call_creates_an_installment_per_line() {
         EntityId unitId = EntityId.newId();
-        EntityId unitAccountId = EntityId.newId();
         when(unitDirectoryPort.exists(unitId)).thenReturn(true);
         when(installmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(unitAccountLedgerPort.findUnitAccountId(unitId)).thenReturn(Optional.of(unitAccountId));
 
         LocalDate dueDate = LocalDate.of(2027, 1, 1);
         List<InstallmentId> ids = newService().record(new RecordInstallmentCallCommand(dueDate,
@@ -64,8 +56,6 @@ class RecordInstallmentCallServiceTest {
         assertThat(savedInstallment.getUnitId()).isEqualTo(unitId);
         assertThat(savedInstallment.getDueDate()).isEqualTo(dueDate);
         assertThat(savedInstallment.getAmount().value()).isEqualByComparingTo("250");
-
-        verify(unitAccountLedgerPort).recordDebit(eq(unitAccountId), eq(new BigDecimal("250")), any(), any());
     }
 
     @Test

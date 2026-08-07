@@ -2,6 +2,9 @@ package com.architek.oikos.property.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -12,6 +15,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.property.application.command.AddBoardMemberCommand;
+import com.architek.oikos.property.application.port.out.PartyDetails;
+import com.architek.oikos.property.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.property.domain.exception.PartyAlreadyHasRoleException;
 import com.architek.oikos.property.domain.exception.PropertyNotFoundException;
 import com.architek.oikos.property.domain.model.Property;
@@ -19,7 +24,9 @@ import com.architek.oikos.property.domain.repository.PropertyRepository;
 import com.architek.oikos.property.domain.repository.BoardMemberRepository;
 import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.BoardRole;
+import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
+import com.architek.oikos.shared.domain.valueobject.PartyType;
 
 @ExtendWith(MockitoExtension.class)
 class AddBoardMemberServiceTest {
@@ -30,8 +37,11 @@ class AddBoardMemberServiceTest {
     @Mock
     private PropertyRepository propertyRepository;
 
+    @Mock
+    private PartyDirectoryPort partyDirectoryPort;
+
     private AddBoardMemberService newService() {
-        return new AddBoardMemberService(boardMemberRepository, propertyRepository);
+        return new AddBoardMemberService(boardMemberRepository, propertyRepository, partyDirectoryPort);
     }
 
     @Test
@@ -42,7 +52,7 @@ class AddBoardMemberServiceTest {
         when(boardMemberRepository.existsByPropertyIdAndPartyIdAndBoardRole(any(), any(), any())).thenReturn(false);
         when(boardMemberRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        newService().add(new AddBoardMemberCommand(propertyId, EntityId.newId(), BoardRole.PRESIDENT));
+        newService().add(new AddBoardMemberCommand(propertyId, EntityId.newId(), null, null, null, BoardRole.PRESIDENT));
     }
 
     @Test
@@ -52,7 +62,8 @@ class AddBoardMemberServiceTest {
                 .thenReturn(Optional.of(Property.create(propertyId, "Copro", "Address")));
         when(boardMemberRepository.existsByPropertyIdAndPartyIdAndBoardRole(any(), any(), any())).thenReturn(true);
 
-        assertThatThrownBy(() -> newService().add(new AddBoardMemberCommand(propertyId, EntityId.newId(), BoardRole.PRESIDENT)))
+        assertThatThrownBy(() -> newService().add(
+                new AddBoardMemberCommand(propertyId, EntityId.newId(), null, null, null, BoardRole.PRESIDENT)))
                 .isInstanceOf(PartyAlreadyHasRoleException.class);
     }
 
@@ -61,7 +72,55 @@ class AddBoardMemberServiceTest {
         PropertyId propertyId = PropertyId.newId();
         when(propertyRepository.findById(propertyId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> newService().add(new AddBoardMemberCommand(propertyId, EntityId.newId(), BoardRole.PRESIDENT)))
+        assertThatThrownBy(() -> newService().add(
+                new AddBoardMemberCommand(propertyId, EntityId.newId(), null, null, null, BoardRole.PRESIDENT)))
                 .isInstanceOf(PropertyNotFoundException.class);
+    }
+
+    @Test
+    void adding_a_board_member_without_a_party_id_creates_the_party_inline() {
+        PropertyId propertyId = PropertyId.newId();
+        EntityId newPartyId = EntityId.newId();
+        when(propertyRepository.findById(propertyId))
+                .thenReturn(Optional.of(Property.create(propertyId, "Copro", "Address")));
+        when(partyDirectoryPort.createParty(any(), eq(propertyId.value()))).thenReturn(newPartyId);
+        when(boardMemberRepository.existsByPropertyIdAndPartyIdAndBoardRole(propertyId, newPartyId, BoardRole.TREASURER))
+                .thenReturn(false);
+        when(boardMemberRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        newService().add(new AddBoardMemberCommand(propertyId, null, "Jane Doe", null, "0600000000", BoardRole.TREASURER));
+
+        verify(partyDirectoryPort).createParty(
+                new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, null, "0600000000"), propertyId.value());
+        verify(boardMemberRepository).save(any());
+    }
+
+    @Test
+    void adding_a_board_member_without_a_party_id_reuses_an_existing_party_matching_the_email() {
+        PropertyId propertyId = PropertyId.newId();
+        EntityId existingPartyId = EntityId.newId();
+        when(propertyRepository.findById(propertyId))
+                .thenReturn(Optional.of(Property.create(propertyId, "Copro", "Address")));
+        when(partyDirectoryPort.findIdByEmail(EmailVO.of("jane.doe@example.com"), propertyId.value()))
+                .thenReturn(Optional.of(existingPartyId));
+        when(boardMemberRepository.existsByPropertyIdAndPartyIdAndBoardRole(propertyId, existingPartyId, BoardRole.SECRETARY))
+                .thenReturn(false);
+        when(boardMemberRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        newService().add(new AddBoardMemberCommand(propertyId, null, "Jane Doe", "jane.doe@example.com", null,
+                BoardRole.SECRETARY));
+
+        verify(partyDirectoryPort, never()).createParty(any(), any());
+    }
+
+    @Test
+    void adding_a_board_member_without_a_party_id_nor_a_full_name_is_rejected() {
+        PropertyId propertyId = PropertyId.newId();
+        when(propertyRepository.findById(propertyId))
+                .thenReturn(Optional.of(Property.create(propertyId, "Copro", "Address")));
+
+        assertThatThrownBy(() -> newService().add(
+                new AddBoardMemberCommand(propertyId, null, null, null, null, BoardRole.PRESIDENT)))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

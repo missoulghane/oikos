@@ -1,7 +1,10 @@
 package com.architek.oikos.installment.infrastructure.adapter;
 
 import java.time.YearMonth;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -39,6 +42,17 @@ public class InstallmentCallRepositoryAdapter implements InstallmentCallReposito
     @Override
     public Optional<InstallmentCall> findById(InstallmentCallId id) {
         return jpaRepository.findById(id.asUuid()).map(mapper::toDomain);
+    }
+
+    @Override
+    public void deleteById(InstallmentCallId id) {
+        jpaRepository.deleteById(id.asUuid());
+    }
+
+    @Override
+    public List<InstallmentCall> findAllByIds(Collection<InstallmentCallId> ids) {
+        List<UUID> uuids = ids.stream().map(InstallmentCallId::asUuid).toList();
+        return jpaRepository.findAllById(uuids).stream().map(mapper::toDomain).toList();
     }
 
     @Override

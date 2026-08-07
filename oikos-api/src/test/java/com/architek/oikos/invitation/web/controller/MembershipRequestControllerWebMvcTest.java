@@ -20,6 +20,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.auth.infrastructure.security.JwtService;
+import com.architek.oikos.invitation.application.dto.MembershipRequestOverviewStatus;
+import com.architek.oikos.invitation.application.dto.MembershipRequestOverviewView;
 import com.architek.oikos.invitation.application.dto.MembershipRequestView;
 import com.architek.oikos.invitation.application.port.in.AcceptMembershipRequestUseCase;
 import com.architek.oikos.invitation.application.port.in.GetMembershipRequestUseCase;
@@ -68,6 +70,11 @@ class MembershipRequestControllerWebMvcTest {
                 EntityId.newId(), EntityId.newId(), EntityId.newId(), MembershipRequestStatus.PENDING, null, null, null);
     }
 
+    private MembershipRequestOverviewView sampleOverviewView(String propertyId) {
+        return new MembershipRequestOverviewView(EntityId.newId(), EntityId.newId(), EntityId.of(propertyId),
+                EntityId.newId(), EntityId.newId(), null, MembershipRequestOverviewStatus.PENDING, null, null, null);
+    }
+
     @Test
     void anonymous_request_is_rejected_with_401() throws Exception {
         mockMvc.perform(get("/api/v1/properties/" + UUID.randomUUID() + "/membership-requests"))
@@ -89,7 +96,7 @@ class MembershipRequestControllerWebMvcTest {
         when(getUserAccessUseCase.getAccess(any())).thenReturn(new UserAccessView(
                 Set.of(), Map.of(), Map.of(propertyId, Set.of(Permission.INVITATION_MANAGE)), Set.of(), Set.of()));
         when(listMembershipRequestsUseCase.listMembershipRequests(any()))
-                .thenReturn(Page.of(List.of(sampleView(propertyId)), 0, 20, 1));
+                .thenReturn(Page.of(List.of(sampleOverviewView(propertyId)), 0, 20, 1));
 
         mockMvc.perform(get("/api/v1/properties/" + propertyId + "/membership-requests")
                         .header("Authorization", bearerToken("PROPERTY_MANAGER_ADMIN")))

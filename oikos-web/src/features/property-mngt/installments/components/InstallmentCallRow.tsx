@@ -1,18 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/Button/Button';
-import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
-import { InstallmentList } from '@/features/property-mngt/installments/components/InstallmentList';
-import { useInstallmentCallDetail } from '@/features/property-mngt/installments/hooks/useInstallmentCallDetail';
-import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { useDeleteInstallmentCall } from '@/features/property-mngt/installments/hooks/useDeleteInstallmentCall';
+import { formatPeriod } from '@/features/property-mngt/installments/utils/formatPeriod';
 import type { InstallmentCallSummary } from '@/features/property-mngt/installments/types/installmentCall.types';
-
-function formatPeriod(period: string): string {
-  const [year, month] = period.split('-');
-  const date = new Date(Number(year), Number(month) - 1, 1);
-  return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-}
 
 interface InstallmentCallRowProps {
   installmentCall: InstallmentCallSummary;
@@ -20,8 +13,9 @@ interface InstallmentCallRowProps {
 }
 
 export function InstallmentCallRow({ installmentCall, propertyId }: InstallmentCallRowProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const detail = useInstallmentCallDetail(installmentCall.id, isExpanded);
+  const navigate = useNavigate();
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const deleteInstallmentCall = useDeleteInstallmentCall(propertyId);
 
   return (
     <li className="flex flex-col gap-2 px-3 py-2">
@@ -34,23 +28,45 @@ export function InstallmentCallRow({ installmentCall, propertyId }: InstallmentC
             {installmentCall.totalAmount} MAD
           </p>
         </div>
-        <Button type="button" variant="secondary" onClick={() => setIsExpanded((value) => !value)}>
-          {isExpanded ? 'Masquer le détail' : 'Voir le détail'}
-        </Button>
+        {!isConfirmingDelete && (
+          <div className="flex shrink-0 gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() =>
+                navigate(
+                  `/property-mngt/properties/${propertyId}/installments?installmentCallId=${installmentCall.id}`,
+                )
+              }
+            >
+              Voir les échéances
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setIsConfirmingDelete(true)}>
+              Supprimer
+            </Button>
+          </div>
+        )}
       </div>
 
-      {isExpanded && (
-        <div className="pt-2">
-          {detail.isLoading && <Loader label="Chargement du détail…" />}
-          {detail.isError && <Alert message={getErrorMessage(detail.error)} />}
-          {detail.data && detail.data.installments.length === 0 && (
-            <EmptyState title="Aucune échéance">
-              Tous les lots ont été ignorés (prix non configuré).
-            </EmptyState>
-          )}
-          {detail.data && detail.data.installments.length > 0 && (
-            <InstallmentList installments={detail.data.installments} propertyId={propertyId} />
-          )}
+      {isConfirmingDelete && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-gray-700">
+            Supprimer cet appel de fonds supprime aussi les {installmentCall.unitCount} échéance(s) associée(s). Cette
+            action est irréversible.
+          </p>
+          {deleteInstallmentCall.isError && <Alert message={getErrorMessage(deleteInstallmentCall.error)} />}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              isLoading={deleteInstallmentCall.isPending}
+              onClick={() => deleteInstallmentCall.mutate(installmentCall.id)}
+            >
+              Confirmer la suppression
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setIsConfirmingDelete(false)}>
+              Annuler
+            </Button>
+          </div>
         </div>
       )}
     </li>

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 import com.architek.oikos.user.application.command.AcceptPartyInvitationCommand;
 import com.architek.oikos.user.application.command.ActivateAccountCommand;
@@ -74,7 +75,10 @@ public class RegistrationController {
                 request.fullName(),
                 EmailVO.of(request.email()),
                 RawPassword.of(request.password()),
-                request.role());
+                request.role(),
+                request.returnTo(),
+                request.invitationToken(),
+                request.unitId() != null ? EntityId.of(request.unitId()) : null);
         UserId userId = registerUserUseCase.register(command);
         return ResponseEntity.created(URI.create("/api/v1/users/" + userId)).build();
     }

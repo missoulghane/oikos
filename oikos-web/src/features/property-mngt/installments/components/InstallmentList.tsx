@@ -1,12 +1,12 @@
-import { Link } from 'react-router-dom';
 import { Badge } from '@/shared/components/Badge/Badge';
 import {
   INSTALLMENT_STATUS_BADGE_COLORS,
   INSTALLMENT_STATUS_LABELS,
 } from '@/features/property-mngt/installments/constants/installmentStatusLabels';
+import { formatPeriod } from '@/features/property-mngt/installments/utils/formatPeriod';
 import type { Installment } from '@/features/property-mngt/installments/types/installment.types';
 
-export function InstallmentList({ installments, propertyId }: { installments: Installment[]; propertyId: string }) {
+export function InstallmentList({ installments }: { installments: Installment[] }) {
   return (
     <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
       {installments.map((installment) => (
@@ -19,11 +19,9 @@ export function InstallmentList({ installments, propertyId }: { installments: In
               Échéance du {new Date(installment.dueDate).toLocaleDateString('fr-FR')} — {installment.amount} MAD
               {installment.status === 'PARTIALLY_SETTLED' && ` (reste ${installment.outstandingAmount} MAD)`}
             </p>
-            <p className="text-sm text-gray-500">
-              <Link to={`/property-mngt/properties/${propertyId}/units/${installment.unitId}`} className="hover:underline">
-                Lot {installment.unitId}
-              </Link>
-            </p>
+            {installment.period && (
+              <p className="text-sm capitalize text-gray-500">{formatPeriod(installment.period)}</p>
+            )}
           </div>
           <Badge color={INSTALLMENT_STATUS_BADGE_COLORS[installment.status]}>
             {INSTALLMENT_STATUS_LABELS[installment.status]}

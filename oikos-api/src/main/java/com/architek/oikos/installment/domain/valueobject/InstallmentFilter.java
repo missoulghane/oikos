@@ -13,7 +13,8 @@ import com.architek.oikos.shared.domain.pagination.SortDirection;
  * see InstallmentRepository#findPageByUnitIds.
  */
 public record InstallmentFilter(Set<InstallmentStatus> statuses, LocalDate dueDateFrom, LocalDate dueDateTo,
-                                    InstallmentSortField sortField, SortDirection sortDirection) {
+                                    InstallmentSortField sortField, SortDirection sortDirection,
+                                    InstallmentCallId installmentCallId) {
 
     public InstallmentFilter {
         statuses = statuses == null ? Set.of() : Set.copyOf(statuses);
@@ -24,7 +25,12 @@ public record InstallmentFilter(Set<InstallmentStatus> statuses, LocalDate dueDa
         }
     }
 
+    public InstallmentFilter(Set<InstallmentStatus> statuses, LocalDate dueDateFrom, LocalDate dueDateTo,
+                              InstallmentSortField sortField, SortDirection sortDirection) {
+        this(statuses, dueDateFrom, dueDateTo, sortField, sortDirection, null);
+    }
+
     public static InstallmentFilter defaultFilter() {
-        return new InstallmentFilter(Set.of(), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC);
+        return new InstallmentFilter(Set.of(), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC, null);
     }
 }

@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface InstallmentCallJpaRepository extends JpaRepository<InstallmentCallEntity, UUID> {
 
+    // findAllById(Iterable<UUID>) from JpaRepository already covers the batch lookup by id.
+
     boolean existsByPropertyIdAndPeriod(UUID propertyId, LocalDate period);
 
     Page<InstallmentCallEntity> findAllByPropertyId(UUID propertyId, Pageable pageable);

@@ -56,4 +56,24 @@ public class MembershipRequestRepositoryAdapter implements MembershipRequestRepo
                 .map(mapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public List<MembershipRequest> findAllByUserId(EntityId userId) {
+        return jpaRepository.findByUserId(userId.value()).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<MembershipRequest> findAllByPropertyId(EntityId propertyId) {
+        return jpaRepository.findByPropertyId(propertyId.value()).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public Optional<MembershipRequest> findByInvitationIdAndUnitIdAndUserId(EntityId invitationId, EntityId unitId, EntityId userId) {
+        return jpaRepository.findByInvitationIdAndUnitIdAndUserId(invitationId.value(), unitId.value(), userId.value())
+                .map(mapper::toDomain);
+    }
 }

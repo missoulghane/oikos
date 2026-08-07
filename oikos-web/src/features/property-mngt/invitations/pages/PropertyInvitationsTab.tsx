@@ -49,8 +49,8 @@ export function PropertyInvitationsTab() {
       </Card>
 
       <Card className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-gray-900">Candidatures</h2>
-        {membershipRequests.isLoading && <Loader label="Chargement des candidatures…" />}
+        <h2 className="text-base font-semibold text-gray-900">Demandes d'adhésion</h2>
+        {membershipRequests.isLoading && <Loader label="Chargement des demandes d'adhésion…" />}
         {membershipRequests.isError && <Alert message={getErrorMessage(membershipRequests.error)} />}
         {membershipRequests.data && (
           <MembershipRequestList

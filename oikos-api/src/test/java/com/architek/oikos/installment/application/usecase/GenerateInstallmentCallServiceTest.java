@@ -3,15 +3,12 @@ package com.architek.oikos.installment.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +20,6 @@ import com.architek.oikos.installment.application.dto.GenerateInstallmentCallRes
 import com.architek.oikos.installment.application.port.out.PropertyDirectoryPort;
 import com.architek.oikos.installment.application.port.out.PropertyDuesConfigurationView;
 import com.architek.oikos.installment.application.port.out.PropertyUnitPricingPort;
-import com.architek.oikos.installment.application.port.out.UnitAccountLedgerPort;
 import com.architek.oikos.installment.application.port.out.UnitPriceLine;
 import com.architek.oikos.installment.application.port.out.UnitShareLine;
 import com.architek.oikos.installment.domain.exception.InstallmentCallAlreadyExistsException;
@@ -50,12 +46,9 @@ class GenerateInstallmentCallServiceTest {
     @Mock
     private InstallmentRepository installmentRepository;
 
-    @Mock
-    private UnitAccountLedgerPort unitAccountLedgerPort;
-
     private GenerateInstallmentCallService newService() {
         return new GenerateInstallmentCallService(propertyDirectoryPort, propertyUnitPricingPort, installmentCallRepository,
-                installmentRepository, unitAccountLedgerPort);
+                installmentRepository);
     }
 
     private void stubHappyPath(EntityId propertyId) {
@@ -65,7 +58,6 @@ class GenerateInstallmentCallServiceTest {
         when(installmentCallRepository.existsByPropertyIdAndPeriod(any(), any())).thenReturn(false);
         when(installmentCallRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(installmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(unitAccountLedgerPort.findUnitAccountId(any())).thenReturn(Optional.of(EntityId.newId()));
     }
 
     @Test
@@ -88,9 +80,6 @@ class GenerateInstallmentCallServiceTest {
         assertThat(result.skippedUnitIds()).containsExactly(unpricedUnitId);
         assertThat(result.installmentCall().propertyId()).isEqualTo(propertyId);
         assertThat(result.installmentCall().period()).isEqualTo(YearMonth.of(2026, 1));
-
-        verify(unitAccountLedgerPort).findUnitAccountId(pricedUnitId);
-        verify(unitAccountLedgerPort).recordDebit(any(), eq(new BigDecimal("300")), any(), any());
     }
 
     @Test
@@ -140,8 +129,6 @@ class GenerateInstallmentCallServiceTest {
 
         assertThat(result.chargedUnitIds()).containsExactlyInAnyOrder(unitA, unitB);
         assertThat(result.skippedUnitIds()).containsExactly(zeroShareUnit);
-        verify(unitAccountLedgerPort).recordDebit(any(), eq(new BigDecimal("333.33")), any(), any());
-        verify(unitAccountLedgerPort).recordDebit(any(), eq(new BigDecimal("666.67")), any(), any());
     }
 
     @Test

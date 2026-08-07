@@ -102,7 +102,7 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
         VerificationToken verificationToken = VerificationToken.issue(savedUser.getId(), rawToken, expiresAt);
         verificationTokenRepository.save(verificationToken);
 
-        emailSenderPort.send(command.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken));
+        emailSenderPort.send(command.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken, null));
         return savedUser.getId();
     }
 }

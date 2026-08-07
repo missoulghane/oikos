@@ -15,7 +15,6 @@ import com.architek.oikos.installment.application.port.in.GenerateInstallmentCal
 import com.architek.oikos.installment.application.port.out.PropertyDirectoryPort;
 import com.architek.oikos.installment.application.port.out.PropertyDuesConfigurationView;
 import com.architek.oikos.installment.application.port.out.PropertyUnitPricingPort;
-import com.architek.oikos.installment.application.port.out.UnitAccountLedgerPort;
 import com.architek.oikos.installment.application.port.out.UnitPriceLine;
 import com.architek.oikos.installment.application.port.out.UnitShareLine;
 import com.architek.oikos.shared.domain.valueobject.Amount;
@@ -23,7 +22,6 @@ import com.architek.oikos.installment.domain.exception.InstallmentCallAlreadyExi
 import com.architek.oikos.installment.domain.exception.NoUnitSharesConfiguredException;
 import com.architek.oikos.installment.domain.exception.ProjectedBudgetNotConfiguredException;
 import com.architek.oikos.installment.domain.exception.PropertyNotFoundException;
-import com.architek.oikos.installment.domain.exception.UnitAccountNotFoundException;
 import com.architek.oikos.installment.domain.model.InstallmentCall;
 import com.architek.oikos.installment.domain.model.Installment;
 import com.architek.oikos.installment.domain.repository.InstallmentCallRepository;
@@ -44,24 +42,19 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 @Component
 public class GenerateInstallmentCallService implements GenerateInstallmentCallUseCase {
 
-    private static final String FUND_CALL_MOVEMENT_LABEL = "Appel de cotisation";
-
     private final PropertyDirectoryPort propertyDirectoryPort;
     private final PropertyUnitPricingPort propertyUnitPricingPort;
     private final InstallmentCallRepository installmentCallRepository;
     private final InstallmentRepository installmentRepository;
-    private final UnitAccountLedgerPort unitAccountLedgerPort;
 
     public GenerateInstallmentCallService(PropertyDirectoryPort propertyDirectoryPort,
                                          PropertyUnitPricingPort propertyUnitPricingPort,
                                          InstallmentCallRepository installmentCallRepository,
-                                         InstallmentRepository installmentRepository,
-                                         UnitAccountLedgerPort unitAccountLedgerPort) {
+                                         InstallmentRepository installmentRepository) {
         this.propertyDirectoryPort = propertyDirectoryPort;
         this.propertyUnitPricingPort = propertyUnitPricingPort;
         this.installmentCallRepository = installmentCallRepository;
         this.installmentRepository = installmentRepository;
-        this.unitAccountLedgerPort = unitAccountLedgerPort;
     }
 
     @Override
@@ -90,12 +83,7 @@ public class GenerateInstallmentCallService implements GenerateInstallmentCallUs
         for (UnitPriceLine line : priced) {
             Installment installment = Installment.create(InstallmentId.newId(), line.unitId(),
                     command.dueDate(), Amount.of(line.price()), savedCall.getId());
-            Installment savedInstallment = installmentRepository.save(installment);
-
-            EntityId unitAccountId = unitAccountLedgerPort.findUnitAccountId(line.unitId())
-                    .orElseThrow(() -> new UnitAccountNotFoundException(line.unitId()));
-            unitAccountLedgerPort.recordDebit(unitAccountId, line.price(), FUND_CALL_MOVEMENT_LABEL,
-                    savedInstallment.getId().value());
+            installmentRepository.save(installment);
 
             chargedUnitIds.add(line.unitId());
         }

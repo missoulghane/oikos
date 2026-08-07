@@ -36,10 +36,10 @@ export function InstallmentCallsTab() {
         />
       )}
 
-      {installmentCalls.isLoading && <Loader label="Chargement des appels à cotisation…" />}
+      {installmentCalls.isLoading && <Loader label="Chargement des appels de fonds…" />}
       {installmentCalls.isError && <Alert message={getErrorMessage(installmentCalls.error)} />}
       {installmentCalls.data && installmentCalls.data.content.length === 0 && (
-        <EmptyState title="Aucun appel à cotisation pour le moment">
+        <EmptyState title="Aucun appel de fonds pour le moment">
           Générez un appel pour créer les échéances de tous les lots de cette copropriété.
         </EmptyState>
       )}

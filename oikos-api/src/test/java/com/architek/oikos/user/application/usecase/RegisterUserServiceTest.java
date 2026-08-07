@@ -18,9 +18,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 import com.architek.oikos.user.application.command.RegisterUserCommand;
+import com.architek.oikos.user.application.port.out.MembershipRequestSubmissionPort;
 import com.architek.oikos.user.domain.exception.EmailAlreadyUsedException;
 import com.architek.oikos.user.domain.exception.RoleNotAllowedException;
 import com.architek.oikos.user.domain.model.Role;
@@ -44,10 +46,13 @@ class RegisterUserServiceTest {
     @Mock
     private EmailSenderPort emailSenderPort;
 
+    @Mock
+    private MembershipRequestSubmissionPort membershipRequestSubmissionPort;
+
     private RegisterUserService newService() {
         return new RegisterUserService(userRepository, verificationTokenRepository, passwordEncoderPort,
                 emailSenderPort, new VerificationTokenGenerator(), new VerificationEmailComposer("http://localhost/verify"),
-                Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
+                membershipRequestSubmissionPort, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
     }
 
     @Test
@@ -56,7 +61,7 @@ class RegisterUserServiceTest {
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), null);
+                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), null, null, null, null);
 
         newService().register(command);
 
@@ -70,7 +75,7 @@ class RegisterUserServiceTest {
         when(userRepository.existsByEmail("existing@oikos.com")).thenReturn(true);
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("existing@oikos.com"), RawPassword.of("password123"), null);
+                "Jane Doe", EmailVO.of("existing@oikos.com"), RawPassword.of("password123"), null, null, null, null);
 
         assertThatThrownBy(() -> newService().register(command)).isInstanceOf(EmailAlreadyUsedException.class);
     }
@@ -81,7 +86,7 @@ class RegisterUserServiceTest {
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), null);
+                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), null, null, null, null);
 
         newService().register(command);
 
@@ -96,7 +101,7 @@ class RegisterUserServiceTest {
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), Role.ROLE_USER);
+                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), Role.ROLE_USER, null, null, null);
 
         newService().register(command);
 
@@ -108,7 +113,7 @@ class RegisterUserServiceTest {
     @Test
     void a_privileged_role_cannot_be_self_assigned_at_registration() {
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), Role.ROLE_ADMIN);
+                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), Role.ROLE_ADMIN, null, null, null);
 
         assertThatThrownBy(() -> newService().register(command)).isInstanceOf(RoleNotAllowedException.class);
     }
@@ -119,12 +124,76 @@ class RegisterUserServiceTest {
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), null);
+                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), null, null, null, null);
 
         newService().register(command);
 
         var captor = org.mockito.ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
         assertThat(captor.getValue().getPassword().value()).isEqualTo("hashed-value");
+    }
+
+    @Test
+    void a_valid_relative_return_to_is_embedded_in_the_verification_email() {
+        when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RegisterUserCommand command = new RegisterUserCommand("Jane Doe", EmailVO.of("new@oikos.com"),
+                RawPassword.of("password123"), null, "/invitations?token=abc&unitId=def", null, null);
+
+        newService().register(command);
+
+        var bodyCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(emailSenderPort).send(any(), any(), bodyCaptor.capture());
+        assertThat(bodyCaptor.getValue()).contains("returnTo=%2Finvitations%3Ftoken%3Dabc%26unitId%3Ddef");
+    }
+
+    @Test
+    void a_protocol_relative_return_to_is_dropped_to_prevent_an_open_redirect() {
+        when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RegisterUserCommand command = new RegisterUserCommand("Jane Doe", EmailVO.of("new@oikos.com"),
+                RawPassword.of("password123"), null, "//evil.com", null, null);
+
+        newService().register(command);
+
+        var bodyCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(emailSenderPort).send(any(), any(), bodyCaptor.capture());
+        assertThat(bodyCaptor.getValue()).doesNotContain("returnTo").doesNotContain("evil.com");
+    }
+
+    @Test
+    void registering_through_a_public_invitation_submits_the_membership_request_in_the_same_call() {
+        when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        EntityId unitId = EntityId.newId();
+
+        RegisterUserCommand command = new RegisterUserCommand("Jane Doe", EmailVO.of("new@oikos.com"),
+                RawPassword.of("password123"), null, null, "inv-token", unitId);
+
+        newService().register(command);
+
+        var userIdCaptor = org.mockito.ArgumentCaptor.forClass(com.architek.oikos.user.domain.valueobject.UserId.class);
+        verify(membershipRequestSubmissionPort).submit(org.mockito.ArgumentMatchers.eq("inv-token"), userIdCaptor.capture(),
+                org.mockito.ArgumentMatchers.eq(unitId));
+        assertThat(userIdCaptor.getValue()).isNotNull();
+        verify(emailSenderPort).send(any(), any(), any());
+    }
+
+    @Test
+    void registration_is_rolled_back_when_the_invitation_can_no_longer_be_submitted() {
+        when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        org.mockito.Mockito.doThrow(new IllegalArgumentException("invitation no longer usable"))
+                .when(membershipRequestSubmissionPort).submit(any(), any(), any());
+
+        RegisterUserCommand command = new RegisterUserCommand("Jane Doe", EmailVO.of("new@oikos.com"),
+                RawPassword.of("password123"), null, null, "inv-token", EntityId.newId());
+
+        assertThatThrownBy(() -> newService().register(command)).isInstanceOf(IllegalArgumentException.class);
+
+        verify(verificationTokenRepository, org.mockito.Mockito.never()).save(any());
+        verify(emailSenderPort, org.mockito.Mockito.never()).send(any(), any(), any());
     }
 }

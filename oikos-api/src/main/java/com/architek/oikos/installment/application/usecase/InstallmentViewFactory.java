@@ -1,5 +1,7 @@
 package com.architek.oikos.installment.application.usecase;
 
+import java.time.YearMonth;
+
 import com.architek.oikos.installment.application.dto.InstallmentView;
 import com.architek.oikos.installment.domain.model.Installment;
 import com.architek.oikos.installment.domain.model.InstallmentStatusCalculator;
@@ -15,10 +17,15 @@ final class InstallmentViewFactory {
     }
 
     static InstallmentView build(Installment installment) {
+        return build(installment, null);
+    }
+
+    static InstallmentView build(Installment installment, YearMonth period) {
         InstallmentStatus status = InstallmentStatusCalculator.compute(installment.getAmount().value(),
                 installment.getOutstandingAmount());
 
         return new InstallmentView(installment.getId(), installment.getUnitId(),
-                installment.getDueDate(), installment.getAmount().value(), installment.getOutstandingAmount(), status);
+                installment.getDueDate(), installment.getAmount().value(), installment.getOutstandingAmount(), status,
+                period);
     }
 }

@@ -36,9 +36,6 @@ public class InvitationEntity extends AuditableEntity {
     @Column(name = "target_role", nullable = false)
     private String targetRole;
 
-    @Column(name = "unit_id")
-    private UUID unitId;
-
     @Column(name = "target_email")
     private String targetEmail;
 
@@ -54,4 +51,10 @@ public class InvitationEntity extends AuditableEntity {
 
     @Column(name = "created_by_user_id", nullable = false)
     private UUID createdByUserId;
+
+    @Column(name = "consumed_email")
+    private String consumedEmail;
+
+    @Column(name = "target_board_role")
+    private String targetBoardRole;
 }

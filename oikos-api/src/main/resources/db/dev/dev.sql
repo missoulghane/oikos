@@ -151,8 +151,8 @@ INSERT INTO app_user_party_role (app_user_id, party_id, property_id, role) VALUE
     ('a1111111-0000-0000-0000-000000000005', 'a1111111-0000-0000-0000-000000000005',
      'a1111111-0000-0000-0000-000000000001', 'PROPERTY_MANAGER_ADMIN');
 
-INSERT INTO board_member (id, property_id, party_id, board_role, created_date, last_modified_date, version) VALUES
-    ('a1111111-0000-0000-0000-000000000006', 'a1111111-0000-0000-0000-000000000001', 'a1111111-0000-0000-0000-000000000005', 'PROPERTY_MANAGER', now(), now(), 0);
+INSERT INTO board_member (id, property_id, party_id, board_role, status, created_date, last_modified_date, version) VALUES
+    ('a1111111-0000-0000-0000-000000000006', 'a1111111-0000-0000-0000-000000000001', 'a1111111-0000-0000-0000-000000000005', 'PROPERTY_MANAGER', 'ACTIVE', now(), now(), 0);
 
 -- Owners: party + login account + PROPERTY_OWNER role + unit ownership.
 INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
@@ -306,9 +306,9 @@ INSERT INTO app_user_party_role (app_user_id, party_id, property_id, role) VALUE
     ('b0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000001', 'a2222221-0000-0000-0000-000000000001', 'PROPERTY_MANAGER_ADMIN'),
     ('b0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000002', 'a2222222-0000-0000-0000-000000000001', 'PROPERTY_MANAGER_ADMIN');
 
-INSERT INTO board_member (id, property_id, party_id, board_role, created_date, last_modified_date, version) VALUES
-    ('b0000000-0000-0000-0000-000000000011', 'a2222221-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'PROPERTY_MANAGER', now(), now(), 0),
-    ('b0000000-0000-0000-0000-000000000012', 'a2222222-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002', 'PROPERTY_MANAGER', now(), now(), 0);
+INSERT INTO board_member (id, property_id, party_id, board_role, status, created_date, last_modified_date, version) VALUES
+    ('b0000000-0000-0000-0000-000000000011', 'a2222221-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'PROPERTY_MANAGER', 'ACTIVE', now(), now(), 0),
+    ('b0000000-0000-0000-0000-000000000012', 'a2222222-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002', 'PROPERTY_MANAGER', 'ACTIVE', now(), now(), 0);
 
 -- =========================================================================
 -- 6. COPRO 3 (property 'a3333333-...-0001'): same configuration as Copro 1,
@@ -386,8 +386,8 @@ INSERT INTO app_user_party_role (app_user_id, party_id, property_id, role) VALUE
     ('a3333333-0000-0000-0000-000000000005', 'a3333333-0000-0000-0000-000000000005',
      'a3333333-0000-0000-0000-000000000001', 'PROPERTY_BOARD_ADMIN');
 
-INSERT INTO board_member (id, property_id, party_id, board_role, created_date, last_modified_date, version) VALUES
-    ('a3333333-0000-0000-0000-000000000006', 'a3333333-0000-0000-0000-000000000001', 'a3333333-0000-0000-0000-000000000005', 'PROPERTY_MANAGER', now(), now(), 0);
+INSERT INTO board_member (id, property_id, party_id, board_role, status, created_date, last_modified_date, version) VALUES
+    ('a3333333-0000-0000-0000-000000000006', 'a3333333-0000-0000-0000-000000000001', 'a3333333-0000-0000-0000-000000000005', 'PROPERTY_MANAGER', 'ACTIVE', now(), now(), 0);
 
 -- Owners: party + login account + PROPERTY_OWNER role + unit ownership.
 INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES

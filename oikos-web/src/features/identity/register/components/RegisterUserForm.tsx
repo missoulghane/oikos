@@ -35,6 +35,13 @@ export function RegisterUserForm({ onSubmit, isSubmitting, errorMessage }: Regis
         {...register('password')}
         errorMessage={errors.password?.message}
       />
+      <Input
+        label="Confirmer le mot de passe"
+        type="password"
+        autoComplete="new-password"
+        {...register('confirmPassword')}
+        errorMessage={errors.confirmPassword?.message}
+      />
       <Button type="submit" isLoading={isSubmitting} className="mt-2">
         Créer mon compte
       </Button>

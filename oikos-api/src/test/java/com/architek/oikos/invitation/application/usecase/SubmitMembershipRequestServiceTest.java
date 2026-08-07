@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.invitation.application.command.SubmitMembershipRequestCommand;
 import com.architek.oikos.invitation.application.port.out.AccountDirectoryPort;
+import com.architek.oikos.invitation.application.port.out.AccountInfo;
 import com.architek.oikos.invitation.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.invitation.application.port.out.UnitBasicInfo;
 import com.architek.oikos.invitation.application.port.out.UnitDirectoryPort;
@@ -33,7 +34,6 @@ import com.architek.oikos.invitation.domain.repository.MembershipRequestReposito
 import com.architek.oikos.invitation.domain.valueobject.InvitationId;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
-import com.architek.oikos.shared.domain.valueobject.RawPassword;
 
 @ExtendWith(MockitoExtension.class)
 class SubmitMembershipRequestServiceTest {
@@ -61,56 +61,74 @@ class SubmitMembershipRequestServiceTest {
     }
 
     private Invitation publicInvitation(EntityId propertyId) {
-        return Invitation.issue(InvitationId.newId(), propertyId, InvitationType.PUBLIC, "PROPERTY_OWNER", null, null,
-                "tok", CLOCK.instant().plus(Duration.ofDays(30)), EntityId.newId());
+        return Invitation.issue(InvitationId.newId(), propertyId, InvitationType.PUBLIC, "PROPERTY_OWNER", null,
+                "tok", CLOCK.instant().plus(Duration.ofDays(30)), EntityId.newId(), null);
     }
 
     @Test
-    void submitting_a_candidacy_anonymously_creates_a_pending_request() {
+    void submitting_a_membership_request_creates_a_pending_request() {
         EntityId propertyId = EntityId.newId();
         EntityId unitId = EntityId.newId();
         Invitation invitation = publicInvitation(propertyId);
         when(invitationRepository.findByToken("tok")).thenReturn(Optional.of(invitation));
         when(unitDirectoryPort.findBasicInfo(unitId)).thenReturn(Optional.of(new UnitBasicInfo(propertyId, "A1", "Appartement", true)));
 
-        EntityId newUserId = EntityId.newId();
+        EntityId actingUserId = EntityId.newId();
         EntityId newPartyId = EntityId.newId();
-        when(accountDirectoryPort.provisionAccount(eq(EmailVO.of("jane.doe@example.com")), eq("Jane Doe"), any()))
-                .thenReturn(newUserId);
+        when(accountDirectoryPort.getAccountInfo(actingUserId))
+                .thenReturn(new AccountInfo(EmailVO.of("jane.doe@example.com"), "Jane Doe"));
         when(partyDirectoryPort.findIdByEmail(EmailVO.of("jane.doe@example.com"), propertyId)).thenReturn(Optional.empty());
         when(partyDirectoryPort.createParty(any(), eq(propertyId))).thenReturn(newPartyId);
         when(membershipRequestRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        newService().submit(new SubmitMembershipRequestCommand("tok", null, EmailVO.of("jane.doe@example.com"), "Jane Doe",
-                RawPassword.of("password123"), unitId));
+        newService().submit(new SubmitMembershipRequestCommand("tok", actingUserId, unitId));
 
         ArgumentCaptor<MembershipRequest> captor = ArgumentCaptor.forClass(MembershipRequest.class);
         org.mockito.Mockito.verify(membershipRequestRepository).save(captor.capture());
         assertThat(captor.getValue().getStatus()).isEqualTo(MembershipRequestStatus.PENDING);
         assertThat(captor.getValue().getUnitId()).isEqualTo(unitId);
         assertThat(captor.getValue().getPartyId()).isEqualTo(newPartyId);
-        assertThat(captor.getValue().getUserId()).isEqualTo(newUserId);
+        assertThat(captor.getValue().getUserId()).isEqualTo(actingUserId);
     }
 
     @Test
-    void submitting_a_candidacy_for_a_private_invitation_is_rejected() {
-        Invitation invitation = Invitation.issue(InvitationId.newId(), EntityId.newId(), InvitationType.PRIVATE_WITH_UNIT,
-                "PROPERTY_OWNER", EntityId.newId(), EmailVO.of("jane.doe@example.com"), "tok",
-                CLOCK.instant().plus(Duration.ofDays(30)), EntityId.newId());
+    void submitting_a_membership_request_for_a_private_invitation_is_rejected() {
+        Invitation invitation = Invitation.issue(InvitationId.newId(), EntityId.newId(), InvitationType.PRIVATE,
+                "PROPERTY_OWNER", EmailVO.of("jane.doe@example.com"), "tok",
+                CLOCK.instant().plus(Duration.ofDays(30)), EntityId.newId(), null);
         when(invitationRepository.findByToken("tok")).thenReturn(Optional.of(invitation));
 
-        assertThatThrownBy(() -> newService().submit(new SubmitMembershipRequestCommand("tok", null,
-                EmailVO.of("jane.doe@example.com"), "Jane Doe", RawPassword.of("password123"), EntityId.newId())))
+        assertThatThrownBy(() -> newService().submit(new SubmitMembershipRequestCommand("tok", EntityId.newId(), EntityId.newId())))
                 .isInstanceOf(InvalidInvitationTokenException.class);
     }
 
     @Test
-    void submitting_a_candidacy_without_a_unit_id_is_rejected() {
+    void submitting_a_membership_request_without_a_unit_id_is_rejected() {
         Invitation invitation = publicInvitation(EntityId.newId());
         when(invitationRepository.findByToken("tok")).thenReturn(Optional.of(invitation));
 
-        assertThatThrownBy(() -> newService().submit(new SubmitMembershipRequestCommand("tok", null,
-                EmailVO.of("jane.doe@example.com"), "Jane Doe", RawPassword.of("password123"), null)))
+        assertThatThrownBy(() -> newService().submit(new SubmitMembershipRequestCommand("tok", EntityId.newId(), null)))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void submitting_the_same_request_twice_is_idempotent() {
+        EntityId propertyId = EntityId.newId();
+        EntityId unitId = EntityId.newId();
+        EntityId actingUserId = EntityId.newId();
+        Invitation invitation = publicInvitation(propertyId);
+        when(invitationRepository.findByToken("tok")).thenReturn(Optional.of(invitation));
+        when(unitDirectoryPort.findBasicInfo(unitId)).thenReturn(Optional.of(new UnitBasicInfo(propertyId, "A1", "Appartement", true)));
+
+        MembershipRequest existing = MembershipRequest.submit(com.architek.oikos.invitation.domain.valueobject.MembershipRequestId.newId(),
+                EntityId.of(invitation.getId().asUuid()), propertyId, unitId, EntityId.newId(), actingUserId);
+        when(membershipRequestRepository.findByInvitationIdAndUnitIdAndUserId(EntityId.of(invitation.getId().asUuid()), unitId, actingUserId))
+                .thenReturn(Optional.of(existing));
+
+        var result = newService().submit(new SubmitMembershipRequestCommand("tok", actingUserId, unitId));
+
+        assertThat(result).isEqualTo(existing.getId());
+        org.mockito.Mockito.verify(membershipRequestRepository, org.mockito.Mockito.never()).save(any());
+        org.mockito.Mockito.verifyNoInteractions(accountDirectoryPort);
     }
 }

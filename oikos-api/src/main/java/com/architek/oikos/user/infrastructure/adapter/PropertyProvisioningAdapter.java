@@ -40,6 +40,6 @@ public class PropertyProvisioningAdapter implements PropertyProvisioningPort {
     @Override
     public void assignPropertyManager(EntityId propertyId, EntityId partyId) {
         addBoardMemberUseCase.add(new AddBoardMemberCommand(
-                PropertyId.of(propertyId.value()), partyId, BoardRole.PROPERTY_MANAGER));
+                PropertyId.of(propertyId.value()), partyId, null, null, null, BoardRole.PROPERTY_MANAGER));
     }
 }

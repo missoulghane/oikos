@@ -9,7 +9,7 @@ import type { RegisterPropertyAdminFormValues } from '@/features/identity/regist
 export function RegisterPropertyBoardAdminPage() {
   const { mutate, isPending, isSuccess, error } = useRegisterPropertyBoardAdmin();
 
-  function handleSubmit(values: RegisterPropertyAdminFormValues) {
+  function handleSubmit({ confirmPassword: _confirmPassword, ...values }: RegisterPropertyAdminFormValues) {
     mutate({ ...values, phone: values.phone || undefined });
   }
 

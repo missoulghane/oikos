@@ -36,7 +36,7 @@ export function DuesCalculationModeForm({ propertyId, currentMode }: DuesCalcula
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <Select label="Mode de gestion des cotisations" {...register('mode')} errorMessage={errors.mode?.message}>
+        <Select label="Mode de gestion des fonds" {...register('mode')} errorMessage={errors.mode?.message}>
           {Object.entries(DUES_CALCULATION_MODE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}

@@ -38,8 +38,8 @@ class DisableInvitationServiceTest {
     @Test
     void disabling_a_known_invitation_persists_the_new_status() {
         InvitationId id = InvitationId.newId();
-        Invitation invitation = Invitation.issue(id, EntityId.newId(), InvitationType.PUBLIC, "PROPERTY_OWNER", null, null,
-                "tok", Instant.EPOCH.plus(Duration.ofDays(30)), EntityId.newId());
+        Invitation invitation = Invitation.issue(id, EntityId.newId(), InvitationType.PUBLIC, "PROPERTY_OWNER", null,
+                "tok", Instant.EPOCH.plus(Duration.ofDays(30)), EntityId.newId(), null);
         when(invitationRepository.findById(id)).thenReturn(Optional.of(invitation));
         when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 

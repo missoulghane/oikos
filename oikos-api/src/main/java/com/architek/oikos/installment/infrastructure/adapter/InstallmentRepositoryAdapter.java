@@ -56,6 +56,11 @@ public class InstallmentRepositoryAdapter implements InstallmentRepository {
     }
 
     @Override
+    public void deleteAllByInstallmentCallId(InstallmentCallId installmentCallId) {
+        jpaRepository.deleteAllByInstallmentCallId(installmentCallId.asUuid());
+    }
+
+    @Override
     public Page<Installment> findPageByUnitIds(List<EntityId> unitIds, InstallmentFilter filter, PageRequest pageRequest) {
         List<UUID> ids = unitIds.stream().map(EntityId::value).toList();
         boolean hasStatusFilter = !filter.statuses().isEmpty();
@@ -68,6 +73,7 @@ public class InstallmentRepositoryAdapter implements InstallmentRepository {
                 filter.statuses().contains(InstallmentStatus.NOT_SETTLED),
                 filter.statuses().contains(InstallmentStatus.PARTIALLY_SETTLED),
                 filter.statuses().contains(InstallmentStatus.SETTLED),
+                filter.installmentCallId() != null ? filter.installmentCallId().asUuid() : null,
                 pageable);
 
         List<Installment> content = page.getContent().stream().map(mapper::toDomain).toList();

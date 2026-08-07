@@ -4,6 +4,6 @@ import com.architek.oikos.invitation.domain.model.InvitationType;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
-public record CreateInvitationCommand(EntityId propertyId, InvitationType type, EntityId unitId, EmailVO targetEmail,
+public record CreateInvitationCommand(EntityId propertyId, InvitationType type, EmailVO targetEmail,
                                        EntityId createdByUserId) {
 }

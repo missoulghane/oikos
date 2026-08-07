@@ -11,7 +11,6 @@ import com.architek.oikos.invitation.application.port.out.UnitDirectoryPort;
 import com.architek.oikos.invitation.application.query.ListAvailableUnitsForInvitationQuery;
 import com.architek.oikos.invitation.domain.exception.InvalidInvitationTokenException;
 import com.architek.oikos.invitation.domain.model.Invitation;
-import com.architek.oikos.invitation.domain.model.InvitationType;
 import com.architek.oikos.invitation.domain.repository.InvitationRepository;
 import com.architek.oikos.shared.domain.pagination.Page;
 
@@ -35,9 +34,6 @@ public class ListAvailableUnitsForInvitationService implements ListAvailableUnit
         Invitation invitation = invitationRepository.findByToken(query.token())
                 .orElseThrow(() -> new InvalidInvitationTokenException("Invalid invitation link"));
         if (!invitation.isUsable(clock.instant())) {
-            throw new InvalidInvitationTokenException("This invitation link is no longer usable");
-        }
-        if (invitation.getType() == InvitationType.PRIVATE_WITH_UNIT) {
             throw new InvalidInvitationTokenException("This invitation link is no longer usable");
         }
         return unitDirectoryPort.listAvailable(invitation.getPropertyId(), query.pageRequest());

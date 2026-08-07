@@ -53,6 +53,13 @@ export function RegisterPropertyAdminForm({
           {...register('password')}
           errorMessage={errors.password?.message}
         />
+        <Input
+          label="Confirmer le mot de passe"
+          type="password"
+          autoComplete="new-password"
+          {...register('confirmPassword')}
+          errorMessage={errors.confirmPassword?.message}
+        />
       </fieldset>
       <fieldset className="flex flex-col gap-4 rounded-lg border border-gray-200 p-4">
         <legend className="px-1 text-sm font-medium text-gray-700">Votre copropriété</legend>

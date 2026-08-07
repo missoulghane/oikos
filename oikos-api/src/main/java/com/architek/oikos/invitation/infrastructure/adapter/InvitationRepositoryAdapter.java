@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import com.architek.oikos.invitation.domain.model.Invitation;
+import com.architek.oikos.invitation.domain.model.InvitationStatus;
+import com.architek.oikos.invitation.domain.model.InvitationType;
 import com.architek.oikos.invitation.domain.repository.InvitationRepository;
 import com.architek.oikos.invitation.domain.valueobject.InvitationId;
 import com.architek.oikos.invitation.infrastructure.mapper.InvitationPersistenceMapper;
@@ -51,5 +53,12 @@ public class InvitationRepositoryAdapter implements InvitationRepository {
                 jpaRepository.findByPropertyId(propertyId.value(), pageable);
         List<Invitation> content = springPage.getContent().stream().map(mapper::toDomain).toList();
         return Page.of(content, pageRequest.pageNumber(), pageRequest.pageSize(), springPage.getTotalElements());
+    }
+
+    @Override
+    public List<Invitation> findAllByPropertyIdAndTypeAndStatus(EntityId propertyId, InvitationType type, InvitationStatus status) {
+        return jpaRepository.findByPropertyIdAndTypeAndStatus(propertyId.value(), type, status).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 }

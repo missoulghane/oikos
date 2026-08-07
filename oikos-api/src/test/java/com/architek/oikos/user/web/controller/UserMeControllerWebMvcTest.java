@@ -29,6 +29,7 @@ import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
 import com.architek.oikos.user.application.dto.UserView;
 import com.architek.oikos.user.application.port.in.ChangePasswordUseCase;
 import com.architek.oikos.user.application.port.in.GetMyInstallmentsUseCase;
+import com.architek.oikos.user.application.port.in.GetMyMembershipRequestsUseCase;
 import com.architek.oikos.user.application.port.in.GetMyUnitsUseCase;
 import com.architek.oikos.user.application.port.in.GetUserUseCase;
 import com.architek.oikos.user.application.port.in.UpdateUserProfileUseCase;
@@ -68,6 +69,9 @@ class UserMeControllerWebMvcTest {
 
     @MockitoBean
     private GetMyInstallmentsUseCase getMyInstallmentsUseCase;
+
+    @MockitoBean
+    private GetMyMembershipRequestsUseCase getMyMembershipRequestsUseCase;
 
     private String bearerTokenFor(UUID userId) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(userId), Set.of("ROLE_USER"));

@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Import;
 
 import com.architek.oikos.installment.domain.model.Installment;
 import com.architek.oikos.shared.domain.valueobject.Amount;
+import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentFilter;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentSortField;
@@ -110,6 +111,20 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
                 PageRequest.of(0, 10));
 
         assertThat(page.content()).extracting(Installment::getId).containsExactly(notSettled.getId());
+    }
+
+    @Test
+    void filters_by_installment_call_id() {
+        seed();
+        InstallmentCallId callId = InstallmentCallId.newId();
+        Installment fromCall = Installment.create(InstallmentId.newId(), unitA, TODAY, Amount.of(new BigDecimal("120")), callId);
+        installmentAdapter.save(fromCall);
+
+        Page<Installment> page = installmentAdapter.findPageByUnitIds(List.of(unitA, unitB),
+                new InstallmentFilter(Set.of(), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC, callId),
+                PageRequest.of(0, 10));
+
+        assertThat(page.content()).extracting(Installment::getId).containsExactly(fromCall.getId());
     }
 
     @Test

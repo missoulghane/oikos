@@ -19,6 +19,7 @@ export function usePropertyInstallments(
       filters.status,
       filters.dueDateFrom,
       filters.dueDateTo,
+      filters.installmentCallId,
       filters.sortBy,
       filters.sortDirection,
     ),

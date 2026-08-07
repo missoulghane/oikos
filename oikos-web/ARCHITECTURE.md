@@ -66,7 +66,7 @@ src/
 │   │   ├── parties/        # Contacts (copropriétaires, tiers) rattachés à une property
 │   │   │   ├── api/ / components/ / hooks/ / pages/ / schemas/ / types/
 │   │   │   └── index.ts
-│   │   ├── installments/   # Échéances, appels à cotisation (vue gérant, par lot/property)
+│   │   ├── installments/   # Échéances, appels de fonds (vue gérant, par lot/property)
 │   │   ├── pricing/        # Paramétrage des prix par type de lot
 │   │   └── accounting/     # Gestion financière (comptes, mouvements, lettrage)
 │   │

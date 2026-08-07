@@ -27,7 +27,7 @@ export function PropertyConfigurationPage() {
   return (
     <div className="flex flex-col gap-4">
       <Card className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-gray-900">Mode de gestion des cotisations</h2>
+        <h2 className="text-base font-semibold text-gray-900">Mode de gestion des appels de fonds</h2>
         <DuesCalculationModeForm propertyId={propertyId} currentMode={property.duesCalculationMode} />
       </Card>
 

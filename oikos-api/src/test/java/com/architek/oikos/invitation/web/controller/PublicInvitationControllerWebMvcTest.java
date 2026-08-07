@@ -64,8 +64,7 @@ class PublicInvitationControllerWebMvcTest {
     @Test
     void preview_is_reachable_without_authentication() throws Exception {
         when(getInvitationByTokenUseCase.getPreview(any())).thenReturn(
-                new InvitationPreviewView(InvitationType.PUBLIC, true, null, "Copro Test", "1 rue de la Paix",
-                        null, null, null));
+                new InvitationPreviewView(InvitationType.PUBLIC, true, null, "Copro Test", "1 rue de la Paix", null, null));
 
         mockMvc.perform(get("/api/v1/invitations/by-token/tok")).andExpect(status().isOk());
     }
@@ -79,49 +78,56 @@ class PublicInvitationControllerWebMvcTest {
     }
 
     @Test
-    void accepting_anonymously_carries_the_request_body_fields_and_no_acting_user() throws Exception {
+    void accepting_anonymously_is_rejected_with_401() throws Exception {
         mockMvc.perform(post("/api/v1/invitations/by-token/tok/accept")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"email":"jane.doe@example.com","fullName":"Jane Doe","password":"password123"}
-                                """))
-                .andExpect(status().isNoContent());
-
-        ArgumentCaptor<AcceptInvitationCommand> captor = ArgumentCaptor.forClass(AcceptInvitationCommand.class);
-        verify(acceptInvitationUseCase).accept(captor.capture());
-        AcceptInvitationCommand command = captor.getValue();
-        org.assertj.core.api.Assertions.assertThat(command.actingUserId()).isNull();
-        org.assertj.core.api.Assertions.assertThat(command.email().value()).isEqualTo("jane.doe@example.com");
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void accepting_with_a_valid_bearer_token_carries_the_acting_user_id_and_ignores_the_body() throws Exception {
+    void accepting_with_a_valid_bearer_token_carries_the_acting_user_id_and_the_chosen_unit() throws Exception {
+        UUID unitId = UUID.randomUUID();
         mockMvc.perform(post("/api/v1/invitations/by-token/tok/accept")
                         .header("Authorization", bearerToken("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
+                        .content("""
+                                {"unitId":"%s"}
+                                """.formatted(unitId)))
                 .andExpect(status().isNoContent());
 
         ArgumentCaptor<AcceptInvitationCommand> captor = ArgumentCaptor.forClass(AcceptInvitationCommand.class);
         verify(acceptInvitationUseCase).accept(captor.capture());
         AcceptInvitationCommand command = captor.getValue();
         org.assertj.core.api.Assertions.assertThat(command.actingUserId()).isNotNull();
-        org.assertj.core.api.Assertions.assertThat(command.email()).isNull();
+        org.assertj.core.api.Assertions.assertThat(command.unitId()).isEqualTo(EntityId.of(unitId));
     }
 
     @Test
-    void submitting_a_candidacy_anonymously_carries_the_request_body_fields_and_no_acting_user() throws Exception {
-        mockMvc.perform(post("/api/v1/invitations/by-token/tok/candidacies")
+    void submitting_a_membership_request_anonymously_is_rejected_with_401() throws Exception {
+        mockMvc.perform(post("/api/v1/invitations/by-token/tok/membership-requests")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"jane.doe@example.com","fullName":"Jane Doe","password":"password123","unitId":"%s"}
+                                {"unitId":"%s"}
                                 """.formatted(UUID.randomUUID())))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void submitting_a_membership_request_with_a_valid_bearer_token_carries_the_acting_user_id_and_the_chosen_unit() throws Exception {
+        UUID unitId = UUID.randomUUID();
+        mockMvc.perform(post("/api/v1/invitations/by-token/tok/membership-requests")
+                        .header("Authorization", bearerToken("ROLE_USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"unitId":"%s"}
+                                """.formatted(unitId)))
                 .andExpect(status().isNoContent());
 
         ArgumentCaptor<SubmitMembershipRequestCommand> captor = ArgumentCaptor.forClass(SubmitMembershipRequestCommand.class);
         verify(submitMembershipRequestUseCase).submit(captor.capture());
         SubmitMembershipRequestCommand command = captor.getValue();
-        org.assertj.core.api.Assertions.assertThat(command.actingUserId()).isNull();
-        org.assertj.core.api.Assertions.assertThat(command.email().value()).isEqualTo("jane.doe@example.com");
+        org.assertj.core.api.Assertions.assertThat(command.actingUserId()).isNotNull();
+        org.assertj.core.api.Assertions.assertThat(command.unitId()).isEqualTo(EntityId.of(unitId));
     }
 }

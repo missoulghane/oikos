@@ -2,6 +2,7 @@ package com.architek.oikos.installment.web.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -9,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -24,6 +26,7 @@ import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.installment.application.dto.InstallmentCallDetailView;
 import com.architek.oikos.installment.application.dto.InstallmentCallView;
 import com.architek.oikos.installment.application.dto.GenerateInstallmentCallResult;
+import com.architek.oikos.installment.application.port.in.DeleteInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.GenerateInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.GetInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.ListInstallmentCallsByPropertyUseCase;
@@ -33,6 +36,9 @@ import com.architek.oikos.installment.domain.valueobject.InstallmentId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
+import com.architek.oikos.user.application.dto.UserAccessView;
+import com.architek.oikos.user.application.port.in.GetUserAccessUseCase;
+import com.architek.oikos.user.domain.model.PropertyRole;
 
 @WebMvcTest(controllers = InstallmentCallController.class)
 @Import(WebSecuritySliceTestConfiguration.class)
@@ -43,6 +49,9 @@ class InstallmentCallControllerWebMvcTest {
 
     @Autowired
     private JwtService jwtService;
+
+    @Autowired
+    private GetUserAccessUseCase getUserAccessUseCase;
 
     @MockitoBean
     private RecordInstallmentCallUseCase recordInstallmentCallUseCase;
@@ -55,6 +64,9 @@ class InstallmentCallControllerWebMvcTest {
 
     @MockitoBean
     private GetInstallmentCallUseCase getInstallmentCallUseCase;
+
+    @MockitoBean
+    private DeleteInstallmentCallUseCase deleteInstallmentCallUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
@@ -139,5 +151,38 @@ class InstallmentCallControllerWebMvcTest {
 
         mockMvc.perform(get("/api/v1/installment-calls/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void admin_can_delete_a_installment_call() throws Exception {
+        mockMvc.perform(delete("/api/v1/installment-calls/" + InstallmentCallId.newId())
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void property_manager_can_delete_a_managed_installment_call() throws Exception {
+        InstallmentCallId id = InstallmentCallId.newId();
+        String propertyId = UUID.randomUUID().toString();
+        InstallmentCallView view = new InstallmentCallView(id, EntityId.of(propertyId), YearMonth.of(2026, 1),
+                LocalDate.of(2026, 2, 5));
+        when(getInstallmentCallUseCase.getInstallmentCall(any())).thenReturn(new InstallmentCallDetailView(view, List.of()));
+        when(getUserAccessUseCase.getAccess(any()))
+                .thenReturn(new UserAccessView(Set.of(), Map.of(propertyId, Set.of(PropertyRole.PROPERTY_BOARD_ADMIN)),
+                        Map.of(), Set.of(), Set.of()));
+
+        mockMvc.perform(delete("/api/v1/installment-calls/" + id)
+                        .header("Authorization", bearerToken("PROPERTY_BOARD_ADMIN")))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void regular_user_is_forbidden_from_deleting_a_installment_call_of_a_property_they_do_not_manage() throws Exception {
+        InstallmentCallId id = InstallmentCallId.newId();
+        InstallmentCallView view = new InstallmentCallView(id, EntityId.newId(), YearMonth.of(2026, 1), LocalDate.of(2026, 2, 5));
+        when(getInstallmentCallUseCase.getInstallmentCall(any())).thenReturn(new InstallmentCallDetailView(view, List.of()));
+
+        mockMvc.perform(delete("/api/v1/installment-calls/" + id).header("Authorization", bearerToken("ROLE_USER")))
+                .andExpect(status().isForbidden());
     }
 }

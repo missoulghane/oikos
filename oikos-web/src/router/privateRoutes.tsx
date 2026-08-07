@@ -33,6 +33,9 @@ const PropertyContactsTab = lazy(() =>
 const PropertyInvitationsTab = lazy(() =>
   import('@/features/property-mngt/invitations').then((m) => ({ default: m.PropertyInvitationsTab })),
 );
+const PropertyBoardTab = lazy(() =>
+  import('@/features/property-mngt/board-members').then((m) => ({ default: m.PropertyBoardTab })),
+);
 const UnitDetailPage = lazy(() =>
   import('@/features/property-mngt/properties').then((m) => ({ default: m.UnitDetailPage })),
 );
@@ -105,6 +108,9 @@ const MyUnitDetailPage = lazy(() =>
 const ProfilePage = lazy(() => import('@/features/identity/me').then((m) => ({ default: m.ProfilePage })));
 const MyInstallmentsPage = lazy(() =>
   import('@/features/property-ownership/installments').then((m) => ({ default: m.MyInstallmentsPage })),
+);
+const MyMembershipRequestsPage = lazy(() =>
+  import('@/features/property-ownership/membership-requests').then((m) => ({ default: m.MyMembershipRequestsPage })),
 );
 
 export const privateRoutes: RouteObject[] = [
@@ -212,6 +218,14 @@ export const privateRoutes: RouteObject[] = [
                     element: (
                       <Suspense fallback={<Loader />}>
                         <PropertyInvitationsTab />
+                      </Suspense>
+                    ),
+                  },
+                  {
+                    path: 'board',
+                    element: (
+                      <Suspense fallback={<Loader />}>
+                        <PropertyBoardTab />
                       </Suspense>
                     ),
                   },
@@ -414,6 +428,14 @@ export const privateRoutes: RouteObject[] = [
             element: (
               <Suspense fallback={<Loader />}>
                 <MyInstallmentsPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'membership-requests',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <MyMembershipRequestsPage />
               </Suspense>
             ),
           },

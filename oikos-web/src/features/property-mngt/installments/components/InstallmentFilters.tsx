@@ -1,6 +1,8 @@
 import { Select } from '@/shared/components/Select/Select';
 import { Input } from '@/shared/components/Input/Input';
 import { INSTALLMENT_STATUS_LABELS } from '@/features/property-mngt/installments/constants/installmentStatusLabels';
+import { useInstallmentCallsByProperty } from '@/features/property-mngt/installments/hooks/useInstallmentCallsByProperty';
+import { formatPeriod } from '@/features/property-mngt/installments/utils/formatPeriod';
 import {
   INSTALLMENT_SORT_FIELDS,
   type InstallmentSortField,
@@ -12,9 +14,15 @@ export interface InstallmentFiltersValue {
   status: InstallmentStatus | '';
   dueDateFrom: string;
   dueDateTo: string;
+  installmentCallId: string;
   sortBy: InstallmentSortField;
   sortDirection: SortDirection;
 }
+
+// Every installment call of the property, fetched once for the "Appel de fonds"
+// dropdown - a property rarely has more than a few dozen calls, so one large
+// page (no pagination UI needed here) is simpler than a searchable picker.
+const INSTALLMENT_CALLS_PAGE_SIZE = 100;
 
 const SORT_FIELD_LABELS: Record<InstallmentSortField, string> = {
   DUE_DATE: "Date d'échéance",
@@ -27,13 +35,16 @@ const SORT_DIRECTION_LABELS: Record<SortDirection, string> = {
 };
 
 interface InstallmentFiltersProps {
+  propertyId: string;
   value: InstallmentFiltersValue;
   onChange: (value: InstallmentFiltersValue) => void;
 }
 
-export function InstallmentFilters({ value, onChange }: InstallmentFiltersProps) {
+export function InstallmentFilters({ propertyId, value, onChange }: InstallmentFiltersProps) {
+  const installmentCalls = useInstallmentCallsByProperty(propertyId, 0, INSTALLMENT_CALLS_PAGE_SIZE);
+
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
       <Select
         label="Statut"
         name="status"
@@ -44,6 +55,19 @@ export function InstallmentFilters({ value, onChange }: InstallmentFiltersProps)
         {(Object.keys(INSTALLMENT_STATUS_LABELS) as InstallmentStatus[]).map((status) => (
           <option key={status} value={status}>
             {INSTALLMENT_STATUS_LABELS[status]}
+          </option>
+        ))}
+      </Select>
+      <Select
+        label="Appel de fonds"
+        name="installmentCallId"
+        value={value.installmentCallId}
+        onChange={(e) => onChange({ ...value, installmentCallId: e.target.value })}
+      >
+        <option value="">Tous</option>
+        {installmentCalls.data?.content.map((call) => (
+          <option key={call.id} value={call.id}>
+            {formatPeriod(call.period)}
           </option>
         ))}
       </Select>

@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import com.architek.oikos.property.domain.valueobject.BoardMemberStatus;
 import com.architek.oikos.property.domain.valueobject.BoardRole;
 import com.architek.oikos.shared.infrastructure.audit.AuditableEntity;
 
@@ -30,7 +31,14 @@ public class BoardMemberEntity extends AuditableEntity {
     @Column(name = "party_id", nullable = false)
     private UUID partyId;
 
+    @Column(name = "user_id")
+    private UUID userId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "board_role", nullable = false)
     private BoardRole boardRole;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private BoardMemberStatus status;
 }

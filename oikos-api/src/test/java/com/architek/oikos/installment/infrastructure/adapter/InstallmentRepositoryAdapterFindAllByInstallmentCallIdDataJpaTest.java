@@ -44,4 +44,22 @@ class InstallmentRepositoryAdapterFindAllByInstallmentCallIdDataJpaTest {
 
         assertThat(result).extracting(Installment::getId).containsExactly(fromCallA.getId());
     }
+
+    @Test
+    void deletes_only_the_installments_of_the_given_installment_call_id() {
+        InstallmentCallId callA = InstallmentCallId.newId();
+        InstallmentCallId callB = InstallmentCallId.newId();
+
+        Installment fromCallA = Installment.create(InstallmentId.newId(), EntityId.newId(),
+                LocalDate.of(2026, 2, 5), Amount.of(new BigDecimal("300")), callA);
+        adapter.save(fromCallA);
+        Installment fromCallB = Installment.create(InstallmentId.newId(), EntityId.newId(),
+                LocalDate.of(2026, 2, 5), Amount.of(new BigDecimal("100")), callB);
+        adapter.save(fromCallB);
+
+        adapter.deleteAllByInstallmentCallId(callA);
+
+        assertThat(adapter.findAllByInstallmentCallId(callA)).isEmpty();
+        assertThat(adapter.findAllByInstallmentCallId(callB)).extracting(Installment::getId).containsExactly(fromCallB.getId());
+    }
 }

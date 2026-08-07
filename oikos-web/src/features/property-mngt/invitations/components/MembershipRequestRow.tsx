@@ -14,6 +14,7 @@ const STATUS_BADGE: Record<MembershipRequestStatus, { label: string; color: 'suc
   PENDING: { label: 'En attente', color: 'warning' },
   ACCEPTED: { label: 'Acceptée', color: 'success' },
   REJECTED: { label: 'Refusée', color: 'error' },
+  INVITED: { label: "En attente d'acceptation", color: 'warning' },
 };
 
 interface MembershipRequestRowProps {
@@ -35,11 +36,13 @@ export function MembershipRequestRow({ propertyId, request }: MembershipRequestR
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-medium text-gray-900">
-            {party.data?.fullName ?? 'Candidat…'}
+            {request.status === 'INVITED' ? 'Invitation privée' : (party.data?.fullName ?? 'Demandeur…')}
             <Badge color={badge.color}>{badge.label}</Badge>
           </p>
           <p className="truncate text-sm text-gray-500">
-            {party.data?.email} — Lot {unit.data?.unitNumber ?? '…'} ({unit.data?.unitTypeName})
+            {request.status === 'INVITED'
+              ? request.targetEmail
+              : `${party.data?.email} — Lot ${unit.data?.unitNumber ?? '…'} (${unit.data?.unitTypeName})`}
           </p>
           {request.status === 'REJECTED' && request.rejectionReason && (
             <p className="truncate text-xs text-gray-400">Motif : {request.rejectionReason}</p>

@@ -72,7 +72,7 @@ class AcceptMembershipRequestServiceTest {
                 EntityId.of(invitationId.asUuid()), propertyId, unitId, EntityId.newId(), EntityId.newId());
 
         Invitation invitation = Invitation.issue(invitationId, propertyId, InvitationType.PUBLIC, "PROPERTY_OWNER",
-                null, null, "tok", CLOCK.instant().plus(Duration.ofDays(30)), EntityId.newId());
+                null, "tok", CLOCK.instant().plus(Duration.ofDays(30)), EntityId.newId(), null);
 
         when(membershipRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
         when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));

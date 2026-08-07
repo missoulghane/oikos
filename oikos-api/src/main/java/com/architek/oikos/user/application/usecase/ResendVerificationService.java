@@ -58,7 +58,12 @@ public class ResendVerificationService implements ResendVerificationUseCase {
                     Instant expiresAt = clock.instant().plus(verificationTokenTtl);
                     VerificationToken verificationToken = VerificationToken.issue(user.getId(), rawToken, expiresAt);
                     verificationTokenRepository.save(verificationToken);
-                    emailSenderPort.send(command.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken));
+                    // No returnTo here: unlike RegisterUserService, this path has no request
+                    // context to carry one from, and no frontend "resend" UI exists yet to
+                    // supply one - a resend after an invitation-wizard registration drops
+                    // back to the generic post-verify page instead of resuming the wizard.
+                    // Accepted gap; revisit if/when a resend UI ships.
+                    emailSenderPort.send(command.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken, null));
                 });
     }
 }

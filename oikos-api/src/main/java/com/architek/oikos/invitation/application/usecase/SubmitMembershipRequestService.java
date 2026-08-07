@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.util.Optional;
 
 import com.architek.oikos.invitation.application.command.SubmitMembershipRequestCommand;
 import com.architek.oikos.invitation.application.port.in.SubmitMembershipRequestUseCase;
@@ -66,7 +67,7 @@ public class SubmitMembershipRequestService implements SubmitMembershipRequestUs
             throw new InvalidInvitationTokenException("This invitation link is no longer usable");
         }
         if (command.unitId() == null) {
-            throw new IllegalArgumentException("unitId is required to submit a candidacy");
+            throw new IllegalArgumentException("unitId is required to submit a membership request");
         }
         UnitBasicInfo unit = unitDirectoryPort.findBasicInfo(command.unitId())
                 .orElseThrow(() -> new IllegalArgumentException("Unit not found with id: " + command.unitId()));
@@ -74,19 +75,16 @@ public class SubmitMembershipRequestService implements SubmitMembershipRequestUs
             throw new IllegalArgumentException("Unit " + command.unitId() + " does not belong to this invitation's property");
         }
 
-        EntityId userId;
-        EntityId partyId;
-        if (command.actingUserId() != null) {
-            AccountInfo accountInfo = accountDirectoryPort.getAccountInfo(command.actingUserId());
-            userId = command.actingUserId();
-            partyId = resolveParty(accountInfo.email(), accountInfo.fullName(), invitation.getPropertyId());
-        } else {
-            if (command.email() == null || command.fullName() == null || command.password() == null) {
-                throw new IllegalArgumentException("email, fullName and password are required to submit a candidacy anonymously");
-            }
-            userId = accountDirectoryPort.provisionAccount(command.email(), command.fullName(), command.password());
-            partyId = resolveParty(command.email(), command.fullName(), invitation.getPropertyId());
+        EntityId invitationId = EntityId.of(invitation.getId().asUuid());
+        Optional<MembershipRequest> existing =
+                membershipRequestRepository.findByInvitationIdAndUnitIdAndUserId(invitationId, command.unitId(), command.actingUserId());
+        if (existing.isPresent()) {
+            return existing.get().getId();
         }
+
+        AccountInfo accountInfo = accountDirectoryPort.getAccountInfo(command.actingUserId());
+        EntityId userId = command.actingUserId();
+        EntityId partyId = resolveParty(accountInfo.email(), accountInfo.fullName(), invitation.getPropertyId());
 
         MembershipRequest request = MembershipRequest.submit(MembershipRequestId.newId(),
                 EntityId.of(invitation.getId().asUuid()), invitation.getPropertyId(), command.unitId(), partyId, userId);

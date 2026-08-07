@@ -10,5 +10,8 @@ public record RegisterUserRequest(
         @NotBlank @Size(max = 200) String fullName,
         @NotBlank @Email @Size(max = 150) String email,
         @NotBlank @Size(min = RawPassword.MIN_LENGTH) String password,
-        Role role) {
+        Role role,
+        String returnTo,
+        String invitationToken,
+        String unitId) {
 }

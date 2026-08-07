@@ -16,6 +16,8 @@ public interface InstallmentJpaRepository extends JpaRepository<InstallmentEntit
 
     List<InstallmentEntity> findAllByInstallmentCallId(UUID installmentCallId);
 
+    void deleteAllByInstallmentCallId(UUID installmentCallId);
+
     /**
      * Status (NOT_SETTLED/PARTIALLY_SETTLED/SETTLED) is never stored as such,
      * so it is expressed here from outstandingAmount vs amount, mirroring
@@ -32,6 +34,7 @@ public interface InstallmentJpaRepository extends JpaRepository<InstallmentEntit
                  or (:wantPartiallySettled = true and i.outstandingAmount > 0 and i.outstandingAmount < i.amount)
                  or (:wantSettled = true and i.outstandingAmount <= 0)
               ))
+              and (:installmentCallId is null or i.installmentCallId = :installmentCallId)
             """)
     Page<InstallmentEntity> search(@Param("unitIds") List<UUID> unitIds,
                                     @Param("dueDateFrom") LocalDate dueDateFrom,
@@ -40,5 +43,6 @@ public interface InstallmentJpaRepository extends JpaRepository<InstallmentEntit
                                     @Param("wantNotSettled") boolean wantNotSettled,
                                     @Param("wantPartiallySettled") boolean wantPartiallySettled,
                                     @Param("wantSettled") boolean wantSettled,
+                                    @Param("installmentCallId") UUID installmentCallId,
                                     Pageable pageable);
 }

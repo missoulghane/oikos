@@ -15,8 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import com.architek.oikos.auth.infrastructure.security.UserPrincipal;
+import com.architek.oikos.invitation.application.command.CreateBoardInvitationCommand;
 import com.architek.oikos.invitation.application.command.CreateInvitationCommand;
 import com.architek.oikos.invitation.application.command.DisableInvitationCommand;
+import com.architek.oikos.invitation.application.port.in.CreateBoardInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.CreateInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.DisableInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.GetInvitationUseCase;
@@ -24,6 +26,7 @@ import com.architek.oikos.invitation.application.port.in.ListInvitationsUseCase;
 import com.architek.oikos.invitation.application.query.GetInvitationQuery;
 import com.architek.oikos.invitation.application.query.ListInvitationsQuery;
 import com.architek.oikos.invitation.domain.valueobject.InvitationId;
+import com.architek.oikos.invitation.web.request.CreateBoardInvitationRequest;
 import com.architek.oikos.invitation.web.request.CreateInvitationRequest;
 import com.architek.oikos.invitation.web.response.InvitationResponse;
 import com.architek.oikos.invitation.web.response.PagedInvitationResponse;
@@ -35,13 +38,17 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 public class InvitationController {
 
     private final CreateInvitationUseCase createInvitationUseCase;
+    private final CreateBoardInvitationUseCase createBoardInvitationUseCase;
     private final ListInvitationsUseCase listInvitationsUseCase;
     private final GetInvitationUseCase getInvitationUseCase;
     private final DisableInvitationUseCase disableInvitationUseCase;
 
-    public InvitationController(CreateInvitationUseCase createInvitationUseCase, ListInvitationsUseCase listInvitationsUseCase,
+    public InvitationController(CreateInvitationUseCase createInvitationUseCase,
+                                 CreateBoardInvitationUseCase createBoardInvitationUseCase,
+                                 ListInvitationsUseCase listInvitationsUseCase,
                                  GetInvitationUseCase getInvitationUseCase, DisableInvitationUseCase disableInvitationUseCase) {
         this.createInvitationUseCase = createInvitationUseCase;
+        this.createBoardInvitationUseCase = createBoardInvitationUseCase;
         this.listInvitationsUseCase = listInvitationsUseCase;
         this.getInvitationUseCase = getInvitationUseCase;
         this.disableInvitationUseCase = disableInvitationUseCase;
@@ -53,8 +60,18 @@ public class InvitationController {
                                         Authentication authentication) {
         InvitationId id = createInvitationUseCase.create(new CreateInvitationCommand(
                 EntityId.of(propertyId), request.type(),
-                request.unitId() != null ? EntityId.of(request.unitId()) : null,
                 request.targetEmail() != null ? EmailVO.of(request.targetEmail()) : null,
+                currentUserId(authentication)));
+        return ResponseEntity.created(URI.create("/api/v1/invitations/" + id)).build();
+    }
+
+    @PreAuthorize("@propertyAccess.canManageInvitations(authentication, #propertyId)")
+    @PostMapping("/properties/{propertyId}/board-invitations")
+    public ResponseEntity<Void> createBoardInvitation(@PathVariable String propertyId,
+                                                        @Valid @RequestBody CreateBoardInvitationRequest request,
+                                                        Authentication authentication) {
+        InvitationId id = createBoardInvitationUseCase.create(new CreateBoardInvitationCommand(
+                EntityId.of(propertyId), EmailVO.of(request.targetEmail()), request.boardRole().name(),
                 currentUserId(authentication)));
         return ResponseEntity.created(URI.create("/api/v1/invitations/" + id)).build();
     }

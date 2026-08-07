@@ -180,7 +180,7 @@ public class PropertyAccessEvaluator {
     }
 
     /** Same check as canManageInvitations, but for endpoints addressed by membership
-     * request id (accept/reject a candidacy) - resolves the owning property first. */
+     * request id (accept/reject a membership request) - resolves the owning property first. */
     public boolean canManageMembershipRequest(Authentication authentication, String membershipRequestId) {
         if (isAdminAuthority(authentication)) {
             return true;

@@ -12,8 +12,8 @@ interface MembershipRequestListProps {
 export function MembershipRequestList({ propertyId, data, onPageChange }: MembershipRequestListProps) {
   if (data.content.length === 0) {
     return (
-      <EmptyState title="Aucune candidature pour le moment">
-        Les candidatures soumises via le lien public apparaîtront ici.
+      <EmptyState title="Aucune demande d'adhésion pour le moment">
+        Les demandes d'adhésion soumises via le lien public apparaîtront ici.
       </EmptyState>
     );
   }

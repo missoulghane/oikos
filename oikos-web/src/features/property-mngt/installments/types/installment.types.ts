@@ -9,6 +9,8 @@ export interface Installment {
   amount: number;
   outstandingAmount: number;
   status: InstallmentStatus;
+  /** "YYYY-MM" of the installment call this echeance was raised from - null when raised manually (no call). */
+  period: string | null;
 }
 
 export type PagedInstallments = Paged<Installment>;
@@ -22,6 +24,7 @@ export interface InstallmentListFilters {
   status?: InstallmentStatus[];
   dueDateFrom?: string;
   dueDateTo?: string;
+  installmentCallId?: string;
   sortBy: InstallmentSortField;
   sortDirection: SortDirection;
 }

@@ -2,6 +2,9 @@ export interface RegisterUserPayload {
   fullName: string;
   email: string;
   password: string;
+  returnTo?: string;
+  invitationToken?: string;
+  unitId?: string;
 }
 
 export interface RegisterPropertyAdminPayload extends RegisterUserPayload {

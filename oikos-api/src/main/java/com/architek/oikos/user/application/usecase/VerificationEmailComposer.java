@@ -1,5 +1,8 @@
 package com.architek.oikos.user.application.usecase;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -20,8 +23,15 @@ class VerificationEmailComposer {
         return "OIKOS - Confirmez votre adresse email";
     }
 
-    String htmlBody(String token) {
-        String link = verificationBaseUrl + "?token=" + token;
+    /**
+     * returnTo (already sanitized by the caller - see RegisterUserService) rides
+     * along as a second query param so the frontend can carry the caller back to
+     * whatever multi-step flow (e.g. an invitation wizard) sent them to register,
+     * once they've verified and logged in. Null when there's nothing to return to.
+     */
+    String htmlBody(String token, String returnTo) {
+        String link = verificationBaseUrl + "?token=" + token
+                + (returnTo != null ? "&returnTo=" + URLEncoder.encode(returnTo, StandardCharsets.UTF_8) : "");
         return """
                 <p>Bienvenue sur OIKOS,</p>
                 <p>Merci de confirmer votre adresse email en cliquant sur le lien ci-dessous :</p>

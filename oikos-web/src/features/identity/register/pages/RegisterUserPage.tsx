@@ -1,16 +1,25 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AuthLayout } from '@/shared/layouts/AuthLayout';
 import { Card } from '@/shared/components/Card/Card';
 import { RegisterUserForm } from '@/features/identity/register/components/RegisterUserForm';
 import { useRegisterUser } from '@/features/identity/register/hooks/useRegisterUser';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { sanitizeReturnTo } from '@/shared/utils/sanitizeReturnTo';
 import type { RegisterUserFormValues } from '@/features/identity/register/schemas/registerUserSchema';
 
 export function RegisterUserPage() {
+  const [searchParams] = useSearchParams();
+  const returnTo = sanitizeReturnTo(searchParams.get('returnTo'));
+  const invitationToken = searchParams.get('invitationToken');
+  const unitId = searchParams.get('unitId');
   const { mutate, isPending, isSuccess, error } = useRegisterUser();
 
-  function handleSubmit(values: RegisterUserFormValues) {
-    mutate(values);
+  function handleSubmit({ confirmPassword: _confirmPassword, ...payload }: RegisterUserFormValues) {
+    mutate({
+      ...payload,
+      ...(returnTo ? { returnTo } : {}),
+      ...(invitationToken && unitId ? { invitationToken, unitId } : {}),
+    });
   }
 
   if (isSuccess) {

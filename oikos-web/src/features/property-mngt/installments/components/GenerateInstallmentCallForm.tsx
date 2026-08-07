@@ -46,7 +46,7 @@ export function GenerateInstallmentCallForm({ propertyId, onGenerated }: Generat
           errorMessage={errors.dueDate?.message}
         />
         <Button type="submit" isLoading={isPending}>
-          Générer un appel à cotisation
+          Générer un appel de fonds
         </Button>
       </div>
     </form>

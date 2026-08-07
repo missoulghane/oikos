@@ -3,15 +3,11 @@ import { useOutletContext } from 'react-router-dom';
 import { Card } from '@/shared/components/Card/Card';
 import { Button } from '@/shared/components/Button/Button';
 import { EditPropertyInfoForm } from '@/features/property-mngt/properties/components/EditPropertyInfoForm';
-import { AddPropertyManagerForm } from '@/features/property-mngt/properties/components/AddPropertyManagerForm';
-import { useCurrentUser, isAdminTierOnProperty } from '@/features/identity/me';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
 
 export function PropertyGeneralInfoTab() {
   const { property } = useOutletContext<{ property: Property }>();
   const [isEditing, setIsEditing] = useState(false);
-  const currentUser = useCurrentUser();
-  const canInviteMembers = currentUser.data ? isAdminTierOnProperty(currentUser.data, property.id) : false;
 
   return (
     <div className="flex flex-col gap-4">
@@ -43,16 +39,6 @@ export function PropertyGeneralInfoTab() {
           </>
         )}
       </Card>
-
-      {canInviteMembers && (
-        <Card className="flex flex-col gap-3">
-          <h2 className="text-base font-semibold text-gray-900">Équipe</h2>
-          <p className="text-sm text-gray-500">
-            Invitez un membre (compte déjà existant) à rejoindre la gestion de cette copropriété.
-          </p>
-          <AddPropertyManagerForm propertyId={property.id} />
-        </Card>
-      )}
     </div>
   );
 }

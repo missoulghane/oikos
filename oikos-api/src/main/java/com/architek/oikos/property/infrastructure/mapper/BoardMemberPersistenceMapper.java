@@ -19,12 +19,15 @@ public interface BoardMemberPersistenceMapper {
         entity.setId(boardMember.getId().asUuid());
         entity.setPropertyId(boardMember.getPropertyId().asUuid());
         entity.setPartyId(boardMember.getPartyId().value());
+        entity.setUserId(boardMember.getUserId() != null ? boardMember.getUserId().value() : null);
         entity.setBoardRole(boardMember.getBoardRole());
+        entity.setStatus(boardMember.getStatus());
         return entity;
     }
 
     default BoardMember toDomain(BoardMemberEntity entity) {
         return BoardMember.reconstruct(BoardMemberId.of(entity.getId()), PropertyId.of(entity.getPropertyId()),
-                EntityId.of(entity.getPartyId()), entity.getBoardRole());
+                EntityId.of(entity.getPartyId()), entity.getUserId() != null ? EntityId.of(entity.getUserId()) : null,
+                entity.getBoardRole(), entity.getStatus());
     }
 }

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +51,20 @@ class InstallmentCallRepositoryAdapterDataJpaTest {
     }
 
     @Test
+    void finds_all_installment_calls_matching_the_given_ids_in_one_batch() {
+        EntityId propertyId = EntityId.newId();
+        InstallmentCall first = adapter.save(InstallmentCall.create(InstallmentCallId.newId(), propertyId,
+                YearMonth.of(2026, 1), LocalDate.of(2026, 2, 5)));
+        InstallmentCall second = adapter.save(InstallmentCall.create(InstallmentCallId.newId(), propertyId,
+                YearMonth.of(2026, 2), LocalDate.of(2026, 3, 5)));
+        adapter.save(InstallmentCall.create(InstallmentCallId.newId(), propertyId, YearMonth.of(2026, 3), LocalDate.of(2026, 4, 5)));
+
+        List<InstallmentCall> found = adapter.findAllByIds(List.of(first.getId(), second.getId()));
+
+        assertThat(found).extracting(InstallmentCall::getId).containsExactlyInAnyOrder(first.getId(), second.getId());
+    }
+
+    @Test
     void finds_a_page_of_installment_calls_by_property_id() {
         EntityId propertyId = EntityId.newId();
         adapter.save(InstallmentCall.create(InstallmentCallId.newId(), propertyId, YearMonth.of(2026, 1), LocalDate.of(2026, 2, 5)));
@@ -60,5 +75,15 @@ class InstallmentCallRepositoryAdapterDataJpaTest {
 
         assertThat(page.totalElements()).isEqualTo(2);
         assertThat(page.content()).allMatch(call -> call.getPropertyId().equals(propertyId));
+    }
+
+    @Test
+    void deleting_a_installment_call_makes_it_no_longer_findable() {
+        InstallmentCall saved = adapter.save(InstallmentCall.create(InstallmentCallId.newId(), EntityId.newId(),
+                YearMonth.of(2026, 1), LocalDate.of(2026, 2, 5)));
+
+        adapter.deleteById(saved.getId());
+
+        assertThat(adapter.findById(saved.getId())).isEmpty();
     }
 }

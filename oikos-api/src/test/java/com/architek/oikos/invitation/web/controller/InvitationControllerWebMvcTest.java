@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.invitation.application.dto.InvitationView;
+import com.architek.oikos.invitation.application.port.in.CreateBoardInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.CreateInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.DisableInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.GetInvitationUseCase;
@@ -55,6 +56,9 @@ class InvitationControllerWebMvcTest {
     private CreateInvitationUseCase createInvitationUseCase;
 
     @MockitoBean
+    private CreateBoardInvitationUseCase createBoardInvitationUseCase;
+
+    @MockitoBean
     private ListInvitationsUseCase listInvitationsUseCase;
 
     @MockitoBean
@@ -69,8 +73,8 @@ class InvitationControllerWebMvcTest {
 
     private InvitationView sampleView(String propertyId) {
         return new InvitationView(InvitationId.newId(), EntityId.of(propertyId), InvitationType.PUBLIC, "PROPERTY_OWNER",
-                null, null, "http://localhost/invitations?token=tok", InvitationStatus.ACTIVE,
-                Instant.EPOCH.plus(Duration.ofDays(30)), EntityId.newId());
+                null, "http://localhost/invitations?token=tok", InvitationStatus.ACTIVE,
+                Instant.EPOCH.plus(Duration.ofDays(30)), EntityId.newId(), false, null);
     }
 
     @Test
