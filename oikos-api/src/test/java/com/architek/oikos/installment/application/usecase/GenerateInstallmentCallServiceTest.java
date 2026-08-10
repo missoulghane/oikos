@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.installment.application.command.GenerateInstallmentCallCommand;
 import com.architek.oikos.installment.application.dto.GenerateInstallmentCallResult;
+import com.architek.oikos.installment.application.port.out.FundCallJournalEntryPort;
 import com.architek.oikos.installment.application.port.out.PropertyDirectoryPort;
 import com.architek.oikos.installment.application.port.out.PropertyDuesConfigurationView;
 import com.architek.oikos.installment.application.port.out.PropertyUnitPricingPort;
@@ -46,9 +47,12 @@ class GenerateInstallmentCallServiceTest {
     @Mock
     private InstallmentRepository installmentRepository;
 
+    @Mock
+    private FundCallJournalEntryPort fundCallJournalEntryPort;
+
     private GenerateInstallmentCallService newService() {
         return new GenerateInstallmentCallService(propertyDirectoryPort, propertyUnitPricingPort, installmentCallRepository,
-                installmentRepository);
+                installmentRepository, fundCallJournalEntryPort);
     }
 
     private void stubHappyPath(EntityId propertyId) {
@@ -58,6 +62,7 @@ class GenerateInstallmentCallServiceTest {
         when(installmentCallRepository.existsByPropertyIdAndPeriod(any(), any())).thenReturn(false);
         when(installmentCallRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(installmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(fundCallJournalEntryPort.postFundCallEntry(any(), any(), any(), any(), any())).thenReturn(EntityId.newId());
     }
 
     @Test
@@ -72,7 +77,7 @@ class GenerateInstallmentCallServiceTest {
                 new UnitPriceLine(unpricedUnitId, null)));
 
         GenerateInstallmentCallCommand command = new GenerateInstallmentCallCommand(propertyId, YearMonth.of(2026, 1),
-                LocalDate.of(2026, 2, 5));
+                LocalDate.of(2026, 2, 5), EntityId.newId());
 
         GenerateInstallmentCallResult result = newService().generate(command);
 
@@ -83,12 +88,56 @@ class GenerateInstallmentCallServiceTest {
     }
 
     @Test
+    void P1_posts_the_fund_call_journal_entry_only_for_charged_units_dated_on_the_period() {
+        EntityId propertyId = EntityId.newId();
+        stubHappyPath(propertyId);
+
+        EntityId pricedUnitId = EntityId.newId();
+        EntityId unpricedUnitId = EntityId.newId();
+        when(propertyUnitPricingPort.listUnitPrices(propertyId)).thenReturn(List.of(
+                new UnitPriceLine(pricedUnitId, new BigDecimal("300")),
+                new UnitPriceLine(unpricedUnitId, null)));
+
+        GenerateInstallmentCallCommand command = new GenerateInstallmentCallCommand(propertyId, YearMonth.of(2026, 1),
+                LocalDate.of(2026, 2, 5), EntityId.newId());
+
+        newService().generate(command);
+
+        org.mockito.ArgumentCaptor<List<com.architek.oikos.installment.application.dto.FundCallLine>> linesCaptor =
+                org.mockito.ArgumentCaptor.forClass(List.class);
+        org.mockito.Mockito.verify(fundCallJournalEntryPort).postFundCallEntry(org.mockito.ArgumentMatchers.eq(propertyId),
+                org.mockito.ArgumentMatchers.eq(LocalDate.of(2026, 1, 1)), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), linesCaptor.capture());
+        assertThat(linesCaptor.getValue()).extracting(com.architek.oikos.installment.application.dto.FundCallLine::unitId)
+                .containsExactly(pricedUnitId);
+    }
+
+    @Test
+    void a_call_with_no_charged_units_does_not_post_any_journal_entry() {
+        EntityId propertyId = EntityId.newId();
+        when(propertyDirectoryPort.exists(propertyId)).thenReturn(true);
+        when(propertyDirectoryPort.getDuesConfiguration(propertyId))
+                .thenReturn(new PropertyDuesConfigurationView(DuesCalculationMode.FLAT_RATE, null));
+        when(installmentCallRepository.existsByPropertyIdAndPeriod(any(), any())).thenReturn(false);
+        when(installmentCallRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(propertyUnitPricingPort.listUnitPrices(propertyId)).thenReturn(List.of(
+                new UnitPriceLine(EntityId.newId(), null)));
+
+        GenerateInstallmentCallCommand command = new GenerateInstallmentCallCommand(propertyId, YearMonth.of(2026, 1),
+                LocalDate.of(2026, 2, 5), EntityId.newId());
+
+        newService().generate(command);
+
+        org.mockito.Mockito.verifyNoInteractions(fundCallJournalEntryPort);
+    }
+
+    @Test
     void generating_for_a_missing_property_is_rejected() {
         EntityId propertyId = EntityId.newId();
         when(propertyDirectoryPort.exists(propertyId)).thenReturn(false);
 
         GenerateInstallmentCallCommand command = new GenerateInstallmentCallCommand(propertyId, YearMonth.of(2026, 1),
-                LocalDate.of(2026, 2, 5));
+                LocalDate.of(2026, 2, 5), EntityId.newId());
 
         assertThatThrownBy(() -> newService().generate(command)).isInstanceOf(PropertyNotFoundException.class);
     }
@@ -100,7 +149,7 @@ class GenerateInstallmentCallServiceTest {
         when(installmentCallRepository.existsByPropertyIdAndPeriod(propertyId, YearMonth.of(2026, 1))).thenReturn(true);
 
         GenerateInstallmentCallCommand command = new GenerateInstallmentCallCommand(propertyId, YearMonth.of(2026, 1),
-                LocalDate.of(2026, 2, 5));
+                LocalDate.of(2026, 2, 5), EntityId.newId());
 
         assertThatThrownBy(() -> newService().generate(command)).isInstanceOf(InstallmentCallAlreadyExistsException.class);
     }
@@ -123,7 +172,7 @@ class GenerateInstallmentCallServiceTest {
                 new UnitShareLine(zeroShareUnit, BigDecimal.ZERO)));
 
         GenerateInstallmentCallCommand command = new GenerateInstallmentCallCommand(propertyId, YearMonth.of(2026, 1),
-                LocalDate.of(2026, 2, 5));
+                LocalDate.of(2026, 2, 5), EntityId.newId());
 
         GenerateInstallmentCallResult result = newService().generate(command);
 
@@ -140,7 +189,7 @@ class GenerateInstallmentCallServiceTest {
                 .thenReturn(new PropertyDuesConfigurationView(DuesCalculationMode.SHARES, null));
 
         GenerateInstallmentCallCommand command = new GenerateInstallmentCallCommand(propertyId, YearMonth.of(2026, 1),
-                LocalDate.of(2026, 2, 5));
+                LocalDate.of(2026, 2, 5), EntityId.newId());
 
         assertThatThrownBy(() -> newService().generate(command)).isInstanceOf(ProjectedBudgetNotConfiguredException.class);
     }
@@ -156,7 +205,7 @@ class GenerateInstallmentCallServiceTest {
                 new UnitShareLine(EntityId.newId(), BigDecimal.ZERO)));
 
         GenerateInstallmentCallCommand command = new GenerateInstallmentCallCommand(propertyId, YearMonth.of(2026, 1),
-                LocalDate.of(2026, 2, 5));
+                LocalDate.of(2026, 2, 5), EntityId.newId());
 
         assertThatThrownBy(() -> newService().generate(command)).isInstanceOf(NoUnitSharesConfiguredException.class);
     }

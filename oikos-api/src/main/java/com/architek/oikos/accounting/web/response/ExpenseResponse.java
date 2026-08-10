@@ -5,11 +5,13 @@ import java.time.LocalDate;
 
 import com.architek.oikos.accounting.application.dto.ExpenseView;
 
-public record ExpenseResponse(String id, String financialAccountId, LocalDate date, String category, String provider,
-                               BigDecimal amount, String description, String receiptReference) {
+public record ExpenseResponse(String id, String propertyId, LocalDate date, String ledgerAccountId,
+                               BigDecimal amount, String description, String receiptReference,
+                               String journalEntryId) {
 
     public static ExpenseResponse from(ExpenseView view) {
-        return new ExpenseResponse(view.id().toString(), view.financialAccountId().toString(), view.date(),
-                view.category(), view.provider(), view.amount(), view.description(), view.receiptReference());
+        return new ExpenseResponse(view.id().toString(), view.propertyId().toString(), view.date(),
+                view.ledgerAccountId().toString(), view.amount(), view.description(), view.receiptReference(),
+                view.journalEntryId().toString());
     }
 }

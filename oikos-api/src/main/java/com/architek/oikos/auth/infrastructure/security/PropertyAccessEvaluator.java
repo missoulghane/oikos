@@ -16,6 +16,11 @@ import com.architek.oikos.invitation.application.query.GetInvitationQuery;
 import com.architek.oikos.invitation.application.query.GetMembershipRequestQuery;
 import com.architek.oikos.invitation.domain.valueobject.InvitationId;
 import com.architek.oikos.invitation.domain.valueobject.MembershipRequestId;
+import com.architek.oikos.messaging.application.dto.ConversationView;
+import com.architek.oikos.messaging.application.port.in.GetConversationUseCase;
+import com.architek.oikos.messaging.application.query.GetConversationQuery;
+import com.architek.oikos.messaging.domain.model.ConversationType;
+import com.architek.oikos.messaging.domain.valueobject.ConversationId;
 import com.architek.oikos.party.application.port.in.GetPartyUseCase;
 import com.architek.oikos.party.application.query.GetPartyQuery;
 import com.architek.oikos.party.domain.valueobject.PartyId;
@@ -27,6 +32,7 @@ import com.architek.oikos.property.application.query.GetUnitQuery;
 import com.architek.oikos.property.application.query.ListUnitOwnershipsByUnitQuery;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.user.application.dto.UserAccessView;
 import com.architek.oikos.user.application.port.in.GetUserAccessUseCase;
 import com.architek.oikos.user.application.query.GetUserAccessQuery;
@@ -54,6 +60,7 @@ public class PropertyAccessEvaluator {
     private final GetPartyUseCase getPartyUseCase;
     private final GetInvitationUseCase getInvitationUseCase;
     private final GetMembershipRequestUseCase getMembershipRequestUseCase;
+    private final GetConversationUseCase getConversationUseCase;
 
     public PropertyAccessEvaluator(GetUserAccessUseCase getUserAccessUseCase,
                                     GetUnitUseCase getUnitUseCase,
@@ -63,7 +70,8 @@ public class PropertyAccessEvaluator {
                                     ListUnitOwnershipsByUnitUseCase listUnitOwnershipsByUnitUseCase,
                                     GetPartyUseCase getPartyUseCase,
                                     GetInvitationUseCase getInvitationUseCase,
-                                    GetMembershipRequestUseCase getMembershipRequestUseCase) {
+                                    GetMembershipRequestUseCase getMembershipRequestUseCase,
+                                    GetConversationUseCase getConversationUseCase) {
         this.getUserAccessUseCase = getUserAccessUseCase;
         this.getUnitUseCase = getUnitUseCase;
         this.getBuildingUseCase = getBuildingUseCase;
@@ -73,6 +81,7 @@ public class PropertyAccessEvaluator {
         this.getPartyUseCase = getPartyUseCase;
         this.getInvitationUseCase = getInvitationUseCase;
         this.getMembershipRequestUseCase = getMembershipRequestUseCase;
+        this.getConversationUseCase = getConversationUseCase;
     }
 
     /** ADMIN is a global, JWT-embedded authority (same trust boundary as the existing
@@ -207,6 +216,68 @@ public class PropertyAccessEvaluator {
      * transfers/payments/regularizations). */
     public boolean canWriteAccounting(Authentication authentication, String propertyId) {
         return hasPermission(authentication, propertyId, Permission.ACCOUNTING_WRITE);
+    }
+
+    /** True for ADMIN, or if the caller holds any role (staff or plain owner) on this property -
+     * unlike managesProperty, this INCLUDES PROPERTY_OWNER, directly readable off UserAccessView
+     * without any change needed in user. Gates messaging endpoints scoped by propertyId that any
+     * member (not just staff) may use: starting a GROUP conversation, listing recipient
+     * candidates. */
+    public boolean isPropertyMember(Authentication authentication, String propertyId) {
+        if (isAdminAuthority(authentication)) {
+            return true;
+        }
+        return access(authentication).rolesByProperty().containsKey(propertyId);
+    }
+
+    /** Gates POST /properties/{id}/broadcast-messages: only a board/manager-tier holder of
+     * Permission.MESSAGING_BROADCAST may post to a property's persistent announcement channel. */
+    public boolean canBroadcastOnProperty(Authentication authentication, String propertyId) {
+        return hasPermission(authentication, propertyId, Permission.MESSAGING_BROADCAST);
+    }
+
+    /** Gates every messaging endpoint scoped by conversationId (list/send messages, mark read):
+     * true for ADMIN, or if the caller is one of the GROUP conversation's participants, or - for
+     * BROADCAST - if the caller is still a member of the conversation's property (membership is
+     * resolved dynamically, never stored on a BROADCAST conversation - see Conversation's
+     * javadoc). */
+    public boolean isConversationParticipant(Authentication authentication, String conversationId) {
+        if (isAdminAuthority(authentication)) {
+            return true;
+        }
+        ConversationView conversation =
+                getConversationUseCase.getConversation(new GetConversationQuery(ConversationId.of(conversationId)));
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        EntityId callerId = EntityId.of(principal.getUserId());
+
+        if (conversation.type() == ConversationType.GROUP) {
+            return conversation.participantUserIds().contains(callerId);
+        }
+        return isPropertyMember(authentication, conversation.propertyId().toString());
+    }
+
+    /** Gates POST /conversations/{id}/messages specifically (replying), stricter than
+     * isConversationParticipant which also gates read-only access (list messages, mark read):
+     * true for ADMIN, or if the caller is one of the GROUP conversation's participants (any
+     * participant may reply), or - for BROADCAST - only if the caller holds
+     * Permission.MESSAGING_BROADCAST on the conversation's property. Every property member can
+     * read the announcement channel (isConversationParticipant), but replying into it is the same
+     * board/manager-only action as starting it (canBroadcastOnProperty) - a plain owner must not
+     * be able to post there just because the generic "send a message" endpoint doesn't otherwise
+     * know which conversation type it's posting into. */
+    public boolean canSendToConversation(Authentication authentication, String conversationId) {
+        if (isAdminAuthority(authentication)) {
+            return true;
+        }
+        ConversationView conversation =
+                getConversationUseCase.getConversation(new GetConversationQuery(ConversationId.of(conversationId)));
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        EntityId callerId = EntityId.of(principal.getUserId());
+
+        if (conversation.type() == ConversationType.GROUP) {
+            return conversation.participantUserIds().contains(callerId);
+        }
+        return canBroadcastOnProperty(authentication, conversation.propertyId().toString());
     }
 
     /** Self-service: the current account's own linked party. */

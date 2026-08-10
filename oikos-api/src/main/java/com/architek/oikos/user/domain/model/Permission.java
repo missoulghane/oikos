@@ -26,7 +26,8 @@ public enum Permission {
     ACCOUNTING_READ("property:accounting:read"),
     ACCOUNTING_WRITE("property:accounting:write"),
     USER_ADMIN("user:admin"),
-    INVITATION_MANAGE("invitation:manage");
+    INVITATION_MANAGE("invitation:manage"),
+    MESSAGING_BROADCAST("messaging:broadcast");
 
     private final String key;
 

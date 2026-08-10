@@ -75,6 +75,28 @@ Contextes métier existants sous `src/main/java/com/architek/oikos/` :
   `installment` étaient un seul module à l'origine ; voir
   `docs/NOMENCLATURE.md` pour le détail de la séparation, RG001-RG012, et la
   correspondance FR/EN complète.
+- `messaging` — messagerie interne : conversations `GROUP` (composées par
+  l'émetteur vers un ou plusieurs destinataires choisis parmi les membres
+  d'une même copropriété — façon Outlook "Nouveau message" — stockées dans
+  la table de jointure `conversation_participant`, jamais réutilisées :
+  composer vers le même ensemble de destinataires crée toujours une nouvelle
+  conversation, `StartGroupConversationService` ne fait jamais de
+  find-or-create pour ce type) et un canal `BROADCAST`
+  persistant par copropriété (diffusion du bureau de syndic vers tous les
+  membres courants, jamais un message ponctuel isolé — trouvé-ou-créé par
+  `SendBroadcastMessageService`). Les `Message` sont un historique immuable
+  (jamais modifiés/supprimés), le non-lu (`ConversationReadMarker`, upsert
+  paresseux) est calculé à la lecture en comparant les dates de création.
+  Couplé à `property` (appartenance), `user` (résolution `partyId → userId`
+  du destinataire, seul changement additif hors module — voir
+  `docs/NOMENCLATURE.md`) et `party` (identité affichée) exclusivement via
+  ses propres ports `application.port.out` (`UserAccessPort`,
+  `PropertyMemberDirectoryPort`, `PartyAccountDirectoryPort`), jamais leur
+  modèle de domaine ou repository directement (règle 4/6). Autorisation via
+  `PropertyAccessEvaluator.{isPropertyMember,canBroadcastOnProperty,
+  isConversationParticipant}` (`Permission.MESSAGING_BROADCAST` pour la
+  diffusion ; une conversation `GROUP` n'est gérée que par appartenance à
+  la property, pas par permission fine).
 - `shared` — briques transverses : pagination, gestion des exceptions,
   audit, envoi d'email, configuration, ainsi que les VO génériques utilisées
   au-delà d'un seul module (`EntityId`, `Amount` — montant strictement
@@ -114,6 +136,39 @@ navigation), qui s'appuiera sur `MembreSyndic` et `ProprieteLot`.
 > code (nouveau contexte métier, nouvelle fonctionnalité significative,
 > changement de périmètre). Voir aussi [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 > pour les règles d'architecture et de dépendances entre couches.
+
+### 2 bis. Chantier en cours — refonte comptabilité PCM
+
+`accounting`/`installment` sont en cours de remplacement par un moteur en
+partie double conforme au Plan Comptable Marocain (PCM/CGNC), en 8 phases
+(voir [docs/adr/0001-comptabilite-pcm-cadrage.md](adr/0001-comptabilite-pcm-cadrage.md)
+pour le détail des décisions). **Phase 1 (cadrage) faite** — aucun code
+n'a encore été modifié ; la description du §2 ci-dessus reste donc exacte
+tant que la Phase 2 (migrations, suppression de l'ancien modèle) n'a pas
+démarré.
+
+**Questions ouvertes** (à lever avant mise en production, pas bloquantes
+pour la suite du développement) :
+
+- Rôles de sécurité fins de la spec comptable
+  (`LECTEUR`/`SAISIE`/`COMPTABLE`/`ADMIN_COMPTABLE`/`AUDITEUR`, séparation
+  des tâches entre créateur et validateur d'une écriture) vs le RBAC actuel
+  d'oikos (property manager / board member) — à trancher en phase 6 de
+  l'ADR 0001.
+- Compte d'avance copropriétaire (`UNIT_ADVANCE`) : retenu collectif par
+  property avec auxiliaire = lot (et non un compte dédié par lot comme pour
+  `UNIT_RECEIVABLE`) — hypothèse la plus conservatrice en l'absence
+  d'exigence explicite contraire, à faire valider par un expert-comptable
+  marocain avant mise en production.
+- Le plan de comptes livré en v1 est le référentiel « usage syndic » de la
+  spec source uniquement (comptes 3415/4415) ; le référentiel « PCGE
+  strict » alternatif est différé — le mécanisme de rôle fonctionnel
+  (`AccountRole` → `LedgerAccount`) permet de l'ajouter plus tard sans
+  changer le moteur, mais aucun des deux référentiels n'a encore été validé
+  par un expert-comptable marocain.
+- Export FEC et documents PDF (avis d'appel individuel, états destinés à
+  l'assemblée générale) : périmètre prévu en phase 6/7 de l'ADR 0001,
+  formats exacts non encore arrêtés.
 
 ## 3. Stack technique
 

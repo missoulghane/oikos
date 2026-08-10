@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.property.application.command.CreatePropertyCommand;
+import com.architek.oikos.property.application.port.out.LedgerAccountProvisioningPort;
 import com.architek.oikos.property.domain.model.Property;
 import com.architek.oikos.property.domain.repository.PropertyRepository;
 import com.architek.oikos.property.domain.repository.UnitTypeDefinitionRepository;
@@ -26,8 +27,11 @@ class CreatePropertyServiceTest {
     @Mock
     private UnitTypeDefinitionRepository unitTypeDefinitionRepository;
 
+    @Mock
+    private LedgerAccountProvisioningPort ledgerAccountProvisioningPort;
+
     private CreatePropertyService newService() {
-        return new CreatePropertyService(propertyRepository, unitTypeDefinitionRepository);
+        return new CreatePropertyService(propertyRepository, unitTypeDefinitionRepository, ledgerAccountProvisioningPort);
     }
 
     @Test
@@ -52,5 +56,16 @@ class CreatePropertyServiceTest {
         newService().create(command);
 
         verify(unitTypeDefinitionRepository).save(argThat(unitType -> unitType.getName().equals("OTHERS")));
+    }
+
+    @Test
+    void creating_a_property_provisions_its_cash_ledger_account() {
+        when(propertyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreatePropertyCommand command = new CreatePropertyCommand("Copro Laumiere", "33 Avenue de Laumiere");
+
+        newService().create(command);
+
+        verify(ledgerAccountProvisioningPort).provisionPropertyCashAccount(any());
     }
 }

@@ -1,16 +1,15 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { openAccountingExercise } from '@/features/property-mngt/accounting/api/openAccountingExercise';
+import { useQuery } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
+import { getOpenExercise } from '@/features/property-mngt/accounting/api/getOpenExercise';
 import { queryKeys } from '@/shared/constants/queryKeys';
-import type { OpenExercisePayload } from '@/features/property-mngt/accounting/types/accounting.types';
 
 export function useOpenExercise(propertyId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload: OpenExercisePayload) => openAccountingExercise(propertyId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.properties.accountingOpenExercise(propertyId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.properties.accountingTreasurySummary(propertyId) });
-    },
+  return useQuery({
+    queryKey: queryKeys.properties.accountingOpenExercise(propertyId),
+    queryFn: () => getOpenExercise(propertyId),
+    // A 400 here means "no open exercise yet" (NoOpenExerciseException) - a
+    // normal, expected state for a property that hasn't opened one yet, not
+    // worth retrying.
+    retry: (failureCount, error) => !isAxiosError(error) && failureCount < 3,
   });
 }

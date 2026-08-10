@@ -12,7 +12,7 @@ import com.architek.oikos.property.application.command.BuildingConfiguration;
 import com.architek.oikos.property.application.command.ConfigurePropertyCommand;
 import com.architek.oikos.property.application.command.UnitTypeConfiguration;
 import com.architek.oikos.property.application.port.in.ConfigurePropertyUseCase;
-import com.architek.oikos.property.application.port.out.UnitAccountProvisioningPort;
+import com.architek.oikos.property.application.port.out.LedgerAccountProvisioningPort;
 import com.architek.oikos.property.domain.exception.PropertyConfigurationLimitExceededException;
 import com.architek.oikos.property.domain.model.Building;
 import com.architek.oikos.property.domain.model.Property;
@@ -38,6 +38,10 @@ import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
  * generated as "{name} {n}", restarting at 1 per (building, unitType): valid
  * only because buildings created by this use case start empty - it does not
  * coordinate with units added afterwards via AddUnitUseCase.
+ *
+ * <p>Provisions the property's cash account and each created unit's
+ * dedicated receivable account (ADR 0001 decisions 5/6, "exigence
+ * supplementaire").
  */
 @Component
 public class ConfigurePropertyService implements ConfigurePropertyUseCase {
@@ -46,20 +50,20 @@ public class ConfigurePropertyService implements ConfigurePropertyUseCase {
     private final BuildingRepository buildingRepository;
     private final UnitRepository unitRepository;
     private final UnitTypeDefinitionRepository unitTypeDefinitionRepository;
-    private final UnitAccountProvisioningPort unitAccountProvisioningPort;
+    private final LedgerAccountProvisioningPort ledgerAccountProvisioningPort;
     private final int maxUnitsPerRequest;
 
     public ConfigurePropertyService(PropertyRepository propertyRepository,
                                      BuildingRepository buildingRepository,
                                      UnitRepository unitRepository,
                                      UnitTypeDefinitionRepository unitTypeDefinitionRepository,
-                                     UnitAccountProvisioningPort unitAccountProvisioningPort,
+                                     LedgerAccountProvisioningPort ledgerAccountProvisioningPort,
                                      @Value("${oikos.property.configure.max-units}") int maxUnitsPerRequest) {
         this.propertyRepository = propertyRepository;
         this.buildingRepository = buildingRepository;
         this.unitRepository = unitRepository;
         this.unitTypeDefinitionRepository = unitTypeDefinitionRepository;
-        this.unitAccountProvisioningPort = unitAccountProvisioningPort;
+        this.ledgerAccountProvisioningPort = ledgerAccountProvisioningPort;
         this.maxUnitsPerRequest = maxUnitsPerRequest;
     }
 
@@ -76,6 +80,7 @@ public class ConfigurePropertyService implements ConfigurePropertyUseCase {
 
         Property savedProperty = propertyRepository.save(
                 Property.create(PropertyId.newId(), command.name(), command.address()));
+        ledgerAccountProvisioningPort.provisionPropertyCashAccount(savedProperty.getId().value());
 
         UnitTypeDefinition defaultUnitType = unitTypeDefinitionRepository.save(UnitTypeDefinition.create(
                 UnitTypeDefinitionId.newId(), savedProperty.getId(), UnitTypeDefinition.DEFAULT_NAME));
@@ -104,7 +109,7 @@ public class ConfigurePropertyService implements ConfigurePropertyUseCase {
         for (int sequence = 1; sequence <= count; sequence++) {
             Unit savedUnit = unitRepository.save(Unit.create(UnitId.newId(), buildingId, propertyId,
                     unitTypeName + " " + sequence, unitTypeId, Shares.of(BigDecimal.ZERO)));
-            unitAccountProvisioningPort.provisionAccount(savedUnit.getId().value(), propertyId.value());
+            ledgerAccountProvisioningPort.provisionUnitReceivableAccount(propertyId.value(), savedUnit.getId().value());
         }
     }
 }

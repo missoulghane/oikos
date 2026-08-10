@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -75,9 +76,11 @@ public class InstallmentCallController {
     @PreAuthorize("@propertyAccess.canWriteInstallmentCall(authentication, #propertyId)")
     @PostMapping("/properties/{propertyId}/installment-calls")
     public ResponseEntity<GenerateInstallmentCallResponse> generate(@PathVariable String propertyId,
-                                                                     @Valid @RequestBody GenerateInstallmentCallRequest request) {
+                                                                     @Valid @RequestBody GenerateInstallmentCallRequest request,
+                                                                     Authentication authentication) {
         GenerateInstallmentCallResponse response = GenerateInstallmentCallResponse.from(generateInstallmentCallUseCase.generate(
-                new GenerateInstallmentCallCommand(EntityId.of(propertyId), YearMonth.parse(request.period()), request.dueDate())));
+                new GenerateInstallmentCallCommand(EntityId.of(propertyId), YearMonth.parse(request.period()),
+                        request.dueDate(), EntityId.of(authentication.getName()))));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

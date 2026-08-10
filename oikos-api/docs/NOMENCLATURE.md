@@ -112,6 +112,70 @@ ci-dessus.)
 |------------------------------------|--------------------------------|-------|
 | Prix par type de lot               | `UnitTypePricing` (entité), `Price` (VO) | Un prix optionnel par `unitTypeId` (FK vers `UnitTypeDefinition`, qui est déjà rattaché à une seule property) — pas de valeur pour un type non paramétré (pas d'erreur). À ne pas confondre avec `Amount` (VO partagée dans `shared`, montant strictement positif d'un mouvement/échéance/allocation, utilisée par `accounting` et `installment`) ni `Shares` (tantièmes). Pas d'historisation : un montant d'appel de cotisation déjà émis reste figé (RG002) quel que soit un changement de prix ultérieur — seule la valeur courante est utile. Supprimer un `UnitTypeDefinition` supprime en cascade (DB) son éventuelle ligne de prix. |
 
+## Refonte comptabilité PCM (`accounting`/`installment`, ADR 0001)
+
+Remplacement du modèle simplifié (`FinancialAccount`/`UnitAccount`) par un
+moteur en partie double conforme au Plan Comptable Marocain. Voir
+[docs/adr/0001-comptabilite-pcm-cadrage.md](adr/0001-comptabilite-pcm-cadrage.md)
+pour le détail des décisions (frontières de modules, isolation multi-syndic,
+référentiel unique v1, compte par lot vs collectif). Chantier phasé — cette
+table sera complétée au fil des phases 2 à 8.
+
+| Terme FR (spec) | Nom dans le code (EN) | Module | Notes |
+|---|---|---|---|
+| Compte (du plan de comptes) | `LedgerAccount` | `accounting` | Remplace `FinancialAccount`/`UnitAccount` (supprimés). Id = GUID (`EntityId`) ; numéro de compte PCM = colonne métier texte séparée (`accountNumber`), jamais réutilisée comme clé technique. |
+| Numéro de compte | `accountNumber` (String) | `accounting` | Jamais codé en dur hors seed du plan de comptes et adapters de provisioning (property → caisse, unit → créance). |
+| Compte collectif / compte mouvementable directement | `collective` (boolean) | `accounting` | Un seul booléen : `!collective` ⇔ directement mouvementable. Jamais les deux vrais à la fois. |
+| Sens normal / sens d'une ligne d'écriture | `AccountSide` (nature du compte) / `EntryDirection` (`DEBIT`/`CREDIT`, ligne d'écriture) | `accounting` | Enum de direction unique et partagée, destinée à remplacer les enums de direction dupliquées de l'ancien modèle (`FinancialEntryDirection`, `UnitAccountMovementDirection`). |
+| Nature du compte | `AccountNature` (`BALANCE_ASSET`/`BALANCE_LIABILITY`/`EXPENSE`/`INCOME`) | `accounting` | Bilan actif/passif, charge, produit. |
+| Rôle fonctionnel (`ROLE_CREANCE_COPRO`, etc.) | `AccountRole` (`UNIT_RECEIVABLE`/`UNIT_ADVANCE`/`DUES_INCOME`/`BANK`/`CASH`/`SUPPLIER`/`STAFF_PAYABLE`) | `accounting` | Porté directement par `LedgerAccount` (colonnes `role`/`unitId`, pas de table de jointure séparée — voir ADR 0001, section « Affinements de schéma »). Aucune règle métier ne référence un numéro de compte en dur. |
+| Journal (VT/BQ/CA/AC/OD/AN) | `Journal` (catalogue global, non scopé par property) / `JournalType` | `accounting` | `TREASURY` pour BQ et CA ; le compte de trésorerie précis mouvementé est porté par `JournalEntry.treasuryAccountId`, choisi à la saisie (pas de "journal instance" par property/par compte bancaire). |
+| Écriture comptable / ligne d'écriture | `JournalEntry` / `JournalEntryLine` | `accounting` | Remplace l'ancien `FinancialJournalEntry` (qui n'était pas en partie double — une seule direction sur un seul compte). |
+| Pièce / séquence de pièce | `pieceNumber` / `PieceSequence` | `accounting` | Allocation sous verrou, unicité par (property, exercise, journal) — même principe que le numéro de compte incrémental provisionné à la création property/unit. |
+| Exercice / période | `AccountingExercise` (existant, étendu) / `Period` | `accounting` | Ajout d'un statut par période mensuelle (`OPEN`/`CLOSED`) en plus du statut d'exercice existant. |
+| Contre-passation (P10) | `JournalEntry.mirrorLinesForReversal(...)` + `markReversed()` / `originalEntryId` | `accounting` | Écriture miroir liée à l'originale (`draft(..., originalEntryId)`), qui passe en `REVERSED` sans que ses lignes soient modifiées. |
+| Facture fournisseur (P4) | `Expense` | `accounting` | Créée avec sa `JournalEntryId` (type fort, même module) ; `supplierPartyId` reste un `EntityId` générique (module `party`). Câblée bout en bout via `RecordExpenseUseCase` (ADR 0001 Phase 6 suite 4) : compte de charge choisi directement par l'appelant (pas de rôle unique pour "la charge"), compte `ROLE_SUPPLIER` résolu par rôle. Persistée (JPA). |
+| Contrôles de clôture de période (P8) | `PeriodClosingValidator` / `ClosePeriodUseCase` | `accounting` | Fonction pure retournant la liste des violations (`EXERCICE_NON_CLOTURABLE`), pas une exception à la première erreur. Câblée bout en bout (ADR 0001 Phase 6 suite 6) : `allocatedPieceNumbers` est un `Map<JournalCode,List<Integer>>` (une séquence I7 par journal, pas une liste globale) ; règle inter-périodes (la précédente doit déjà être fermée) portée par le use case, pas par `Period` lui-même. Vérification de trésorerie toujours désactivée (pas de rapprochement bancaire). |
+| Clôture d'exercice, résultat et à-nouveaux (P9) | `ExerciseClosingCalculator` | `accounting` | `closeIncomeStatement` (classes 6/7 → résultat) et `generateOpeningBalances` (à-nouveaux classes 1-5), fonctions pures sur des soldes déjà résolus. |
+| Provisioning des comptes PCM (property → accounting) | `LedgerAccountProvisioningPort` (property, out) → `ProvisionPropertyCashAccountUseCase` / `ProvisionUnitReceivableAccountUseCase` (accounting, in) | `property` / `accounting` | Même patron que l'ancien `UnitAccountProvisioningPort` ↔ `CreateUnitAccountUseCase`. Câblé dans `CreatePropertyService`/`ConfigurePropertyService` (compte caisse) et `AddUnitService`/`ConfigurePropertyService` (compte créance du lot) — vérifié de bout en bout (ADR 0001, Phase 6). |
+| Appel de fonds / ligne d'appel | `InstallmentCall` / `Installment` (existants, étendus) | `installment` | Déjà le bon modèle (un `Installment` par lot = déjà une "ligne d'appel"). Extension : cycle de vie `DRAFT`/`ISSUED`/`POSTED`/`CANCELLED` et lien vers la `JournalEntry` générée à la comptabilisation. |
+| Règlement / mode de règlement | `Payment` / `PaymentMode` (`BANK_TRANSFER`/`CASH`/`CHECK`/`DIRECT_DEBIT`) | `installment` | VIREMENT→`BANK_TRANSFER`, ESPECES→`CASH`, CHEQUE→`CHECK`, PRELEVEMENT→`DIRECT_DEBIT`. `journalEntryId` requis (créé avec son écriture, même principe que l'ancien `Expense.journalEntryId`). Persisté (JPA) et câblé bout en bout via `RecordOwnerPaymentUseCase` (P2/P3, ADR 0001 Phase 6 suite 3). |
+| Imputation FIFO créance/avance (P2/P3) | `PaymentAllocationCalculator` (calcul pur, domaine) → `RecordOwnerPaymentService` (orchestration, `installment`) | `installment` | Câblé bout en bout : ventile un règlement sur les `Installment` non soldés (FIFO par date d'échéance), source de vérité = `Installment.outstandingAmount` mis à jour dans la même transaction. La table générique `Allocation` (V14, piste d'audit I8 liant deux `journal_entry_line`) existe en schéma mais n'est **pas encore alimentée** — différé (ADR 0001, Phase 6 suite 3), pas de refonte du nom prévue. |
+| Ventilation par tantièmes (I9) | `SharesApportionment` (méthode du plus grand reste) | `installment` | Remplace l'ancien arrondi "le dernier lot absorbe le reste" dans `GenerateInstallmentCallService`. |
+| Consommation d'avance à l'émission (§4.2) | `AdvanceConsumptionCalculator` | `installment` | `min(avance disponible, montant appelé)`. |
+| Position nette du lot | `UnitPositionStatus` (`OVERDUE`/`UP_TO_DATE`/`IN_ADVANCE`) | `installment` | Calculé par `UnitPositionStatusCalculator` à partir de `créance − avance`, jamais stocké — même principe que `InstallmentStatus`. |
+| Règlement fournisseur (P5) | `RecordSupplierPaymentUseCase` / `TreasuryMethod` (`CASH`/`BANK`) | `accounting` | Câblé bout en bout (ADR 0001 Phase 6 suite 5). Débite `ROLE_SUPPLIER` (auxiliaire = supplierPartyId), crédite la trésorerie. **Pas d'entité persistée** (décision actée dès V14) : l'écriture est le seul registre, pas de `outstandingAmount` par facture comme pour `Installment`. `TreasuryMethod` réutilisé tel quel pour P7. |
+| Personnel (P6) | `RecordPayrollExpenseUseCase` | `accounting` | Câblé bout en bout (ADR 0001 Phase 6 suite 7). Débite une charge classe 6 choisie par l'appelant, crédite `ROLE_STAFF_PAYABLE` (compte collectif mais **sans auxiliaire** - `collective:false` en V11 : passif de paie global par property, pas de solde par employé). Journal `OD`. Pas d'entité persistée (même décision que P5). |
+| Frais bancaires (P7) | `RecordBankChargeUseCase` | `accounting` | Câblé bout en bout (ADR 0001 Phase 6 suite 7). Débite une charge classe 6 choisie par l'appelant, crédite directement le compte `BANK` de la property (résolu par rôle). Journal `BQ` (mouvement de trésorerie réel). Pas d'entité persistée. |
+| Réponse minimale "écriture seule" (P5/P6/P7) | `JournalEntryReferenceResponse` (`{journalEntryId}`) | `accounting` (web) | Réponse partagée par les endpoints sans entité dédiée - remplace `RecordSupplierPaymentResponse` (P5, supprimé sans changement de comportement). |
+
+## Module messagerie interne (`messaging`)
+
+Nouveau contexte métier conçu directement en anglais (aucun renommage a
+posteriori), table de correspondance avec le vocabulaire fonctionnel de la
+SFD d'origine (en français) fournie ci-dessous par cohérence avec le reste
+de ce document. `messaging` couple `property` (appartenance à une
+copropriété), `party`/`user` (résolution `partyId → userId` du destinataire)
+sans jamais dépendre de leur modèle de domaine/repository directement (règle
+4/6, vérifiée par `DependencyRulesArchTest`) — voir
+`messaging.application.port.out.{UserAccessPort,PropertyMemberDirectoryPort,
+PartyAccountDirectoryPort}` et leurs adapters `Messaging...` (patron déjà
+utilisé par `AccountingPropertyDirectoryAdapter`/`InvitationAccountDirectoryAdapter`
+pour éviter toute collision de bean Spring).
+
+| Terme FR (spec)                              | Nom dans le code (EN)                                    | Notes |
+|-----------------------------------------------|-----------------------------------------------------------|-------|
+| Conversation / fil de discussion               | `Conversation`                                             | Agrégat : `GROUP` (2..N `participantUserIds` choisis applicativement par l'émetteur — composition façon Outlook "À : A, B, C" — jamais réutilisée : composer un nouveau message vers le même ensemble de destinataires crée toujours une nouvelle conversation) ou `BROADCAST` (canal d'annonces persistant, unique par property, membres résolus dynamiquement — jamais stockés). |
+| Type de conversation                           | `ConversationType` (`GROUP`/`BROADCAST`)                    | |
+| Message                                        | `Message`                                                   | Immuable (patron `Movement`) : jamais modifié ni supprimé. |
+| Corps du message                               | `MessageBody` (VO)                                          | Non vide, max 4000 caractères — mirroré côté web par `@NotBlank @Size(max = 4000)` sur `SendMessageRequest`. |
+| Diffusion du bureau de syndic                  | canal `BROADCAST` (pas de type dédié)                        | Un canal persistant par property, jamais un message ponctuel isolé — `SendBroadcastMessageService` fait un find-or-create avant de poster. |
+| Marqueur de lecture                            | `ConversationReadMarker`                                     | Upsert paresseux : créé au premier accès (y compris pour un `BROADCAST` jamais ouvert), `(conversationId, userId)` composite key. |
+| Compteur de non-lus                            | `unreadCount` (`ConversationSummaryView`)                     | Calculé (jamais stocké) en comparant `message.created_date` au message pointé par le marqueur — pas de colonne de séquence dédiée (volumes faibles par conversation). |
+| Destinataire potentiel                         | `RecipientCandidateView` (`userId`, `fullName`, `roleLabel`)  | `roleLabel` : libellé court FR ("Copropriétaire" / "Bureau de syndic"), résolu côté adapter à partir de `PropertyContactView`/`BoardMemberView`. |
+| Permission de diffusion                        | `Permission.MESSAGING_BROADCAST` (`messaging:broadcast`)      | Accordée à `PROPERTY_BOARD_ADMIN`/`PROPERTY_BOARD_MEMBER`/`PROPERTY_MANAGER_ADMIN`/`PROPERTY_MANAGER_MEMBER` (même mirroring bureau/gérant que les permissions V2). Une conversation `GROUP` n'est gérée que par appartenance à la property (`isPropertyMember`), pas par permission fine. |
+| Résolution parti → compte (changement additif `user`) | `FindUsersByPartyIdsUseCase`/`FindUsersByPartyIdsService`, `UserRepository.findByLinkedPartyIds` | Seul ajout hors module `messaging` (voir plan d'implémentation §1.3) : patron exact de `FindLinkedPartyIdsUseCase`/`FindLinkedPartyIdsService` déjà existant, mais retournant l'agrégat `User` (donc son id) plutôt qu'un simple test d'existence. |
+
 ## Comment utiliser cette table
 
 - Avant d'implémenter une nouvelle SFD, traduire chaque terme métier ici

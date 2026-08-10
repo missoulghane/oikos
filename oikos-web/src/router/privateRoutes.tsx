@@ -54,41 +54,38 @@ const InstallmentsOtherTab = lazy(() =>
 const AccountingSectionLayout = lazy(() =>
   import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingSectionLayout })),
 );
-const AccountingTreasuryTab = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingTreasuryTab })),
+const AccountingOverviewTab = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingOverviewTab })),
 );
-const AccountingFinancialAccountsTab = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingFinancialAccountsTab })),
+const AccountingLedgerAccountsTab = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingLedgerAccountsTab })),
 );
-const AccountingExpensesTab = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingExpensesTab })),
+const AccountingTreasuryAccountsTab = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingTreasuryAccountsTab })),
 );
-const AccountingUnitsTab = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingUnitsTab })),
+const AccountingUnitAccountsTab = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingUnitAccountsTab })),
 );
 const AccountingJournalTab = lazy(() =>
   import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingJournalTab })),
 );
-const AccountingLettrageTab = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingLettrageTab })),
+const JournalEntryDetailPage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.JournalEntryDetailPage })),
 );
-const CreateExpensePage = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.CreateExpensePage })),
+const AccountingExpensesTab = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingExpensesTab })),
 );
-const CreateFinancialAccountPage = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.CreateFinancialAccountPage })),
+const CreateSupplierPaymentPage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.CreateSupplierPaymentPage })),
 );
-const RecordDepositPage = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.RecordDepositPage })),
+const CreatePayrollExpensePage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.CreatePayrollExpensePage })),
 );
-const TransferPage = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.TransferPage })),
+const CreateBankChargePage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.CreateBankChargePage })),
 );
-const RecordPaymentPage = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.RecordPaymentPage })),
-);
-const RegularizationPage = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.RegularizationPage })),
+const RecordOwnerPaymentPage = lazy(() =>
+  import('@/features/property-mngt/installments').then((m) => ({ default: m.RecordOwnerPaymentPage })),
 );
 const PropertyConfigurationPage = lazy(() =>
   import('@/features/property-mngt/pricing').then((m) => ({ default: m.PropertyConfigurationPage })),
@@ -112,6 +109,11 @@ const MyInstallmentsPage = lazy(() =>
 const MyMembershipRequestsPage = lazy(() =>
   import('@/features/property-ownership/membership-requests').then((m) => ({ default: m.MyMembershipRequestsPage })),
 );
+const MessagingLayout = lazy(() => import('@/features/messaging').then((m) => ({ default: m.MessagingLayout })));
+const NewConversationPage = lazy(() =>
+  import('@/features/messaging').then((m) => ({ default: m.NewConversationPage })),
+);
+const ConversationPage = lazy(() => import('@/features/messaging').then((m) => ({ default: m.ConversationPage })));
 
 export const privateRoutes: RouteObject[] = [
   {
@@ -138,6 +140,42 @@ export const privateRoutes: RouteObject[] = [
         element: (
           <Suspense fallback={<Loader />}>
             <PartyDetailPage />
+          </Suspense>
+        ),
+      },
+      {
+        // Cross-property inbox: open to every authenticated user, same
+        // rationale as /parties/:propertyId/:partyId above - the API enforces
+        // per-conversation authorization (isPropertyMember /
+        // isConversationParticipant) regardless of route grouping, and
+        // messaging is transverse to both /property-mngt and
+        // /property-ownership so it does not belong under either prefix.
+        // Outlook-style split view: MessagingLayout renders the conversation
+        // list pane and an <Outlet/> reading pane; :conversationId fills that
+        // outlet with the selected thread instead of navigating to a
+        // separate full-screen page.
+        path: '/messages',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <MessagingLayout />
+          </Suspense>
+        ),
+        children: [
+          {
+            path: ':conversationId',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <ConversationPage />
+              </Suspense>
+            ),
+          },
+        ],
+      },
+      {
+        path: '/messages/new',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <NewConversationPage />
           </Suspense>
         ),
       },
@@ -285,31 +323,31 @@ export const privateRoutes: RouteObject[] = [
                     index: true,
                     element: (
                       <Suspense fallback={<Loader />}>
-                        <AccountingTreasuryTab />
+                        <AccountingOverviewTab />
                       </Suspense>
                     ),
                   },
                   {
-                    path: 'financial-accounts',
+                    path: 'ledger-accounts',
                     element: (
                       <Suspense fallback={<Loader />}>
-                        <AccountingFinancialAccountsTab />
+                        <AccountingLedgerAccountsTab />
                       </Suspense>
                     ),
                   },
                   {
-                    path: 'expenses',
+                    path: 'treasury-accounts',
                     element: (
                       <Suspense fallback={<Loader />}>
-                        <AccountingExpensesTab />
+                        <AccountingTreasuryAccountsTab />
                       </Suspense>
                     ),
                   },
                   {
-                    path: 'units',
+                    path: 'unit-accounts',
                     element: (
                       <Suspense fallback={<Loader />}>
-                        <AccountingUnitsTab />
+                        <AccountingUnitAccountsTab />
                       </Suspense>
                     ),
                   },
@@ -322,44 +360,44 @@ export const privateRoutes: RouteObject[] = [
                     ),
                   },
                   {
-                    path: 'lettrage',
+                    path: 'journal/:entryId',
                     element: (
                       <Suspense fallback={<Loader />}>
-                        <AccountingLettrageTab />
+                        <JournalEntryDetailPage />
+                      </Suspense>
+                    ),
+                  },
+                  {
+                    path: 'expenses',
+                    element: (
+                      <Suspense fallback={<Loader />}>
+                        <AccountingExpensesTab />
                       </Suspense>
                     ),
                   },
                 ],
               },
               {
-                path: 'accounting/expenses/new',
+                path: 'accounting/supplier-payments/new',
                 element: (
                   <Suspense fallback={<Loader />}>
-                    <CreateExpensePage />
+                    <CreateSupplierPaymentPage />
                   </Suspense>
                 ),
               },
               {
-                path: 'accounting/financial-accounts/new',
+                path: 'accounting/payroll-expenses/new',
                 element: (
                   <Suspense fallback={<Loader />}>
-                    <CreateFinancialAccountPage />
+                    <CreatePayrollExpensePage />
                   </Suspense>
                 ),
               },
               {
-                path: 'accounting/financial-accounts/deposit',
+                path: 'accounting/bank-charges/new',
                 element: (
                   <Suspense fallback={<Loader />}>
-                    <RecordDepositPage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: 'accounting/financial-accounts/transfer',
-                element: (
-                  <Suspense fallback={<Loader />}>
-                    <TransferPage />
+                    <CreateBankChargePage />
                   </Suspense>
                 ),
               },
@@ -377,15 +415,7 @@ export const privateRoutes: RouteObject[] = [
             path: 'properties/:propertyId/units/:unitId/payment',
             element: (
               <Suspense fallback={<Loader />}>
-                <RecordPaymentPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'properties/:propertyId/units/:unitId/regularization',
-            element: (
-              <Suspense fallback={<Loader />}>
-                <RegularizationPage />
+                <RecordOwnerPaymentPage />
               </Suspense>
             ),
           },

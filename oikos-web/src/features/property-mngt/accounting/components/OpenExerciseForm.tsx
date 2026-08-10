@@ -4,20 +4,19 @@ import { Input } from '@/shared/components/Input/Input';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
-import { useOpenExercise } from '@/features/property-mngt/accounting/hooks/useOpenExercise';
-import { openExerciseSchema, type OpenExerciseFormValues } from '@/features/property-mngt/accounting/schemas/openExerciseSchema';
+import { useOpenAccountingExercise } from '@/features/property-mngt/accounting/hooks/useOpenAccountingExercise';
+import {
+  openExerciseSchema,
+  type OpenExerciseFormValues,
+} from '@/features/property-mngt/accounting/schemas/openExerciseSchema';
 
-interface OpenExerciseFormProps {
-  propertyId: string;
-}
-
-export function OpenExerciseForm({ propertyId }: OpenExerciseFormProps) {
+export function OpenExerciseForm({ propertyId }: { propertyId: string }) {
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<OpenExerciseFormValues>({ resolver: zodResolver(openExerciseSchema) });
-  const { mutate, isPending, error } = useOpenExercise(propertyId);
+  const { mutate, isPending, error } = useOpenAccountingExercise(propertyId);
 
   function onSubmit(values: OpenExerciseFormValues) {
     mutate(values);

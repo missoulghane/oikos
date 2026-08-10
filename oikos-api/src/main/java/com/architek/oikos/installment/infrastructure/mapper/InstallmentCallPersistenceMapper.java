@@ -6,6 +6,7 @@ import org.mapstruct.Mapper;
 
 import com.architek.oikos.installment.domain.model.InstallmentCall;
 import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
+import com.architek.oikos.installment.domain.valueobject.InstallmentCallStatus;
 import com.architek.oikos.installment.infrastructure.persistence.InstallmentCallEntity;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -21,11 +22,15 @@ public interface InstallmentCallPersistenceMapper {
         entity.setPropertyId(installmentCall.getPropertyId().value());
         entity.setPeriod(installmentCall.getPeriod().atDay(1));
         entity.setDueDate(installmentCall.getDueDate());
+        entity.setStatus(installmentCall.getStatus().name());
+        entity.setJournalEntryId(installmentCall.getJournalEntryId().map(EntityId::value).orElse(null));
         return entity;
     }
 
     default InstallmentCall toDomain(InstallmentCallEntity entity) {
         return InstallmentCall.reconstruct(InstallmentCallId.of(entity.getId()), EntityId.of(entity.getPropertyId()),
-                YearMonth.from(entity.getPeriod()), entity.getDueDate());
+                YearMonth.from(entity.getPeriod()), entity.getDueDate(),
+                InstallmentCallStatus.valueOf(entity.getStatus()),
+                entity.getJournalEntryId() == null ? null : EntityId.of(entity.getJournalEntryId()));
     }
 }

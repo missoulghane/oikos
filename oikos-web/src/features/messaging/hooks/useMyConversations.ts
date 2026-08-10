@@ -1,0 +1,17 @@
+import { useQuery } from '@tanstack/react-query';
+import { listMyConversations } from '@/features/messaging/api/listMyConversations';
+import { queryKeys } from '@/shared/constants/queryKeys';
+
+const DEFAULT_PAGE_SIZE = 20;
+// The inbox is the closest thing this app has to a notification stream while
+// mounted - short polling, no WebSocket/SSE in this repo (see plan §Contexte).
+const POLL_INTERVAL_MS = 25_000;
+
+export function useMyConversations(page: number, search?: string, size: number = DEFAULT_PAGE_SIZE) {
+  return useQuery({
+    queryKey: queryKeys.messaging.conversations(page, size, search),
+    queryFn: () => listMyConversations({ page, size, search }),
+    placeholderData: (previousData) => previousData,
+    refetchInterval: POLL_INTERVAL_MS,
+  });
+}

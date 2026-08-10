@@ -67,6 +67,12 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     @Override
+    public List<User> findByLinkedPartyIds(Collection<EntityId> partyIds) {
+        List<UUID> ids = partyIds.stream().map(EntityId::value).toList();
+        return jpaRepository.findByLinkedPartyIds(ids).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
     public Page<User> findAll(com.architek.oikos.shared.domain.pagination.PageRequest pageRequest, UserSearchCriteria criteria) {
         Pageable pageable = Pageable.ofSize(pageRequest.pageSize()).withPage(pageRequest.pageNumber());
         Specification<UserEntity> specification = UserSpecifications.matching(criteria);

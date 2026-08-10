@@ -20,7 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.architek.oikos.property.application.command.BuildingConfiguration;
 import com.architek.oikos.property.application.command.ConfigurePropertyCommand;
 import com.architek.oikos.property.application.command.UnitTypeConfiguration;
-import com.architek.oikos.property.application.port.out.UnitAccountProvisioningPort;
+import com.architek.oikos.property.application.port.out.LedgerAccountProvisioningPort;
 import com.architek.oikos.property.domain.exception.PropertyConfigurationLimitExceededException;
 import com.architek.oikos.property.domain.model.Building;
 import com.architek.oikos.property.domain.model.Property;
@@ -46,11 +46,11 @@ class ConfigurePropertyServiceTest {
     private UnitTypeDefinitionRepository unitTypeDefinitionRepository;
 
     @Mock
-    private UnitAccountProvisioningPort unitAccountProvisioningPort;
+    private LedgerAccountProvisioningPort ledgerAccountProvisioningPort;
 
     private ConfigurePropertyService newService(int maxUnitsPerRequest) {
         return new ConfigurePropertyService(propertyRepository, buildingRepository, unitRepository,
-                unitTypeDefinitionRepository, unitAccountProvisioningPort, maxUnitsPerRequest);
+                unitTypeDefinitionRepository, ledgerAccountProvisioningPort, maxUnitsPerRequest);
     }
 
     @Test
@@ -84,7 +84,8 @@ class ConfigurePropertyServiceTest {
         assertThat(units).allMatch(unit -> unit.getBuildingId().equals(buildingCaptor.getValue().getId()));
         assertThat(units).allMatch(unit -> unit.getShares().value().compareTo(BigDecimal.ZERO) == 0);
 
-        verify(unitAccountProvisioningPort, org.mockito.Mockito.times(5)).provisionAccount(any(), any());
+        verify(ledgerAccountProvisioningPort).provisionPropertyCashAccount(any());
+        verify(ledgerAccountProvisioningPort, org.mockito.Mockito.times(5)).provisionUnitReceivableAccount(any(), any());
     }
 
     @Test

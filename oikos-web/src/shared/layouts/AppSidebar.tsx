@@ -8,6 +8,7 @@ import {
   isManagerTier,
   isManagerTierOnProperty,
 } from '@/features/identity/me';
+import { useUnreadSummary } from '@/features/messaging';
 import {
   GridIcon,
   PieChartIcon,
@@ -25,22 +26,26 @@ import {
   FolderIcon,
   ArrowDownIcon,
   ListIcon,
-  CheckLineIcon,
+  TableIcon,
   MailIcon,
   UserCircleIcon,
+  ChatIcon,
 } from '@/shared/icons';
+import { Badge } from '@/shared/components/Badge/Badge';
 import { SidebarWidget } from './SidebarWidget';
 
 interface NavItem {
   name: string;
   path: string;
   icon: React.ReactNode;
+  badge?: number;
 }
 
 interface NavGroup {
   name: string;
   icon: React.ReactNode;
   children: { name: string; path: string; icon: React.ReactNode }[];
+  badge?: number;
 }
 
 const PROPERTY_INFO_TABS = [
@@ -58,16 +63,22 @@ const INSTALLMENT_TABS = [
   { name: 'Autres', path: '/other', icon: <MoreDotIcon /> },
 ];
 
+// Matches the routes actually registered under accounting/ in
+// privateRoutes.tsx (index, ledger-accounts, treasury-accounts,
+// unit-accounts, journal, expenses) - the PCM accounting rewrite (ADR 0001)
+// replaced the old FinancialAccount/UnitAccount model and its routes
+// (financial-accounts, units, lettrage no longer exist), but this sidebar
+// still pointed at the old paths, causing 404s.
 const ACCOUNTING_TABS = [
-  { name: 'Trésorerie', path: '', icon: <DollarLineIcon /> },
-  { name: 'Comptes financiers', path: '/financial-accounts', icon: <FolderIcon /> },
-  { name: 'Dépenses', path: '/expenses', icon: <ArrowDownIcon /> },
-  { name: 'Comptes des lots', path: '/units', icon: <BoxIconLine /> },
+  { name: 'Vue d’ensemble', path: '', icon: <DollarLineIcon /> },
+  { name: 'Plan comptable', path: '/ledger-accounts', icon: <FolderIcon /> },
+  { name: 'Mes comptes', path: '/treasury-accounts', icon: <TableIcon /> },
+  { name: 'Comptes des lots', path: '/unit-accounts', icon: <BoxIconLine /> },
   { name: 'Journal', path: '/journal', icon: <ListIcon /> },
-  { name: 'Lettrage', path: '/lettrage', icon: <CheckLineIcon /> },
+  { name: 'Dépenses', path: '/expenses', icon: <ArrowDownIcon /> },
 ];
 
-function propertyContextGroups(propertyId: string): NavGroup[] {
+function propertyContextGroups(propertyId: string, messagingUnreadCount: number): NavGroup[] {
   return [
     {
       name: 'Ma copropriété',
@@ -96,6 +107,17 @@ function propertyContextGroups(propertyId: string): NavGroup[] {
         icon: tab.icon,
       })),
     },
+    {
+      name: 'Messagerie',
+      icon: <ChatIcon />,
+      badge: messagingUnreadCount,
+      // Unlike the 3 groups above, this one is not prefixed by propertyId:
+      // messaging is transverse to properties (a single inbox aggregates
+      // every property the account belongs to), so it always points at the
+      // same top-level /messages route regardless of which property context
+      // this sidebar happens to be showing.
+      children: [{ name: 'Boîte de réception', path: '/messages', icon: <ChatIcon /> }],
+    },
   ];
 }
 
@@ -103,10 +125,14 @@ export function AppSidebar() {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
   const currentUser = useCurrentUser();
+  // Always mounted regardless of role - drives the unread badge shown next to
+  // "Messagerie" below, kept in sync with the header bell (same query/cache).
+  const unreadSummary = useUnreadSummary();
+  const messagingUnreadCount = unreadSummary.data?.totalUnreadMessageCount ?? 0;
   // Both groups start expanded (matching the previous always-open behaviour);
   // the user can collapse either one independently from there.
   const [openGroups, setOpenGroups] = useState<Set<string>>(
-    () => new Set(['Ma copropriété', 'Gestion des échéances', 'Comptabilité']),
+    () => new Set(['Ma copropriété', 'Gestion des échéances', 'Comptabilité', 'Messagerie']),
   );
 
   const showExpanded = isExpanded || isHovered || isMobileOpen;
@@ -119,9 +145,9 @@ export function AppSidebar() {
     managerTier && currentPropertyId !== null && user !== undefined && isManagerTierOnProperty(user, currentPropertyId);
 
   const groups: NavGroup[] = boardId
-    ? propertyContextGroups(boardId)
+    ? propertyContextGroups(boardId, messagingUnreadCount)
     : isInOwnManagedProperty && currentPropertyId
-      ? propertyContextGroups(currentPropertyId)
+      ? propertyContextGroups(currentPropertyId, messagingUnreadCount)
       : [];
 
   const canManage = user ? canManageProperties(user) : false;
@@ -140,6 +166,9 @@ export function AppSidebar() {
       : []),
     ...(!canManage
       ? [{ name: 'Mes invitations', path: '/property-ownership/membership-requests', icon: <MailIcon /> }]
+      : []),
+    ...(!canManage
+      ? [{ name: 'Messagerie', path: '/messages', icon: <ChatIcon />, badge: messagingUnreadCount }]
       : []),
   ];
 
@@ -200,6 +229,11 @@ export function AppSidebar() {
                   {item.icon}
                 </span>
                 {showExpanded && <span className="menu-item-text">{item.name}</span>}
+                {showExpanded && Boolean(item.badge) && (
+                  <Badge color="error" variant="solid" className="ml-auto">
+                    {item.badge}
+                  </Badge>
+                )}
               </Link>
             </li>
           ))}
@@ -223,9 +257,16 @@ export function AppSidebar() {
                     {group.icon}
                   </span>
                   {showExpanded && <span className="menu-item-text">{group.name}</span>}
+                  {showExpanded && Boolean(group.badge) && (
+                    <Badge color="error" variant="solid" className="ml-auto">
+                      {group.badge}
+                    </Badge>
+                  )}
                   {showExpanded && (
                     <ChevronDownIcon
-                      className={`ml-auto h-5 w-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                      className={`h-5 w-5 shrink-0 transition-transform duration-200 ${
+                        group.badge ? 'ml-2' : 'ml-auto'
+                      } ${isOpen ? 'rotate-180' : ''}`}
                     />
                   )}
                 </button>

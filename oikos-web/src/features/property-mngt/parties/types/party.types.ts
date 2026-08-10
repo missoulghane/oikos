@@ -25,3 +25,15 @@ export interface PartyLot {
 export interface InvitePartyResult {
   invited: boolean;
 }
+
+export interface CreatePartyPayload {
+  propertyId: string;
+  fullName: string;
+  partyType: PartyType;
+  email: string;
+  phone?: string;
+}
+
+export interface CreatePartyResult {
+  id: string;
+}

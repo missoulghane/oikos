@@ -5,7 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.property.application.command.AddUnitCommand;
 import com.architek.oikos.property.application.port.in.AddUnitUseCase;
-import com.architek.oikos.property.application.port.out.UnitAccountProvisioningPort;
+import com.architek.oikos.property.application.port.out.LedgerAccountProvisioningPort;
 import com.architek.oikos.property.domain.exception.BuildingNotFoundException;
 import com.architek.oikos.property.domain.exception.UnitTypeDefinitionNotFoundException;
 import com.architek.oikos.property.domain.model.Building;
@@ -16,21 +16,22 @@ import com.architek.oikos.property.domain.repository.UnitTypeDefinitionRepositor
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.Shares;
 
+/** Provisions the new unit's dedicated PCM receivable account (ADR 0001 decision 5, "exigence supplementaire"). */
 @Component
 public class AddUnitService implements AddUnitUseCase {
 
     private final UnitRepository unitRepository;
     private final BuildingRepository buildingRepository;
     private final UnitTypeDefinitionRepository unitTypeDefinitionRepository;
-    private final UnitAccountProvisioningPort unitAccountProvisioningPort;
+    private final LedgerAccountProvisioningPort ledgerAccountProvisioningPort;
 
     public AddUnitService(UnitRepository unitRepository, BuildingRepository buildingRepository,
                            UnitTypeDefinitionRepository unitTypeDefinitionRepository,
-                           UnitAccountProvisioningPort unitAccountProvisioningPort) {
+                           LedgerAccountProvisioningPort ledgerAccountProvisioningPort) {
         this.unitRepository = unitRepository;
         this.buildingRepository = buildingRepository;
         this.unitTypeDefinitionRepository = unitTypeDefinitionRepository;
-        this.unitAccountProvisioningPort = unitAccountProvisioningPort;
+        this.ledgerAccountProvisioningPort = ledgerAccountProvisioningPort;
     }
 
     @Override
@@ -47,7 +48,8 @@ public class AddUnitService implements AddUnitUseCase {
                 command.unitTypeId(), Shares.of(command.shares()));
         Unit savedUnit = unitRepository.save(unit);
 
-        unitAccountProvisioningPort.provisionAccount(savedUnit.getId().value(), savedUnit.getPropertyId().value());
+        ledgerAccountProvisioningPort.provisionUnitReceivableAccount(savedUnit.getPropertyId().value(),
+                savedUnit.getId().value());
 
         return savedUnit.getId();
     }

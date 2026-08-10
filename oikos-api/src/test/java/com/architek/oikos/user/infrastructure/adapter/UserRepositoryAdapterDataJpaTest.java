@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Import;
 
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.shared.infrastructure.configuration.JpaAuditingConfiguration;
 import com.architek.oikos.user.domain.model.Role;
@@ -115,6 +116,20 @@ class UserRepositoryAdapterDataJpaTest {
         var page = adapter.findAll(PageRequest.of(0, 20), new UserSearchCriteria("jpa-test", Role.ROLE_USER, true));
 
         assertThat(page.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void findByLinkedPartyIds_returns_only_users_linked_to_one_of_the_requested_parties() {
+        EntityId requestedParty = EntityId.newId();
+        User linked = User.register(UserId.newId(), EmailVO.of("linked@oikos.com"), "Linked User", HashedPassword.of("hashed"))
+                .withLinkedParty(requestedParty);
+        adapter.save(linked);
+        adapter.save(User.register(UserId.newId(), EmailVO.of("other@oikos.com"), "Other User", HashedPassword.of("hashed"))
+                .withLinkedParty(EntityId.newId()));
+
+        var found = adapter.findByLinkedPartyIds(java.util.List.of(requestedParty));
+
+        assertThat(found).extracting(User::getId).containsExactly(linked.getId());
     }
 
     @Test

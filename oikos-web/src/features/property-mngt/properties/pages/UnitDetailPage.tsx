@@ -5,7 +5,7 @@ import { useProperty } from '@/features/property-mngt/properties/hooks/useProper
 import { UnitOwnersSection } from '@/features/property-mngt/properties/components/UnitOwnersSection';
 import { EditUnitSharesForm } from '@/features/property-mngt/properties/components/EditUnitSharesForm';
 import { UnitInstallmentsSection } from '@/features/property-mngt/installments/components/UnitInstallmentsSection';
-import { UnitAccountSection } from '@/features/property-mngt/accounting/components/UnitAccountSection';
+import { UnitPaymentsSection } from '@/features/property-mngt/installments/components/UnitPaymentsSection';
 import { Button } from '@/shared/components/Button/Button';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
@@ -81,8 +81,8 @@ export function UnitDetailPage() {
       </Card>
 
       <Card className="flex flex-col gap-2">
-        <h2 className="text-base font-semibold text-gray-900">Compte du lot</h2>
-        <UnitAccountSection propertyId={propertyId ?? ''} unitId={id} />
+        <h2 className="text-base font-semibold text-gray-900">Paiements</h2>
+        <UnitPaymentsSection propertyId={propertyId ?? ''} unitId={id} />
       </Card>
     </div>
   );

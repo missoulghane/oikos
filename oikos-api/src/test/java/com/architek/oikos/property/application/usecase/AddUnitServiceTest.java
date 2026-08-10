@@ -14,7 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.property.application.command.AddUnitCommand;
-import com.architek.oikos.property.application.port.out.UnitAccountProvisioningPort;
+import com.architek.oikos.property.application.port.out.LedgerAccountProvisioningPort;
 import com.architek.oikos.property.domain.exception.BuildingNotFoundException;
 import com.architek.oikos.property.domain.exception.UnitTypeDefinitionNotFoundException;
 import com.architek.oikos.property.domain.model.Building;
@@ -39,11 +39,11 @@ class AddUnitServiceTest {
     private UnitTypeDefinitionRepository unitTypeDefinitionRepository;
 
     @Mock
-    private UnitAccountProvisioningPort unitAccountProvisioningPort;
+    private LedgerAccountProvisioningPort ledgerAccountProvisioningPort;
 
     private AddUnitService newService() {
         return new AddUnitService(unitRepository, buildingRepository, unitTypeDefinitionRepository,
-                unitAccountProvisioningPort);
+                ledgerAccountProvisioningPort);
     }
 
     @Test
@@ -59,7 +59,8 @@ class AddUnitServiceTest {
 
         newService().add(new AddUnitCommand(buildingId, "A12", unitTypeId, new BigDecimal("150")));
 
-        verify(unitAccountProvisioningPort).provisionAccount(any(), any());
+        verify(unitRepository).save(any());
+        verify(ledgerAccountProvisioningPort).provisionUnitReceivableAccount(any(), any());
     }
 
     @Test

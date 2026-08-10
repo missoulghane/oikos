@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useParties } from '@/features/property-mngt/parties/hooks/useParties';
 import { useProperties } from '@/features/property-mngt/properties/hooks/useProperties';
+import { CreatePartyForm } from '@/features/property-mngt/parties/components/CreatePartyForm';
 import { PARTY_TYPE_LABELS } from '@/features/property-mngt/properties/constants/partyTypeLabels';
 import { Input } from '@/shared/components/Input/Input';
 import { Select } from '@/shared/components/Select/Select';
+import { Button } from '@/shared/components/Button/Button';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
@@ -17,18 +19,27 @@ export function PartiesPage() {
   const [propertyId, setPropertyId] = useState('');
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
   const properties = useProperties(0, PROPERTY_PICKER_SIZE);
   const parties = useParties(propertyId || undefined, page, search || undefined);
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-gray-900">Contacts</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold text-gray-900">Contacts</h1>
+        {propertyId && !isCreating && (
+          <Button type="button" onClick={() => setIsCreating(true)}>
+            Nouveau contact
+          </Button>
+        )}
+      </div>
       <Select
         label="Copropriété"
         value={propertyId}
         onChange={(e) => {
           setPropertyId(e.target.value);
           setPage(0);
+          setIsCreating(false);
         }}
       >
         <option value="">Sélectionnez une copropriété</option>
@@ -38,6 +49,14 @@ export function PartiesPage() {
           </option>
         ))}
       </Select>
+
+      {propertyId && isCreating && (
+        <CreatePartyForm
+          propertyId={propertyId}
+          onSuccess={() => setIsCreating(false)}
+          onCancel={() => setIsCreating(false)}
+        />
+      )}
 
       {propertyId && (
         <Input
@@ -58,7 +77,9 @@ export function PartiesPage() {
       {propertyId && parties.isLoading && <Loader label="Chargement des contacts…" />}
       {propertyId && parties.isError && <Alert message={getErrorMessage(parties.error)} />}
       {propertyId && parties.data && parties.data.content.length === 0 && (
-        <EmptyState title="Aucun contact trouvé">Ajustez votre recherche ou créez un propriétaire depuis un lot.</EmptyState>
+        <EmptyState title="Aucun contact trouvé">
+          Ajustez votre recherche, créez un nouveau contact ci-dessus, ou un propriétaire depuis un lot.
+        </EmptyState>
       )}
       {propertyId && parties.data && parties.data.content.length > 0 && (
         <div className="flex flex-col gap-3">

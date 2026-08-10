@@ -1,31 +1,40 @@
+import { Link } from 'react-router-dom';
 import { Badge } from '@/shared/components/Badge/Badge';
 import {
-  FINANCIAL_ENTRY_DIRECTION_BADGE_COLORS,
-  FINANCIAL_ENTRY_DIRECTION_LABELS,
-  FINANCIAL_ENTRY_TYPE_LABELS,
-} from '@/features/property-mngt/accounting/constants/financialEntryLabels';
-import type { FinancialJournalEntry } from '@/features/property-mngt/accounting/types/accounting.types';
+  JOURNAL_CODE_LABELS,
+  JOURNAL_ENTRY_STATUS_BADGE_COLORS,
+  JOURNAL_ENTRY_STATUS_LABELS,
+} from '@/features/property-mngt/accounting/constants/accountingLabels';
+import type { JournalEntry } from '@/features/property-mngt/accounting/types/accounting.types';
 
-interface JournalEntryRowProps {
-  entry: FinancialJournalEntry;
-  accountName: string;
-}
+export function JournalEntryRow({ entry, propertyId }: { entry: JournalEntry; propertyId: string }) {
+  const total = entry.lines
+    .filter((line) => line.direction === 'DEBIT')
+    .reduce((sum, line) => sum + line.amount, 0);
 
-export function JournalEntryRow({ entry, accountName }: JournalEntryRowProps) {
   return (
     <li className="flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-gray-900">{FINANCIAL_ENTRY_TYPE_LABELS[entry.type]}</p>
-          <Badge color={FINANCIAL_ENTRY_DIRECTION_BADGE_COLORS[entry.direction]}>
-            {FINANCIAL_ENTRY_DIRECTION_LABELS[entry.direction]}
-          </Badge>
-        </div>
+        <p className="text-sm font-medium text-gray-900">
+          {JOURNAL_CODE_LABELS[entry.journalCode]}
+          {entry.pieceNumber !== null && ` — pièce n°${entry.pieceNumber}`}
+        </p>
         <p className="text-sm text-gray-500">
-          {new Date(entry.date).toLocaleDateString('fr-FR')} · {accountName} · {entry.label}
+          {new Date(entry.pieceDate).toLocaleDateString('fr-FR')} · {total.toLocaleString('fr-FR')} MAD
+          {entry.externalReference && ` · ${entry.externalReference}`}
         </p>
       </div>
-      <p className="text-sm font-medium text-gray-900">{entry.amount.toLocaleString('fr-FR')} MAD</p>
+      <div className="flex shrink-0 items-center gap-3">
+        <Badge color={JOURNAL_ENTRY_STATUS_BADGE_COLORS[entry.status]}>
+          {JOURNAL_ENTRY_STATUS_LABELS[entry.status]}
+        </Badge>
+        <Link
+          to={`/property-mngt/properties/${propertyId}/accounting/journal/${entry.id}`}
+          className="text-sm font-medium text-brand-500 hover:underline"
+        >
+          Voir
+        </Link>
+      </div>
     </li>
   );
 }

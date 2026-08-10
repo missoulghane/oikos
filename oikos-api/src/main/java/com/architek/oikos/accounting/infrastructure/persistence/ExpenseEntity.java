@@ -23,28 +23,22 @@ public class ExpenseEntity extends AuditableEntity {
     @Id
     private UUID id;
 
-    @Column(name = "exercise_id", nullable = false)
-    private UUID exerciseId;
-
-    @Column(name = "financial_account_id", nullable = false)
-    private UUID financialAccountId;
+    @Column(name = "property_id", nullable = false)
+    private UUID propertyId;
 
     @Column(nullable = false)
     private LocalDate date;
 
-    @Column(nullable = false)
-    private String category;
+    @Column(name = "ledger_account_id", nullable = false)
+    private UUID ledgerAccountId;
 
-    @Column(nullable = false)
-    private String provider;
-
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amount;
 
-    @Column
+    @Column(length = 1000)
     private String description;
 
-    @Column(name = "receipt_reference")
+    @Column(name = "receipt_reference", length = 200)
     private String receiptReference;
 
     @Column(name = "journal_entry_id", nullable = false)

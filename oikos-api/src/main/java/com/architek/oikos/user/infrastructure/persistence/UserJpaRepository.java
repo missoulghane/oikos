@@ -1,6 +1,7 @@
 package com.architek.oikos.user.infrastructure.persistence;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -21,4 +22,7 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, UUID>, JpaS
 
     @Query("select distinct p from UserEntity u join u.linkedPartyIds p where p in :partyIds")
     Set<UUID> findLinkedPartyIds(@Param("partyIds") Collection<UUID> partyIds);
+
+    @Query("select distinct u from UserEntity u join u.linkedPartyIds p where p in :partyIds")
+    List<UserEntity> findByLinkedPartyIds(@Param("partyIds") Collection<UUID> partyIds);
 }

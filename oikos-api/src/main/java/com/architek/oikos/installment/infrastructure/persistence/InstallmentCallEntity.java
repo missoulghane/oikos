@@ -30,4 +30,10 @@ public class InstallmentCallEntity extends AuditableEntity {
 
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
+
+    @Column(nullable = false)
+    private String status;
+
+    @Column(name = "journal_entry_id")
+    private UUID journalEntryId;
 }

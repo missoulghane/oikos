@@ -31,6 +31,13 @@ erDiagram
     UNIT ||--o{ INSTALLMENT : "échéances"
 
     INSTALLMENT_CALL ||--o{ INSTALLMENT : "génère"
+
+    PROPERTY ||--o{ CONVERSATION : "messagerie"
+    APP_USER ||--o{ CONVERSATION : "démarre"
+    CONVERSATION ||--o{ MESSAGE : "contient"
+    APP_USER ||--o{ MESSAGE : "envoie"
+    CONVERSATION ||--o{ CONVERSATION_READ_MARKER : "suivi de lecture"
+    APP_USER ||--o{ CONVERSATION_READ_MARKER : "marque lu"
 ```
 
 ## Entités
@@ -147,6 +154,48 @@ Contrainte unique `(property_id, period)` — empêche un double appel pour le m
 | due_date | DATE | Date d'échéance |
 | amount | NUMERIC(12,2) | Montant |
 | installment_call_id | UUID (FK, nullable) | → `installment_call.id` |
+
+### Conversation — `conversation`
+Fil de discussion rattaché à une `Property` : `GROUP` (2..N participants choisis applicativement par l'émetteur, façon Outlook "Nouveau message" — jamais réutilisée : composer vers le même ensemble de destinataires crée toujours une nouvelle conversation) ou `BROADCAST` (canal d'annonces persistant, unique par propriété, membres résolus dynamiquement à la lecture — jamais stockés).
+
+| Colonne | Type | Description |
+|---|---|---|
+| property_id | UUID (FK) | → `property.id` |
+| type | ENUM | `GROUP`, `BROADCAST` |
+| created_by | UUID (FK) | → `app_user.id` |
+
+Contrainte unique `(property_id)` pour `BROADCAST` (au plus un canal de diffusion par propriété) ; `GROUP` n'a aucune contrainte d'unicité sur ses participants.
+
+### ConversationParticipant — `conversation_participant`
+Table de jointure listant les participants d'une conversation `GROUP` (une ligne par couple conversation/utilisateur) ; toujours vide pour `BROADCAST`, dont l'appartenance est résolue dynamiquement plutôt que stockée.
+
+| Colonne | Type | Description |
+|---|---|---|
+| conversation_id | UUID (FK) | → `conversation.id` |
+| user_id | UUID (FK) | → `app_user.id` |
+
+Clé primaire composite `(conversation_id, user_id)`.
+
+### Message — `message`
+Message immuable posté dans une `Conversation` (jamais modifié ni supprimé, pas de `last_modified_date`/`version`).
+
+| Colonne | Type | Description |
+|---|---|---|
+| conversation_id | UUID (FK) | → `conversation.id` |
+| sender_id | UUID (FK) | → `app_user.id` |
+| body | TEXT | Contenu (max 4000 caractères, validé applicativement) |
+
+### ConversationReadMarker — `conversation_read_marker`
+Curseur de lecture par utilisateur et par conversation, créé paresseusement (upsert) au premier accès.
+
+| Colonne | Type | Description |
+|---|---|---|
+| conversation_id | UUID (FK) | → `conversation.id` |
+| user_id | UUID (FK) | → `app_user.id` |
+| last_read_message_id | UUID (FK, nullable) | → `message.id` |
+| last_read_at | TIMESTAMPTZ (nullable) | |
+
+Clé primaire composite `(conversation_id, user_id)`.
 
 ## Relations clés à retenir
 

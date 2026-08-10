@@ -42,26 +42,13 @@ export const queryKeys = {
       ['properties', propertyId, 'contacts', page, size, search] as const,
     accountingOpenExercise: (propertyId: string) =>
       ['properties', propertyId, 'accounting', 'open-exercise'] as const,
-    accountingTreasurySummary: (propertyId: string) =>
-      ['properties', propertyId, 'accounting', 'treasury-summary'] as const,
-    accountingFinancialAccounts: (propertyId: string) =>
-      ['properties', propertyId, 'accounting', 'financial-accounts'] as const,
-    accountingExpenses: (propertyId: string, page: number, size: number) =>
-      ['properties', propertyId, 'accounting', 'expenses', page, size] as const,
-    accountingUnitsSummary: (propertyId: string) =>
-      ['properties', propertyId, 'accounting', 'units-summary'] as const,
-    accountingJournal: (
-      propertyId: string,
-      page: number,
-      size: number,
-      financialAccountId: string | undefined,
-      type: string | undefined,
-      dateFrom: string | undefined,
-      dateTo: string | undefined,
-    ) =>
-      ['properties', propertyId, 'accounting', 'journal', page, size, financialAccountId, type, dateFrom, dateTo] as const,
-    accountingPendingLettrages: (propertyId: string) =>
-      ['properties', propertyId, 'accounting', 'lettrage', 'pending'] as const,
+    accountingLedgerAccounts: (propertyId: string) =>
+      ['properties', propertyId, 'accounting', 'ledger-accounts'] as const,
+    accountingJournalEntries: (propertyId: string, page: number, size: number) =>
+      ['properties', propertyId, 'accounting', 'entries', page, size] as const,
+    accountingJournalEntry: (propertyId: string, entryId: string) =>
+      ['properties', propertyId, 'accounting', 'entries', entryId] as const,
+    accountingExpenses: (propertyId: string) => ['properties', propertyId, 'accounting', 'expenses'] as const,
   },
   installmentCalls: {
     detail: (id: string) => ['installment-calls', id, 'detail'] as const,
@@ -74,10 +61,7 @@ export const queryKeys = {
     detail: (unitId: string) => ['units', unitId, 'detail'] as const,
     owners: (unitId: string) => ['units', unitId, 'owners'] as const,
     installments: (unitId: string) => ['units', unitId, 'installments'] as const,
-    account: (unitId: string) => ['units', unitId, 'account'] as const,
-    accountMovements: (unitId: string, page: number, size: number) =>
-      ['units', unitId, 'account', 'movements', page, size] as const,
-    lettrageProposal: (unitId: string) => ['units', unitId, 'account', 'lettrage-proposal'] as const,
+    payments: (unitId: string) => ['units', unitId, 'payments'] as const,
   },
   parties: {
     list: (propertyId: string | undefined, page: number, size: number, search: string | undefined) =>
@@ -94,5 +78,13 @@ export const queryKeys = {
   },
   boardMembers: {
     list: (propertyId: string) => ['board-members', propertyId, 'list'] as const,
+  },
+  messaging: {
+    conversations: (page: number, size: number, search: string | undefined) =>
+      ['messaging', 'conversations', page, size, search] as const,
+    unreadSummary: () => ['messaging', 'unread-summary'] as const,
+    messages: (conversationId: string) => ['messaging', 'conversations', conversationId, 'messages'] as const,
+    recipients: (propertyId: string, search: string | undefined) =>
+      ['messaging', 'recipients', propertyId, search] as const,
   },
 };

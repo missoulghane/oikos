@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useSidebar } from '@/shared/context/SidebarContext';
 import { UserDropdown } from '@/shared/layouts/UserDropdown';
+import { NotificationBell } from '@/features/messaging';
 
 export function AppHeader() {
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
@@ -49,6 +50,7 @@ export function AppHeader() {
         </div>
 
         <div className="flex w-full items-center justify-end gap-4 px-5 py-4 lg:w-auto lg:px-0">
+          <NotificationBell />
           <UserDropdown />
         </div>
       </div>

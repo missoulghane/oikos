@@ -1,0 +1,83 @@
+import { Link } from 'react-router-dom';
+import { Badge } from '@/shared/components/Badge/Badge';
+import type { ConversationSummary } from '@/features/messaging/types/messaging.types';
+import { formatRelativeTime } from '@/features/messaging/utils/formatRelativeTime';
+
+export const BROADCAST_CONVERSATION_LABEL = 'Annonces de la copropriété';
+
+// Outlook-style title: the message's subject (see ConversationSubject on
+// the backend), not the participant list - "who it's with" is secondary
+// info, shown separately (see participantsLine below).
+export function conversationTitle(conversation: ConversationSummary): string {
+  if (conversation.type === 'BROADCAST') {
+    return BROADCAST_CONVERSATION_LABEL;
+  }
+  return conversation.subject ?? 'Conversation';
+}
+
+function participantsLine(conversation: ConversationSummary): string | null {
+  if (conversation.type === 'BROADCAST' || conversation.participants.length === 0) {
+    return null;
+  }
+  return conversation.participants.map((participant) => participant.fullName).join(', ');
+}
+
+interface ConversationListItemProps {
+  conversation: ConversationSummary;
+  isActive?: boolean;
+}
+
+// Dense, avatar-less table row (Outlook inbox style) rather than a
+// rounded-card + circular-avatar chat entry: title/timestamp on one line,
+// a single-line muted preview below, thin border-b divider between rows.
+export function ConversationListItem({ conversation, isActive = false }: ConversationListItemProps) {
+  const title = conversationTitle(conversation);
+  const participants = participantsLine(conversation);
+  const hasUnread = conversation.unreadCount > 0;
+
+  return (
+    <li>
+      <Link
+        to={`/messages/${conversation.id}`}
+        className={`flex flex-col gap-0.5 border-b border-l-2 border-gray-100 px-3 py-2.5 ${
+          isActive ? 'border-l-brand-500 bg-brand-50' : 'border-l-transparent hover:bg-gray-50'
+        }`}
+      >
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="flex min-w-0 items-baseline gap-1.5">
+            <span
+              className={`truncate text-theme-sm ${hasUnread ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}
+            >
+              {title}
+            </span>
+            {/* A conversation is a message with replies - only shown once
+                that's actually true, never for a plain single message. */}
+            {conversation.messageCount > 1 && (
+              <span className="shrink-0 text-theme-xs font-normal text-gray-400">
+                ({conversation.messageCount} messages)
+              </span>
+            )}
+          </p>
+          {conversation.lastMessageAt && (
+            <span className="shrink-0 text-theme-xs text-gray-400">
+              {formatRelativeTime(conversation.lastMessageAt)}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <p className={`truncate text-theme-xs ${hasUnread ? 'font-medium text-gray-600' : 'text-gray-400'}`}>
+            {conversation.lastMessagePreview ?? 'Aucun message pour le moment'}
+          </p>
+          {hasUnread && (
+            <Badge color="primary" variant="solid">
+              {conversation.unreadCount}
+            </Badge>
+          )}
+        </div>
+        <p className="truncate text-theme-xs text-gray-400">
+          {participants ? `${participants} · ${conversation.propertyName}` : conversation.propertyName}
+        </p>
+      </Link>
+    </li>
+  );
+}
