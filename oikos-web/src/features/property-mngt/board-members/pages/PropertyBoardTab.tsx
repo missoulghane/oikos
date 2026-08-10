@@ -36,7 +36,7 @@ export function PropertyBoardTab() {
     <div className="flex flex-col gap-4">
       <Card className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-semibold text-gray-900">Bureau de syndic</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Bureau de syndic</h2>
           {!isAdding && !inviteFormState && (
             <div className="flex gap-2">
               <Button type="button" variant="secondary" onClick={() => setInviteFormState({})}>
@@ -74,7 +74,7 @@ export function PropertyBoardTab() {
       </Card>
 
       <Card className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-gray-900">Invitations en cours</h2>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Invitations en cours</h2>
         {boardInvitations.isLoading && <Loader label="Chargement des invitations…" />}
         {boardInvitations.isError && <Alert message={getErrorMessage(boardInvitations.error)} />}
         {boardInvitations.data && <BoardInvitationList propertyId={property.id} invitations={boardInvitations.data} />}

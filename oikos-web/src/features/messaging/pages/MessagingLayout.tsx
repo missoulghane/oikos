@@ -72,17 +72,17 @@ export function MessagingLayout({ box }: MessagingLayoutProps) {
   const to = data ? data.pageNumber * data.pageSize + data.content.length : 0;
 
   return (
-    <div className="flex h-[calc(100vh-160px)] overflow-hidden rounded-lg border border-gray-200 bg-white">
-      <aside className={`w-full flex-col border-gray-200 ${hasConversationOpen ? 'hidden' : 'flex'}`}>
-        <div className="flex items-center justify-between gap-2 border-b border-gray-200 p-4">
-          <h1 className="text-base font-semibold text-gray-900">{BOX_LABEL[box]}</h1>
+    <div className="flex h-[calc(100vh-160px)] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03]">
+      <aside className={`w-full flex-col border-gray-200 dark:border-gray-800 ${hasConversationOpen ? 'hidden' : 'flex'}`}>
+        <div className="flex items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-800 p-4">
+          <h1 className="text-base font-semibold text-gray-900 dark:text-white/90">{BOX_LABEL[box]}</h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => conversations.refetch()}
               disabled={conversations.isFetching}
               aria-label="Actualiser les conversations"
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <RefreshIcon className={`h-4 w-4 ${conversations.isFetching ? 'animate-spin' : ''}`} />
             </button>
@@ -95,7 +95,7 @@ export function MessagingLayout({ box }: MessagingLayoutProps) {
           </div>
         </div>
 
-        <div className="border-b border-gray-200 p-3">
+        <div className="border-b border-gray-200 dark:border-gray-800 p-3">
           <Input
             label="Rechercher"
             placeholder="Nom, copropriété…"
@@ -136,8 +136,8 @@ export function MessagingLayout({ box }: MessagingLayoutProps) {
         </div>
 
         {data && data.totalElements > 0 && (
-          <div className="flex items-center justify-between gap-2 border-t border-gray-200 px-3 py-2">
-            <span className="text-theme-xs text-gray-500">
+          <div className="flex items-center justify-between gap-2 border-t border-gray-200 dark:border-gray-800 px-3 py-2">
+            <span className="text-theme-xs text-gray-500 dark:text-gray-400">
               Affichage {from}-{to} sur {data.totalElements}
             </span>
             <div className="flex items-center gap-1">
@@ -146,7 +146,7 @@ export function MessagingLayout({ box }: MessagingLayoutProps) {
                 onClick={() => setPage((current) => current - 1)}
                 disabled={data.pageNumber <= 0}
                 aria-label="Page précédente"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <AngleLeftIcon className="h-4 w-4" />
               </button>
@@ -155,7 +155,7 @@ export function MessagingLayout({ box }: MessagingLayoutProps) {
                 onClick={() => setPage((current) => current + 1)}
                 disabled={data.pageNumber + 1 >= data.totalPages}
                 aria-label="Page suivante"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <AngleRightIcon className="h-4 w-4" />
               </button>

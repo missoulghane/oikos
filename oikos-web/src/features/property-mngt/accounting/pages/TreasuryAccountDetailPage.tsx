@@ -52,7 +52,7 @@ export function TreasuryAccountDetailPage() {
       <div>
         <Link
           to={`/property-mngt/properties/${property.id}/accounting`}
-          className="text-sm text-gray-500 hover:underline"
+          className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
         >
           ← Retour à la vue d'ensemble
         </Link>
@@ -64,8 +64,8 @@ export function TreasuryAccountDetailPage() {
 
       {account && (
         <Card className="flex flex-col gap-2">
-          <p className="text-sm text-gray-500">{account.role ? ACCOUNT_ROLE_LABELS[account.role] : 'Compte'}</p>
-          <h1 className="text-lg font-semibold text-gray-900">
+          <p className="text-sm text-gray-500 dark:text-gray-400">{account.role ? ACCOUNT_ROLE_LABELS[account.role] : 'Compte'}</p>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">
             {account.accountNumber} — {account.label}
           </h1>
           <p className={`text-2xl font-semibold ${getTreasuryBalanceColorClass(account.balance)}`}>
@@ -77,8 +77,8 @@ export function TreasuryAccountDetailPage() {
       <Card className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Opérations</h2>
-            <p className="text-sm text-gray-500">Écritures ayant mouvementé ce compte.</p>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Opérations</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Écritures ayant mouvementé ce compte.</p>
           </div>
           {canWrite && (
             <div className="flex flex-wrap gap-3">
@@ -90,13 +90,13 @@ export function TreasuryAccountDetailPage() {
               </Link>
               <Link
                 to={`/property-mngt/properties/${property.id}/accounting/treasury-accounts/${accountId}/receipts/new`}
-                className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                className="inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-400 shadow-theme-xs ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
               >
                 Saisir une recette
               </Link>
               <Link
                 to={`/property-mngt/properties/${property.id}/accounting/treasury-accounts/${accountId}/transfers/new`}
-                className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                className="inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-400 shadow-theme-xs ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
               >
                 Virement entre comptes
               </Link>
@@ -113,7 +113,7 @@ export function TreasuryAccountDetailPage() {
         )}
         {entries.data && entries.data.content.length > 0 && (
           <div className="flex flex-col gap-3">
-            <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
+            <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
               {entries.data.content.map((entry) => (
                 <JournalEntryRow key={entry.id} entry={entry} propertyId={property.id} />
               ))}

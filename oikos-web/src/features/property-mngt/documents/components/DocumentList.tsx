@@ -23,7 +23,7 @@ function formatFileSize(sizeBytes: number): string {
 
 export function DocumentList({ documents, canWrite }: DocumentListProps) {
   return (
-    <ul className="flex flex-col divide-y divide-gray-100">
+    <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
       {documents.map((doc) => (
         <DocumentRow key={doc.id} doc={doc} canWrite={canWrite} />
       ))}
@@ -40,8 +40,8 @@ function DocumentRow({ doc, canWrite }: { doc: Document; canWrite: boolean }) {
     <li className="flex flex-col gap-2 py-3">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-900">{doc.fileName}</p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm font-medium text-gray-900 dark:text-white/90">{doc.fileName}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {formatFileSize(doc.sizeBytes)} · {new Date(doc.uploadedAt).toLocaleDateString('fr-FR')}
           </p>
         </div>
@@ -66,7 +66,7 @@ function DocumentRow({ doc, canWrite }: { doc: Document; canWrite: boolean }) {
 
       {isConfirmingDelete && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-gray-700">Supprimer ce document ? Cette action est irréversible.</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">Supprimer ce document ? Cette action est irréversible.</p>
           {deleteDocument.isError && <Alert message={getErrorMessage(deleteDocument.error)} />}
           <div className="flex gap-2">
             <Button type="button" isLoading={deleteDocument.isPending} onClick={() => deleteDocument.mutate(doc.id)}>

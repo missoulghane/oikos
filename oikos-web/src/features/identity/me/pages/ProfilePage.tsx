@@ -10,7 +10,7 @@ export function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-gray-900">Mes informations</h1>
+      <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Mes informations</h1>
 
       <Card className="flex max-w-md flex-col gap-2">
         {currentUser.isLoading && <Loader label="Chargement de votre profil…" />}

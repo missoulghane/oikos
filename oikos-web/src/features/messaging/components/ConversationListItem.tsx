@@ -42,28 +42,28 @@ export function ConversationListItem({ conversation, box, isActive = false }: Co
     <li>
       <Link
         to={`${BOX_PATH[box]}/${conversation.id}`}
-        className={`flex flex-col gap-0.5 border-b border-l-2 border-gray-100 px-3 py-2.5 ${
-          isActive ? 'border-l-brand-500 bg-brand-50' : 'border-l-transparent hover:bg-gray-50'
+        className={`flex flex-col gap-0.5 border-b border-l-2 border-gray-100 dark:border-gray-800 px-3 py-2.5 ${
+          isActive ? 'border-l-brand-500 bg-brand-50 dark:bg-brand-500/[0.12]' : 'border-l-transparent hover:bg-gray-50 dark:hover:bg-white/[0.03]'
         }`}
       >
         <div className="flex items-baseline justify-between gap-2">
           <p className="flex min-w-0 items-baseline gap-1.5">
             <span
-              className={`truncate text-theme-sm ${hasUnread ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}
+              className={`truncate text-theme-sm ${hasUnread ? 'font-semibold text-gray-900 dark:text-white/90' : 'font-medium text-gray-700 dark:text-gray-300'}`}
             >
               {title}
             </span>
             {/* A conversation is a message with replies - only shown once
                 that's actually true, never for a plain single message. */}
             {conversation.messageCount > 1 && (
-              <span className="shrink-0 text-theme-xs font-normal text-gray-400">
+              <span className="shrink-0 text-theme-xs font-normal text-gray-400 dark:text-gray-500">
                 ({conversation.messageCount} messages)
               </span>
             )}
           </p>
           <span className="flex shrink-0 items-center gap-2">
             {conversation.lastMessageAt && (
-              <span className="text-theme-xs text-gray-400">
+              <span className="text-theme-xs text-gray-400 dark:text-gray-500">
                 {formatRelativeTime(conversation.lastMessageAt)}
               </span>
             )}
@@ -74,7 +74,7 @@ export function ConversationListItem({ conversation, box, isActive = false }: Co
             )}
           </span>
         </div>
-        <p className="truncate text-theme-xs text-gray-400">
+        <p className="truncate text-theme-xs text-gray-400 dark:text-gray-500">
           {participants ? `${participants} · ${conversation.propertyName}` : conversation.propertyName}
         </p>
       </Link>

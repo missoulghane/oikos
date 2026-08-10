@@ -6,6 +6,7 @@ export interface GetPropertyContactsParams {
   page: number;
   size: number;
   search?: string;
+  hasLinkedAccount?: boolean;
 }
 
 export async function getPropertyContacts({
@@ -13,9 +14,10 @@ export async function getPropertyContacts({
   page,
   size,
   search,
+  hasLinkedAccount,
 }: GetPropertyContactsParams): Promise<PagedPropertyContacts> {
   const { data } = await httpClient.get<PagedPropertyContacts>(`/properties/${propertyId}/contacts`, {
-    params: { page, size, search },
+    params: { page, size, search, hasLinkedAccount },
   });
   return data;
 }

@@ -18,8 +18,8 @@ export function AccountingUnitAccountsTab() {
   return (
     <Card className="flex flex-col gap-4">
       <div>
-        <h2 className="text-base font-semibold text-gray-900">Comptes des lots</h2>
-        <p className="text-sm text-gray-500">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Comptes des lots</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Compte comptable dédié et solde de chaque lot de cette copropriété.
         </p>
       </div>
@@ -28,7 +28,7 @@ export function AccountingUnitAccountsTab() {
       {ledgerAccounts.isError && <Alert message={getErrorMessage(ledgerAccounts.error)} />}
       {ledgerAccounts.data && unitAccounts.length === 0 && <EmptyState title="Aucun lot pour le moment" />}
       {ledgerAccounts.data && unitAccounts.length > 0 && (
-        <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
+        <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
           {unitAccounts.map((account) => (
             <UnitLedgerAccountRow key={account.id} account={account} propertyId={property.id} />
           ))}

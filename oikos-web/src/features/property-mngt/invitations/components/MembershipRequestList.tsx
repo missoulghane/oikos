@@ -20,7 +20,7 @@ export function MembershipRequestList({ propertyId, data, onPageChange }: Member
 
   return (
     <div className="flex flex-col gap-3">
-      <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
+      <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
         {data.content.map((request) => (
           <MembershipRequestRow key={request.id} propertyId={propertyId} request={request} />
         ))}

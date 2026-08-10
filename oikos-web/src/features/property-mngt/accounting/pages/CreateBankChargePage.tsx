@@ -22,11 +22,11 @@ export function CreateBankChargePage() {
       <div>
         <Link
           to={`/property-mngt/properties/${property.id}/accounting`}
-          className="text-sm text-gray-500 hover:underline"
+          className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
         >
           ← Retour à la comptabilité
         </Link>
-        <h1 className="text-lg font-semibold text-gray-900">Enregistrer des frais bancaires</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Enregistrer des frais bancaires</h1>
       </div>
       <Card className="max-w-2xl">
         <RecordBankChargeForm propertyId={property.id} />

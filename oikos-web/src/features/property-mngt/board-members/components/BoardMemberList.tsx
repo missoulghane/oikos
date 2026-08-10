@@ -18,7 +18,7 @@ export function BoardMemberList({ propertyId, members, onInvite }: BoardMemberLi
   }
 
   return (
-    <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
+    <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
       {members.map((member) => (
         <BoardMemberRow key={member.id} propertyId={propertyId} member={member} onInvite={onInvite} />
       ))}

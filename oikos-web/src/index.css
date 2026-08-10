@@ -3,6 +3,13 @@ layer(base);
 
 @import 'tailwindcss';
 
+/*
+  Dark mode is class-based (not `prefers-color-scheme`): ThemeProvider puts
+  `.dark` on <html> so the choice survives a reload and can be toggled at will,
+  the OS preference only seeding the first visit.
+*/
+@custom-variant dark (&:is(.dark *));
+
 @theme {
   --font-*: initial;
   --font-outfit: Outfit, sans-serif;
@@ -163,6 +170,68 @@ layer(base);
 }
 
 /*
+  Accent (brand) palettes.
+
+  `@theme` above emits its colors as custom properties on `:root`, and every
+  `*-brand-*` utility compiles to `var(--color-brand-…)`, so a palette is just
+  a re-declaration of those variables under a more specific selector - no
+  rebuild, no duplicated utility classes. ThemeProvider stamps the configured
+  palette onto <html data-theme="…"> from src/config/theme.ts; the palette is a
+  build-time choice, unlike light/dark which the user toggles.
+
+  The default (blue) palette lives in `@theme` and needs no block here. To add
+  one: append a `:root[data-theme='…']` block below, list the same 25→950
+  steps, and declare it in THEME_COLORS (src/config/theme.ts) so it type-checks.
+*/
+:root[data-theme='emerald'] {
+  --color-brand-25: #f6fefb;
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+  --color-brand-950: #022c22;
+  --shadow-focus-ring: 0px 0px 0px 4px rgba(16, 185, 129, 0.12);
+}
+
+:root[data-theme='violet'] {
+  --color-brand-25: #faf8ff;
+  --color-brand-50: #f5f3ff;
+  --color-brand-100: #ede9fe;
+  --color-brand-200: #ddd6fe;
+  --color-brand-300: #c4b5fd;
+  --color-brand-400: #a78bfa;
+  --color-brand-500: #8b5cf6;
+  --color-brand-600: #7c3aed;
+  --color-brand-700: #6d28d9;
+  --color-brand-800: #5b21b6;
+  --color-brand-900: #4c1d95;
+  --color-brand-950: #2e1065;
+  --shadow-focus-ring: 0px 0px 0px 4px rgba(139, 92, 246, 0.12);
+}
+
+:root[data-theme='amber'] {
+  --color-brand-25: #fffaf5;
+  --color-brand-50: #fff7ed;
+  --color-brand-100: #ffedd5;
+  --color-brand-200: #fed7aa;
+  --color-brand-300: #fdba74;
+  --color-brand-400: #fb923c;
+  --color-brand-500: #f97316;
+  --color-brand-600: #ea580c;
+  --color-brand-700: #c2410c;
+  --color-brand-800: #9a3412;
+  --color-brand-900: #7c2d12;
+  --color-brand-950: #431407;
+  --shadow-focus-ring: 0px 0px 0px 4px rgba(249, 115, 22, 0.12);
+}
+
+/*
   The default border color has changed to `currentColor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
   looks the same as it did with Tailwind CSS v3.
@@ -178,12 +247,25 @@ layer(base);
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
   }
+  /*
+    Same defaulting, one shade per mode: an element with a bare `border` and no
+    border-* color class would otherwise keep the light gray-200 outline and
+    glow against a dark surface. Utility classes still win over this layer, so
+    an explicit `dark:border-…` overrides it.
+  */
+  .dark *,
+  .dark ::after,
+  .dark ::before,
+  .dark ::backdrop,
+  .dark ::file-selector-button {
+    border-color: var(--color-gray-800, currentColor);
+  }
   button:not(:disabled),
   [role='button']:not(:disabled) {
     cursor: pointer;
   }
   body {
-    @apply relative z-1 bg-gray-50 font-normal font-outfit;
+    @apply relative z-1 bg-gray-50 font-normal font-outfit dark:bg-gray-900;
   }
 }
 
@@ -192,19 +274,19 @@ layer(base);
 }
 
 @utility menu-item-active {
-  @apply bg-brand-50 text-brand-500;
+  @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
 }
 
 @utility menu-item-inactive {
-  @apply text-gray-700 hover:bg-gray-100 group-hover:text-gray-700;
+  @apply text-gray-700 hover:bg-gray-100 group-hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300;
 }
 
 @utility menu-item-icon {
-  @apply text-gray-500 group-hover:text-gray-700;
+  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400;
 }
 
 @utility menu-item-icon-active {
-  @apply text-brand-500;
+  @apply text-brand-500 dark:text-brand-400;
 }
 
 @utility menu-item-icon-size {
@@ -214,7 +296,7 @@ layer(base);
 }
 
 @utility menu-item-icon-inactive {
-  @apply text-gray-500 group-hover:text-gray-700;
+  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
 }
 
 @utility menu-item-arrow {
@@ -222,11 +304,11 @@ layer(base);
 }
 
 @utility menu-item-arrow-active {
-  @apply rotate-180 text-brand-500;
+  @apply rotate-180 text-brand-500 dark:text-brand-400;
 }
 
 @utility menu-item-arrow-inactive {
-  @apply text-gray-500 group-hover:text-gray-700;
+  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
 }
 
 @utility menu-dropdown-item {
@@ -234,23 +316,23 @@ layer(base);
 }
 
 @utility menu-dropdown-item-active {
-  @apply bg-brand-50 text-brand-500;
+  @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
 }
 
 @utility menu-dropdown-item-inactive {
-  @apply text-gray-700 hover:bg-gray-100;
+  @apply text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5;
 }
 
 @utility menu-dropdown-badge {
-  @apply block rounded-full px-2.5 py-0.5 text-xs font-medium uppercase text-brand-500;
+  @apply block rounded-full px-2.5 py-0.5 text-xs font-medium uppercase text-brand-500 dark:text-brand-400;
 }
 
 @utility menu-dropdown-badge-active {
-  @apply bg-brand-100;
+  @apply bg-brand-100 dark:bg-brand-500/20;
 }
 
 @utility menu-dropdown-badge-inactive {
-  @apply bg-brand-50 group-hover:bg-brand-100;
+  @apply bg-brand-50 group-hover:bg-brand-100 dark:bg-brand-500/15 dark:group-hover:bg-brand-500/20;
 }
 
 @utility no-scrollbar {
@@ -272,6 +354,6 @@ layer(base);
   }
 
   &::-webkit-scrollbar-thumb {
-    @apply bg-gray-200 rounded-full;
+    @apply bg-gray-200 rounded-full dark:bg-gray-700;
   }
 }

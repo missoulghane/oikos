@@ -26,9 +26,10 @@ public class PropertyContactController {
     public PagedPropertyContactResponse list(@PathVariable String propertyId,
                                               @RequestParam(defaultValue = "0") int page,
                                               @RequestParam(defaultValue = "20") int size,
-                                              @RequestParam(required = false) String search) {
-        ListContactsByPropertyQuery query =
-                new ListContactsByPropertyQuery(PropertyId.of(propertyId), PageRequest.of(page, size), search);
+                                              @RequestParam(required = false) String search,
+                                              @RequestParam(required = false) Boolean hasLinkedAccount) {
+        ListContactsByPropertyQuery query = new ListContactsByPropertyQuery(
+                PropertyId.of(propertyId), PageRequest.of(page, size), search, hasLinkedAccount);
         return PagedPropertyContactResponse.from(listContactsByPropertyUseCase.listContacts(query));
     }
 }

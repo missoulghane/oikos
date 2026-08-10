@@ -23,7 +23,7 @@ export function MyInstallmentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-gray-900">Mes échéances</h1>
+      <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Mes échéances</h1>
 
       <Card className="flex flex-col gap-2">
         {isLoading && <Loader label="Chargement de vos échéances…" />}
@@ -32,7 +32,7 @@ export function MyInstallmentsPage() {
           <EmptyState title="Aucune échéance">Vous n'avez aucune échéance pour le moment.</EmptyState>
         )}
         {installments.data && installments.data.length > 0 && (
-          <ul className="flex flex-col divide-y divide-gray-100">
+          <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
             {installments.data.map((installment) => {
               const unit = unitsById.get(installment.unitId);
               return (
@@ -41,12 +41,12 @@ export function MyInstallmentsPage() {
                     {unit && (
                       <Link
                         to={`/property-ownership/units/${unit.propertyId}/${unit.unitId}`}
-                        className="text-gray-500 hover:underline"
+                        className="text-gray-500 dark:text-gray-400 hover:underline"
                       >
                         {unit.propertyName} — {unit.buildingName} — Lot {unit.unitNumber}
                       </Link>
                     )}
-                    <p className="text-gray-700">
+                    <p className="text-gray-700 dark:text-gray-300">
                       Échéance du {new Date(installment.dueDate).toLocaleDateString('fr-FR')} — {installment.amount} MAD
                       {installment.status === 'PARTIALLY_SETTLED' && ` (reste ${installment.outstandingAmount} MAD)`}
                     </p>

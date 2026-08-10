@@ -31,11 +31,11 @@ export function PropertyDetailLayout() {
     <div className="flex flex-col gap-6">
       <div>
         {showBackLink && (
-          <Link to="/property-mngt/properties" className="text-sm text-gray-500 hover:underline">
+          <Link to="/property-mngt/properties" className="text-sm text-gray-500 dark:text-gray-400 hover:underline">
             ← Retour aux copropriétés
           </Link>
         )}
-        <h1 className="text-lg font-semibold text-gray-900">{property.data.name}</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">{property.data.name}</h1>
       </div>
 
       <Outlet context={{ property: property.data }} />

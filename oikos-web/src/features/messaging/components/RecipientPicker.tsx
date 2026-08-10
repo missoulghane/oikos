@@ -94,14 +94,14 @@ export function RecipientPicker({
         <ul className="flex flex-wrap gap-2">
           {value.map((recipient) => (
             <li key={recipient.userId}>
-              <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-brand-50 py-1 pl-3 pr-1.5 text-sm font-medium text-brand-700">
+              <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-brand-50 dark:bg-brand-500/[0.12] py-1 pl-3 pr-1.5 text-sm font-medium text-brand-700 dark:text-brand-400">
                 {recipient.fullName}
                 <button
                   type="button"
                   disabled={disabled}
                   onClick={() => removeRecipient(recipient.userId)}
                   aria-label={`Retirer ${recipient.fullName}`}
-                  className="flex h-5 w-5 items-center justify-center rounded-full text-brand-500 hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex h-5 w-5 items-center justify-center rounded-full text-brand-500 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <CloseIcon className="h-3 w-3" />
                 </button>
@@ -116,7 +116,7 @@ export function RecipientPicker({
           type="button"
           disabled={disabled}
           onClick={selectEveryone}
-          className="inline-flex min-h-8 items-center self-start rounded-full border border-dashed border-gray-300 px-3 py-1 text-sm font-medium text-gray-600 hover:border-brand-300 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-h-8 items-center self-start rounded-full border border-dashed border-gray-300 dark:border-gray-700 px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-brand-300 hover:text-brand-600 dark:hover:text-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Envoyer à toute la copropriété
         </button>
@@ -135,22 +135,22 @@ export function RecipientPicker({
           {isSearching && recipients.isLoading && <Loader label="Recherche…" />}
           {isSearching && recipients.isError && <Alert message={getErrorMessage(recipients.error)} />}
           {isSearching && recipients.data && availableCandidates.length === 0 && (
-            <p className="rounded-lg border border-dashed border-gray-200 px-3 py-1.5 text-sm text-gray-400">
+            <p className="rounded-lg border border-dashed border-gray-200 dark:border-gray-800 px-3 py-1.5 text-sm text-gray-400 dark:text-gray-500">
               Aucun destinataire trouvé.
             </p>
           )}
           {isSearching && availableCandidates.length > 0 && (
-            <ul className="flex flex-col divide-y divide-gray-100 rounded-lg border border-gray-200">
+            <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
               {availableCandidates.map((candidate) => (
                 <li key={candidate.userId}>
                   <button
                     type="button"
                     disabled={disabled}
                     onClick={() => addRecipient(candidate)}
-                    className="flex min-h-11 w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex min-h-11 w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-60 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <span className="text-sm font-medium text-gray-900">{candidate.fullName}</span>
-                    <span className="text-sm text-gray-500">{candidate.roleLabel}</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white/90">{candidate.fullName}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{candidate.roleLabel}</span>
                   </button>
                 </li>
               ))}

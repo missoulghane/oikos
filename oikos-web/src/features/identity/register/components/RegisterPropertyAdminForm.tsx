@@ -30,8 +30,8 @@ export function RegisterPropertyAdminForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {errorMessage && <Alert message={errorMessage} />}
-      <fieldset className="flex flex-col gap-4 rounded-lg border border-gray-200 p-4">
-        <legend className="px-1 text-sm font-medium text-gray-700">Vos informations</legend>
+      <fieldset className="flex flex-col gap-4 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
+        <legend className="px-1 text-sm font-medium text-gray-700 dark:text-gray-300">Vos informations</legend>
         <Input
           label="Nom complet"
           autoComplete="name"
@@ -61,8 +61,8 @@ export function RegisterPropertyAdminForm({
           errorMessage={errors.confirmPassword?.message}
         />
       </fieldset>
-      <fieldset className="flex flex-col gap-4 rounded-lg border border-gray-200 p-4">
-        <legend className="px-1 text-sm font-medium text-gray-700">Votre copropriété</legend>
+      <fieldset className="flex flex-col gap-4 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
+        <legend className="px-1 text-sm font-medium text-gray-700 dark:text-gray-300">Votre copropriété</legend>
         <Input
           label="Nom de la copropriété"
           {...register('propertyName')}

@@ -38,8 +38,13 @@ export const queryKeys = {
     unitTypes: (propertyId: string) => ['properties', propertyId, 'unit-types'] as const,
     installmentCalls: (propertyId: string, page: number, size: number) =>
       ['properties', propertyId, 'installment-calls', page, size] as const,
-    contacts: (propertyId: string, page: number, size: number, search: string | undefined) =>
-      ['properties', propertyId, 'contacts', page, size, search] as const,
+    contacts: (
+      propertyId: string,
+      page: number,
+      size: number,
+      search: string | undefined,
+      hasLinkedAccount: boolean | undefined,
+    ) => ['properties', propertyId, 'contacts', page, size, search, hasLinkedAccount] as const,
     accountingOpenExercise: (propertyId: string) =>
       ['properties', propertyId, 'accounting', 'open-exercise'] as const,
     accountingLedgerAccounts: (propertyId: string) =>
@@ -79,8 +84,13 @@ export const queryKeys = {
     detail: (id: string) => ['installment-calls', id, 'detail'] as const,
   },
   buildings: {
-    units: (buildingId: string, page: number, size: number, search: string | undefined) =>
-      ['buildings', buildingId, 'units', page, size, search] as const,
+    units: (
+      buildingId: string,
+      page: number,
+      size: number,
+      search: string | undefined,
+      ownershipStatus: string | undefined,
+    ) => ['buildings', buildingId, 'units', page, size, search, ownershipStatus] as const,
   },
   units: {
     detail: (unitId: string) => ['units', unitId, 'detail'] as const,

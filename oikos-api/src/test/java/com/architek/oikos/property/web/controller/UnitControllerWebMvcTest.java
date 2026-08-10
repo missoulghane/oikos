@@ -1,6 +1,8 @@
 package com.architek.oikos.property.web.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -13,6 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -27,6 +30,7 @@ import com.architek.oikos.property.application.port.in.AddUnitUseCase;
 import com.architek.oikos.property.application.port.in.GetBuildingUseCase;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitsByBuildingUseCase;
+import com.architek.oikos.property.application.query.ListUnitsByBuildingQuery;
 import com.architek.oikos.property.application.port.in.UpdateUnitSharesUseCase;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.PropertyId;
@@ -136,5 +140,21 @@ class UnitControllerWebMvcTest {
                                 {"unitNumber":"A12","unitTypeId":"%s","shares":150}
                                 """.formatted(UnitTypeDefinitionId.newId())))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void the_search_and_ownership_status_filters_are_bound_from_the_query_string() throws Exception {
+        when(listUnitsByBuildingUseCase.listUnits(any())).thenReturn(Page.of(List.of(), 0, 20, 0));
+
+        mockMvc.perform(get("/api/v1/buildings/" + BuildingId.newId() + "/units")
+                        .param("search", "A12")
+                        .param("ownershipStatus", "NOT_AFFECTED")
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
+                .andExpect(status().isOk());
+
+        var captor = ArgumentCaptor.forClass(ListUnitsByBuildingQuery.class);
+        verify(listUnitsByBuildingUseCase).listUnits(captor.capture());
+        assertThat(captor.getValue().search()).isEqualTo("A12");
+        assertThat(captor.getValue().ownershipStatus()).isEqualTo(OwnershipStatus.NOT_AFFECTED);
     }
 }

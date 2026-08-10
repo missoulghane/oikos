@@ -17,8 +17,8 @@ export function BuildingSection({ building, showShares }: BuildingSectionProps) 
     <Card className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-medium text-gray-900">{building.name}</h2>
-          <p className="text-sm text-gray-500">{building.floorCount} étage(s)</p>
+          <h2 className="font-medium text-gray-900 dark:text-white/90">{building.name}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{building.floorCount} étage(s)</p>
         </div>
         {!isAddingUnit && (
           <Button type="button" variant="secondary" onClick={() => setIsAddingUnit(true)}>

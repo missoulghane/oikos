@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useSidebar } from '@/shared/context/SidebarContext';
 import { UserDropdown } from '@/shared/layouts/UserDropdown';
 import { NotificationBell } from '@/features/messaging';
+import { ThemeToggleButton } from '@/shared/components/ThemeToggleButton/ThemeToggleButton';
 
 export function AppHeader() {
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
@@ -15,11 +16,11 @@ export function AppHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-99999 flex w-full border-gray-200 bg-white lg:border-b">
+    <header className="sticky top-0 z-99999 flex w-full border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 lg:border-b">
       <div className="flex grow flex-col items-center justify-between lg:flex-row lg:px-6">
-        <div className="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4">
+        <div className="flex w-full items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-800 px-3 py-3 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4">
           <button
-            className="z-99999 flex h-10 w-10 items-center justify-center rounded-lg border-gray-200 text-gray-500 lg:h-11 lg:w-11 lg:border"
+            className="z-99999 flex h-10 w-10 items-center justify-center rounded-lg border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 lg:h-11 lg:w-11 lg:border"
             onClick={handleToggle}
             aria-label="Basculer la navigation"
           >
@@ -44,12 +45,13 @@ export function AppHeader() {
             )}
           </button>
 
-          <Link to="/" className="text-base font-semibold text-gray-900 lg:hidden">
+          <Link to="/" className="text-base font-semibold text-gray-900 dark:text-white/90 lg:hidden">
             Oikos
           </Link>
         </div>
 
         <div className="flex w-full items-center justify-end gap-4 px-5 py-4 lg:w-auto lg:px-0">
+          <ThemeToggleButton />
           <NotificationBell />
           <UserDropdown />
         </div>

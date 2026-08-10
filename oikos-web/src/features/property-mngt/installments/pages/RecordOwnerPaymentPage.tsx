@@ -24,11 +24,11 @@ export function RecordOwnerPaymentPage() {
       <div>
         <Link
           to={`/property-mngt/properties/${currentPropertyId}/units/${currentUnitId}`}
-          className="text-sm text-gray-500 hover:underline"
+          className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
         >
           ← Retour au lot
         </Link>
-        <h1 className="text-lg font-semibold text-gray-900">Enregistrer un paiement</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Enregistrer un paiement</h1>
       </div>
       <Card className="max-w-2xl">
         <RecordOwnerPaymentForm

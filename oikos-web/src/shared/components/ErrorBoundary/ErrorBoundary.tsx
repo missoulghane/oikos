@@ -24,8 +24,8 @@ export class ErrorBoundary extends Component<PropsWithChildren, ErrorBoundarySta
     if (this.state.hasError) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-          <h1 className="text-lg font-semibold text-gray-900">Une erreur est survenue</h1>
-          <p className="text-sm text-gray-500">Veuillez recharger la page.</p>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Une erreur est survenue</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Veuillez recharger la page.</p>
           <Button onClick={() => window.location.reload()}>Recharger</Button>
         </div>
       );

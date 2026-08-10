@@ -34,9 +34,9 @@ export function DraftsListPage() {
   const to = data ? data.pageNumber * data.pageSize + data.content.length : 0;
 
   return (
-    <div className="flex h-[calc(100vh-160px)] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white">
-      <div className="flex items-center justify-between gap-2 border-b border-gray-200 p-4">
-        <h1 className="text-base font-semibold text-gray-900">Brouillon</h1>
+    <div className="flex h-[calc(100vh-160px)] flex-col overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03]">
+      <div className="flex items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-800 p-4">
+        <h1 className="text-base font-semibold text-gray-900 dark:text-white/90">Brouillon</h1>
         <Link
           to="/messages/new"
           className="inline-flex min-h-9 items-center rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
@@ -45,7 +45,7 @@ export function DraftsListPage() {
         </Link>
       </div>
 
-      <div className="border-b border-gray-200 p-3">
+      <div className="border-b border-gray-200 dark:border-gray-800 p-3">
         <Input
           label="Rechercher"
           placeholder="Titre, contenu…"
@@ -86,8 +86,8 @@ export function DraftsListPage() {
       </div>
 
       {data && data.totalElements > 0 && (
-        <div className="flex items-center justify-between gap-2 border-t border-gray-200 px-3 py-2">
-          <span className="text-theme-xs text-gray-500">
+        <div className="flex items-center justify-between gap-2 border-t border-gray-200 dark:border-gray-800 px-3 py-2">
+          <span className="text-theme-xs text-gray-500 dark:text-gray-400">
             Affichage {from}-{to} sur {data.totalElements}
           </span>
           <div className="flex items-center gap-1">
@@ -96,7 +96,7 @@ export function DraftsListPage() {
               onClick={() => setPage((current) => current - 1)}
               disabled={data.pageNumber <= 0}
               aria-label="Page précédente"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <AngleLeftIcon className="h-4 w-4" />
             </button>
@@ -105,7 +105,7 @@ export function DraftsListPage() {
               onClick={() => setPage((current) => current + 1)}
               disabled={data.pageNumber + 1 >= data.totalPages}
               aria-label="Page suivante"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <AngleRightIcon className="h-4 w-4" />
             </button>

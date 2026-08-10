@@ -30,7 +30,7 @@ export function Dropdown({ isOpen, onClose, children, className = '' }: Dropdown
   return (
     <div
       ref={dropdownRef}
-      className={`absolute right-0 z-40 mt-2 rounded-xl border border-gray-200 bg-white shadow-theme-lg ${className}`}
+      className={`absolute right-0 z-40 mt-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-dark shadow-theme-lg ${className}`}
     >
       {children}
     </div>

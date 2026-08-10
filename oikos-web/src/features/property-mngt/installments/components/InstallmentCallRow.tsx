@@ -21,8 +21,8 @@ export function InstallmentCallRow({ installmentCall, propertyId }: InstallmentC
     <li className="flex flex-col gap-2 px-3 py-2">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium capitalize text-gray-900">{formatPeriod(installmentCall.period)}</p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm font-medium capitalize text-gray-900 dark:text-white/90">{formatPeriod(installmentCall.period)}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Échéance le {new Date(installmentCall.dueDate).toLocaleDateString('fr-FR')} · {installmentCall.unitCount} lot(s)
             {' · '}
             {installmentCall.totalAmount} MAD
@@ -50,7 +50,7 @@ export function InstallmentCallRow({ installmentCall, propertyId }: InstallmentC
 
       {isConfirmingDelete && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
             Supprimer cet appel de fonds supprime aussi les {installmentCall.unitCount} échéance(s) associée(s). Cette
             action est irréversible.
           </p>

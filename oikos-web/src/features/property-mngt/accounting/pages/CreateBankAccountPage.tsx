@@ -31,11 +31,11 @@ export function CreateBankAccountPage() {
       <div>
         <Link
           to={`/property-mngt/properties/${property.id}/accounting`}
-          className="text-sm text-gray-500 hover:underline"
+          className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
         >
           ← Retour à la vue d'ensemble
         </Link>
-        <h1 className="text-lg font-semibold text-gray-900">Ajouter un compte bancaire</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Ajouter un compte bancaire</h1>
       </div>
       <Card>
         <AddBankAccountForm propertyId={property.id} onCreated={handleCreated} />

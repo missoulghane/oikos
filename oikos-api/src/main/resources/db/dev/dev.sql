@@ -51,7 +51,8 @@ INSERT INTO role_permission (role_name, permission_key) VALUES
     ('ROLE_ADMIN', 'user:admin'),
     ('ROLE_ADMIN', 'invitation:manage'),
     ('ROLE_ADMIN', 'document:read'),
-    ('ROLE_ADMIN', 'document:write');
+    ('ROLE_ADMIN', 'document:write'),
+    ('ROLE_ADMIN', 'messaging:broadcast');
 
 INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_ADMIN', 'property:read'),
@@ -71,7 +72,8 @@ INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_ADMIN', 'property:accounting:write'),
     ('PROPERTY_BOARD_ADMIN', 'invitation:manage'),
     ('PROPERTY_BOARD_ADMIN', 'document:read'),
-    ('PROPERTY_BOARD_ADMIN', 'document:write');
+    ('PROPERTY_BOARD_ADMIN', 'document:write'),
+    ('PROPERTY_BOARD_ADMIN', 'messaging:broadcast');
 
 INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_MEMBER', 'property:read'),
@@ -88,7 +90,8 @@ INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_MEMBER', 'property:accounting:read'),
     ('PROPERTY_BOARD_MEMBER', 'property:accounting:write'),
     ('PROPERTY_BOARD_MEMBER', 'document:read'),
-    ('PROPERTY_BOARD_MEMBER', 'document:write');
+    ('PROPERTY_BOARD_MEMBER', 'document:write'),
+    ('PROPERTY_BOARD_MEMBER', 'messaging:broadcast');
 
 INSERT INTO role_permission (role_name, permission_key)
 SELECT 'PROPERTY_MANAGER_ADMIN', permission_key FROM role_permission WHERE role_name = 'PROPERTY_BOARD_ADMIN';

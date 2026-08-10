@@ -186,4 +186,50 @@ class ListContactsByPropertyServiceTest {
         assertThat(page.content()).extracting(PropertyContactView::partyFullName).containsExactly("Jane Doe");
         assertThat(page.totalElements()).isEqualTo(1);
     }
+
+    @Test
+    void filtering_on_the_account_status_keeps_only_the_contacts_without_a_linked_account() {
+        PropertyId propertyId = PropertyId.newId();
+        when(propertyRepository.findById(propertyId)).thenReturn(
+                Optional.of(Property.create(propertyId, "Copro Test", "1 rue de la Paix")));
+
+        BuildingId buildingId = BuildingId.newId();
+        Building building = Building.create(buildingId, propertyId, "Bâtiment A", 3);
+        when(buildingRepository.findAllByPropertyId(propertyId, PageRequest.of(0, 100)))
+                .thenReturn(Page.of(List.of(building), 0, 100, 1));
+
+        UnitId unitId1 = UnitId.newId();
+        UnitId unitId2 = UnitId.newId();
+        Unit unit1 = Unit.create(unitId1, buildingId, propertyId, "A12", UnitTypeDefinitionId.newId(),
+                Shares.of(new BigDecimal("150")));
+        Unit unit2 = Unit.create(unitId2, buildingId, propertyId, "A13", UnitTypeDefinitionId.newId(),
+                Shares.of(new BigDecimal("100")));
+        when(unitRepository.findAllByBuildingId(buildingId, PageRequest.of(0, 100)))
+                .thenReturn(Page.of(List.of(unit1, unit2), 0, 100, 2));
+
+        EntityId linkedPartyId = EntityId.newId();
+        EntityId unlinkedPartyId = EntityId.newId();
+        when(unitOwnershipRepository.findAllByUnitIds(anyList())).thenReturn(List.of(
+                UnitOwnership.create(UnitOwnershipId.newId(), unitId1, linkedPartyId, propertyId,
+                        OwnershipShare.of(new BigDecimal("50"))),
+                UnitOwnership.create(UnitOwnershipId.newId(), unitId2, unlinkedPartyId, propertyId,
+                        OwnershipShare.of(new BigDecimal("50")))));
+        when(partyDirectoryPort.getPartyById(linkedPartyId)).thenReturn(
+                new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"), null));
+        when(partyDirectoryPort.getPartyById(unlinkedPartyId)).thenReturn(
+                new PartyDetails("John Smith", PartyType.INDIVIDUAL, EmailVO.of("john.smith@example.com"), null));
+        when(accountLinkingPort.findLinkedPartyIds(anyList())).thenReturn(Set.of(linkedPartyId));
+
+        var withoutAccount = newService()
+                .listContacts(new ListContactsByPropertyQuery(propertyId, PageRequest.of(0, 20), null, false));
+
+        assertThat(withoutAccount.content()).extracting(PropertyContactView::partyFullName).containsExactly("John Smith");
+        assertThat(withoutAccount.totalElements()).isEqualTo(1);
+
+        var withAccount = newService()
+                .listContacts(new ListContactsByPropertyQuery(propertyId, PageRequest.of(0, 20), null, true));
+
+        assertThat(withAccount.content()).extracting(PropertyContactView::partyFullName).containsExactly("Jane Doe");
+        assertThat(withAccount.totalElements()).isEqualTo(1);
+    }
 }

@@ -204,15 +204,15 @@ export function NewConversationPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-gray-900">Nouveau message</h1>
+      <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Nouveau message</h1>
 
       {!effectivePropertyId && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-gray-500">Choisissez une copropriété :</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Choisissez une copropriété :</p>
           {propertyIds.length === 0 && (
             <Alert variant="warning" message="Vous n'êtes membre d'aucune copropriété." />
           )}
-          <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
+          <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
             {propertyIds.map((id) => (
               <li key={id}>
                 <button
@@ -221,7 +221,7 @@ export function NewConversationPage() {
                     setSelectedPropertyId(id);
                     setSelectedRecipients([]);
                   }}
-                  className="flex min-h-11 w-full items-center px-3 py-2 text-left text-sm font-medium text-gray-900 hover:bg-gray-50"
+                  className="flex min-h-11 w-full items-center px-3 py-2 text-left text-sm font-medium text-gray-900 dark:text-white/90 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
                 >
                   {propertyNamesById.get(id) ?? id}
                 </button>
@@ -273,7 +273,7 @@ export function NewConversationPage() {
             />
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="new-message-subject" className="text-sm font-medium text-gray-700">
+              <label htmlFor="new-message-subject" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Titre
               </label>
               <input
@@ -281,14 +281,14 @@ export function NewConversationPage() {
                 type="text"
                 placeholder="Objet du message…"
                 disabled={isSending || isSavingDraft}
-                className="min-h-11 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-base text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 disabled:opacity-60"
+                className="min-h-11 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-base text-gray-800 dark:text-white/90 shadow-theme-xs placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 disabled:opacity-60"
                 {...register('subject')}
               />
-              {errors.subject && <p className="text-sm text-error-500">{errors.subject.message}</p>}
+              {errors.subject && <p className="text-sm text-error-500 dark:text-error-400">{errors.subject.message}</p>}
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="new-message-body" className="text-sm font-medium text-gray-700">
+              <label htmlFor="new-message-body" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Message
               </label>
               <textarea
@@ -296,10 +296,10 @@ export function NewConversationPage() {
                 rows={4}
                 placeholder="Écrivez votre message…"
                 disabled={isSending || isSavingDraft}
-                className="min-h-24 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-base text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 disabled:opacity-60"
+                className="min-h-24 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-base text-gray-800 dark:text-white/90 shadow-theme-xs placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 disabled:opacity-60"
                 {...register('body')}
               />
-              {errors.body && <p className="text-sm text-error-500">{errors.body.message}</p>}
+              {errors.body && <p className="text-sm text-error-500 dark:text-error-400">{errors.body.message}</p>}
             </div>
 
             <div className="flex items-center gap-2">

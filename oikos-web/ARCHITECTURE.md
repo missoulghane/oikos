@@ -94,12 +94,14 @@ src/
 │   ├── components/             # Button, Input, Card, Loader, EmptyState,
 │   │                           # Alert, Pagination, ErrorBoundary
 │   ├── constants/queryKeys.ts  # Clés TanStack Query centralisées
+│   ├── context/                # SidebarContext, ThemeContext (clair/sombre)
 │   ├── layouts/                # AppLayout (zone privée), AuthLayout
 │   ├── pages/                  # NotFoundPage (404), ServerErrorPage (500)
 │   ├── types/                  # ApiErrorBody (forme des erreurs de l'API)
 │   └── utils/getErrorMessage.ts
 │
 ├── config/env.ts       # Lecture/validation des variables d'environnement
+├── config/theme.ts     # Couleur d'accent de l'app (paramétrage code, cf. §8)
 ├── test/setup.ts        # Setup Vitest (jest-dom)
 └── main.tsx
 ```
@@ -217,7 +219,37 @@ la commande à intégrer dans une pipeline CI/CD.
   pour les écrans plus grands ; zones interactives ≥ 44px (`min-h-11`
   sur `Button`/`Input`).
 
-## 8. Limites connues de cette v1 (à traiter dans une itération suivante)
+## 8. Thème (clair/sombre et couleur d'accent)
+
+Deux axes indépendants, inspirés de `oikos-template` (TailAdmin) :
+
+- **Clair / sombre — choix de l'utilisateur.** `ThemeProvider`
+  (`shared/context/ThemeContext.tsx`) pose la classe `.dark` sur `<html>` et
+  mémorise le choix dans `localStorage` (`oikos-theme-mode`). La préférence
+  système (`prefers-color-scheme`) ne sert que d'amorce à la première visite.
+  Le variant Tailwind est déclaré dans `index.css`
+  (`@custom-variant dark (&:is(.dark *))`), donc tout se style avec le préfixe
+  `dark:`. Un script inline dans `index.html` applique la classe avant le
+  premier rendu pour éviter le flash blanc — il doit rester aligné avec
+  `resolveInitialMode()`. Le bouton `ThemeToggleButton` est présent dans
+  `AppHeader` et dans `AuthLayout` (les écrans de connexion sont hors app
+  shell).
+- **Couleur d'accent — choix du développeur.** `THEME_COLOR` dans
+  `config/theme.ts` (`blue` par défaut, plus `emerald`, `violet`, `amber`).
+  `ThemeProvider` la pose en `<html data-theme="…">` une fois pour toutes ;
+  elle n'est **pas** exposée à l'utilisateur. Chaque palette est un bloc
+  `:root[data-theme='…']` d'`index.css` qui redéfinit l'échelle
+  `--color-brand-25…950` : comme les utilitaires Tailwind v4 compilent vers
+  `var(--color-brand-…)`, aucune classe n'est dupliquée. Ajouter une palette =
+  un bloc CSS + une entrée dans `THEME_COLORS`.
+
+Conventions de surfaces en sombre (identiques au template) : page et chrome
+(`AppHeader`, `AppSidebar`) en `dark:bg-gray-900`, cartes et panneaux en
+`dark:bg-white/[0.03]`, éléments flottants (`Dropdown`) en `dark:bg-gray-dark`,
+bordures en `dark:border-gray-800`, texte principal en `dark:text-white/90` et
+secondaire en `dark:text-gray-400`.
+
+## 9. Limites connues de cette v1 (à traiter dans une itération suivante)
 
 - Pas de page 401/403 dédiée : une session invalide redirige silencieusement
   vers `/login`.

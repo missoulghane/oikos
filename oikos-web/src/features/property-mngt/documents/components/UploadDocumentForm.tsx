@@ -36,7 +36,7 @@ export function UploadDocumentForm({ ownerType, ownerId }: UploadDocumentFormPro
           ref={fileInputRef}
           type="file"
           onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
-          className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
+          className="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 dark:file:bg-white/[0.05] file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 dark:file:text-gray-300 hover:file:bg-gray-200 dark:hover:file:bg-white/[0.08]"
         />
         <Button
           type="button"

@@ -18,8 +18,8 @@ export function AccountingJournalTab() {
   return (
     <Card className="flex flex-col gap-4">
       <div>
-        <h2 className="text-base font-semibold text-gray-900">Journal des écritures</h2>
-        <p className="text-sm text-gray-500">Toutes les écritures comptables générées pour cette copropriété.</p>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Journal des écritures</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Toutes les écritures comptables générées pour cette copropriété.</p>
       </div>
 
       {journalEntries.isLoading && <Loader label="Chargement du journal…" />}
@@ -29,7 +29,7 @@ export function AccountingJournalTab() {
       )}
       {journalEntries.data && journalEntries.data.content.length > 0 && (
         <div className="flex flex-col gap-3">
-          <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
+          <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
             {journalEntries.data.content.map((entry) => (
               <JournalEntryRow key={entry.id} entry={entry} propertyId={property.id} />
             ))}

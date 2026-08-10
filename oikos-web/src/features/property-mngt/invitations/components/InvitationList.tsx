@@ -20,7 +20,7 @@ export function InvitationList({ propertyId, data, onPageChange }: InvitationLis
 
   return (
     <div className="flex flex-col gap-3">
-      <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
+      <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
         {data.content.map((invitation) => (
           <InvitationRow key={invitation.id} propertyId={propertyId} invitation={invitation} />
         ))}

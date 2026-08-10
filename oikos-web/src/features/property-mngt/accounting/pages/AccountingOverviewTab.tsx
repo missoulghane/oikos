@@ -58,23 +58,23 @@ export function AccountingOverviewTab() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-gray-900">Dernière dépense</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white/90">Dernière dépense</h2>
           {expenses.isLoading && <Loader label="Chargement…" />}
           {expenses.isError && <Alert message={getErrorMessage(expenses.error)} />}
-          {expenses.data && !lastExpense && <p className="text-sm text-gray-500">Aucune dépense pour le moment.</p>}
+          {expenses.data && !lastExpense && <p className="text-sm text-gray-500 dark:text-gray-400">Aucune dépense pour le moment.</p>}
           {lastExpense && (
             <>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-lg font-semibold text-gray-900 dark:text-white/90">
                 {lastExpense.amount.toLocaleString('fr-FR')} MAD
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {new Date(lastExpense.date).toLocaleDateString('fr-FR')}
                 {lastExpenseLedgerAccount && ` · ${lastExpenseLedgerAccount.label}`}
                 {lastExpense.description && ` · ${lastExpense.description}`}
               </p>
               <Link
                 to={`/property-mngt/properties/${property.id}/accounting/expenses`}
-                className="text-sm font-medium text-brand-500 hover:underline"
+                className="text-sm font-medium text-brand-500 dark:text-brand-400 hover:underline"
               >
                 Voir les dépenses
               </Link>
@@ -83,22 +83,22 @@ export function AccountingOverviewTab() {
         </Card>
 
         <Card className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-gray-900">Dernière recette</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white/90">Dernière recette</h2>
           {latestPayment.isLoading && <Loader label="Chargement…" />}
           {latestPayment.isError && <Alert message={getErrorMessage(latestPayment.error)} />}
-          {latestPayment.data === null && <p className="text-sm text-gray-500">Aucune recette pour le moment.</p>}
+          {latestPayment.data === null && <p className="text-sm text-gray-500 dark:text-gray-400">Aucune recette pour le moment.</p>}
           {latestPayment.data && (
             <>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-lg font-semibold text-gray-900 dark:text-white/90">
                 {latestPayment.data.amount.toLocaleString('fr-FR')} MAD
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {new Date(latestPayment.data.valueDate).toLocaleDateString('fr-FR')} ·{' '}
                 {PAYMENT_MODE_LABELS[latestPayment.data.mode]}
               </p>
               <Link
                 to={`/property-mngt/properties/${property.id}/accounting/journal/${latestPayment.data.journalEntryId}`}
-                className="text-sm font-medium text-brand-500 hover:underline"
+                className="text-sm font-medium text-brand-500 dark:text-brand-400 hover:underline"
               >
                 Voir l'écriture
               </Link>

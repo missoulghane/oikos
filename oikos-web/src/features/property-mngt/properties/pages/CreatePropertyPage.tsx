@@ -15,7 +15,7 @@ export function CreatePropertyPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-gray-900">Nouvelle copropriété</h1>
+      <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Nouvelle copropriété</h1>
       <Card className="max-w-lg">
         <CreatePropertyForm
           onSubmit={handleSubmit}

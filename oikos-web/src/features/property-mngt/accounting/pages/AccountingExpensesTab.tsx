@@ -21,8 +21,8 @@ export function AccountingExpensesTab() {
     <Card className="flex flex-col gap-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">Dépenses fournisseurs</h2>
-          <p className="text-sm text-gray-500">Règlements versés aux fournisseurs de la copropriété.</p>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Dépenses fournisseurs</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Règlements versés aux fournisseurs de la copropriété.</p>
         </div>
         {canWrite && (
           <Link
@@ -38,7 +38,7 @@ export function AccountingExpensesTab() {
       {expenses.isError && <Alert message={getErrorMessage(expenses.error)} />}
       {expenses.data && expenses.data.length === 0 && <EmptyState title="Aucune dépense pour le moment" />}
       {expenses.data && expenses.data.length > 0 && (
-        <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
+        <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
           {expenses.data.map((expense) => (
             <ExpenseRow
               key={expense.id}

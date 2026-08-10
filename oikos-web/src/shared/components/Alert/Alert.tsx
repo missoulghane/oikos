@@ -1,9 +1,9 @@
 type AlertVariant = 'error' | 'success' | 'warning';
 
 const VARIANT_CLASSES: Record<AlertVariant, string> = {
-  error: 'border-error-500 bg-error-50 text-error-600',
-  success: 'border-success-500 bg-success-50 text-success-600',
-  warning: 'border-warning-500 bg-warning-50 text-warning-600',
+  error: 'border-error-500 bg-error-50 dark:bg-error-500/15 text-error-600 dark:text-error-400',
+  success: 'border-success-500 bg-success-50 dark:bg-success-500/15 text-success-600 dark:text-success-500',
+  warning: 'border-warning-500 bg-warning-50 dark:bg-warning-500/15 text-warning-600 dark:text-warning-400',
 };
 
 const ICONS: Record<AlertVariant, React.ReactNode> = {

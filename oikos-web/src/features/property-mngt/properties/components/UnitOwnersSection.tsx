@@ -27,9 +27,9 @@ export function UnitOwnersSection({ unitId, propertyId, canManage = true }: Unit
   }
 
   return (
-    <div className="flex flex-col gap-2 border-t border-gray-100 pt-2">
+    <div className="flex flex-col gap-2 border-t border-gray-100 dark:border-gray-800 pt-2">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-gray-500">Propriétaires</p>
+        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Propriétaires</p>
         {canManage && addMode === 'none' && (
           <div className="flex gap-2">
             <Button type="button" variant="secondary" onClick={() => setAddMode('existing')}>
@@ -52,19 +52,19 @@ export function UnitOwnersSection({ unitId, propertyId, canManage = true }: Unit
       {isLoading && <Loader label="Chargement des propriétaires…" />}
       {isError && <Alert message={getErrorMessage(error)} />}
       {data && data.length === 0 && addMode === 'none' && (
-        <p className="text-sm text-gray-400">Aucun propriétaire pour le moment.</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">Aucun propriétaire pour le moment.</p>
       )}
       {data && data.length > 0 && (
-        <ul className="flex flex-col divide-y divide-gray-100">
+        <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
           {data.map((owner) => (
             <li key={owner.id} className="flex items-center justify-between py-1 text-sm">
-              <span className="text-gray-700">
+              <span className="text-gray-700 dark:text-gray-300">
                 <Link to={`/parties/${propertyId}/${owner.partyId}`} className="hover:underline">
                   {owner.partyFullName}
                 </Link>{' '}
                 ({PARTY_TYPE_LABELS[owner.partyType]}) — {owner.partyEmail}
               </span>
-              <span className="text-gray-500">{owner.ownershipShare}%</span>
+              <span className="text-gray-500 dark:text-gray-400">{owner.ownershipShare}%</span>
             </li>
           ))}
         </ul>

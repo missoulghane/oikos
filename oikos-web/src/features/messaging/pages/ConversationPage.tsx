@@ -84,11 +84,11 @@ export function ConversationPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b border-gray-100 p-3">
+      <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 p-3">
         <Link
           to={BOX_PATH[box]}
           aria-label="Retour à la liste des messages"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
         >
           <ChevronLeftIcon className="h-5 w-5" />
         </Link>
@@ -111,7 +111,7 @@ export function ConversationPage() {
       </div>
 
       {canReply && (
-        <div className="border-t border-gray-100 p-3">
+        <div className="border-t border-gray-100 dark:border-gray-800 p-3">
           {isReplying ? (
             <MessageComposer conversationId={id} />
           ) : (

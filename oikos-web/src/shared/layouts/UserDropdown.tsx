@@ -19,14 +19,14 @@ export function UserDropdown() {
     <div className="relative">
       <button
         onClick={() => setIsOpen((value) => !value)}
-        className="dropdown-toggle flex items-center gap-2 text-gray-700"
+        className="dropdown-toggle flex items-center gap-2 text-gray-700 dark:text-gray-300"
       >
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-600">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 dark:bg-brand-500/[0.12] text-sm font-medium text-brand-600 dark:text-brand-400">
           {currentUser.data?.fullName.charAt(0).toUpperCase() ?? '?'}
         </span>
         <span className="hidden text-sm font-medium sm:block">{currentUser.data?.fullName}</span>
         <svg
-          className={`hidden stroke-gray-500 transition-transform duration-200 sm:block ${isOpen ? 'rotate-180' : ''}`}
+          className={`hidden stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 sm:block ${isOpen ? 'rotate-180' : ''}`}
           width="18"
           height="20"
           viewBox="0 0 18 20"
@@ -44,20 +44,20 @@ export function UserDropdown() {
       </button>
 
       <Dropdown isOpen={isOpen} onClose={() => setIsOpen(false)} className="flex w-[220px] flex-col p-3">
-        <div className="border-b border-gray-200 pb-3">
-          <span className="block text-sm font-medium text-gray-700">{currentUser.data?.fullName}</span>
-          <span className="mt-0.5 block text-xs text-gray-500">{currentUser.data?.email}</span>
+        <div className="border-b border-gray-200 dark:border-gray-800 pb-3">
+          <span className="block text-sm font-medium text-gray-700 dark:text-gray-300">{currentUser.data?.fullName}</span>
+          <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">{currentUser.data?.email}</span>
         </div>
         <Link
           to="/profile"
           onClick={() => setIsOpen(false)}
-          className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
+          className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
         >
           Mes informations
         </Link>
         <button
           onClick={handleLogout}
-          className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
+          className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
         >
           Se déconnecter
         </button>

@@ -22,7 +22,7 @@ export function AccountingExerciseTab() {
 
   return (
     <Card className="flex flex-col gap-4">
-      <h2 className="text-base font-semibold text-gray-900">Exercice comptable</h2>
+      <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Exercice comptable</h2>
 
       {openExercise.isLoading && <Loader label="Chargement de l'exercice…" />}
 
@@ -30,7 +30,7 @@ export function AccountingExerciseTab() {
 
       {openExercise.isError && hasNoOpenExercise && (
         <>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Aucun exercice comptable ouvert pour cette copropriété. Toute écriture (appel de fonds, règlement,
             facture…) nécessite un exercice ouvert.
           </p>
@@ -41,19 +41,19 @@ export function AccountingExerciseTab() {
       {openExercise.data && (
         <>
           <div className="flex items-center gap-3">
-            <p className="text-sm font-medium text-gray-900">{openExercise.data.label}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white/90">{openExercise.data.label}</p>
             <Badge color={EXERCISE_STATUS_BADGE_COLORS[openExercise.data.status]}>
               {EXERCISE_STATUS_LABELS[openExercise.data.status]}
             </Badge>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Du {new Date(openExercise.data.startDate).toLocaleDateString('fr-FR')} au{' '}
             {new Date(openExercise.data.endDate).toLocaleDateString('fr-FR')}
             {openExercise.data.comment && ` · ${openExercise.data.comment}`}
           </p>
 
           {canWrite && (
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
               <ClosePeriodForm propertyId={property.id} />
             </div>
           )}

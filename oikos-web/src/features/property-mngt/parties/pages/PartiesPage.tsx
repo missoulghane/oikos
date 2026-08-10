@@ -26,7 +26,7 @@ export function PartiesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-gray-900">Contacts</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Contacts</h1>
         {propertyId && !isCreating && (
           <Button type="button" onClick={() => setIsCreating(true)}>
             Nouveau contact
@@ -83,20 +83,20 @@ export function PartiesPage() {
       )}
       {propertyId && parties.data && parties.data.content.length > 0 && (
         <div className="flex flex-col gap-3">
-          <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
+          <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
             {parties.data.content.map((party) => (
               <li key={party.id}>
                 <Link
                   to={`/parties/${propertyId}/${party.id}`}
-                  className="flex flex-col gap-1 px-3 py-2 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-1 px-3 py-2 hover:bg-gray-50 dark:hover:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white/90">
                       {party.fullName} ({PARTY_TYPE_LABELS[party.partyType]})
                     </p>
-                    <p className="text-sm text-gray-500">{party.email}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{party.email}</p>
                   </div>
-                  {party.phone && <span className="text-sm text-gray-500">{party.phone}</span>}
+                  {party.phone && <span className="text-sm text-gray-500 dark:text-gray-400">{party.phone}</span>}
                 </Link>
               </li>
             ))}

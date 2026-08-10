@@ -47,13 +47,13 @@ export function UnitInstallmentsSection({ propertyId, unitId }: UnitInstallments
 
       {isLoading && <Loader label="Chargement des échéances…" />}
       {isError && <Alert message={getErrorMessage(error)} />}
-      {data && data.length === 0 && <p className="text-sm text-gray-400">Aucune échéance pour le moment.</p>}
+      {data && data.length === 0 && <p className="text-sm text-gray-400 dark:text-gray-500">Aucune échéance pour le moment.</p>}
       {data && data.length > 0 && (
-        <ul className="flex flex-col divide-y divide-gray-100">
+        <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
           {data.map((installment) => (
             <li key={installment.id} className="flex items-center justify-between py-2 text-sm">
               <div>
-                <p className="text-gray-700">
+                <p className="text-gray-700 dark:text-gray-300">
                   Échéance du {new Date(installment.dueDate).toLocaleDateString('fr-FR')} — {installment.amount} MAD
                   {installment.status === 'PARTIALLY_SETTLED' && ` (reste ${installment.outstandingAmount} MAD)`}
                 </p>

@@ -15,8 +15,8 @@ export function AccountingLedgerAccountsTab() {
   return (
     <Card className="flex flex-col gap-4">
       <div>
-        <h2 className="text-base font-semibold text-gray-900">Plan comptable</h2>
-        <p className="text-sm text-gray-500">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Plan comptable</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Comptes partagés du plan comptable marocain et comptes propres à cette copropriété (caisse, banque, lots).
         </p>
       </div>
@@ -27,7 +27,7 @@ export function AccountingLedgerAccountsTab() {
         <EmptyState title="Aucun compte pour le moment" />
       )}
       {ledgerAccounts.data && ledgerAccounts.data.length > 0 && (
-        <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
+        <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
           {ledgerAccounts.data
             .slice()
             .sort((a, b) => a.accountNumber.localeCompare(b.accountNumber))

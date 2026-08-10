@@ -98,6 +98,7 @@ public class ListContactsByPropertyService implements ListContactsByPropertyUseC
         }
 
         List<EntityId> matchingPartyIds = partyDetailsById.entrySet().stream()
+                .filter(entry -> matchesAccountFilter(linkedPartyIds.contains(entry.getKey()), query.hasLinkedAccount()))
                 .filter(entry -> matchesSearch(entry.getValue(), query.search()))
                 .sorted(Comparator.comparing(entry -> entry.getValue().fullName(), String.CASE_INSENSITIVE_ORDER))
                 .map(Map.Entry::getKey)
@@ -118,6 +119,16 @@ public class ListContactsByPropertyService implements ListContactsByPropertyUseC
                 .toList();
 
         return Page.of(content, query.pageRequest().pageNumber(), pageSize, matchingPartyIds.size());
+    }
+
+    /**
+     * "Compte actif" for a contact means its party is linked to a user account
+     * (AccountLinkingPort), which is exactly what the hasLinkedAccount flag of
+     * the returned view shows - the filter reuses it so list and badge can
+     * never disagree.
+     */
+    private static boolean matchesAccountFilter(boolean hasLinkedAccount, Boolean wanted) {
+        return wanted == null || hasLinkedAccount == wanted;
     }
 
     private static boolean matchesSearch(PartyDetails partyDetails, String search) {

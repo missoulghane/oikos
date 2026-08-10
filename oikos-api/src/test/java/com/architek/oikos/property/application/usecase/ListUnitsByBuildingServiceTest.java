@@ -145,4 +145,87 @@ class ListUnitsByBuildingServiceTest {
         assertThat(page.content()).flatExtracting(view -> view.ownerFullNames()).containsExactly("Jane Doe");
         assertThat(page.content()).extracting(view -> view.ownershipStatus()).containsExactly(OwnershipStatus.AFFECTED);
     }
+
+    @Test
+    void searching_by_unit_number_keeps_the_lot_even_when_it_has_no_owner() {
+        PropertyId propertyId = PropertyId.newId();
+        BuildingId buildingId = BuildingId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        Unit matchingUnit = Unit.create(UnitId.newId(), buildingId, propertyId, "A12", unitTypeId, Shares.of(new BigDecimal("150")));
+        Unit otherUnit = Unit.create(UnitId.newId(), buildingId, propertyId, "B07", unitTypeId, Shares.of(new BigDecimal("100")));
+
+        when(buildingRepository.findById(buildingId))
+                .thenReturn(Optional.of(Building.create(buildingId, propertyId, "Batiment A", 5)));
+        when(unitTypeDefinitionRepository.findAllByPropertyId(propertyId))
+                .thenReturn(List.of(UnitTypeDefinition.create(unitTypeId, propertyId, "Appartement")));
+        when(unitRepository.findAllByBuildingId(buildingId, PageRequest.of(0, 100)))
+                .thenReturn(Page.of(List.of(matchingUnit, otherUnit), 0, 100, 2));
+        when(unitOwnershipRepository.findAllByUnitId(matchingUnit.getId())).thenReturn(List.of());
+        when(unitOwnershipRepository.findAllByUnitId(otherUnit.getId())).thenReturn(List.of());
+
+        var query = new ListUnitsByBuildingQuery(buildingId, PageRequest.of(0, 20), "a1");
+        var page = newService().listUnits(query);
+
+        assertThat(page.content()).extracting(view -> view.unitNumber()).containsExactly("A12");
+        assertThat(page.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void filtering_on_not_affected_keeps_only_the_units_without_any_ownership() {
+        PropertyId propertyId = PropertyId.newId();
+        BuildingId buildingId = BuildingId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        Unit affectedUnit = Unit.create(UnitId.newId(), buildingId, propertyId, "A12", unitTypeId, Shares.of(new BigDecimal("150")));
+        Unit freeUnit = Unit.create(UnitId.newId(), buildingId, propertyId, "A13", unitTypeId, Shares.of(new BigDecimal("100")));
+
+        when(buildingRepository.findById(buildingId))
+                .thenReturn(Optional.of(Building.create(buildingId, propertyId, "Batiment A", 5)));
+        when(unitTypeDefinitionRepository.findAllByPropertyId(propertyId))
+                .thenReturn(List.of(UnitTypeDefinition.create(unitTypeId, propertyId, "Appartement")));
+        when(unitRepository.findAllByBuildingId(buildingId, PageRequest.of(0, 100)))
+                .thenReturn(Page.of(List.of(affectedUnit, freeUnit), 0, 100, 2));
+
+        EntityId partyId = EntityId.newId();
+        when(unitOwnershipRepository.findAllByUnitId(affectedUnit.getId())).thenReturn(List.of(
+                UnitOwnership.create(UnitOwnershipId.newId(), affectedUnit.getId(), partyId, propertyId,
+                        OwnershipShare.of(new BigDecimal("100")))));
+        when(unitOwnershipRepository.findAllByUnitId(freeUnit.getId())).thenReturn(List.of());
+
+        var query = new ListUnitsByBuildingQuery(buildingId, PageRequest.of(0, 20), null, OwnershipStatus.NOT_AFFECTED);
+        var page = newService().listUnits(query);
+
+        assertThat(page.content()).extracting(view -> view.unitNumber()).containsExactly("A13");
+        assertThat(page.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void filtering_on_affected_combines_with_the_search_on_the_same_page() {
+        PropertyId propertyId = PropertyId.newId();
+        BuildingId buildingId = BuildingId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        Unit affectedUnit = Unit.create(UnitId.newId(), buildingId, propertyId, "A12", unitTypeId, Shares.of(new BigDecimal("150")));
+        Unit freeUnit = Unit.create(UnitId.newId(), buildingId, propertyId, "A13", unitTypeId, Shares.of(new BigDecimal("100")));
+
+        when(buildingRepository.findById(buildingId))
+                .thenReturn(Optional.of(Building.create(buildingId, propertyId, "Batiment A", 5)));
+        when(unitTypeDefinitionRepository.findAllByPropertyId(propertyId))
+                .thenReturn(List.of(UnitTypeDefinition.create(unitTypeId, propertyId, "Appartement")));
+        when(unitRepository.findAllByBuildingId(buildingId, PageRequest.of(0, 100)))
+                .thenReturn(Page.of(List.of(affectedUnit, freeUnit), 0, 100, 2));
+
+        EntityId partyId = EntityId.newId();
+        when(unitOwnershipRepository.findAllByUnitId(affectedUnit.getId())).thenReturn(List.of(
+                UnitOwnership.create(UnitOwnershipId.newId(), affectedUnit.getId(), partyId, propertyId,
+                        OwnershipShare.of(new BigDecimal("100")))));
+        when(unitOwnershipRepository.findAllByUnitId(freeUnit.getId())).thenReturn(List.of());
+        when(partyDirectoryPort.getPartyById(partyId))
+                .thenReturn(new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"), null));
+
+        // "A1" matches both lot numbers, the status filter is what narrows it down.
+        var query = new ListUnitsByBuildingQuery(buildingId, PageRequest.of(0, 20), "A1", OwnershipStatus.AFFECTED);
+        var page = newService().listUnits(query);
+
+        assertThat(page.content()).extracting(view -> view.unitNumber()).containsExactly("A12");
+        assertThat(page.totalElements()).isEqualTo(1);
+    }
 }

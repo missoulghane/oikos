@@ -18,7 +18,7 @@ export function MyMembershipRequestsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-gray-900">Mes invitations</h1>
+      <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Mes invitations</h1>
 
       <Card className="flex flex-col gap-2">
         {requests.isLoading && <Loader label="Chargement de vos demandes…" />}
@@ -29,13 +29,13 @@ export function MyMembershipRequestsPage() {
           </EmptyState>
         )}
         {requests.data && requests.data.length > 0 && (
-          <ul className="flex flex-col divide-y divide-gray-100">
+          <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
             {requests.data.map((request) => {
               const badge = STATUS_BADGE[request.status];
               return (
                 <li key={request.id} className="flex flex-col gap-1 py-2 text-sm">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-gray-700">
+                    <p className="text-gray-700 dark:text-gray-300">
                       {request.propertyName ?? 'Copropriété'}
                       {request.unitNumber && ` — Lot ${request.unitNumber}`}
                       {request.unitTypeName && ` (${request.unitTypeName})`}
@@ -43,7 +43,7 @@ export function MyMembershipRequestsPage() {
                     <Badge color={badge.color}>{badge.label}</Badge>
                   </div>
                   {request.status === 'REJECTED' && request.rejectionReason && (
-                    <p className="text-xs text-gray-400">Motif : {request.rejectionReason}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Motif : {request.rejectionReason}</p>
                   )}
                 </li>
               );

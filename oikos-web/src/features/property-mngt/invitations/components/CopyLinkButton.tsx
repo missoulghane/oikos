@@ -20,7 +20,7 @@ export function CopyLinkButton({ link }: CopyLinkButtonProps) {
   return (
     <Button type="button" variant="secondary" onClick={handleClick}>
       <span className="flex items-center gap-1.5">
-        {copied ? <CheckLineIcon className="h-4 w-4 text-success-600" /> : <CopyIcon className="h-4 w-4" />}
+        {copied ? <CheckLineIcon className="h-4 w-4 text-success-600 dark:text-success-500" /> : <CopyIcon className="h-4 w-4" />}
         {copied ? 'Lien copié !' : 'Copier le lien'}
       </span>
     </Button>

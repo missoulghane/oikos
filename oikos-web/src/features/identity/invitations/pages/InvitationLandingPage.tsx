@@ -124,7 +124,7 @@ export function InvitationLandingPage() {
     return (
       <AuthLayout>
         <Card>
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Invitation</h2>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white/90">Invitation</h2>
           <Alert message="Ce lien d'invitation est invalide." />
         </Card>
       </AuthLayout>
@@ -135,9 +135,9 @@ export function InvitationLandingPage() {
     return (
       <AuthLayout>
         <Card>
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Invitation</h2>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white/90">Invitation</h2>
           <Alert message={UNUSABLE_REASON_LABELS[preview.reason ?? ''] ?? "Ce lien d'invitation n'est plus valide."} />
-          <Link to="/login" className="mt-4 inline-block text-sm font-medium text-gray-900 underline">
+          <Link to="/login" className="mt-4 inline-block text-sm font-medium text-gray-900 dark:text-white/90 underline">
             Retour à la connexion
           </Link>
         </Card>
@@ -174,18 +174,18 @@ export function InvitationLandingPage() {
   return (
     <AuthLayout>
       <Card>
-        <h2 className="mb-1 text-lg font-semibold text-gray-900">{preview.propertyName}</h2>
-        <p className="mb-4 text-sm text-gray-500">{preview.propertyAddress}</p>
+        <h2 className="mb-1 text-lg font-semibold text-gray-900 dark:text-white/90">{preview.propertyName}</h2>
+        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">{preview.propertyAddress}</p>
 
         <div className="flex flex-col gap-4">
           <div>
-            <p className="mb-2 text-sm font-medium text-gray-700">1. Choisissez votre lot</p>
+            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">1. Choisissez votre lot</p>
             <UnitPicker units={availableUnits?.content ?? []} value={unitId} onChange={selectUnit} />
           </div>
 
           {unitId && (
             <div>
-              <p className="mb-2 text-sm font-medium text-gray-700">2. Connectez-vous ou créez un compte</p>
+              <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">2. Connectez-vous ou créez un compte</p>
               {isAuthenticated ? (
                 <>
                   {autoConfirmStatus === 'pending' && <Loader label="Finalisation…" />}

@@ -41,11 +41,11 @@ export function UnitTypePriceRow({ propertyId, unitTypeId, label, currentPrice }
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-2 border-b border-gray-200 py-3 last:border-b-0 sm:flex-row sm:items-end sm:justify-between"
+      className="flex flex-col gap-2 border-b border-gray-200 dark:border-gray-800 py-3 last:border-b-0 sm:flex-row sm:items-end sm:justify-between"
       noValidate
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
-        <p className="w-40 pb-2 text-sm font-medium text-gray-900 sm:pb-0">{label}</p>
+        <p className="w-40 pb-2 text-sm font-medium text-gray-900 dark:text-white/90 sm:pb-0">{label}</p>
         <Input
           label="Prix"
           type="number"

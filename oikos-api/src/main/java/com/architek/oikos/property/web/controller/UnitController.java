@@ -22,6 +22,7 @@ import com.architek.oikos.property.application.port.in.UpdateUnitSharesUseCase;
 import com.architek.oikos.property.application.query.GetUnitQuery;
 import com.architek.oikos.property.application.query.ListUnitsByBuildingQuery;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
+import com.architek.oikos.property.domain.valueobject.OwnershipStatus;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.property.web.request.AddUnitRequest;
@@ -54,9 +55,10 @@ public class UnitController {
     public PagedUnitResponse list(@PathVariable String buildingId,
                                   @RequestParam(defaultValue = "0") int page,
                                   @RequestParam(defaultValue = "20") int size,
-                                  @RequestParam(required = false) String search) {
-        ListUnitsByBuildingQuery query =
-                new ListUnitsByBuildingQuery(BuildingId.of(buildingId), PageRequest.of(page, size), search);
+                                  @RequestParam(required = false) String search,
+                                  @RequestParam(required = false) OwnershipStatus ownershipStatus) {
+        ListUnitsByBuildingQuery query = new ListUnitsByBuildingQuery(
+                BuildingId.of(buildingId), PageRequest.of(page, size), search, ownershipStatus);
         return PagedUnitResponse.from(listUnitsByBuildingUseCase.listUnits(query));
     }
 

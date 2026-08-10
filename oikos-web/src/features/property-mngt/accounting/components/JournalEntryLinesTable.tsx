@@ -17,9 +17,9 @@ export function JournalEntryLinesTable({ lines, ledgerAccounts = [] }: JournalEn
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
         <thead>
-          <tr className="text-left text-gray-500">
+          <tr className="text-left text-gray-500 dark:text-gray-400">
             <th className="py-2 pr-4 font-medium">Compte</th>
             <th className="py-2 pr-4 font-medium">Auxiliaire</th>
             <th className="py-2 pr-4 font-medium">Libellé</th>
@@ -27,11 +27,11 @@ export function JournalEntryLinesTable({ lines, ledgerAccounts = [] }: JournalEn
             <th className="py-2 pr-4 text-right font-medium">Montant</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
           {lines.map((line) => (
-            <tr key={line.id} className="text-gray-800">
+            <tr key={line.id} className="text-gray-800 dark:text-white/90">
               <td className="py-2 pr-4">{accountLabel(line.ledgerAccountId)}</td>
-              <td className="py-2 pr-4 font-mono text-xs text-gray-500">
+              <td className="py-2 pr-4 font-mono text-xs text-gray-500 dark:text-gray-400">
                 {line.auxiliaryUnitId ?? line.auxiliaryPartyId ?? '—'}
               </td>
               <td className="py-2 pr-4">{line.label}</td>
@@ -41,7 +41,7 @@ export function JournalEntryLinesTable({ lines, ledgerAccounts = [] }: JournalEn
           ))}
         </tbody>
         <tfoot>
-          <tr className="border-t border-gray-200 font-medium text-gray-900">
+          <tr className="border-t border-gray-200 dark:border-gray-800 font-medium text-gray-900 dark:text-white/90">
             <td className="py-2 pr-4" colSpan={4}>
               Total
             </td>

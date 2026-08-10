@@ -69,7 +69,7 @@ function InstallmentsListTabContent({ installmentCallIdFromUrl }: { installmentC
   return (
     <Card className="flex flex-col gap-4">
       {canWrite && (
-        <div className="flex flex-col gap-2 border-b border-gray-100 pb-4">
+        <div className="flex flex-col gap-2 border-b border-gray-100 dark:border-gray-800 pb-4">
           <Button
             type="button"
             variant="secondary"

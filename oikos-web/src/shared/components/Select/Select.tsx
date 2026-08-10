@@ -11,7 +11,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
     return (
       <div className="flex flex-col gap-1">
-        <label htmlFor={selectId} className="text-sm font-medium text-gray-700">
+        <label htmlFor={selectId} className="text-sm font-medium text-gray-700 dark:text-gray-300">
           {label}
         </label>
         <select
@@ -19,17 +19,17 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           aria-invalid={Boolean(errorMessage)}
           aria-describedby={errorMessage ? `${selectId}-error` : undefined}
-          className={`min-h-11 rounded-lg border bg-white px-3 py-2 text-base text-gray-800 shadow-theme-xs focus:outline-none focus:ring-3 ${
+          className={`min-h-11 rounded-lg border bg-white dark:bg-gray-900 px-3 py-2 text-base text-gray-800 dark:text-white/90 shadow-theme-xs focus:outline-none focus:ring-3 ${
             errorMessage
               ? 'border-error-500 focus:border-error-300 focus:ring-error-500/20'
-              : 'border-gray-300 focus:border-brand-300 focus:ring-brand-500/20'
+              : 'border-gray-300 dark:border-gray-700 focus:border-brand-300 focus:ring-brand-500/20'
           } ${className}`}
           {...rest}
         >
           {children}
         </select>
         {errorMessage && (
-          <p id={`${selectId}-error`} className="text-sm text-error-500">
+          <p id={`${selectId}-error`} className="text-sm text-error-500 dark:text-error-400">
             {errorMessage}
           </p>
         )}

@@ -25,7 +25,7 @@ export function PropertyInvitationsTab() {
     <div className="flex flex-col gap-4">
       <Card className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-semibold text-gray-900">Invitations</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Invitations</h2>
           {!isCreating && (
             <Button type="button" onClick={() => setIsCreating(true)}>
               Nouvelle invitation
@@ -49,7 +49,7 @@ export function PropertyInvitationsTab() {
       </Card>
 
       <Card className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-gray-900">Demandes d'adhésion</h2>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Demandes d'adhésion</h2>
         {membershipRequests.isLoading && <Loader label="Chargement des demandes d'adhésion…" />}
         {membershipRequests.isError && <Alert message={getErrorMessage(membershipRequests.error)} />}
         {membershipRequests.data && (

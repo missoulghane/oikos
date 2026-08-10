@@ -10,8 +10,8 @@ export function TreasuryAccountCard({ account, propertyId }: { account: LedgerAc
       className="block transition-shadow hover:shadow-theme-md"
     >
       <Card className="flex flex-col gap-2">
-        <p className="text-sm text-gray-500">{account.role ? ACCOUNT_ROLE_LABELS[account.role] : 'Compte'}</p>
-        <p className="text-sm font-medium text-gray-900">
+        <p className="text-sm text-gray-500 dark:text-gray-400">{account.role ? ACCOUNT_ROLE_LABELS[account.role] : 'Compte'}</p>
+        <p className="text-sm font-medium text-gray-900 dark:text-white/90">
           {account.accountNumber} — {account.label}
         </p>
         <p className={`text-2xl font-semibold ${getTreasuryBalanceColorClass(account.balance)}`}>

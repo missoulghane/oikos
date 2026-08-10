@@ -19,16 +19,16 @@ export function BoardMemberRow({ propertyId, member, onInvite }: BoardMemberRowP
   return (
     <li className="flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <p className="flex items-center gap-2 text-sm font-medium text-gray-900">
+        <p className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white/90">
           {member.partyFullName}
           <Badge color="primary">{BOARD_ROLE_LABELS[member.boardRole]}</Badge>
           {isPending && <Badge color="warning">En attente de validation</Badge>}
         </p>
-        {member.partyEmail && <p className="truncate text-sm text-gray-500">{member.partyEmail}</p>}
+        {member.partyEmail && <p className="truncate text-sm text-gray-500 dark:text-gray-400">{member.partyEmail}</p>}
         {member.hasLinkedAccount && (
-          <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-success-600">
+          <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-success-600 dark:text-success-500">
             <CheckCircleIcon className="h-4 w-4" />
-            <span>Compte lié</span>
+            <span>Compte actif</span>
           </span>
         )}
       </div>

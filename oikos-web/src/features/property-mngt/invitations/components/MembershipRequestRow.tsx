@@ -35,17 +35,17 @@ export function MembershipRequestRow({ propertyId, request }: MembershipRequestR
     <li className="flex flex-col gap-2 px-3 py-2">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-medium text-gray-900">
+          <p className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white/90">
             {request.status === 'INVITED' ? 'Invitation privée' : (party.data?.fullName ?? 'Demandeur…')}
             <Badge color={badge.color}>{badge.label}</Badge>
           </p>
-          <p className="truncate text-sm text-gray-500">
+          <p className="truncate text-sm text-gray-500 dark:text-gray-400">
             {request.status === 'INVITED'
               ? request.targetEmail
               : `${party.data?.email} — Lot ${unit.data?.unitNumber ?? '…'} (${unit.data?.unitTypeName})`}
           </p>
           {request.status === 'REJECTED' && request.rejectionReason && (
-            <p className="truncate text-xs text-gray-400">Motif : {request.rejectionReason}</p>
+            <p className="truncate text-xs text-gray-400 dark:text-gray-500">Motif : {request.rejectionReason}</p>
           )}
         </div>
         {request.status === 'PENDING' && !isRejecting && (

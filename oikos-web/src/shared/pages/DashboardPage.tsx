@@ -27,8 +27,8 @@ function BoardDashboard({ propertyId }: { propertyId: string }) {
   return (
     <Card className="flex flex-col gap-4">
       <div>
-        <h2 className="text-base font-semibold text-gray-900">{property.data.name}</h2>
-        <p className="text-sm text-gray-500">{property.data.address}</p>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">{property.data.name}</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{property.data.address}</p>
       </div>
       <div className="flex flex-wrap gap-3">
         <Link
@@ -39,7 +39,7 @@ function BoardDashboard({ propertyId }: { propertyId: string }) {
         </Link>
         <Link
           to={`/property-mngt/properties/${propertyId}/installments`}
-          className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+          className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
         >
           Gestion des échéances
         </Link>
@@ -64,7 +64,7 @@ function ManagerDashboard() {
   return (
     <Card className="flex flex-col gap-4">
       <div>
-        <h2 className="text-base font-semibold text-gray-900">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">
           Vous gérez {count} copropriété{count > 1 ? 's' : ''}
         </h2>
       </div>
@@ -96,11 +96,11 @@ function OwnerDashboard() {
   return (
     <Card className="flex flex-col gap-4">
       <div>
-        <h2 className="text-base font-semibold text-gray-900">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">
           Vous possédez {count} lot{count > 1 ? 's' : ''}
         </h2>
         {unpaidCount > 0 && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {unpaidCount} échéance{unpaidCount > 1 ? 's' : ''} en attente de règlement
           </p>
         )}
@@ -114,7 +114,7 @@ function OwnerDashboard() {
         </Link>
         <Link
           to="/property-ownership/installments"
-          className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+          className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
         >
           Mes échéances
         </Link>
@@ -135,7 +135,7 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-gray-900">Tableau de bord</h1>
+      <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Tableau de bord</h1>
       {boardId ? (
         <BoardDashboard propertyId={boardId} />
       ) : isManager ? (

@@ -1,6 +1,6 @@
 export function SidebarWidget() {
   return (
-    <div className="mx-auto mb-6 w-full max-w-60 rounded-2xl bg-gray-50 px-4 py-5 text-center">
+    <div className="mx-auto mb-6 w-full max-w-60 rounded-2xl bg-gray-50 dark:bg-white/[0.03] px-4 py-5 text-center">
       <a
         href="https://oikos.ma"
         target="_blank"

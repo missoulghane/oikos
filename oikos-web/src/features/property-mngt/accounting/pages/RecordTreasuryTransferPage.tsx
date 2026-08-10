@@ -24,10 +24,10 @@ export function RecordTreasuryTransferPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link to={backTo} className="text-sm text-gray-500 hover:underline">
+        <Link to={backTo} className="text-sm text-gray-500 dark:text-gray-400 hover:underline">
           ← Retour au compte
         </Link>
-        <h1 className="text-lg font-semibold text-gray-900">Enregistrer un virement entre comptes</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Enregistrer un virement entre comptes</h1>
       </div>
       <Card>
         <RecordTreasuryTransferForm

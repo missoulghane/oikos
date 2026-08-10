@@ -71,19 +71,17 @@ const INSTALLMENT_TABS = [
 // replaced the old FinancialAccount/UnitAccount model and its routes
 // (financial-accounts, units, lettrage no longer exist), but this sidebar
 // still pointed at the old paths, causing 404s.
+// Paths are relative to /property-mngt/properties/:id (not to accounting/):
+// the exercise open/close workflow below is a sibling route
+// (accounting-exercise), yet belongs to the "Comptabilité" group in the menu.
 const ACCOUNTING_TABS = [
-  { name: 'Vue d’ensemble', path: '', icon: <DollarLineIcon /> },
-  { name: 'Plan comptable', path: '/ledger-accounts', icon: <FolderIcon /> },
-  { name: 'Comptes des lots', path: '/unit-accounts', icon: <BoxIconLine /> },
-  { name: 'Journal', path: '/journal', icon: <ListIcon /> },
-  { name: 'Dépenses', path: '/expenses', icon: <ArrowDownIcon /> },
+  { name: 'Vue d’ensemble', path: '/accounting', icon: <DollarLineIcon /> },
+  { name: 'Plan comptable', path: '/accounting/ledger-accounts', icon: <FolderIcon /> },
+  { name: 'Comptes des lots', path: '/accounting/unit-accounts', icon: <BoxIconLine /> },
+  { name: 'Journal', path: '/accounting/journal', icon: <ListIcon /> },
+  { name: 'Dépenses', path: '/accounting/expenses', icon: <ArrowDownIcon /> },
+  { name: 'Exercice comptable', path: '/accounting-exercise', icon: <LockIcon /> },
 ];
-
-// Standalone menu (kept out of ACCOUNTING_TABS/"Comptabilité" on purpose - the
-// exercise open/close workflow used to live on the accounting overview tab
-// but was moved to its own top-level group, placed last among the
-// property-scoped groups, see propertyContextGroups below).
-const ACCOUNTING_EXERCISE_TABS = [{ name: 'Ouverture / Clôture', path: '', icon: <TimeIcon /> }];
 
 // Réception/Envoyé/Brouillon - each with its own icon, distinct from the
 // "Messagerie" group icon above them (EnvelopeIcon) - see messagingGroup.
@@ -108,6 +106,23 @@ function messagingGroup(messagingUnreadCount: number): NavGroup {
     icon: <EnvelopeIcon />,
     children: messagingTabs(messagingUnreadCount),
   };
+}
+
+// Which child of a group the current URL belongs to, or null if none.
+//
+// A tab matches when the URL is its path or nested under it (startsWith, not
+// just equality: "Réception" must stay highlighted while a nested detail route
+// /messages/reception/:id is open). But an index tab ("Informations générales",
+// "Échéances", "Vue d'ensemble") carries the section root as its path, which is
+// a prefix of every one of its siblings - so a plain startsWith lights it up on
+// every sub-tab as well. Resolving a single winner by longest match keeps the
+// nested-detail behaviour while letting the more specific sibling take over.
+function activeChildPath(children: { path: string }[], pathname: string): string | null {
+  return children.reduce<string | null>((best, child) => {
+    const matches = pathname === child.path || pathname.startsWith(`${child.path}/`);
+    if (!matches) return best;
+    return best === null || child.path.length > best.length ? child.path : best;
+  }, null);
 }
 
 // Property-scoped groups only (Ma copropriété/Gestion des échéances/Comptabilité) - Messagerie
@@ -139,16 +154,7 @@ function propertyContextGroups(propertyId: string): NavGroup[] {
       icon: <DocsIcon />,
       children: ACCOUNTING_TABS.map((tab) => ({
         name: tab.name,
-        path: `/property-mngt/properties/${propertyId}/accounting${tab.path}`,
-        icon: tab.icon,
-      })),
-    },
-    {
-      name: 'Exercice comptable',
-      icon: <LockIcon />,
-      children: ACCOUNTING_EXERCISE_TABS.map((tab) => ({
-        name: tab.name,
-        path: `/property-mngt/properties/${propertyId}/accounting-exercise${tab.path}`,
+        path: `/property-mngt/properties/${propertyId}${tab.path}`,
         icon: tab.icon,
       })),
     },
@@ -166,7 +172,7 @@ export function AppSidebar() {
   // Both groups start expanded (matching the previous always-open behaviour);
   // the user can collapse either one independently from there.
   const [openGroups, setOpenGroups] = useState<Set<string>>(
-    () => new Set(['Ma copropriété', 'Gestion des échéances', 'Comptabilité', 'Exercice comptable', 'Messagerie']),
+    () => new Set(['Ma copropriété', 'Gestion des échéances', 'Comptabilité', 'Messagerie']),
   );
 
   const showExpanded = isExpanded || isHovered || isMobileOpen;
@@ -239,20 +245,20 @@ export function AppSidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-50 mt-16 flex h-screen flex-col border-r border-gray-200 bg-white px-5 transition-all duration-300 ease-in-out lg:mt-0 ${
+      className={`fixed left-0 top-0 z-50 mt-16 flex h-screen flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 transition-all duration-300 ease-in-out lg:mt-0 ${
         isExpanded || isMobileOpen ? 'w-[290px]' : isHovered ? 'w-[290px]' : 'w-[90px]'
       } ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className={`flex py-8 ${!showExpanded ? 'lg:justify-center' : 'justify-start'}`}>
-        <Link to="/" className="text-xl font-semibold text-gray-900">
+        <Link to="/" className="text-xl font-semibold text-gray-900 dark:text-white/90">
           {showExpanded ? 'Oikos' : 'O'}
         </Link>
       </div>
       <nav className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <span
-          className={`mb-4 flex text-xs uppercase text-gray-400 ${!showExpanded ? 'lg:justify-center' : ''}`}
+          className={`mb-4 flex text-xs uppercase text-gray-400 dark:text-gray-500 ${!showExpanded ? 'lg:justify-center' : ''}`}
         >
           {showExpanded ? 'Menu' : <HorizontaLDots className="size-6" />}
         </span>
@@ -283,9 +289,8 @@ export function AppSidebar() {
           ))}
           {groups.map((group) => {
             const isOpen = openGroups.has(group.name);
-            const groupActive = group.children.some(
-              (child) => location.pathname === child.path || location.pathname.startsWith(`${child.path}/`),
-            );
+            const activePath = activeChildPath(group.children, location.pathname);
+            const groupActive = activePath !== null;
             return (
               <li key={group.name}>
                 <button
@@ -324,11 +329,8 @@ export function AppSidebar() {
                   >
                     <ul className="mt-2 ml-9 space-y-1 overflow-hidden">
                       {group.children.map((child) => {
-                        // startsWith, not just an exact match: a tab like
-                        // "Réception" must stay highlighted while a nested
-                        // detail route is open (/messages/reception/:id).
-                        const childActive =
-                          location.pathname === child.path || location.pathname.startsWith(`${child.path}/`);
+                        // Exactly one child wins per group, see activeChildPath.
+                        const childActive = child.path === activePath;
                         return (
                           <li key={child.path}>
                             <Link

@@ -41,7 +41,7 @@ export function CreatePartyForm({ propertyId, onSuccess, onCancel }: CreateParty
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-gray-200 p-4">
+    <div className="flex flex-col gap-4 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
       {error && <Alert message={getErrorMessage(error)} />}
       <Input label="Nom complet" {...register('fullName')} errorMessage={errors.fullName?.message} />
       <Select label="Type" {...register('partyType')} errorMessage={errors.partyType?.message} defaultValue="">

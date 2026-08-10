@@ -13,7 +13,7 @@ export function BoardInvitationList({ propertyId, invitations }: BoardInvitation
   }
 
   return (
-    <ul className="flex flex-col divide-y divide-gray-200 rounded-lg border border-gray-200">
+    <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
       {invitations.map((invitation) => (
         <BoardInvitationRow key={invitation.id} propertyId={propertyId} invitation={invitation} />
       ))}

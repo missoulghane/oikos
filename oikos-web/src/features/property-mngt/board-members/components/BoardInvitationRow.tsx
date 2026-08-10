@@ -26,12 +26,12 @@ export function BoardInvitationRow({ propertyId, invitation }: BoardInvitationRo
     <li className="flex flex-col gap-2 px-3 py-2">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-medium text-gray-900">
+          <p className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white/90">
             {invitation.boardRole ? BOARD_ROLE_LABELS[invitation.boardRole as BoardRole] : 'Bureau de syndic'}
             <Badge color={STATUS_BADGE[invitation.status].color}>{STATUS_BADGE[invitation.status].label}</Badge>
           </p>
-          {invitation.targetEmail && <p className="truncate text-sm text-gray-500">{invitation.targetEmail}</p>}
-          <p className="truncate text-xs text-gray-400">
+          {invitation.targetEmail && <p className="truncate text-sm text-gray-500 dark:text-gray-400">{invitation.targetEmail}</p>}
+          <p className="truncate text-xs text-gray-400 dark:text-gray-500">
             Expire le {new Date(invitation.expiresAt).toLocaleDateString('fr-FR')}
           </p>
         </div>

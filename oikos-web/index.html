@@ -5,6 +5,26 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Oikos - Gestion de copropriété</title>
+    <script>
+      // Applies the stored light/dark choice before the first paint: waiting
+      // for React would flash a white page at every load in dark mode. Keep in
+      // sync with resolveInitialMode() in src/shared/context/ThemeContext.tsx.
+      (function () {
+        try {
+          var stored = localStorage.getItem('oikos-theme-mode');
+          var mode =
+            stored === 'light' || stored === 'dark'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light';
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          document.documentElement.style.colorScheme = mode;
+        } catch (error) {
+          // Private mode / storage disabled: stay on the light default.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
