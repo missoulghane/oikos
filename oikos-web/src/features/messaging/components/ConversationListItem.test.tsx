@@ -17,11 +17,11 @@ const baseConversation: ConversationSummary = {
   messageCount: 1,
 };
 
-function renderItem(conversation: ConversationSummary) {
+function renderItem(conversation: ConversationSummary, box: 'RECEIVED' | 'SENT' = 'RECEIVED') {
   return render(
     <MemoryRouter>
       <ul>
-        <ConversationListItem conversation={conversation} />
+        <ConversationListItem conversation={conversation} box={box} />
       </ul>
     </MemoryRouter>,
   );
@@ -32,8 +32,13 @@ describe('ConversationListItem', () => {
     renderItem(baseConversation);
 
     expect(screen.getByText('Fuite d’eau hall B')).toBeInTheDocument();
-    expect(screen.getByText('À bientôt !')).toBeInTheDocument();
     expect(screen.getByText('Jean Dupont · Résidence Les Oliviers')).toBeInTheDocument();
+  });
+
+  it('does not render a preview of the message content in the list', () => {
+    renderItem(baseConversation);
+
+    expect(screen.queryByText('À bientôt !')).not.toBeInTheDocument();
   });
 
   it('joins every participant name on the secondary line for a multi-recipient GROUP conversation', () => {
@@ -85,5 +90,13 @@ describe('ConversationListItem', () => {
     renderItem({ ...baseConversation, messageCount: 4 });
 
     expect(screen.getByText('(4 messages)')).toBeInTheDocument();
+  });
+
+  it('links to the conversation under whichever box (Réception/Envoyé) it was opened from', () => {
+    renderItem(baseConversation, 'RECEIVED');
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/messages/reception/conversation-1');
+
+    renderItem(baseConversation, 'SENT');
+    expect(screen.getAllByRole('link')[1]).toHaveAttribute('href', '/messages/sent/conversation-1');
   });
 });

@@ -22,7 +22,7 @@ export function NotificationBell() {
       <button
         onClick={() => setIsOpen((value) => !value)}
         aria-label="Notifications de messagerie"
-        className="dropdown-toggle relative flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+        className="dropdown-toggle relative flex h-11 w-11 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700"
       >
         <ChatIcon className="h-5 w-5" />
         {totalUnread > 0 && (
@@ -45,7 +45,7 @@ export function NotificationBell() {
             return (
               <li key={conversation.id}>
                 <Link
-                  to={`/messages/${conversation.id}`}
+                  to={`/messages/reception/${conversation.id}`}
                   onClick={closeDropdown}
                   className="flex flex-col gap-0.5 rounded-lg border-b border-gray-100 px-3 py-2.5 hover:bg-gray-100"
                 >
@@ -66,7 +66,7 @@ export function NotificationBell() {
           })}
         </ul>
         <Link
-          to="/messages"
+          to="/messages/reception"
           onClick={closeDropdown}
           className="mt-3 block rounded-lg border border-gray-300 bg-white px-4 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-100"
         >

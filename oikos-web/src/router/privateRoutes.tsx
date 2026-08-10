@@ -107,13 +107,22 @@ const MyInstallmentsPage = lazy(() =>
   import('@/features/property-ownership/installments').then((m) => ({ default: m.MyInstallmentsPage })),
 );
 const MyMembershipRequestsPage = lazy(() =>
-  import('@/features/property-ownership/membership-requests').then((m) => ({ default: m.MyMembershipRequestsPage })),
+  import('@/features/property-ownership/membership-requests').then((m) => ({
+    default: m.MyMembershipRequestsPage,
+  })),
 );
-const MessagingLayout = lazy(() => import('@/features/messaging').then((m) => ({ default: m.MessagingLayout })));
+const MessagingLayout = lazy(() =>
+  import('@/features/messaging').then((m) => ({ default: m.MessagingLayout })),
+);
 const NewConversationPage = lazy(() =>
   import('@/features/messaging').then((m) => ({ default: m.NewConversationPage })),
 );
-const ConversationPage = lazy(() => import('@/features/messaging').then((m) => ({ default: m.ConversationPage })));
+const ConversationPage = lazy(() =>
+  import('@/features/messaging').then((m) => ({ default: m.ConversationPage })),
+);
+const DraftsListPage = lazy(() =>
+  import('@/features/messaging').then((m) => ({ default: m.DraftsListPage })),
+);
 
 export const privateRoutes: RouteObject[] = [
   {
@@ -144,20 +153,25 @@ export const privateRoutes: RouteObject[] = [
         ),
       },
       {
-        // Cross-property inbox: open to every authenticated user, same
+        // Cross-property mailbox: open to every authenticated user, same
         // rationale as /parties/:propertyId/:partyId above - the API enforces
         // per-conversation authorization (isPropertyMember /
         // isConversationParticipant) regardless of route grouping, and
         // messaging is transverse to both /property-mngt and
         // /property-ownership so it does not belong under either prefix.
-        // Outlook-style split view: MessagingLayout renders the conversation
-        // list pane and an <Outlet/> reading pane; :conversationId fills that
-        // outlet with the selected thread instead of navigating to a
-        // separate full-screen page.
+        // Three mailbox views (Réception/Envoyé/Brouillon) rather than one
+        // flat list - /messages itself just redirects to the default one.
         path: '/messages',
+        element: <Navigate to="/messages/reception" replace />,
+      },
+      {
+        // Single-pane view: MessagingLayout renders the conversation list:
+        // conversationId fills the outlet with the selected thread, replacing
+        // the list rather than sitting beside it (see MessagingLayout).
+        path: '/messages/reception',
         element: (
           <Suspense fallback={<Loader />}>
-            <MessagingLayout />
+            <MessagingLayout box="RECEIVED" />
           </Suspense>
         ),
         children: [
@@ -170,6 +184,35 @@ export const privateRoutes: RouteObject[] = [
             ),
           },
         ],
+      },
+      {
+        path: '/messages/sent',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <MessagingLayout box="SENT" />
+          </Suspense>
+        ),
+        children: [
+          {
+            path: ':conversationId',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <ConversationPage />
+              </Suspense>
+            ),
+          },
+        ],
+      },
+      {
+        // No child :conversationId route here - a draft isn't a conversation
+        // yet, clicking one always resumes editing via /messages/new?draftId=
+        // instead of opening a read-only detail pane (see DraftsListPage).
+        path: '/messages/drafts',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <DraftsListPage />
+          </Suspense>
+        ),
       },
       {
         path: '/messages/new',

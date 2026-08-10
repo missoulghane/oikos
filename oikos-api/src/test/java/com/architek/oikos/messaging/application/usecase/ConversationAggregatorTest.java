@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.architek.oikos.messaging.application.dto.ConversationParticipantView;
 import com.architek.oikos.messaging.application.dto.ConversationSummaryView;
 import com.architek.oikos.messaging.application.port.out.PropertyMemberDirectoryPort;
+import com.architek.oikos.messaging.application.query.ConversationBox;
 import com.architek.oikos.messaging.application.port.out.UserAccessPort;
 import com.architek.oikos.messaging.domain.model.Conversation;
 import com.architek.oikos.messaging.domain.model.ConversationReadMarker;
@@ -157,6 +158,52 @@ class ConversationAggregatorTest {
 
         assertThat(newAggregator().listAll(caller, "dupont")).hasSize(1);
         assertThat(newAggregator().listAll(caller, "nomatch")).isEmpty();
+    }
+
+    @Test
+    void box_filters_to_conversations_the_caller_sent_into_or_received_into() {
+        EntityId caller = EntityId.newId();
+        EntityId propertyId = EntityId.newId();
+        EntityId other = EntityId.newId();
+
+        // sentOnly: only the caller ever posted - Envoyé only, never Réception.
+        ConversationId sentOnlyId = ConversationId.newId();
+        Conversation sentOnly = Conversation.createGroup(sentOnlyId, propertyId, caller, Set.of(caller, other), SUBJECT);
+        // receivedOnly: only the other participant ever posted - Réception only, never Envoyé.
+        ConversationId receivedOnlyId = ConversationId.newId();
+        Conversation receivedOnly = Conversation.createGroup(receivedOnlyId, propertyId, other, Set.of(caller, other), SUBJECT);
+        // both: a back-and-forth - visible in both boxes.
+        ConversationId bothId = ConversationId.newId();
+        Conversation both = Conversation.createGroup(bothId, propertyId, caller, Set.of(caller, other), SUBJECT);
+
+        when(conversationRepository.findAllGroupByParticipant(caller)).thenReturn(List.of(sentOnly, receivedOnly, both));
+        when(userAccessPort.memberPropertyIds(caller)).thenReturn(Set.of());
+        when(conversationRepository.findAllBroadcastByPropertyIds(Set.of())).thenReturn(List.of());
+        when(propertyMemberDirectoryPort.getPropertyName(propertyId)).thenReturn("Résidence Alpha");
+        when(memberDisplayNameResolver.namesByUserId(propertyId)).thenReturn(Map.of(other, "Jean Dupont"));
+
+        when(messageRepository.findLastMessage(sentOnlyId)).thenReturn(Optional.empty());
+        when(messageRepository.findLastMessage(receivedOnlyId)).thenReturn(Optional.empty());
+        when(messageRepository.findLastMessage(bothId)).thenReturn(Optional.empty());
+        when(messageRepository.countByConversation(sentOnlyId)).thenReturn(1L);
+        when(messageRepository.countByConversation(receivedOnlyId)).thenReturn(1L);
+        when(messageRepository.countByConversation(bothId)).thenReturn(2L);
+        when(messageRepository.countByConversationAndSender(sentOnlyId, caller)).thenReturn(1L);
+        when(messageRepository.countByConversationAndSender(receivedOnlyId, caller)).thenReturn(0L);
+        when(messageRepository.countByConversationAndSender(bothId, caller)).thenReturn(1L);
+
+        when(readMarkerRepository.findByConversationIdAndUserId(sentOnlyId, caller)).thenReturn(Optional.empty());
+        when(readMarkerRepository.findByConversationIdAndUserId(receivedOnlyId, caller)).thenReturn(Optional.empty());
+        when(readMarkerRepository.findByConversationIdAndUserId(bothId, caller)).thenReturn(Optional.empty());
+        when(messageRepository.countUnread(sentOnlyId, null)).thenReturn(0L);
+        when(messageRepository.countUnread(receivedOnlyId, null)).thenReturn(0L);
+        when(messageRepository.countUnread(bothId, null)).thenReturn(0L);
+
+        List<ConversationSummaryView> sent = newAggregator().listAll(caller, null, ConversationBox.SENT);
+        assertThat(sent).extracting(ConversationSummaryView::id).containsExactlyInAnyOrder(sentOnlyId, bothId);
+
+        List<ConversationSummaryView> received = newAggregator().listAll(caller, null, ConversationBox.RECEIVED);
+        assertThat(received).extracting(ConversationSummaryView::id).containsExactlyInAnyOrder(receivedOnlyId, bothId);
     }
 
     @Test

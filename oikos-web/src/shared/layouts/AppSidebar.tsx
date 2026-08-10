@@ -29,7 +29,8 @@ import {
   TableIcon,
   MailIcon,
   UserCircleIcon,
-  ChatIcon,
+  EnvelopeIcon,
+  PencilIcon,
 } from '@/shared/icons';
 import { Badge } from '@/shared/components/Badge/Badge';
 import { SidebarWidget } from './SidebarWidget';
@@ -44,7 +45,7 @@ interface NavItem {
 interface NavGroup {
   name: string;
   icon: React.ReactNode;
-  children: { name: string; path: string; icon: React.ReactNode }[];
+  children: { name: string; path: string; icon: React.ReactNode; badge?: number }[];
   badge?: number;
 }
 
@@ -78,7 +79,36 @@ const ACCOUNTING_TABS = [
   { name: 'Dépenses', path: '/expenses', icon: <ArrowDownIcon /> },
 ];
 
-function propertyContextGroups(propertyId: string, messagingUnreadCount: number): NavGroup[] {
+// Réception/Envoyé/Brouillon - each with its own icon, distinct from the
+// "Messagerie" group icon above them (EnvelopeIcon) - see messagingGroup.
+// The unread count belongs to Réception specifically (it counts unread
+// received messages), not to the group as a whole.
+function messagingTabs(messagingUnreadCount: number) {
+  return [
+    { name: 'Réception', path: '/messages/reception', icon: <MailIcon />, badge: messagingUnreadCount },
+    { name: 'Envoyé', path: '/messages/sent', icon: <PaperPlaneIcon /> },
+    { name: 'Brouillon', path: '/messages/drafts', icon: <PencilIcon /> },
+  ];
+}
+
+// Messaging is transverse to properties (a single mailbox aggregates every
+// property the account belongs to), so it always points at the same
+// top-level /messages/* routes regardless of which property context this
+// sidebar happens to be showing - shared by both the staff (property
+// context groups) and plain-owner (flat navItems) sidebar shapes.
+function messagingGroup(messagingUnreadCount: number): NavGroup {
+  return {
+    name: 'Messagerie',
+    icon: <EnvelopeIcon />,
+    children: messagingTabs(messagingUnreadCount),
+  };
+}
+
+// Property-scoped groups only (Ma copropriété/Gestion des échéances/Comptabilité) - Messagerie
+// is deliberately not built into this list, see the always-appended messagingGroup(...) below:
+// unlike these, it never depends on a propertyId in the current URL, so it must not disappear
+// just because the viewer has navigated away from a /property-mngt/properties/:id/* route.
+function propertyContextGroups(propertyId: string): NavGroup[] {
   return [
     {
       name: 'Ma copropriété',
@@ -107,17 +137,6 @@ function propertyContextGroups(propertyId: string, messagingUnreadCount: number)
         icon: tab.icon,
       })),
     },
-    {
-      name: 'Messagerie',
-      icon: <ChatIcon />,
-      badge: messagingUnreadCount,
-      // Unlike the 3 groups above, this one is not prefixed by propertyId:
-      // messaging is transverse to properties (a single inbox aggregates
-      // every property the account belongs to), so it always points at the
-      // same top-level /messages route regardless of which property context
-      // this sidebar happens to be showing.
-      children: [{ name: 'Boîte de réception', path: '/messages', icon: <ChatIcon /> }],
-    },
   ];
 }
 
@@ -142,18 +161,29 @@ export function AppSidebar() {
   const managerTier = user ? isManagerTier(user) : false;
   const currentPropertyId = location.pathname.match(/^\/property-mngt\/properties\/([^/]+)/)?.[1] ?? null;
   const isInOwnManagedProperty =
-    managerTier && currentPropertyId !== null && user !== undefined && isManagerTierOnProperty(user, currentPropertyId);
+    managerTier &&
+    currentPropertyId !== null &&
+    user !== undefined &&
+    isManagerTierOnProperty(user, currentPropertyId);
 
-  const groups: NavGroup[] = boardId
-    ? propertyContextGroups(boardId, messagingUnreadCount)
+  // Messagerie is always shown, for every account type, regardless of the current route - unlike
+  // the property-scoped groups below (only meaningful while browsing a specific property), it
+  // doesn't depend on where in the app the viewer currently is. A NavItem can't show children/
+  // expand (see the NavItem/NavGroup split below), so plain owners get it as a NavGroup too
+  // (instead of a flat link) to expose the 3 mailbox tabs at all.
+  const propertyGroups: NavGroup[] = boardId
+    ? propertyContextGroups(boardId)
     : isInOwnManagedProperty && currentPropertyId
-      ? propertyContextGroups(currentPropertyId, messagingUnreadCount)
+      ? propertyContextGroups(currentPropertyId)
       : [];
+  const groups: NavGroup[] = [...propertyGroups, messagingGroup(messagingUnreadCount)];
 
   const canManage = user ? canManageProperties(user) : false;
 
   const navItems: NavItem[] = [
-    ...(boardId || managerTier ? [{ name: 'Tableau de bord', path: '/dashboard', icon: <PieChartIcon /> }] : []),
+    ...(boardId || managerTier
+      ? [{ name: 'Tableau de bord', path: '/dashboard', icon: <PieChartIcon /> }]
+      : []),
     ...(!boardId && canManage
       ? [{ name: 'Copropriétés', path: '/property-mngt/properties', icon: <GridIcon /> }]
       : []),
@@ -166,9 +196,6 @@ export function AppSidebar() {
       : []),
     ...(!canManage
       ? [{ name: 'Mes invitations', path: '/property-ownership/membership-requests', icon: <MailIcon /> }]
-      : []),
-    ...(!canManage
-      ? [{ name: 'Messagerie', path: '/messages', icon: <ChatIcon />, badge: messagingUnreadCount }]
       : []),
   ];
 
@@ -209,7 +236,9 @@ export function AppSidebar() {
         </Link>
       </div>
       <nav className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
-        <span className={`mb-4 flex text-xs uppercase text-gray-400 ${!showExpanded ? 'lg:justify-center' : ''}`}>
+        <span
+          className={`mb-4 flex text-xs uppercase text-gray-400 ${!showExpanded ? 'lg:justify-center' : ''}`}
+        >
           {showExpanded ? 'Menu' : <HorizontaLDots className="size-6" />}
         </span>
         <ul className="flex flex-col gap-2">
@@ -239,7 +268,9 @@ export function AppSidebar() {
           ))}
           {groups.map((group) => {
             const isOpen = openGroups.has(group.name);
-            const groupActive = group.children.some((child) => location.pathname === child.path);
+            const groupActive = group.children.some(
+              (child) => location.pathname === child.path || location.pathname.startsWith(`${child.path}/`),
+            );
             return (
               <li key={group.name}>
                 <button
@@ -278,7 +309,11 @@ export function AppSidebar() {
                   >
                     <ul className="mt-2 ml-9 space-y-1 overflow-hidden">
                       {group.children.map((child) => {
-                        const childActive = location.pathname === child.path;
+                        // startsWith, not just an exact match: a tab like
+                        // "Réception" must stay highlighted while a nested
+                        // detail route is open (/messages/reception/:id).
+                        const childActive =
+                          location.pathname === child.path || location.pathname.startsWith(`${child.path}/`);
                         return (
                           <li key={child.path}>
                             <Link
@@ -295,6 +330,11 @@ export function AppSidebar() {
                                 {child.icon}
                               </span>
                               {child.name}
+                              {Boolean(child.badge) && (
+                                <Badge color="error" variant="solid" className="ml-auto">
+                                  {child.badge}
+                                </Badge>
+                              )}
                             </Link>
                           </li>
                         );

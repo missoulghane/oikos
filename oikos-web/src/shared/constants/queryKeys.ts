@@ -72,7 +72,8 @@ export const queryKeys = {
   invitations: {
     preview: (token: string) => ['invitations', 'preview', token] as const,
     availableUnits: (token: string) => ['invitations', token, 'available-units'] as const,
-    list: (propertyId: string, page: number, size: number) => ['invitations', propertyId, 'list', page, size] as const,
+    list: (propertyId: string, page: number, size: number) =>
+      ['invitations', propertyId, 'list', page, size] as const,
     membershipRequests: (propertyId: string, page: number, size: number) =>
       ['invitations', propertyId, 'membership-requests', page, size] as const,
   },
@@ -80,11 +81,14 @@ export const queryKeys = {
     list: (propertyId: string) => ['board-members', propertyId, 'list'] as const,
   },
   messaging: {
-    conversations: (page: number, size: number, search: string | undefined) =>
-      ['messaging', 'conversations', page, size, search] as const,
+    conversations: (page: number, size: number, search: string | undefined, box: 'RECEIVED' | 'SENT') =>
+      ['messaging', 'conversations', page, size, search, box] as const,
     unreadSummary: () => ['messaging', 'unread-summary'] as const,
     messages: (conversationId: string) => ['messaging', 'conversations', conversationId, 'messages'] as const,
     recipients: (propertyId: string, search: string | undefined) =>
       ['messaging', 'recipients', propertyId, search] as const,
+    drafts: (page: number, size: number, search: string | undefined) =>
+      ['messaging', 'drafts', page, size, search] as const,
+    draft: (draftId: string) => ['messaging', 'drafts', draftId] as const,
   },
 };

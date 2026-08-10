@@ -97,6 +97,19 @@ class MessageRepositoryAdapterDataJpaTest {
     }
 
     @Test
+    void counts_only_messages_from_the_given_sender() {
+        ConversationId conversationId = ConversationId.newId();
+        EntityId sender = EntityId.newId();
+        EntityId otherSender = EntityId.newId();
+        post(conversationId, sender, "1", Instant.parse("2026-01-01T10:00:00Z"));
+        post(conversationId, sender, "2", Instant.parse("2026-01-01T10:01:00Z"));
+        post(conversationId, otherSender, "3", Instant.parse("2026-01-01T10:02:00Z"));
+
+        assertThat(adapter.countByConversationAndSender(conversationId, sender)).isEqualTo(2);
+        assertThat(adapter.countByConversationAndSender(conversationId, otherSender)).isEqualTo(1);
+    }
+
+    @Test
     void counts_only_messages_posted_after_the_last_read_message() {
         ConversationId conversationId = ConversationId.newId();
         EntityId sender = EntityId.newId();

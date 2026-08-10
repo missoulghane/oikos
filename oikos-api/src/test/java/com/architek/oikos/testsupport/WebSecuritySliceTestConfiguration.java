@@ -20,6 +20,7 @@ import com.architek.oikos.installment.application.port.in.GetInstallmentUseCase;
 import com.architek.oikos.invitation.application.port.in.GetInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.GetMembershipRequestUseCase;
 import com.architek.oikos.messaging.application.port.in.GetConversationUseCase;
+import com.architek.oikos.messaging.application.port.in.GetMessageDraftUseCase;
 import com.architek.oikos.party.application.port.in.GetPartyUseCase;
 import com.architek.oikos.property.application.port.in.GetBuildingUseCase;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
@@ -79,7 +80,8 @@ public class WebSecuritySliceTestConfiguration {
                                             ObjectProvider<GetPartyUseCase> getPartyUseCase,
                                             ObjectProvider<GetInvitationUseCase> getInvitationUseCase,
                                             ObjectProvider<GetMembershipRequestUseCase> getMembershipRequestUseCase,
-                                            ObjectProvider<GetConversationUseCase> getConversationUseCase) {
+                                            ObjectProvider<GetConversationUseCase> getConversationUseCase,
+                                            ObjectProvider<GetMessageDraftUseCase> getMessageDraftUseCase) {
         return new PropertyAccessEvaluator(getUserAccessUseCase,
                 getUnitUseCase.getIfAvailable(() -> Mockito.mock(GetUnitUseCase.class)),
                 getBuildingUseCase.getIfAvailable(() -> Mockito.mock(GetBuildingUseCase.class)),
@@ -89,6 +91,7 @@ public class WebSecuritySliceTestConfiguration {
                 getPartyUseCase.getIfAvailable(() -> Mockito.mock(GetPartyUseCase.class)),
                 getInvitationUseCase.getIfAvailable(() -> Mockito.mock(GetInvitationUseCase.class)),
                 getMembershipRequestUseCase.getIfAvailable(() -> Mockito.mock(GetMembershipRequestUseCase.class)),
-                getConversationUseCase.getIfAvailable(() -> Mockito.mock(GetConversationUseCase.class)));
+                getConversationUseCase.getIfAvailable(() -> Mockito.mock(GetConversationUseCase.class)),
+                getMessageDraftUseCase.getIfAvailable(() -> Mockito.mock(GetMessageDraftUseCase.class)));
     }
 }

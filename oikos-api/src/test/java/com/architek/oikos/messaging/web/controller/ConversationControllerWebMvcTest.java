@@ -1,6 +1,8 @@
 package com.architek.oikos.messaging.web.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -13,6 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -22,6 +25,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.messaging.application.dto.ConversationView;
+import com.architek.oikos.messaging.application.query.ConversationBox;
+import com.architek.oikos.messaging.application.query.ListMyConversationsQuery;
 import com.architek.oikos.messaging.application.dto.MessageView;
 import com.architek.oikos.messaging.application.dto.RecipientCandidateView;
 import com.architek.oikos.messaging.application.dto.UnreadSummaryView;
@@ -229,6 +234,32 @@ class ConversationControllerWebMvcTest {
         mockMvc.perform(get("/api/v1/users/me/conversations")
                         .header("Authorization", bearerToken("ROLE_USER")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void the_box_query_param_is_parsed_and_forwarded_case_insensitively() throws Exception {
+        when(listMyConversationsUseCase.listConversations(any())).thenReturn(Page.of(List.of(), 0, 20, 0));
+
+        mockMvc.perform(get("/api/v1/users/me/conversations?box=sent")
+                        .header("Authorization", bearerToken("ROLE_USER")))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<ListMyConversationsQuery> captor = ArgumentCaptor.forClass(ListMyConversationsQuery.class);
+        verify(listMyConversationsUseCase).listConversations(captor.capture());
+        assertThat(captor.getValue().box()).isEqualTo(ConversationBox.SENT);
+    }
+
+    @Test
+    void the_box_query_param_defaults_to_unfiltered_when_absent() throws Exception {
+        when(listMyConversationsUseCase.listConversations(any())).thenReturn(Page.of(List.of(), 0, 20, 0));
+
+        mockMvc.perform(get("/api/v1/users/me/conversations")
+                        .header("Authorization", bearerToken("ROLE_USER")))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<ListMyConversationsQuery> captor = ArgumentCaptor.forClass(ListMyConversationsQuery.class);
+        verify(listMyConversationsUseCase).listConversations(captor.capture());
+        assertThat(captor.getValue().box()).isNull();
     }
 
     @Test

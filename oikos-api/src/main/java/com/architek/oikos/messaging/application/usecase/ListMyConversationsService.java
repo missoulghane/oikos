@@ -27,7 +27,7 @@ public class ListMyConversationsService implements ListMyConversationsUseCase {
     @Override
     @Transactional(readOnly = true)
     public Page<ConversationSummaryView> listConversations(ListMyConversationsQuery query) {
-        List<ConversationSummaryView> all = conversationAggregator.listAll(query.userId(), query.search());
+        List<ConversationSummaryView> all = conversationAggregator.listAll(query.userId(), query.search(), query.box());
 
         int pageSize = query.pageRequest().pageSize();
         int fromIndex = Math.min(query.pageRequest().pageNumber() * pageSize, all.size());

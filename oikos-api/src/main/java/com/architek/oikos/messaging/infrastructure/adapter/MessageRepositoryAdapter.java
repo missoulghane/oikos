@@ -17,6 +17,7 @@ import com.architek.oikos.messaging.infrastructure.persistence.MessageEntity;
 import com.architek.oikos.messaging.infrastructure.persistence.MessageJpaRepository;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 @Component
 public class MessageRepositoryAdapter implements MessageRepository {
@@ -55,6 +56,11 @@ public class MessageRepositoryAdapter implements MessageRepository {
     @Override
     public long countByConversation(ConversationId conversationId) {
         return jpaRepository.countByConversationId(conversationId.asUuid());
+    }
+
+    @Override
+    public long countByConversationAndSender(ConversationId conversationId, EntityId senderId) {
+        return jpaRepository.countByConversationIdAndSenderId(conversationId.asUuid(), senderId.value());
     }
 
     @Override

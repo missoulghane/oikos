@@ -18,6 +18,8 @@ public interface MessageJpaRepository extends JpaRepository<MessageEntity, UUID>
 
     long countByConversationId(UUID conversationId);
 
+    long countByConversationIdAndSenderId(UUID conversationId, UUID senderId);
+
     @Query("select count(m) from MessageEntity m where m.conversationId = :conversationId and m.createdDate > "
             + "(select r.createdDate from MessageEntity r where r.id = :lastReadMessageId)")
     long countByConversationIdAndCreatedDateAfterMessage(@Param("conversationId") UUID conversationId,

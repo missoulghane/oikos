@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.messaging.application.dto.ConversationSummaryView;
+import com.architek.oikos.messaging.application.query.ConversationBox;
 import com.architek.oikos.messaging.application.query.ListMyConversationsQuery;
 import com.architek.oikos.messaging.domain.model.ConversationType;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
@@ -38,9 +39,9 @@ class ListMyConversationsServiceTest {
     void paginates_the_aggregated_list_in_memory() {
         EntityId userId = EntityId.newId();
         List<ConversationSummaryView> all = List.of(summary(EntityId.newId()), summary(EntityId.newId()), summary(EntityId.newId()));
-        when(conversationAggregator.listAll(userId, null)).thenReturn(all);
+        when(conversationAggregator.listAll(userId, null, null)).thenReturn(all);
 
-        Page<ConversationSummaryView> page = newService().listConversations(new ListMyConversationsQuery(userId, PageRequest.of(0, 2), null));
+        Page<ConversationSummaryView> page = newService().listConversations(new ListMyConversationsQuery(userId, PageRequest.of(0, 2), null, null));
 
         assertThat(page.content()).hasSize(2);
         assertThat(page.totalElements()).isEqualTo(3);
@@ -50,11 +51,22 @@ class ListMyConversationsServiceTest {
     @Test
     void returns_an_empty_page_past_the_end_of_the_list() {
         EntityId userId = EntityId.newId();
-        when(conversationAggregator.listAll(userId, null)).thenReturn(List.of(summary(EntityId.newId())));
+        when(conversationAggregator.listAll(userId, null, null)).thenReturn(List.of(summary(EntityId.newId())));
 
-        Page<ConversationSummaryView> page = newService().listConversations(new ListMyConversationsQuery(userId, PageRequest.of(5, 20), null));
+        Page<ConversationSummaryView> page = newService().listConversations(new ListMyConversationsQuery(userId, PageRequest.of(5, 20), null, null));
 
         assertThat(page.content()).isEmpty();
         assertThat(page.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void forwards_the_box_filter_to_the_aggregator() {
+        EntityId userId = EntityId.newId();
+        when(conversationAggregator.listAll(userId, null, ConversationBox.SENT)).thenReturn(List.of(summary(EntityId.newId())));
+
+        Page<ConversationSummaryView> page = newService()
+                .listConversations(new ListMyConversationsQuery(userId, PageRequest.of(0, 20), null, ConversationBox.SENT));
+
+        assertThat(page.content()).hasSize(1);
     }
 }

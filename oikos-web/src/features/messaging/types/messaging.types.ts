@@ -67,3 +67,41 @@ export interface SendMessagePayload {
 export interface SendBroadcastMessagePayload {
   body: string;
 }
+
+/** Réception = the caller has received at least one message in the conversation (someone else
+ * posted); Envoyé = the caller has sent at least one message in it. A back-and-forth conversation
+ * matches both. */
+export type ConversationBox = 'RECEIVED' | 'SENT';
+
+export interface MessageDraftSummary {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  broadcast: boolean;
+  recipients: ConversationParticipant[]; // resolved display names; always empty when broadcast is true
+  subject: string | null;
+  body: string | null;
+  lastModifiedAt: string; // ISO instant
+}
+
+export type PagedMessageDrafts = Paged<MessageDraftSummary>;
+
+export interface MessageDraft {
+  id: string;
+  propertyId: string;
+  broadcast: boolean;
+  recipients: ConversationParticipant[];
+  subject: string | null;
+  body: string | null;
+}
+
+export interface SaveMessageDraftPayload {
+  recipientUserIds: string[];
+  broadcast: boolean;
+  subject: string | null;
+  body: string | null;
+}
+
+export interface MessageDraftReference {
+  draftId: string;
+}

@@ -6,15 +6,30 @@ import { Input } from '@/shared/components/Input/Input';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
-import { ChatIcon, AngleLeftIcon, AngleRightIcon } from '@/shared/icons';
+import { AngleLeftIcon, AngleRightIcon } from '@/shared/icons';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
-import type { ConversationSummary } from '@/features/messaging/types/messaging.types';
+import type { ConversationBox, ConversationSummary } from '@/features/messaging/types/messaging.types';
 
 const SEARCH_DEBOUNCE_MS = 300;
+
+const BOX_LABEL: Record<ConversationBox, string> = {
+  RECEIVED: 'Réception',
+  SENT: 'Envoyé',
+};
+
+const BOX_EMPTY_STATE: Record<ConversationBox, string> = {
+  RECEIVED: 'Aucun message reçu',
+  SENT: 'Aucun message envoyé',
+};
 
 /** Value handed down to ConversationPage through the reading-pane <Outlet/>. */
 export interface MessagingOutletContext {
   conversationList: ConversationSummary[];
+  box: ConversationBox;
+}
+
+interface MessagingLayoutProps {
+  box: ConversationBox;
 }
 
 function RefreshIcon({ className = '' }: { className?: string }) {
@@ -34,12 +49,11 @@ function RefreshIcon({ className = '' }: { className?: string }) {
   );
 }
 
-// Outlook-style split view: a message-list pane on the left (this component)
-// and a reading pane on the right (whatever /messages/:conversationId
-// resolves to, via <Outlet/>) - not a single full-screen chat thread. On
-// mobile, only one pane is visible at a time (list, or the open thread),
-// matching how Outlook's own mobile app collapses down to one pane.
-export function MessagingLayout() {
+// Single-pane view: either the message list (this component's <aside/>) or
+// the open thread (whatever /messages/:conversationId resolves to, via
+// <Outlet/>) - never both side by side. The list is the whole page until a
+// message is clicked, which then replaces it with the detail view.
+export function MessagingLayout({ box }: MessagingLayoutProps) {
   const { conversationId } = useParams<{ conversationId?: string }>();
   const [page, setPage] = useState(0);
   const [searchInput, setSearchInput] = useState('');
@@ -50,7 +64,7 @@ export function MessagingLayout() {
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
-  const conversations = useMyConversations(page, search || undefined);
+  const conversations = useMyConversations(page, box, search || undefined);
   const hasConversationOpen = Boolean(conversationId);
 
   const data = conversations.data;
@@ -59,13 +73,9 @@ export function MessagingLayout() {
 
   return (
     <div className="flex h-[calc(100vh-160px)] overflow-hidden rounded-lg border border-gray-200 bg-white">
-      <aside
-        className={`w-full flex-col border-gray-200 sm:flex sm:w-[340px] sm:shrink-0 sm:border-r ${
-          hasConversationOpen ? 'hidden' : 'flex'
-        }`}
-      >
+      <aside className={`w-full flex-col border-gray-200 ${hasConversationOpen ? 'hidden' : 'flex'}`}>
         <div className="flex items-center justify-between gap-2 border-b border-gray-200 p-4">
-          <h1 className="text-base font-semibold text-gray-900">Messagerie</h1>
+          <h1 className="text-base font-semibold text-gray-900">{BOX_LABEL[box]}</h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -106,7 +116,7 @@ export function MessagingLayout() {
           )}
           {conversations.data && conversations.data.content.length === 0 && (
             <div className="p-4">
-              <EmptyState title="Aucun message">
+              <EmptyState title={BOX_EMPTY_STATE[box]}>
                 Envoyez un nouveau message avec le bouton ci-dessus.
               </EmptyState>
             </div>
@@ -117,6 +127,7 @@ export function MessagingLayout() {
                 <ConversationListItem
                   key={conversation.id}
                   conversation={conversation}
+                  box={box}
                   isActive={conversation.id === conversationId}
                 />
               ))}
@@ -153,16 +164,11 @@ export function MessagingLayout() {
         )}
       </aside>
 
-      <main className={`min-w-0 flex-1 flex-col sm:flex ${hasConversationOpen ? 'flex' : 'hidden'}`}>
-        {hasConversationOpen ? (
-          <Outlet context={{ conversationList: data?.content ?? [] } satisfies MessagingOutletContext} />
-        ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-gray-400">
-            <ChatIcon className="h-10 w-10" />
-            <p className="text-sm">Sélectionnez un message pour l’afficher ici.</p>
-          </div>
-        )}
-      </main>
+      {hasConversationOpen && (
+        <main className="flex w-full min-w-0 flex-1 flex-col">
+          <Outlet context={{ conversationList: data?.content ?? [], box } satisfies MessagingOutletContext} />
+        </main>
+      )}
     </div>
   );
 }

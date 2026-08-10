@@ -33,7 +33,11 @@ public class MessageEntity {
     @Column(name = "sender_id", nullable = false)
     private UUID senderId;
 
-    @Column(nullable = false)
+    // length matches MessageBody's domain cap (see MessageBody.java) - without it Hibernate
+    // defaults to varchar(255) when generating the dev/H2 schema from these annotations
+    // (ddl-auto: create-drop), silently narrower than the real migration's TEXT column
+    // (V17__messaging.sql) and than what the domain/request DTO actually validate.
+    @Column(nullable = false, length = 4000)
     private String body;
 
     @Column(name = "created_date", nullable = false)

@@ -15,6 +15,7 @@ import com.architek.oikos.messaging.application.dto.ConversationParticipantView;
 import com.architek.oikos.messaging.application.dto.ConversationSummaryView;
 import com.architek.oikos.messaging.application.port.out.PropertyMemberDirectoryPort;
 import com.architek.oikos.messaging.application.port.out.UserAccessPort;
+import com.architek.oikos.messaging.application.query.ConversationBox;
 import com.architek.oikos.messaging.domain.model.Conversation;
 import com.architek.oikos.messaging.domain.model.ConversationReadMarker;
 import com.architek.oikos.messaging.domain.model.ConversationType;
@@ -57,8 +58,15 @@ class ConversationAggregator {
         this.memberDisplayNameResolver = memberDisplayNameResolver;
     }
 
-    /** Sorted by lastMessageAt descending, conversations with no message yet sorted last. */
+    /** Sorted by lastMessageAt descending, conversations with no message yet sorted last. Unfiltered by box. */
     List<ConversationSummaryView> listAll(EntityId userId, String search) {
+        return listAll(userId, search, null);
+    }
+
+    /** Same as {@link #listAll(EntityId, String)}, additionally restricted to conversations the
+     * caller has received into (box == RECEIVED) or sent into (box == SENT) at least one message;
+     * box == null means unfiltered. */
+    List<ConversationSummaryView> listAll(EntityId userId, String search, ConversationBox box) {
         List<Conversation> groups = conversationRepository.findAllGroupByParticipant(userId);
         List<Conversation> broadcasts = conversationRepository.findAllBroadcastByPropertyIds(userAccessPort.memberPropertyIds(userId));
 
@@ -89,6 +97,14 @@ class ConversationAggregator {
             String preview = lastMessage.map(message -> message.getBody().value()).orElse(null);
             Instant lastMessageAt = lastMessage.map(Message::getCreatedDate).orElse(null);
             long messageCount = messageRepository.countByConversation(conversation.getId());
+
+            if (box != null) {
+                long sentByMe = messageRepository.countByConversationAndSender(conversation.getId(), userId);
+                boolean matchesBox = box == ConversationBox.SENT ? sentByMe > 0 : messageCount > sentByMe;
+                if (!matchesBox) {
+                    continue;
+                }
+            }
 
             MessageId lastReadMessageId = readMarkerRepository.findByConversationIdAndUserId(conversation.getId(), userId)
                     .map(ConversationReadMarker::getLastReadMessageId)

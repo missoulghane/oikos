@@ -1,6 +1,7 @@
 package com.architek.oikos.messaging.web.controller;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -29,6 +30,7 @@ import com.architek.oikos.messaging.application.port.in.MarkConversationReadUseC
 import com.architek.oikos.messaging.application.port.in.SendBroadcastMessageUseCase;
 import com.architek.oikos.messaging.application.port.in.SendMessageUseCase;
 import com.architek.oikos.messaging.application.port.in.StartGroupConversationUseCase;
+import com.architek.oikos.messaging.application.query.ConversationBox;
 import com.architek.oikos.messaging.application.query.GetUnreadSummaryQuery;
 import com.architek.oikos.messaging.application.query.ListConversationMessagesQuery;
 import com.architek.oikos.messaging.application.query.ListMyConversationsQuery;
@@ -103,9 +105,11 @@ public class ConversationController {
     public PagedConversationSummaryResponse listMyConversations(@RequestParam(defaultValue = "0") int page,
                                                                   @RequestParam(defaultValue = "20") int size,
                                                                   @RequestParam(required = false) String search,
+                                                                  @RequestParam(required = false) String box,
                                                                   Authentication authentication) {
+        ConversationBox parsedBox = box == null || box.isBlank() ? null : ConversationBox.valueOf(box.toUpperCase(Locale.ROOT));
         return PagedConversationSummaryResponse.from(listMyConversationsUseCase.listConversations(
-                new ListMyConversationsQuery(currentUserId(authentication), PageRequest.of(page, size), search)));
+                new ListMyConversationsQuery(currentUserId(authentication), PageRequest.of(page, size), search, parsedBox)));
     }
 
     @GetMapping("/users/me/conversations/unread-summary")

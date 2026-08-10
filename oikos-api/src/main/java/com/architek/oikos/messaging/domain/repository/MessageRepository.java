@@ -7,6 +7,7 @@ import com.architek.oikos.messaging.domain.valueobject.ConversationId;
 import com.architek.oikos.messaging.domain.valueobject.MessageId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 public interface MessageRepository {
 
@@ -30,6 +31,9 @@ public interface MessageRepository {
      * thread" by default.
      */
     long countByConversation(ConversationId conversationId);
+
+    /** Number of messages in the conversation posted by senderId - used to derive "did I send"/"did I receive" for ConversationBox filtering. */
+    long countByConversationAndSender(ConversationId conversationId, EntityId senderId);
 
     /**
      * Number of messages posted after lastReadMessageId (exclusive) - or every

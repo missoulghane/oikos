@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCurrentUser, isBoardTierOnProperty, isManagerTierOnProperty } from '@/features/identity/me';
@@ -7,13 +7,20 @@ import { useProperties } from '@/features/property-mngt/properties/hooks/useProp
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import { useStartConversation } from '@/features/messaging/hooks/useStartConversation';
 import { useSendBroadcastMessage } from '@/features/messaging/hooks/useSendBroadcastMessage';
-import { RecipientPicker } from '@/features/messaging/components/RecipientPicker';
-import { sendMessageSchema, type SendMessageFormValues } from '@/features/messaging/schemas/sendMessageSchema';
+import { useDraft } from '@/features/messaging/hooks/useDraft';
+import { useCreateDraft } from '@/features/messaging/hooks/useCreateDraft';
+import { useUpdateDraft } from '@/features/messaging/hooks/useUpdateDraft';
+import { useSendDraft } from '@/features/messaging/hooks/useSendDraft';
+import {
+  RecipientPicker,
+  EVERYONE_RECIPIENT,
+  isEveryoneRecipient,
+} from '@/features/messaging/components/RecipientPicker';
 import {
   startConversationSchema,
   type StartConversationFormValues,
 } from '@/features/messaging/schemas/startConversationSchema';
-import type { RecipientCandidate } from '@/features/messaging/types/messaging.types';
+import type { RecipientCandidate, SaveMessageDraftPayload } from '@/features/messaging/types/messaging.types';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { Loader } from '@/shared/components/Loader/Loader';
@@ -24,13 +31,44 @@ import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 // then go type into it afterwards". Sending a message never "starts a
 // conversation" as a concept exposed to the user; it only becomes one later
 // if someone replies (see ConversationListItem's "N messages" indicator).
+//
+// There is no separate "broadcast" composer: messaging the whole
+// copropriété is just this same form with "Toute la copropriété" picked as
+// the recipient (see RecipientPicker) - board/manager tiers only. Under the
+// hood that still routes to the distinct broadcast endpoint (the backend
+// models BROADCAST as a recipient-less, per-property singleton channel,
+// structurally unlike a GROUP conversation), but that split never surfaces
+// to the user as a different flow.
+//
+// This same form doubles as the draft editor: ?draftId= prefills it (see the
+// prefill effect below) and "Envoyer" then goes through useSendDraft instead
+// of starting a fresh conversation directly - the backend re-validates and
+// deletes the draft atomically. "Enregistrer comme brouillon" bypasses the
+// send-time schema entirely (getValues(), not handleSubmit) since a draft is
+// explicitly allowed to be incomplete.
 
 // Large enough to fetch every managed property in one page, matching the
 // picker pattern already used by PartiesPage (see PROPERTY_PICKER_SIZE there).
 const PROPERTY_PICKER_SIZE = 100;
 
+function toDraftPayload(
+  recipients: RecipientCandidate[],
+  isEveryoneSelected: boolean,
+  subject: string,
+  body: string,
+): SaveMessageDraftPayload {
+  return {
+    recipientUserIds: isEveryoneSelected ? [] : recipients.map((recipient) => recipient.userId),
+    broadcast: isEveryoneSelected,
+    subject: subject.trim() === '' ? null : subject,
+    body: body.trim() === '' ? null : body,
+  };
+}
+
 export function NewConversationPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const draftIdFromUrl = searchParams.get('draftId') ?? undefined;
   const currentUser = useCurrentUser();
   // GET /properties returns the properties this account manages (empty, not
   // an error, for a plain owner) - combined below with useMyUnits() (owned
@@ -38,28 +76,60 @@ export function NewConversationPage() {
   const properties = useProperties(0, PROPERTY_PICKER_SIZE);
   const myUnits = useMyUnits();
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
-  const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [selectedRecipients, setSelectedRecipients] = useState<RecipientCandidate[]>([]);
+  // Tracks which draft (if any) this compose session is attached to: seeded
+  // from ?draftId=, then updated once "Enregistrer comme brouillon" creates a
+  // fresh one, so a second save in the same session updates it instead of
+  // creating a duplicate.
+  const [currentDraftId, setCurrentDraftId] = useState<string | undefined>(draftIdFromUrl);
+  // Sending an already-saved draft silently re-saves it first (see
+  // onSubmit) via the same updateDraft mutation "Enregistrer comme
+  // brouillon" uses - this flag is only there so the loading spinner lands
+  // on "Envoyer" during that implicit save, not on "Enregistrer".
+  const [isSendingViaDraft, setIsSendingViaDraft] = useState(false);
   const {
     register,
     handleSubmit,
     reset,
+    getValues,
     formState: { errors },
   } = useForm<StartConversationFormValues>({
     resolver: zodResolver(startConversationSchema),
     defaultValues: { subject: '', body: '' },
   });
 
+  const draft = useDraft(draftIdFromUrl);
+  const hasPrefilledDraft = useRef(false);
+  useEffect(() => {
+    if (draft.data && !hasPrefilledDraft.current) {
+      hasPrefilledDraft.current = true;
+      setSelectedPropertyId(draft.data.propertyId);
+      setSelectedRecipients(
+        draft.data.broadcast
+          ? [EVERYONE_RECIPIENT]
+          : draft.data.recipients.map((recipient) => ({ ...recipient, roleLabel: '' })),
+      );
+      reset({ subject: draft.data.subject ?? '', body: draft.data.body ?? '' });
+    }
+  }, [draft.data, reset]);
+
   const user = currentUser.data;
   const propertyIds = user ? Object.keys(user.roleByProperty) : [];
   const effectivePropertyId = selectedPropertyId ?? (propertyIds.length === 1 ? propertyIds[0] : null);
   const startConversation = useStartConversation(effectivePropertyId ?? '');
+  const sendBroadcastMessage = useSendBroadcastMessage(effectivePropertyId ?? '');
+  const createDraft = useCreateDraft(effectivePropertyId ?? '');
+  const updateDraft = useUpdateDraft(currentDraftId ?? '');
+  const sendDraft = useSendDraft(currentDraftId ?? '');
 
-  if (currentUser.isLoading) {
+  if (currentUser.isLoading || (draftIdFromUrl && draft.isLoading)) {
     return <Loader label="Chargement…" />;
   }
   if (currentUser.isError || !user) {
     return <Alert message={getErrorMessage(currentUser.error)} />;
+  }
+  if (draftIdFromUrl && draft.isError) {
+    return <Alert message={getErrorMessage(draft.error)} />;
   }
 
   const propertyNamesById = new Map<string, string>();
@@ -69,21 +139,67 @@ export function NewConversationPage() {
   const canBroadcast =
     effectivePropertyId !== null &&
     (isBoardTierOnProperty(user, effectivePropertyId) || isManagerTierOnProperty(user, effectivePropertyId));
+  const isEveryoneSelected = selectedRecipients.some(isEveryoneRecipient);
+  const isSending =
+    startConversation.isPending ||
+    sendBroadcastMessage.isPending ||
+    sendDraft.isPending ||
+    (isSendingViaDraft && updateDraft.isPending);
+  const isSavingDraft = createDraft.isPending || (!isSendingViaDraft && updateDraft.isPending);
+  const sendError = startConversation.error ?? sendBroadcastMessage.error ?? sendDraft.error;
+  const saveDraftError = createDraft.error ?? updateDraft.error;
 
   function onSubmit(values: StartConversationFormValues) {
+    const onSuccess = (result: { conversationId: string }) => {
+      reset({ subject: '', body: '' });
+      setSelectedRecipients([]);
+      navigate(`/messages/reception/${result.conversationId}`);
+    };
+
+    if (currentDraftId) {
+      // The draft row on the server only has whatever was last explicitly
+      // saved (see onSaveDraft) - persist the current form edits first, or
+      // "Envoyer" would silently send stale content instead of what's on
+      // screen right now.
+      setIsSendingViaDraft(true);
+      const payload = toDraftPayload(selectedRecipients, isEveryoneSelected, values.subject, values.body);
+      updateDraft.mutate(payload, {
+        onSuccess: () =>
+          sendDraft.mutate(undefined, { onSuccess, onSettled: () => setIsSendingViaDraft(false) }),
+        onError: () => setIsSendingViaDraft(false),
+      });
+      return;
+    }
+
+    if (isEveryoneSelected) {
+      sendBroadcastMessage.mutate({ body: values.body }, { onSuccess });
+      return;
+    }
+
     startConversation.mutate(
       {
         recipientUserIds: selectedRecipients.map((recipient) => recipient.userId),
         subject: values.subject,
         body: values.body,
       },
-      {
-        onSuccess: (result) => {
-          reset({ subject: '', body: '' });
-          navigate(`/messages/${result.conversationId}`);
-        },
-      },
+      { onSuccess },
     );
+  }
+
+  function onSaveDraft() {
+    const values = getValues();
+    const payload = toDraftPayload(selectedRecipients, isEveryoneSelected, values.subject, values.body);
+
+    if (currentDraftId) {
+      updateDraft.mutate(payload, { onSuccess: () => navigate('/messages/drafts') });
+      return;
+    }
+    createDraft.mutate(payload, {
+      onSuccess: (result) => {
+        setCurrentDraftId(result.draftId);
+        navigate('/messages/drafts');
+      },
+    });
   }
 
   return (
@@ -117,7 +233,7 @@ export function NewConversationPage() {
 
       {effectivePropertyId && (
         <div className="flex flex-col gap-6">
-          {propertyIds.length > 1 && (
+          {propertyIds.length > 1 && !currentDraftId && (
             <Button
               type="button"
               variant="secondary"
@@ -145,13 +261,15 @@ export function NewConversationPage() {
             className="flex flex-col gap-4"
             noValidate
           >
-            {startConversation.isError && <Alert message={getErrorMessage(startConversation.error)} />}
+            {sendError && <Alert message={getErrorMessage(sendError)} />}
+            {saveDraftError && <Alert message={getErrorMessage(saveDraftError)} />}
 
             <RecipientPicker
               propertyId={effectivePropertyId}
               value={selectedRecipients}
               onChange={setSelectedRecipients}
-              disabled={startConversation.isPending}
+              disabled={isSending || isSavingDraft}
+              canBroadcast={canBroadcast}
             />
 
             <div className="flex flex-col gap-1">
@@ -162,7 +280,7 @@ export function NewConversationPage() {
                 id="new-message-subject"
                 type="text"
                 placeholder="Objet du message…"
-                disabled={startConversation.isPending}
+                disabled={isSending || isSavingDraft}
                 className="min-h-11 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-base text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 disabled:opacity-60"
                 {...register('subject')}
               />
@@ -177,82 +295,30 @@ export function NewConversationPage() {
                 id="new-message-body"
                 rows={4}
                 placeholder="Écrivez votre message…"
-                disabled={startConversation.isPending}
+                disabled={isSending || isSavingDraft}
                 className="min-h-24 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-base text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 disabled:opacity-60"
                 {...register('body')}
               />
               {errors.body && <p className="text-sm text-error-500">{errors.body.message}</p>}
             </div>
 
-            <Button
-              type="submit"
-              disabled={selectedRecipients.length === 0}
-              isLoading={startConversation.isPending}
-              className="self-start"
-            >
-              Envoyer
-            </Button>
-          </form>
-
-          {canBroadcast && (
-            <div className="flex flex-col gap-3 rounded-lg border border-gray-200 p-4">
-              {!isBroadcasting ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setIsBroadcasting(true)}
-                  className="self-start"
-                >
-                  Annoncer à toute la copropriété
-                </Button>
-              ) : (
-                <BroadcastComposer propertyId={effectivePropertyId} onCancel={() => setIsBroadcasting(false)} />
-              )}
+            <div className="flex items-center gap-2">
+              <Button type="submit" disabled={selectedRecipients.length === 0} isLoading={isSending}>
+                Envoyer
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isSending}
+                isLoading={isSavingDraft}
+                onClick={onSaveDraft}
+              >
+                Enregistrer comme brouillon
+              </Button>
             </div>
-          )}
+          </form>
         </div>
       )}
     </div>
-  );
-}
-
-function BroadcastComposer({ propertyId, onCancel }: { propertyId: string; onCancel: () => void }) {
-  const navigate = useNavigate();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<SendMessageFormValues>({ resolver: zodResolver(sendMessageSchema) });
-  const { mutate, isPending, isError, error } = useSendBroadcastMessage(propertyId);
-
-  function onSubmit(values: SendMessageFormValues) {
-    mutate(values, { onSuccess: (result) => navigate(`/messages/${result.conversationId}`) });
-  }
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3" noValidate>
-      {isError && <Alert message={getErrorMessage(error)} />}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="broadcast-body" className="text-sm font-medium text-gray-700">
-          Message à toute la copropriété
-        </label>
-        <textarea
-          id="broadcast-body"
-          rows={4}
-          disabled={isPending}
-          className="min-h-24 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-base text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 disabled:opacity-60"
-          {...register('body')}
-        />
-        {errors.body && <p className="text-sm text-error-500">{errors.body.message}</p>}
-      </div>
-      <div className="flex gap-2">
-        <Button type="submit" isLoading={isPending}>
-          Envoyer l'annonce
-        </Button>
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={isPending}>
-          Annuler
-        </Button>
-      </div>
-    </form>
   );
 }

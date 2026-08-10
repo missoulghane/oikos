@@ -17,10 +17,14 @@ import com.architek.oikos.invitation.application.query.GetMembershipRequestQuery
 import com.architek.oikos.invitation.domain.valueobject.InvitationId;
 import com.architek.oikos.invitation.domain.valueobject.MembershipRequestId;
 import com.architek.oikos.messaging.application.dto.ConversationView;
+import com.architek.oikos.messaging.application.dto.MessageDraftView;
 import com.architek.oikos.messaging.application.port.in.GetConversationUseCase;
+import com.architek.oikos.messaging.application.port.in.GetMessageDraftUseCase;
 import com.architek.oikos.messaging.application.query.GetConversationQuery;
+import com.architek.oikos.messaging.application.query.GetMessageDraftQuery;
 import com.architek.oikos.messaging.domain.model.ConversationType;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
+import com.architek.oikos.messaging.domain.valueobject.MessageDraftId;
 import com.architek.oikos.party.application.port.in.GetPartyUseCase;
 import com.architek.oikos.party.application.query.GetPartyQuery;
 import com.architek.oikos.party.domain.valueobject.PartyId;
@@ -61,6 +65,7 @@ public class PropertyAccessEvaluator {
     private final GetInvitationUseCase getInvitationUseCase;
     private final GetMembershipRequestUseCase getMembershipRequestUseCase;
     private final GetConversationUseCase getConversationUseCase;
+    private final GetMessageDraftUseCase getMessageDraftUseCase;
 
     public PropertyAccessEvaluator(GetUserAccessUseCase getUserAccessUseCase,
                                     GetUnitUseCase getUnitUseCase,
@@ -71,7 +76,8 @@ public class PropertyAccessEvaluator {
                                     GetPartyUseCase getPartyUseCase,
                                     GetInvitationUseCase getInvitationUseCase,
                                     GetMembershipRequestUseCase getMembershipRequestUseCase,
-                                    GetConversationUseCase getConversationUseCase) {
+                                    GetConversationUseCase getConversationUseCase,
+                                    GetMessageDraftUseCase getMessageDraftUseCase) {
         this.getUserAccessUseCase = getUserAccessUseCase;
         this.getUnitUseCase = getUnitUseCase;
         this.getBuildingUseCase = getBuildingUseCase;
@@ -82,6 +88,7 @@ public class PropertyAccessEvaluator {
         this.getInvitationUseCase = getInvitationUseCase;
         this.getMembershipRequestUseCase = getMembershipRequestUseCase;
         this.getConversationUseCase = getConversationUseCase;
+        this.getMessageDraftUseCase = getMessageDraftUseCase;
     }
 
     /** ADMIN is a global, JWT-embedded authority (same trust boundary as the existing
@@ -278,6 +285,18 @@ public class PropertyAccessEvaluator {
             return conversation.participantUserIds().contains(callerId);
         }
         return canBroadcastOnProperty(authentication, conversation.propertyId().toString());
+    }
+
+    /** Gates every message-draft endpoint scoped by draft id (update/get/delete/send): true for
+     * ADMIN, or if the caller is the draft's own author - a draft is never visible to anyone
+     * else, unlike a conversation which is shared with its other participants. */
+    public boolean isDraftOwner(Authentication authentication, String draftId) {
+        if (isAdminAuthority(authentication)) {
+            return true;
+        }
+        MessageDraftView draft = getMessageDraftUseCase.getDraft(new GetMessageDraftQuery(MessageDraftId.of(draftId)));
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return draft.createdBy().equals(EntityId.of(principal.getUserId()));
     }
 
     /** Self-service: the current account's own linked party. */
