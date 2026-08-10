@@ -14,8 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import com.architek.oikos.installment.application.command.RecordOwnerPaymentCommand;
+import com.architek.oikos.installment.application.port.in.GetLatestPaymentByPropertyUseCase;
 import com.architek.oikos.installment.application.port.in.ListPaymentsByUnitUseCase;
 import com.architek.oikos.installment.application.port.in.RecordOwnerPaymentUseCase;
+import com.architek.oikos.installment.application.query.GetLatestPaymentByPropertyQuery;
 import com.architek.oikos.installment.application.query.ListPaymentsByUnitQuery;
 import com.architek.oikos.installment.web.request.RecordOwnerPaymentRequest;
 import com.architek.oikos.installment.web.response.PaymentResponse;
@@ -27,11 +29,14 @@ public class PaymentController {
 
     private final RecordOwnerPaymentUseCase recordOwnerPaymentUseCase;
     private final ListPaymentsByUnitUseCase listPaymentsByUnitUseCase;
+    private final GetLatestPaymentByPropertyUseCase getLatestPaymentByPropertyUseCase;
 
     public PaymentController(RecordOwnerPaymentUseCase recordOwnerPaymentUseCase,
-                              ListPaymentsByUnitUseCase listPaymentsByUnitUseCase) {
+                              ListPaymentsByUnitUseCase listPaymentsByUnitUseCase,
+                              GetLatestPaymentByPropertyUseCase getLatestPaymentByPropertyUseCase) {
         this.recordOwnerPaymentUseCase = recordOwnerPaymentUseCase;
         this.listPaymentsByUnitUseCase = listPaymentsByUnitUseCase;
+        this.getLatestPaymentByPropertyUseCase = getLatestPaymentByPropertyUseCase;
     }
 
     @PreAuthorize("@propertyAccess.canWriteInstallmentCall(authentication, #propertyId)")
@@ -53,5 +58,14 @@ public class PaymentController {
         return listPaymentsByUnitUseCase.listPayments(new ListPaymentsByUnitQuery(EntityId.of(unitId))).stream()
                 .map(PaymentResponse::from)
                 .toList();
+    }
+
+    @PreAuthorize("@propertyAccess.canReadAccounting(authentication, #propertyId)")
+    @GetMapping("/properties/{propertyId}/payments/latest")
+    public ResponseEntity<PaymentResponse> latestForProperty(@PathVariable String propertyId) {
+        return getLatestPaymentByPropertyUseCase.getLatestPayment(
+                        new GetLatestPaymentByPropertyQuery(EntityId.of(propertyId)))
+                .map(payment -> ResponseEntity.ok(PaymentResponse.from(payment)))
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 }

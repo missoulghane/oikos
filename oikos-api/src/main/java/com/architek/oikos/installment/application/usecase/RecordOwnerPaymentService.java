@@ -84,7 +84,8 @@ public class RecordOwnerPaymentService implements RecordOwnerPaymentUseCase {
 
         EntityId journalEntryId = ownerPaymentJournalEntryPort.postOwnerPaymentEntry(command.propertyId(),
                 command.unitId(), command.treasuryAccountId(), command.valueDate(), imputedTotal,
-                allocationResult.advanceAmount(), "Reglement coproprietaire", command.createdByUserId());
+                allocationResult.advanceAmount(), command.mode(), "Reglement coproprietaire",
+                command.createdByUserId());
 
         for (PaymentAllocationCalculator.InstallmentAllocation allocation : allocationResult.allocations()) {
             Installment installment = unitInstallments.stream()

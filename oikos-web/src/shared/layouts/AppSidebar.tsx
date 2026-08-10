@@ -26,11 +26,11 @@ import {
   FolderIcon,
   ArrowDownIcon,
   ListIcon,
-  TableIcon,
   MailIcon,
   UserCircleIcon,
   EnvelopeIcon,
   PencilIcon,
+  LockIcon,
 } from '@/shared/icons';
 import { Badge } from '@/shared/components/Badge/Badge';
 import { SidebarWidget } from './SidebarWidget';
@@ -55,6 +55,7 @@ const PROPERTY_INFO_TABS = [
   { name: 'Contacts', path: '/contacts', icon: <GroupIcon /> },
   { name: 'Invitations', path: '/invitations', icon: <MailIcon /> },
   { name: 'Bureau', path: '/board', icon: <UserCircleIcon /> },
+  { name: 'Documents', path: '/documents', icon: <DocsIcon /> },
   { name: 'Configuration', path: '/configuration', icon: <PlugInIcon /> },
 ];
 
@@ -73,11 +74,16 @@ const INSTALLMENT_TABS = [
 const ACCOUNTING_TABS = [
   { name: 'Vue d’ensemble', path: '', icon: <DollarLineIcon /> },
   { name: 'Plan comptable', path: '/ledger-accounts', icon: <FolderIcon /> },
-  { name: 'Mes comptes', path: '/treasury-accounts', icon: <TableIcon /> },
   { name: 'Comptes des lots', path: '/unit-accounts', icon: <BoxIconLine /> },
   { name: 'Journal', path: '/journal', icon: <ListIcon /> },
   { name: 'Dépenses', path: '/expenses', icon: <ArrowDownIcon /> },
 ];
+
+// Standalone menu (kept out of ACCOUNTING_TABS/"Comptabilité" on purpose - the
+// exercise open/close workflow used to live on the accounting overview tab
+// but was moved to its own top-level group, placed last among the
+// property-scoped groups, see propertyContextGroups below).
+const ACCOUNTING_EXERCISE_TABS = [{ name: 'Ouverture / Clôture', path: '', icon: <TimeIcon /> }];
 
 // Réception/Envoyé/Brouillon - each with its own icon, distinct from the
 // "Messagerie" group icon above them (EnvelopeIcon) - see messagingGroup.
@@ -137,6 +143,15 @@ function propertyContextGroups(propertyId: string): NavGroup[] {
         icon: tab.icon,
       })),
     },
+    {
+      name: 'Exercice comptable',
+      icon: <LockIcon />,
+      children: ACCOUNTING_EXERCISE_TABS.map((tab) => ({
+        name: tab.name,
+        path: `/property-mngt/properties/${propertyId}/accounting-exercise${tab.path}`,
+        icon: tab.icon,
+      })),
+    },
   ];
 }
 
@@ -151,7 +166,7 @@ export function AppSidebar() {
   // Both groups start expanded (matching the previous always-open behaviour);
   // the user can collapse either one independently from there.
   const [openGroups, setOpenGroups] = useState<Set<string>>(
-    () => new Set(['Ma copropriété', 'Gestion des échéances', 'Comptabilité', 'Messagerie']),
+    () => new Set(['Ma copropriété', 'Gestion des échéances', 'Comptabilité', 'Exercice comptable', 'Messagerie']),
   );
 
   const showExpanded = isExpanded || isHovered || isMobileOpen;

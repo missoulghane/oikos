@@ -49,7 +49,9 @@ INSERT INTO role_permission (role_name, permission_key) VALUES
     ('ROLE_ADMIN', 'property:accounting:read'),
     ('ROLE_ADMIN', 'property:accounting:write'),
     ('ROLE_ADMIN', 'user:admin'),
-    ('ROLE_ADMIN', 'invitation:manage');
+    ('ROLE_ADMIN', 'invitation:manage'),
+    ('ROLE_ADMIN', 'document:read'),
+    ('ROLE_ADMIN', 'document:write');
 
 INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_ADMIN', 'property:read'),
@@ -67,7 +69,9 @@ INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_ADMIN', 'installment:call:write'),
     ('PROPERTY_BOARD_ADMIN', 'property:accounting:read'),
     ('PROPERTY_BOARD_ADMIN', 'property:accounting:write'),
-    ('PROPERTY_BOARD_ADMIN', 'invitation:manage');
+    ('PROPERTY_BOARD_ADMIN', 'invitation:manage'),
+    ('PROPERTY_BOARD_ADMIN', 'document:read'),
+    ('PROPERTY_BOARD_ADMIN', 'document:write');
 
 INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_MEMBER', 'property:read'),
@@ -82,7 +86,9 @@ INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_MEMBER', 'installment:read'),
     ('PROPERTY_BOARD_MEMBER', 'installment:call:write'),
     ('PROPERTY_BOARD_MEMBER', 'property:accounting:read'),
-    ('PROPERTY_BOARD_MEMBER', 'property:accounting:write');
+    ('PROPERTY_BOARD_MEMBER', 'property:accounting:write'),
+    ('PROPERTY_BOARD_MEMBER', 'document:read'),
+    ('PROPERTY_BOARD_MEMBER', 'document:write');
 
 INSERT INTO role_permission (role_name, permission_key)
 SELECT 'PROPERTY_MANAGER_ADMIN', permission_key FROM role_permission WHERE role_name = 'PROPERTY_BOARD_ADMIN';
@@ -93,7 +99,8 @@ SELECT 'PROPERTY_MANAGER_MEMBER', permission_key FROM role_permission WHERE role
 INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_OWNER', 'party:read'),
     ('PROPERTY_OWNER', 'unit:read'),
-    ('PROPERTY_OWNER', 'installment:read');
+    ('PROPERTY_OWNER', 'installment:read'),
+    ('PROPERTY_OWNER', 'document:read');
 
 -- =========================================================================
 -- 1. ADMIN: platform-wide master account, not tied to any property, so no

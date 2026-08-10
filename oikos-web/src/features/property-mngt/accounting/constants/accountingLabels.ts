@@ -65,3 +65,18 @@ export const JOURNAL_ENTRY_STATUS_BADGE_COLORS: Record<JournalEntryStatus, 'ligh
   POSTED: 'success',
   REVERSED: 'light',
 };
+
+// Balance above which a treasury account (caisse/banque) reads as "healthy" (green) rather than
+// merely non-negative (blue) on the accounting overview cards. Tune this single value to change
+// the threshold app-wide.
+export const TREASURY_BALANCE_HEALTHY_THRESHOLD = 1000;
+
+export function getTreasuryBalanceColorClass(balance: number): string {
+  if (balance < 0) {
+    return 'text-error-600';
+  }
+  if (balance > TREASURY_BALANCE_HEALTHY_THRESHOLD) {
+    return 'text-success-600';
+  }
+  return 'text-brand-600';
+}

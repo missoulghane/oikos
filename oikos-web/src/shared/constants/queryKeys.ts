@@ -49,6 +49,31 @@ export const queryKeys = {
     accountingJournalEntry: (propertyId: string, entryId: string) =>
       ['properties', propertyId, 'accounting', 'entries', entryId] as const,
     accountingExpenses: (propertyId: string) => ['properties', propertyId, 'accounting', 'expenses'] as const,
+    latestPayment: (propertyId: string) => ['properties', propertyId, 'payments', 'latest'] as const,
+    ledgerAccountEntries: (
+      propertyId: string,
+      accountId: string,
+      page: number,
+      size: number,
+      pieceDateFrom: string | undefined,
+      pieceDateTo: string | undefined,
+      search: string | undefined,
+      status: string | undefined,
+    ) =>
+      [
+        'properties',
+        propertyId,
+        'accounting',
+        'ledger-accounts',
+        accountId,
+        'entries',
+        page,
+        size,
+        pieceDateFrom,
+        pieceDateTo,
+        search,
+        status,
+      ] as const,
   },
   installmentCalls: {
     detail: (id: string) => ['installment-calls', id, 'detail'] as const,
@@ -79,6 +104,10 @@ export const queryKeys = {
   },
   boardMembers: {
     list: (propertyId: string) => ['board-members', propertyId, 'list'] as const,
+  },
+  documents: {
+    list: (ownerType: string, ownerId: string, page: number, size: number) =>
+      ['documents', ownerType, ownerId, 'list', page, size] as const,
   },
   messaging: {
     conversations: (page: number, size: number, search: string | undefined, box: 'RECEIVED' | 'SENT') =>

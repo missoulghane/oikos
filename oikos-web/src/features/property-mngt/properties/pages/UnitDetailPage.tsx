@@ -77,7 +77,7 @@ export function UnitDetailPage() {
 
       <Card className="flex flex-col gap-2">
         <h2 className="text-base font-semibold text-gray-900">Échéances</h2>
-        <UnitInstallmentsSection unitId={id} />
+        <UnitInstallmentsSection propertyId={propertyId ?? ''} unitId={id} />
       </Card>
 
       <Card className="flex flex-col gap-2">

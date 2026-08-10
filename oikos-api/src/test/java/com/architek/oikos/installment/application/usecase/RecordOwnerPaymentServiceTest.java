@@ -73,7 +73,7 @@ class RecordOwnerPaymentServiceTest {
                 Amount.of(new BigDecimal("300.00")));
         when(installmentRepository.findAllByUnitId(unitId)).thenReturn(List.of(installment));
         when(ownerPaymentJournalEntryPort.postOwnerPaymentEntry(eq(propertyId), eq(unitId), eq(treasuryAccountId),
-                any(), any(), any(), any(), any())).thenReturn(EntityId.newId());
+                any(), any(), any(), any(), any(), any())).thenReturn(EntityId.newId());
         when(paymentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RecordOwnerPaymentCommand command = new RecordOwnerPaymentCommand(propertyId, unitId, PaymentMode.CASH,
@@ -92,7 +92,7 @@ class RecordOwnerPaymentServiceTest {
         ArgumentCaptor<BigDecimal> imputedCaptor = ArgumentCaptor.forClass(BigDecimal.class);
         ArgumentCaptor<BigDecimal> advanceCaptor = ArgumentCaptor.forClass(BigDecimal.class);
         verify(ownerPaymentJournalEntryPort).postOwnerPaymentEntry(eq(propertyId), eq(unitId), eq(treasuryAccountId),
-                eq(LocalDate.of(2026, 2, 10)), imputedCaptor.capture(), advanceCaptor.capture(), any(), any());
+                eq(LocalDate.of(2026, 2, 10)), imputedCaptor.capture(), advanceCaptor.capture(), any(), any(), any());
         assertThat(imputedCaptor.getValue()).isEqualByComparingTo("300.00");
         assertThat(advanceCaptor.getValue()).isEqualByComparingTo(BigDecimal.ZERO);
     }
@@ -106,7 +106,7 @@ class RecordOwnerPaymentServiceTest {
         Installment installment = Installment.create(InstallmentId.newId(), unitId, LocalDate.of(2026, 2, 5),
                 Amount.of(new BigDecimal("300.00")));
         when(installmentRepository.findAllByUnitId(unitId)).thenReturn(List.of(installment));
-        when(ownerPaymentJournalEntryPort.postOwnerPaymentEntry(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ownerPaymentJournalEntryPort.postOwnerPaymentEntry(any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(EntityId.newId());
         when(paymentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -131,7 +131,7 @@ class RecordOwnerPaymentServiceTest {
         Installment newer = Installment.create(InstallmentId.newId(), unitId, LocalDate.of(2026, 2, 5),
                 Amount.of(new BigDecimal("100.00")));
         when(installmentRepository.findAllByUnitId(unitId)).thenReturn(List.of(newer, older));
-        when(ownerPaymentJournalEntryPort.postOwnerPaymentEntry(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ownerPaymentJournalEntryPort.postOwnerPaymentEntry(any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(EntityId.newId());
         when(paymentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -178,7 +178,7 @@ class RecordOwnerPaymentServiceTest {
         stubDirectories(propertyId, unitId);
         when(installmentRepository.findAllByUnitId(unitId)).thenReturn(List.of());
         EntityId journalEntryId = EntityId.newId();
-        when(ownerPaymentJournalEntryPort.postOwnerPaymentEntry(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ownerPaymentJournalEntryPort.postOwnerPaymentEntry(any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(journalEntryId);
         when(paymentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 

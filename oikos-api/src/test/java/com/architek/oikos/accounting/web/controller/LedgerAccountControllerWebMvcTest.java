@@ -18,6 +18,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.accounting.application.dto.LedgerAccountView;
+import com.architek.oikos.accounting.application.port.in.ListJournalEntriesByTreasuryAccountUseCase;
 import com.architek.oikos.accounting.application.port.in.ListLedgerAccountsByPropertyUseCase;
 import com.architek.oikos.accounting.domain.valueobject.AccountNature;
 import com.architek.oikos.accounting.domain.valueobject.AccountRole;
@@ -39,6 +40,9 @@ class LedgerAccountControllerWebMvcTest {
 
     @MockitoBean
     private ListLedgerAccountsByPropertyUseCase listLedgerAccountsByPropertyUseCase;
+
+    @MockitoBean
+    private ListJournalEntriesByTreasuryAccountUseCase listJournalEntriesByTreasuryAccountUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));

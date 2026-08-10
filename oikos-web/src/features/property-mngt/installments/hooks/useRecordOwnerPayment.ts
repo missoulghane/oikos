@@ -11,6 +11,12 @@ export function useRecordOwnerPayment(propertyId: string, unitId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.units.payments(unitId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.units.installments(unitId) });
+      // Prefix match: also invalidates every treasury account's operations list
+      // (queryKeys.properties.ledgerAccountEntries nests under this same key),
+      // so a "saisir une recette" from an account's page shows the new entry
+      // and updated balance immediately on return, not stale cached data.
+      queryClient.invalidateQueries({ queryKey: queryKeys.properties.accountingLedgerAccounts(propertyId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.properties.latestPayment(propertyId) });
     },
   });
 }

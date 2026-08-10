@@ -72,7 +72,7 @@ class PostOwnerPaymentJournalEntryServiceTest {
 
         PostOwnerPaymentJournalEntryCommand command = new PostOwnerPaymentJournalEntryCommand(propertyId, unitId,
                 cashAccountId, LocalDate.of(2026, 1, 15), new BigDecimal("300.00"), BigDecimal.ZERO,
-                "Reglement", EntityId.newId());
+                "Reglement", EntityId.newId(), true);
 
         newService().post(command);
 
@@ -103,7 +103,7 @@ class PostOwnerPaymentJournalEntryServiceTest {
 
         PostOwnerPaymentJournalEntryCommand command = new PostOwnerPaymentJournalEntryCommand(propertyId, unitId,
                 bankAccountId, LocalDate.of(2026, 1, 15), new BigDecimal("300.00"), new BigDecimal("200.00"),
-                "Reglement", EntityId.newId());
+                "Reglement", EntityId.newId(), false);
 
         newService().post(command);
 
@@ -132,7 +132,7 @@ class PostOwnerPaymentJournalEntryServiceTest {
 
         PostOwnerPaymentJournalEntryCommand command = new PostOwnerPaymentJournalEntryCommand(propertyId, unitId,
                 cashAccountId, LocalDate.of(2026, 1, 15), BigDecimal.ZERO, new BigDecimal("300.00"),
-                "Reglement", EntityId.newId());
+                "Reglement", EntityId.newId(), true);
 
         newService().post(command);
 
@@ -150,7 +150,7 @@ class PostOwnerPaymentJournalEntryServiceTest {
 
         PostOwnerPaymentJournalEntryCommand command = new PostOwnerPaymentJournalEntryCommand(propertyId, unitId,
                 cashAccountId, LocalDate.of(2026, 1, 15), new BigDecimal("300.00"), BigDecimal.ZERO,
-                "Reglement", EntityId.newId());
+                "Reglement", EntityId.newId(), true);
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> newService().post(command))
                 .isInstanceOf(InvalidTreasuryAccountException.class);
@@ -168,9 +168,41 @@ class PostOwnerPaymentJournalEntryServiceTest {
 
         PostOwnerPaymentJournalEntryCommand command = new PostOwnerPaymentJournalEntryCommand(propertyId, unitId,
                 cashAccountId, LocalDate.of(2026, 1, 15), new BigDecimal("300.00"), BigDecimal.ZERO,
-                "Reglement", EntityId.newId());
+                "Reglement", EntityId.newId(), true);
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> newService().post(command))
                 .isInstanceOf(AccountRoleNotConfiguredException.class);
+    }
+
+    @Test
+    void a_non_cash_payment_mode_on_a_cash_account_is_rejected() {
+        EntityId propertyId = EntityId.newId();
+        EntityId unitId = EntityId.newId();
+        LedgerAccountId cashAccountId = LedgerAccountId.newId();
+        when(ledgerAccountRepository.findById(cashAccountId)).thenReturn(Optional.of(
+                account(propertyId, cashAccountId, "51610001", 5, AccountNature.BALANCE_ASSET, false, AccountRole.CASH)));
+
+        PostOwnerPaymentJournalEntryCommand command = new PostOwnerPaymentJournalEntryCommand(propertyId, unitId,
+                cashAccountId, LocalDate.of(2026, 1, 15), new BigDecimal("300.00"), BigDecimal.ZERO,
+                "Reglement", EntityId.newId(), false);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> newService().post(command))
+                .isInstanceOf(com.architek.oikos.accounting.domain.exception.TreasuryAccountPaymentModeMismatchException.class);
+    }
+
+    @Test
+    void a_cash_payment_mode_on_a_bank_account_is_rejected() {
+        EntityId propertyId = EntityId.newId();
+        EntityId unitId = EntityId.newId();
+        LedgerAccountId bankAccountId = LedgerAccountId.newId();
+        when(ledgerAccountRepository.findById(bankAccountId)).thenReturn(Optional.of(
+                account(propertyId, bankAccountId, "51410001", 5, AccountNature.BALANCE_ASSET, false, AccountRole.BANK)));
+
+        PostOwnerPaymentJournalEntryCommand command = new PostOwnerPaymentJournalEntryCommand(propertyId, unitId,
+                bankAccountId, LocalDate.of(2026, 1, 15), new BigDecimal("300.00"), BigDecimal.ZERO,
+                "Reglement", EntityId.newId(), true);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> newService().post(command))
+                .isInstanceOf(com.architek.oikos.accounting.domain.exception.TreasuryAccountPaymentModeMismatchException.class);
     }
 }

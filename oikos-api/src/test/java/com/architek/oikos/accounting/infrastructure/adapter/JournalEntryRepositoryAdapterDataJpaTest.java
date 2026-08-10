@@ -12,6 +12,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
+import com.architek.oikos.accounting.domain.model.AuxiliaryUnitBalance;
 import com.architek.oikos.accounting.domain.model.JournalEntry;
 import com.architek.oikos.accounting.domain.model.JournalEntryLine;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
@@ -99,5 +100,44 @@ class JournalEntryRepositoryAdapterDataJpaTest {
         assertThat(page.totalElements()).isEqualTo(2);
         assertThat(page.content()).extracting(JournalEntry::getPieceDate)
                 .containsExactly(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 1));
+    }
+
+    @Test
+    void sums_net_amount_for_one_auxiliary_unit_credit_minus_debit_posted_only() {
+        EntityId propertyId = EntityId.newId();
+        LedgerAccountId accountId = LedgerAccountId.newId();
+        EntityId unitId = EntityId.newId();
+
+        JournalEntry credit500 = JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(),
+                PeriodId.newId(), JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, EntityId.newId(),
+                List.of(JournalEntryLine.of(JournalEntryLineId.newId(), LedgerAccountId.newId(), unitId, null,
+                                EntryDirection.DEBIT, Amount.of(new BigDecimal("500.00")), "Debit"),
+                        JournalEntryLine.of(JournalEntryLineId.newId(), accountId, unitId, null,
+                                EntryDirection.CREDIT, Amount.of(new BigDecimal("500.00")), "Avance")));
+        JournalEntry debit200 = JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(),
+                PeriodId.newId(), JournalCode.OD, null, LocalDate.of(2026, 8, 2), null, EntityId.newId(),
+                List.of(JournalEntryLine.of(JournalEntryLineId.newId(), accountId, unitId, null,
+                                EntryDirection.DEBIT, Amount.of(new BigDecimal("200.00")), "Regularisation"),
+                        JournalEntryLine.of(JournalEntryLineId.newId(), LedgerAccountId.newId(), unitId, null,
+                                EntryDirection.CREDIT, Amount.of(new BigDecimal("200.00")), "Regularisation")));
+        // A DRAFT entry on the same account/unit must not count.
+        JournalEntry draftOnly = JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(),
+                PeriodId.newId(), JournalCode.OD, null, LocalDate.of(2026, 8, 3), null, EntityId.newId(),
+                List.of(JournalEntryLine.of(JournalEntryLineId.newId(), accountId, unitId, null,
+                                EntryDirection.CREDIT, Amount.of(new BigDecimal("999.00")), "Ignored"),
+                        JournalEntryLine.of(JournalEntryLineId.newId(), LedgerAccountId.newId(), unitId, null,
+                                EntryDirection.DEBIT, Amount.of(new BigDecimal("999.00")), "Ignored")));
+
+        adapter.save(credit500.post(1));
+        adapter.save(debit200.post(2));
+        adapter.save(draftOnly);
+
+        BigDecimal balance = adapter.sumNetAmountForAuxiliaryUnit(propertyId, accountId, unitId);
+        assertThat(balance).isEqualByComparingTo("300.00");
+
+        List<AuxiliaryUnitBalance> grouped = adapter.sumNetAmountGroupedByAuxiliaryUnit(propertyId, accountId);
+        assertThat(grouped).hasSize(1);
+        assertThat(grouped.get(0).unitId()).isEqualTo(unitId);
+        assertThat(grouped.get(0).amount()).isEqualByComparingTo("300.00");
     }
 }

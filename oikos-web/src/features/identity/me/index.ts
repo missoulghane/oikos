@@ -12,5 +12,7 @@ export {
   isManagerTierOnProperty,
   canReadAccounting,
   canWriteAccounting,
+  canReadDocuments,
+  canWriteDocuments,
 } from '@/features/identity/me/utils/access';
 export type { CurrentUser, PropertyRoleName } from '@/features/identity/me/types/me.types';

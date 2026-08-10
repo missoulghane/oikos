@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { useCurrentUser, canWriteAccounting } from '@/features/identity/me';
 import { usePropertyInstallments } from '@/features/property-mngt/installments/hooks/usePropertyInstallments';
+import { useRegularizePropertyInstallments } from '@/features/property-mngt/installments/hooks/useRegularizePropertyInstallments';
 import {
   InstallmentFilters,
   type InstallmentFiltersValue,
 } from '@/features/property-mngt/installments/components/InstallmentFilters';
 import { InstallmentList } from '@/features/property-mngt/installments/components/InstallmentList';
+import { Button } from '@/shared/components/Button/Button';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
@@ -37,6 +40,9 @@ export function InstallmentsListTab() {
 
 function InstallmentsListTabContent({ installmentCallIdFromUrl }: { installmentCallIdFromUrl: string }) {
   const { property } = useOutletContext<{ property: Property }>();
+  const currentUser = useCurrentUser();
+  const canWrite = currentUser.data ? canWriteAccounting(currentUser.data, property.id) : false;
+  const regularize = useRegularizePropertyInstallments(property.id);
 
   const [page, setPage] = useState(0);
   const [filters, setFilters] = useState<InstallmentFiltersValue>({
@@ -62,6 +68,31 @@ function InstallmentsListTabContent({ installmentCallIdFromUrl }: { installmentC
 
   return (
     <Card className="flex flex-col gap-4">
+      {canWrite && (
+        <div className="flex flex-col gap-2 border-b border-gray-100 pb-4">
+          <Button
+            type="button"
+            variant="secondary"
+            className="self-start"
+            isLoading={regularize.isPending}
+            onClick={() => regularize.mutate()}
+          >
+            Régulariser les avances (toute la copropriété)
+          </Button>
+          {regularize.isError && <Alert message={getErrorMessage(regularize.error)} />}
+          {regularize.isSuccess && (
+            <Alert
+              variant="success"
+              message={
+                regularize.data.unitsRegularized === 0
+                  ? 'Aucune régularisation nécessaire.'
+                  : `${regularize.data.totalAmountApplied.toLocaleString('fr-FR')} MAD imputé(s) sur ${regularize.data.unitsRegularized} lot(s).`
+              }
+            />
+          )}
+        </div>
+      )}
+
       <InstallmentFilters propertyId={property.id} value={filters} onChange={handleFiltersChange} />
 
       {installments.isLoading && <Loader label="Chargement des échéances…" />}

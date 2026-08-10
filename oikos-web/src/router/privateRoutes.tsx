@@ -36,6 +36,9 @@ const PropertyInvitationsTab = lazy(() =>
 const PropertyBoardTab = lazy(() =>
   import('@/features/property-mngt/board-members').then((m) => ({ default: m.PropertyBoardTab })),
 );
+const PropertyDocumentsTab = lazy(() =>
+  import('@/features/property-mngt/documents').then((m) => ({ default: m.PropertyDocumentsTab })),
+);
 const UnitDetailPage = lazy(() =>
   import('@/features/property-mngt/properties').then((m) => ({ default: m.UnitDetailPage })),
 );
@@ -57,11 +60,23 @@ const AccountingSectionLayout = lazy(() =>
 const AccountingOverviewTab = lazy(() =>
   import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingOverviewTab })),
 );
+const AccountingExerciseTab = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingExerciseTab })),
+);
 const AccountingLedgerAccountsTab = lazy(() =>
   import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingLedgerAccountsTab })),
 );
-const AccountingTreasuryAccountsTab = lazy(() =>
-  import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingTreasuryAccountsTab })),
+const TreasuryAccountDetailPage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.TreasuryAccountDetailPage })),
+);
+const CreateBankAccountPage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.CreateBankAccountPage })),
+);
+const RecordAccountReceiptPage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.RecordAccountReceiptPage })),
+);
+const RecordTreasuryTransferPage = lazy(() =>
+  import('@/features/property-mngt/accounting').then((m) => ({ default: m.RecordTreasuryTransferPage })),
 );
 const AccountingUnitAccountsTab = lazy(() =>
   import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingUnitAccountsTab })),
@@ -311,6 +326,14 @@ export const privateRoutes: RouteObject[] = [
                     ),
                   },
                   {
+                    path: 'documents',
+                    element: (
+                      <Suspense fallback={<Loader />}>
+                        <PropertyDocumentsTab />
+                      </Suspense>
+                    ),
+                  },
+                  {
                     path: 'configuration',
                     element: (
                       <Suspense fallback={<Loader />}>
@@ -379,10 +402,10 @@ export const privateRoutes: RouteObject[] = [
                     ),
                   },
                   {
-                    path: 'treasury-accounts',
+                    path: 'treasury-accounts/:accountId',
                     element: (
                       <Suspense fallback={<Loader />}>
-                        <AccountingTreasuryAccountsTab />
+                        <TreasuryAccountDetailPage />
                       </Suspense>
                     ),
                   },
@@ -419,6 +442,46 @@ export const privateRoutes: RouteObject[] = [
                     ),
                   },
                 ],
+              },
+              {
+                path: 'accounting-exercise',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <AccountingExerciseTab />
+                  </Suspense>
+                ),
+              },
+              {
+                path: 'accounting/treasury-accounts/new',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <CreateBankAccountPage />
+                  </Suspense>
+                ),
+              },
+              {
+                path: 'accounting/treasury-accounts/:accountId/expenses/new',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <CreateSupplierPaymentPage />
+                  </Suspense>
+                ),
+              },
+              {
+                path: 'accounting/treasury-accounts/:accountId/receipts/new',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <RecordAccountReceiptPage />
+                  </Suspense>
+                ),
+              },
+              {
+                path: 'accounting/treasury-accounts/:accountId/transfers/new',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <RecordTreasuryTransferPage />
+                  </Suspense>
+                ),
               },
               {
                 path: 'accounting/supplier-payments/new',

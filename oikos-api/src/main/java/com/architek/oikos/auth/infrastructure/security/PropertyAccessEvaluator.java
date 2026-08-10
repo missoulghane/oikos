@@ -4,6 +4,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
+import com.architek.oikos.document.application.dto.DocumentView;
+import com.architek.oikos.document.application.port.in.GetDocumentUseCase;
+import com.architek.oikos.document.application.query.GetDocumentQuery;
+import com.architek.oikos.document.domain.valueobject.DocumentId;
+import com.architek.oikos.document.domain.valueobject.DocumentOwnerType;
 import com.architek.oikos.installment.application.port.in.GetInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.GetInstallmentUseCase;
 import com.architek.oikos.installment.application.query.GetInstallmentCallQuery;
@@ -66,6 +71,7 @@ public class PropertyAccessEvaluator {
     private final GetMembershipRequestUseCase getMembershipRequestUseCase;
     private final GetConversationUseCase getConversationUseCase;
     private final GetMessageDraftUseCase getMessageDraftUseCase;
+    private final GetDocumentUseCase getDocumentUseCase;
 
     public PropertyAccessEvaluator(GetUserAccessUseCase getUserAccessUseCase,
                                     GetUnitUseCase getUnitUseCase,
@@ -77,7 +83,8 @@ public class PropertyAccessEvaluator {
                                     GetInvitationUseCase getInvitationUseCase,
                                     GetMembershipRequestUseCase getMembershipRequestUseCase,
                                     GetConversationUseCase getConversationUseCase,
-                                    GetMessageDraftUseCase getMessageDraftUseCase) {
+                                    GetMessageDraftUseCase getMessageDraftUseCase,
+                                    GetDocumentUseCase getDocumentUseCase) {
         this.getUserAccessUseCase = getUserAccessUseCase;
         this.getUnitUseCase = getUnitUseCase;
         this.getBuildingUseCase = getBuildingUseCase;
@@ -89,6 +96,7 @@ public class PropertyAccessEvaluator {
         this.getMembershipRequestUseCase = getMembershipRequestUseCase;
         this.getConversationUseCase = getConversationUseCase;
         this.getMessageDraftUseCase = getMessageDraftUseCase;
+        this.getDocumentUseCase = getDocumentUseCase;
     }
 
     /** ADMIN is a global, JWT-embedded authority (same trust boundary as the existing
@@ -297,6 +305,44 @@ public class PropertyAccessEvaluator {
         MessageDraftView draft = getMessageDraftUseCase.getDraft(new GetMessageDraftQuery(MessageDraftId.of(draftId)));
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         return draft.createdBy().equals(EntityId.of(principal.getUserId()));
+    }
+
+    /** Gates GET /documents (list) and POST /documents (upload), scoped by the owner
+     * (ownerType, ownerId) the document is/would be attached to - resolves to the owning
+     * property the same way managesUnit resolves a unit id, then checks DOCUMENT_READ. */
+    public boolean canReadDocument(Authentication authentication, String ownerType, String ownerId) {
+        return hasPermission(authentication, resolveDocumentOwnerPropertyId(ownerType, ownerId), Permission.DOCUMENT_READ);
+    }
+
+    /** Same as canReadDocument but for DOCUMENT_WRITE (upload). */
+    public boolean canWriteDocument(Authentication authentication, String ownerType, String ownerId) {
+        return hasPermission(authentication, resolveDocumentOwnerPropertyId(ownerType, ownerId), Permission.DOCUMENT_WRITE);
+    }
+
+    /** Gates GET /documents/{id} and GET /documents/{id}/content, addressed by document id
+     * rather than owner - resolves the document's (ownerType, ownerId) first. */
+    public boolean canReadDocumentEntry(Authentication authentication, String documentId) {
+        if (isAdminAuthority(authentication)) {
+            return true;
+        }
+        DocumentView document = getDocumentUseCase.getDocument(new GetDocumentQuery(DocumentId.of(documentId)));
+        return canReadDocument(authentication, document.ownerType().name(), document.ownerId().toString());
+    }
+
+    /** Gates DELETE /documents/{id}. */
+    public boolean canWriteDocumentEntry(Authentication authentication, String documentId) {
+        if (isAdminAuthority(authentication)) {
+            return true;
+        }
+        DocumentView document = getDocumentUseCase.getDocument(new GetDocumentQuery(DocumentId.of(documentId)));
+        return canWriteDocument(authentication, document.ownerType().name(), document.ownerId().toString());
+    }
+
+    private String resolveDocumentOwnerPropertyId(String ownerType, String ownerId) {
+        return switch (DocumentOwnerType.valueOf(ownerType.toUpperCase())) {
+            case PROPERTY -> ownerId;
+            case UNIT -> getUnitUseCase.getUnit(new GetUnitQuery(UnitId.of(ownerId))).propertyId().toString();
+        };
     }
 
     /** Self-service: the current account's own linked party. */

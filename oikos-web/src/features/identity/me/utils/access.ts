@@ -80,3 +80,13 @@ export function canReadAccounting(user: CurrentUser, propertyId: string): boolea
 export function canWriteAccounting(user: CurrentUser, propertyId: string): boolean {
   return canReadAccounting(user, propertyId);
 }
+
+/** document:read - board/manager tiers on this property (same population as canReadAccounting). */
+export function canReadDocuments(user: CurrentUser, propertyId: string): boolean {
+  return isAdmin(user) || isBoardTierOnProperty(user, propertyId) || isManagerTierOnProperty(user, propertyId);
+}
+
+/** document:write - same population as canReadDocuments today (see above). */
+export function canWriteDocuments(user: CurrentUser, propertyId: string): boolean {
+  return canReadDocuments(user, propertyId);
+}

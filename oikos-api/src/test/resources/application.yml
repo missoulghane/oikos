@@ -39,6 +39,13 @@ oikos:
     party-invitation-token-ttl-hours: 168
     invitation-base-url: http://localhost:5173/invitations
     invitation-token-ttl-days: 30
+  storage:
+    type: local
+    local:
+      base-dir: ./target/test-data/documents
+  document:
+    max-file-size-bytes: 10485760
+    allowed-content-types: application/pdf,image/png,image/jpeg,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 
 logging:
   level:

@@ -4,3 +4,5 @@ export { InstallmentCallsTab } from '@/features/property-mngt/installments/pages
 export { InstallmentsOtherTab } from '@/features/property-mngt/installments/pages/InstallmentsOtherTab';
 export { RecordOwnerPaymentPage } from '@/features/property-mngt/installments/pages/RecordOwnerPaymentPage';
 export { UnitPaymentsSection } from '@/features/property-mngt/installments/components/UnitPaymentsSection';
+export { RecordOwnerPaymentForm } from '@/features/property-mngt/installments/components/RecordOwnerPaymentForm';
+export { useLatestPayment } from '@/features/property-mngt/installments/hooks/useLatestPayment';

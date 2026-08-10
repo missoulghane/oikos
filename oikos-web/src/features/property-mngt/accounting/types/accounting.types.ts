@@ -128,3 +128,18 @@ export interface RecordBankChargePayload {
 export interface AddBankAccountPayload {
   label: string;
 }
+
+export interface JournalEntryListFilters {
+  pieceDateFrom?: string;
+  pieceDateTo?: string;
+  search?: string;
+  status?: JournalEntryStatus;
+}
+
+export interface RecordTreasuryTransferPayload {
+  sourceAccountId: string;
+  destinationAccountId: string;
+  pieceDate: string;
+  amount: number;
+  description?: string;
+}

@@ -65,6 +65,20 @@ class DependencyRulesArchTest {
      * than excluding user.domain.model.. wholesale) still catches a real leak
      * of User/PropertyRoleGrant/Role.
      */
+    /**
+     * document reads property data only through its public port-in use cases
+     * (GetPropertyUseCase/GetUnitUseCase, see DocumentOwnerExistenceAdapter) -
+     * never property's domain model, repository or infrastructure internals
+     * directly (rule 4/6), same convention as accounting.
+     */
+    @ArchTest
+    static final ArchRule document_must_not_depend_on_other_modules_internals = noClasses()
+            .that().resideInAPackage("com.architek.oikos.document..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "com.architek.oikos.property.domain.model..", "com.architek.oikos.property.domain.repository..",
+                    "com.architek.oikos.property.infrastructure..")
+            .because("cross-feature access must go through a port-in use case, never another module's domain model/repository/infrastructure directly (rule 4/6)");
+
     private static final DescribedPredicate<JavaClass> OTHER_MODULES_INTERNALS_EXCEPT_PERMISSION_CATALOG =
             new DescribedPredicate<>("reside in property/party/user internals, except the shared Permission RBAC catalog") {
                 @Override

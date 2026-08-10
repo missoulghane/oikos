@@ -3,6 +3,7 @@ package com.architek.oikos.installment.application.port.out;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import com.architek.oikos.installment.domain.valueobject.PaymentMode;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
@@ -15,10 +16,15 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * of the resulting JournalEntry, never accounting's own JournalEntryId.
  * treasuryAccountId is the caller-chosen CASH/BANK account impacted (Partie
  * 3: a property can have several BANK accounts) - accounting validates it.
+ * mode is passed through so accounting can enforce the Moroccan cash-
+ * accounting rule (a caisse account only ever receives especes, a banque
+ * account never does) against the resolved account's role - installment's
+ * own PaymentMode is fine on this port's signature since only the adapter
+ * (allowed to see both modules) crosses into accounting's types.
  */
 public interface OwnerPaymentJournalEntryPort {
 
     EntityId postOwnerPaymentEntry(EntityId propertyId, EntityId unitId, EntityId treasuryAccountId,
                                     LocalDate pieceDate, BigDecimal imputedAmount, BigDecimal advanceAmount,
-                                    String externalReference, EntityId createdByUserId);
+                                    PaymentMode mode, String externalReference, EntityId createdByUserId);
 }

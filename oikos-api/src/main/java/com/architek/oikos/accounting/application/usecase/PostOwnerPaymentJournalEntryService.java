@@ -16,6 +16,7 @@ import com.architek.oikos.accounting.application.port.in.CreateJournalEntryDraft
 import com.architek.oikos.accounting.application.port.in.PostJournalEntryUseCase;
 import com.architek.oikos.accounting.application.port.in.PostOwnerPaymentJournalEntryUseCase;
 import com.architek.oikos.accounting.domain.exception.AccountRoleNotConfiguredException;
+import com.architek.oikos.accounting.domain.exception.TreasuryAccountPaymentModeMismatchException;
 import com.architek.oikos.accounting.domain.model.LedgerAccount;
 import com.architek.oikos.accounting.domain.repository.LedgerAccountRepository;
 import com.architek.oikos.accounting.domain.valueobject.AccountRole;
@@ -53,6 +54,11 @@ public class PostOwnerPaymentJournalEntryService implements PostOwnerPaymentJour
     public JournalEntryId post(PostOwnerPaymentJournalEntryCommand command) {
         LedgerAccount treasuryAccount = treasuryAccountResolver.resolve(command.propertyId(),
                 command.treasuryAccountId(), Set.of(AccountRole.BANK, AccountRole.CASH));
+
+        boolean isCashAccount = treasuryAccount.getRole().filter(AccountRole.CASH::equals).isPresent();
+        if (command.cashPayment() != isCashAccount) {
+            throw new TreasuryAccountPaymentModeMismatchException(treasuryAccount.getId(), isCashAccount);
+        }
 
         BigDecimal totalAmount = command.imputedAmount().add(command.advanceAmount());
         List<CreateJournalEntryLineCommand> lines = new ArrayList<>();

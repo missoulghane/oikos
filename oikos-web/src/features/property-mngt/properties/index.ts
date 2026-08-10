@@ -6,3 +6,4 @@ export { PropertyGeneralInfoTab } from '@/features/property-mngt/properties/page
 export { PropertyLotsTab } from '@/features/property-mngt/properties/pages/PropertyLotsTab';
 export { PropertyContactsTab } from '@/features/property-mngt/properties/pages/PropertyContactsTab';
 export { UnitDetailPage } from '@/features/property-mngt/properties/pages/UnitDetailPage';
+export { UnitPicker } from '@/features/property-mngt/properties/components/UnitPicker';

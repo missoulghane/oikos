@@ -10,7 +10,12 @@ import {
   type AddBankAccountFormValues,
 } from '@/features/property-mngt/accounting/schemas/addBankAccountSchema';
 
-export function AddBankAccountForm({ propertyId }: { propertyId: string }) {
+interface AddBankAccountFormProps {
+  propertyId: string;
+  onCreated?: (accountId: string) => void;
+}
+
+export function AddBankAccountForm({ propertyId, onCreated }: AddBankAccountFormProps) {
   const {
     register,
     handleSubmit,
@@ -20,7 +25,12 @@ export function AddBankAccountForm({ propertyId }: { propertyId: string }) {
   const { mutate, isPending, error } = useAddBankAccount(propertyId);
 
   function onSubmit(values: AddBankAccountFormValues) {
-    mutate(values, { onSuccess: () => reset() });
+    mutate(values, {
+      onSuccess: (accountId) => {
+        reset();
+        onCreated?.(accountId);
+      },
+    });
   }
 
   return (

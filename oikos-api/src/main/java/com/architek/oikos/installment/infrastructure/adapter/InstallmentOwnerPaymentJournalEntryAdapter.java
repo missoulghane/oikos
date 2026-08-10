@@ -9,6 +9,7 @@ import com.architek.oikos.accounting.application.command.PostOwnerPaymentJournal
 import com.architek.oikos.accounting.application.port.in.PostOwnerPaymentJournalEntryUseCase;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
 import com.architek.oikos.installment.application.port.out.OwnerPaymentJournalEntryPort;
+import com.architek.oikos.installment.domain.valueobject.PaymentMode;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
@@ -29,9 +30,9 @@ public class InstallmentOwnerPaymentJournalEntryAdapter implements OwnerPaymentJ
     @Override
     public EntityId postOwnerPaymentEntry(EntityId propertyId, EntityId unitId, EntityId treasuryAccountId,
                                            LocalDate pieceDate, BigDecimal imputedAmount, BigDecimal advanceAmount,
-                                           String externalReference, EntityId createdByUserId) {
+                                           PaymentMode mode, String externalReference, EntityId createdByUserId) {
         return postOwnerPaymentJournalEntryUseCase.post(new PostOwnerPaymentJournalEntryCommand(propertyId, unitId,
                 new LedgerAccountId(treasuryAccountId), pieceDate, imputedAmount, advanceAmount, externalReference,
-                createdByUserId)).value();
+                createdByUserId, mode == PaymentMode.CASH)).value();
     }
 }

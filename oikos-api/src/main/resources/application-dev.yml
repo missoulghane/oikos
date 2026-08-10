@@ -23,6 +23,9 @@ spring:
 oikos:
   mail:
     enabled: false
+  storage:
+    local:
+      base-dir: ${STORAGE_LOCAL_BASE_DIR:./target/dev-data/documents}
 
 logging:
   level:

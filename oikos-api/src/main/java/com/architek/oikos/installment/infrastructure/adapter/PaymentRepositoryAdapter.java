@@ -37,4 +37,10 @@ public class PaymentRepositoryAdapter implements PaymentRepository {
     public List<Payment> findAllByUnitId(EntityId unitId) {
         return jpaRepository.findAllByUnitId(unitId.value()).stream().map(mapper::toDomain).toList();
     }
+
+    @Override
+    public Optional<Payment> findLatestByPropertyId(EntityId propertyId) {
+        return jpaRepository.findFirstByPropertyIdOrderByValueDateDescCreatedDateDesc(propertyId.value())
+                .map(mapper::toDomain);
+    }
 }

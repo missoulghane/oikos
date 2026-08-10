@@ -1,98 +1,111 @@
 import { Link, useOutletContext } from 'react-router-dom';
-import { isAxiosError } from 'axios';
 import { useCurrentUser, canWriteAccounting } from '@/features/identity/me';
-import { useOpenExercise } from '@/features/property-mngt/accounting/hooks/useOpenExercise';
-import { OpenExerciseForm } from '@/features/property-mngt/accounting/components/OpenExerciseForm';
-import { ClosePeriodForm } from '@/features/property-mngt/accounting/components/ClosePeriodForm';
+import { useLedgerAccounts } from '@/features/property-mngt/accounting/hooks/useLedgerAccounts';
+import { useExpenses } from '@/features/property-mngt/accounting/hooks/useExpenses';
+import { useLatestPayment } from '@/features/property-mngt/installments';
+import { TreasuryAccountCard } from '@/features/property-mngt/accounting/components/TreasuryAccountCard';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
-import { Badge } from '@/shared/components/Badge/Badge';
+import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
-import { EXERCISE_STATUS_BADGE_COLORS, EXERCISE_STATUS_LABELS } from '@/features/property-mngt/accounting/constants/accountingLabels';
+import { PAYMENT_MODE_LABELS } from '@/features/property-mngt/installments/constants/paymentModeLabels';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
 
 export function AccountingOverviewTab() {
   const { property } = useOutletContext<{ property: Property }>();
   const currentUser = useCurrentUser();
-  const openExercise = useOpenExercise(property.id);
+  const ledgerAccounts = useLedgerAccounts(property.id);
+  const expenses = useExpenses(property.id);
+  const latestPayment = useLatestPayment(property.id);
   const canWrite = currentUser.data ? canWriteAccounting(currentUser.data, property.id) : false;
 
-  const hasNoOpenExercise = isAxiosError(openExercise.error) && openExercise.error.response?.status === 400;
+  const treasuryAccounts = (ledgerAccounts.data ?? []).filter(
+    (account) => account.role === 'CASH' || account.role === 'BANK',
+  );
+  const lastExpense = (expenses.data ?? [])
+    .slice()
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+  const lastExpenseLedgerAccount = lastExpense
+    ? ledgerAccounts.data?.find((account) => account.id === lastExpense.ledgerAccountId)
+    : undefined;
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-gray-900">Exercice comptable</h2>
-
-        {openExercise.isLoading && <Loader label="Chargement de l'exercice…" />}
-
-        {openExercise.isError && !hasNoOpenExercise && <Alert message={getErrorMessage(openExercise.error)} />}
-
-        {openExercise.isError && hasNoOpenExercise && (
-          <>
-            <p className="text-sm text-gray-500">
-              Aucun exercice comptable ouvert pour cette copropriété. Toute écriture (appel de fonds, règlement,
-              facture…) nécessite un exercice ouvert.
-            </p>
-            {canWrite && <OpenExerciseForm propertyId={property.id} />}
-          </>
-        )}
-
-        {openExercise.data && (
-          <>
-            <div className="flex items-center gap-3">
-              <p className="text-sm font-medium text-gray-900">{openExercise.data.label}</p>
-              <Badge color={EXERCISE_STATUS_BADGE_COLORS[openExercise.data.status]}>
-                {EXERCISE_STATUS_LABELS[openExercise.data.status]}
-              </Badge>
-            </div>
-            <p className="text-sm text-gray-500">
-              Du {new Date(openExercise.data.startDate).toLocaleDateString('fr-FR')} au{' '}
-              {new Date(openExercise.data.endDate).toLocaleDateString('fr-FR')}
-              {openExercise.data.comment && ` · ${openExercise.data.comment}`}
-            </p>
-
-            {canWrite && (
-              <div className="border-t border-gray-200 pt-4">
-                <ClosePeriodForm propertyId={property.id} />
-              </div>
-            )}
-          </>
-        )}
-      </Card>
-
-      {canWrite && (
-        <Card className="flex flex-col gap-3">
-          <h2 className="text-base font-semibold text-gray-900">Opérations</h2>
-          <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col gap-4">
+        {canWrite && (
+          <div className="flex justify-end">
             <Link
-              to={`/property-mngt/properties/${property.id}/accounting/expenses/new`}
+              to={`/property-mngt/properties/${property.id}/accounting/treasury-accounts/new`}
               className="inline-flex min-h-11 items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
             >
-              Facture fournisseur
-            </Link>
-            <Link
-              to={`/property-mngt/properties/${property.id}/accounting/supplier-payments/new`}
-              className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-            >
-              Règlement fournisseur
-            </Link>
-            <Link
-              to={`/property-mngt/properties/${property.id}/accounting/payroll-expenses/new`}
-              className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-            >
-              Charge de personnel
-            </Link>
-            <Link
-              to={`/property-mngt/properties/${property.id}/accounting/bank-charges/new`}
-              className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-            >
-              Frais bancaires
+              Ajouter un compte
             </Link>
           </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {ledgerAccounts.isLoading && <Loader label="Chargement des comptes…" />}
+          {ledgerAccounts.isError && <Alert message={getErrorMessage(ledgerAccounts.error)} />}
+          {ledgerAccounts.data && treasuryAccounts.length === 0 && (
+            <EmptyState title="Aucun compte de caisse ou de banque pour le moment" />
+          )}
+          {treasuryAccounts.map((account) => (
+            <TreasuryAccountCard key={account.id} account={account} propertyId={property.id} />
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Card className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold text-gray-900">Dernière dépense</h2>
+          {expenses.isLoading && <Loader label="Chargement…" />}
+          {expenses.isError && <Alert message={getErrorMessage(expenses.error)} />}
+          {expenses.data && !lastExpense && <p className="text-sm text-gray-500">Aucune dépense pour le moment.</p>}
+          {lastExpense && (
+            <>
+              <p className="text-lg font-semibold text-gray-900">
+                {lastExpense.amount.toLocaleString('fr-FR')} MAD
+              </p>
+              <p className="text-sm text-gray-500">
+                {new Date(lastExpense.date).toLocaleDateString('fr-FR')}
+                {lastExpenseLedgerAccount && ` · ${lastExpenseLedgerAccount.label}`}
+                {lastExpense.description && ` · ${lastExpense.description}`}
+              </p>
+              <Link
+                to={`/property-mngt/properties/${property.id}/accounting/expenses`}
+                className="text-sm font-medium text-brand-500 hover:underline"
+              >
+                Voir les dépenses
+              </Link>
+            </>
+          )}
         </Card>
-      )}
+
+        <Card className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold text-gray-900">Dernière recette</h2>
+          {latestPayment.isLoading && <Loader label="Chargement…" />}
+          {latestPayment.isError && <Alert message={getErrorMessage(latestPayment.error)} />}
+          {latestPayment.data === null && <p className="text-sm text-gray-500">Aucune recette pour le moment.</p>}
+          {latestPayment.data && (
+            <>
+              <p className="text-lg font-semibold text-gray-900">
+                {latestPayment.data.amount.toLocaleString('fr-FR')} MAD
+              </p>
+              <p className="text-sm text-gray-500">
+                {new Date(latestPayment.data.valueDate).toLocaleDateString('fr-FR')} ·{' '}
+                {PAYMENT_MODE_LABELS[latestPayment.data.mode]}
+              </p>
+              <Link
+                to={`/property-mngt/properties/${property.id}/accounting/journal/${latestPayment.data.journalEntryId}`}
+                className="text-sm font-medium text-brand-500 hover:underline"
+              >
+                Voir l'écriture
+              </Link>
+            </>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

@@ -14,4 +14,6 @@ public interface PaymentRepository {
     Optional<Payment> findById(PaymentId id);
 
     List<Payment> findAllByUnitId(EntityId unitId);
+
+    Optional<Payment> findLatestByPropertyId(EntityId propertyId);
 }

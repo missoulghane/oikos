@@ -1,5 +1,6 @@
 package com.architek.oikos.accounting.infrastructure.adapter;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -7,11 +8,14 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.architek.oikos.accounting.domain.model.AuxiliaryUnitBalance;
 import com.architek.oikos.accounting.domain.model.JournalEntry;
 import com.architek.oikos.accounting.domain.repository.JournalEntryRepository;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
 import com.architek.oikos.accounting.domain.valueobject.JournalCode;
+import com.architek.oikos.accounting.domain.valueobject.JournalEntryFilter;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
+import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
 import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.accounting.infrastructure.mapper.JournalEntryPersistenceMapper;
 import com.architek.oikos.accounting.infrastructure.persistence.JournalEntryEntity;
@@ -90,5 +94,29 @@ public class JournalEntryRepositoryAdapter implements JournalEntryRepository {
                 jpaRepository.findAllByPropertyIdOrderByPieceDateDesc(propertyId.value(), pageable);
         return Page.of(page.getContent().stream().map(mapper::toDomain).toList(), page.getNumber(), page.getSize(),
                 page.getTotalElements());
+    }
+
+    @Override
+    public Page<JournalEntry> findPageByTreasuryAccount(EntityId propertyId, LedgerAccountId treasuryAccountId,
+                                                          JournalEntryFilter filter, PageRequest pageRequest) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest
+                .of(pageRequest.pageNumber(), pageRequest.pageSize());
+        org.springframework.data.domain.Page<JournalEntryEntity> page = jpaRepository.searchByTreasuryAccount(
+                propertyId.value(), treasuryAccountId.asUuid(), filter.pieceDateFrom(), filter.pieceDateTo(),
+                filter.search(), filter.status() == null ? null : filter.status().name(), pageable);
+        return Page.of(page.getContent().stream().map(mapper::toDomain).toList(), page.getNumber(), page.getSize(),
+                page.getTotalElements());
+    }
+
+    @Override
+    public BigDecimal sumNetAmountForAuxiliaryUnit(EntityId propertyId, LedgerAccountId accountId, EntityId unitId) {
+        return jpaRepository.sumNetAmountForAuxiliaryUnit(propertyId.value(), accountId.asUuid(), unitId.value());
+    }
+
+    @Override
+    public List<AuxiliaryUnitBalance> sumNetAmountGroupedByAuxiliaryUnit(EntityId propertyId, LedgerAccountId accountId) {
+        return jpaRepository.sumNetAmountGroupedByAuxiliaryUnit(propertyId.value(), accountId.asUuid()).stream()
+                .map(row -> new AuxiliaryUnitBalance(EntityId.of(row.getUnitId()), row.getAmount()))
+                .toList();
     }
 }
