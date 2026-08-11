@@ -50,11 +50,11 @@ public class ConversationRepositoryAdapter implements ConversationRepository {
     }
 
     @Override
-    public List<Conversation> findAllBroadcastByPropertyIds(Collection<EntityId> propertyIds) {
+    public List<Conversation> findAllByPropertyIdsAndType(Collection<EntityId> propertyIds, ConversationType type) {
         if (propertyIds.isEmpty()) {
             return List.of();
         }
         List<UUID> ids = propertyIds.stream().map(EntityId::value).toList();
-        return jpaRepository.findByPropertyIdInAndType(ids, ConversationType.BROADCAST).stream().map(mapper::toDomain).toList();
+        return jpaRepository.findByPropertyIdInAndType(ids, type).stream().map(mapper::toDomain).toList();
     }
 }

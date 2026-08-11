@@ -17,6 +17,7 @@ import com.architek.oikos.messaging.application.dto.MessageView;
 import com.architek.oikos.messaging.application.query.ListConversationMessagesQuery;
 import com.architek.oikos.messaging.domain.model.Conversation;
 import com.architek.oikos.messaging.domain.model.Message;
+import com.architek.oikos.messaging.domain.model.SenderIdentity;
 import com.architek.oikos.messaging.domain.repository.ConversationRepository;
 import com.architek.oikos.messaging.domain.repository.MessageRepository;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
@@ -50,11 +51,13 @@ class ListConversationMessagesServiceTest {
         EntityId other = EntityId.newId();
         ConversationId conversationId = ConversationId.newId();
         Conversation conversation = Conversation.createGroup(conversationId, propertyId, caller, Set.of(caller, other),
-                ConversationSubject.of("Sujet"));
+                ConversationSubject.of("Sujet"), null);
         when(conversationRepository.findById(conversationId)).thenReturn(Optional.of(conversation));
 
-        Message fromCaller = Message.post(MessageId.newId(), conversationId, caller, MessageBody.of("Hi"), Instant.EPOCH);
-        Message fromOther = Message.post(MessageId.newId(), conversationId, other, MessageBody.of("Hello"), Instant.EPOCH.plusSeconds(1));
+        Message fromCaller = Message.post(MessageId.newId(), conversationId, caller, SenderIdentity.OWNER, MessageBody.of("Hi"),
+                Instant.EPOCH);
+        Message fromOther = Message.post(MessageId.newId(), conversationId, other, SenderIdentity.OWNER, MessageBody.of("Hello"),
+                Instant.EPOCH.plusSeconds(1));
         when(messageRepository.findRecentPage(conversationId, PageRequest.of(0, 50)))
                 .thenReturn(Page.of(java.util.List.of(fromCaller, fromOther), 0, 50, 2));
         when(memberDisplayNameResolver.namesByUserId(propertyId)).thenReturn(Map.of(caller, "Caller Name", other, "Other Name"));

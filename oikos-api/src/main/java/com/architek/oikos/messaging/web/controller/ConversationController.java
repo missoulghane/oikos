@@ -21,6 +21,7 @@ import com.architek.oikos.auth.infrastructure.security.UserPrincipal;
 import com.architek.oikos.messaging.application.command.MarkConversationReadCommand;
 import com.architek.oikos.messaging.application.command.SendBroadcastMessageCommand;
 import com.architek.oikos.messaging.application.command.SendMessageCommand;
+import com.architek.oikos.messaging.application.command.StartBoardConversationCommand;
 import com.architek.oikos.messaging.application.command.StartGroupConversationCommand;
 import com.architek.oikos.messaging.application.port.in.GetUnreadSummaryUseCase;
 import com.architek.oikos.messaging.application.port.in.ListConversationMessagesUseCase;
@@ -29,6 +30,7 @@ import com.architek.oikos.messaging.application.port.in.ListRecipientCandidatesU
 import com.architek.oikos.messaging.application.port.in.MarkConversationReadUseCase;
 import com.architek.oikos.messaging.application.port.in.SendBroadcastMessageUseCase;
 import com.architek.oikos.messaging.application.port.in.SendMessageUseCase;
+import com.architek.oikos.messaging.application.port.in.StartBoardConversationUseCase;
 import com.architek.oikos.messaging.application.port.in.StartGroupConversationUseCase;
 import com.architek.oikos.messaging.application.query.ConversationBox;
 import com.architek.oikos.messaging.application.query.GetUnreadSummaryQuery;
@@ -39,6 +41,7 @@ import com.architek.oikos.messaging.domain.valueobject.ConversationId;
 import com.architek.oikos.messaging.domain.valueobject.ConversationSubject;
 import com.architek.oikos.messaging.domain.valueobject.MessageBody;
 import com.architek.oikos.messaging.web.request.SendMessageRequest;
+import com.architek.oikos.messaging.web.request.StartBoardConversationRequest;
 import com.architek.oikos.messaging.web.request.StartConversationRequest;
 import com.architek.oikos.messaging.web.response.ConversationReferenceResponse;
 import com.architek.oikos.messaging.web.response.MessageResponse;
@@ -53,6 +56,7 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 public class ConversationController {
 
     private final StartGroupConversationUseCase startGroupConversationUseCase;
+    private final StartBoardConversationUseCase startBoardConversationUseCase;
     private final SendBroadcastMessageUseCase sendBroadcastMessageUseCase;
     private final ListMyConversationsUseCase listMyConversationsUseCase;
     private final GetUnreadSummaryUseCase getUnreadSummaryUseCase;
@@ -62,6 +66,7 @@ public class ConversationController {
     private final ListRecipientCandidatesUseCase listRecipientCandidatesUseCase;
 
     public ConversationController(StartGroupConversationUseCase startGroupConversationUseCase,
+                                   StartBoardConversationUseCase startBoardConversationUseCase,
                                    SendBroadcastMessageUseCase sendBroadcastMessageUseCase,
                                    ListMyConversationsUseCase listMyConversationsUseCase,
                                    GetUnreadSummaryUseCase getUnreadSummaryUseCase,
@@ -70,6 +75,7 @@ public class ConversationController {
                                    MarkConversationReadUseCase markConversationReadUseCase,
                                    ListRecipientCandidatesUseCase listRecipientCandidatesUseCase) {
         this.startGroupConversationUseCase = startGroupConversationUseCase;
+        this.startBoardConversationUseCase = startBoardConversationUseCase;
         this.sendBroadcastMessageUseCase = sendBroadcastMessageUseCase;
         this.listMyConversationsUseCase = listMyConversationsUseCase;
         this.getUnreadSummaryUseCase = getUnreadSummaryUseCase;
@@ -87,7 +93,19 @@ public class ConversationController {
         Set<EntityId> recipientUserIds = request.recipientUserIds().stream().map(EntityId::of).collect(Collectors.toSet());
         ConversationId id = startGroupConversationUseCase.start(new StartGroupConversationCommand(
                 EntityId.of(propertyId), currentUserId(authentication), recipientUserIds,
-                ConversationSubject.of(request.subject()), MessageBody.of(request.body())));
+                ConversationSubject.of(request.subject()), MessageBody.of(request.body()), request.senderIdentity(),
+                request.concernsUnit()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ConversationReferenceResponse.from(id));
+    }
+
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
+    @PostMapping("/properties/{propertyId}/board-conversations")
+    public ResponseEntity<ConversationReferenceResponse> startBoardConversation(@PathVariable String propertyId,
+                                                                                  @Valid @RequestBody StartBoardConversationRequest request,
+                                                                                  Authentication authentication) {
+        ConversationId id = startBoardConversationUseCase.start(new StartBoardConversationCommand(
+                EntityId.of(propertyId), currentUserId(authentication), ConversationSubject.of(request.subject()),
+                MessageBody.of(request.body())));
         return ResponseEntity.status(HttpStatus.CREATED).body(ConversationReferenceResponse.from(id));
     }
 
@@ -132,7 +150,7 @@ public class ConversationController {
     public ResponseEntity<MessageResponse> sendMessage(@PathVariable String id, @Valid @RequestBody SendMessageRequest request,
                                                          Authentication authentication) {
         MessageResponse response = MessageResponse.from(sendMessageUseCase.send(new SendMessageCommand(
-                ConversationId.of(id), currentUserId(authentication), MessageBody.of(request.body()))));
+                ConversationId.of(id), currentUserId(authentication), MessageBody.of(request.body()), request.senderIdentity())));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.architek.oikos.messaging.domain.model.Conversation;
+import com.architek.oikos.messaging.domain.model.ConversationType;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -20,10 +21,11 @@ public interface ConversationRepository {
     List<Conversation> findAllGroupByParticipant(EntityId userId);
 
     /**
-     * Batch counterpart of {@link #findBroadcastConversation(EntityId)}, used by
-     * ListMyConversationsService/GetUnreadSummaryService to resolve every
-     * BROADCAST channel of every property the caller is a member of in one
-     * query rather than one per property.
+     * Every conversation of the given type across the given properties in one
+     * query - used by ListMyConversationsService/GetUnreadSummaryService to
+     * resolve every BROADCAST channel and every BOARD_PRIVATE thread of every
+     * property the caller is a member of (resp. staff of), rather than one
+     * query per property.
      */
-    List<Conversation> findAllBroadcastByPropertyIds(Collection<EntityId> propertyIds);
+    List<Conversation> findAllByPropertyIdsAndType(Collection<EntityId> propertyIds, ConversationType type);
 }

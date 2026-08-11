@@ -28,16 +28,19 @@
 --                                cap (EnforcePropertyCreationLimitService)
 --                                was meant to unblock.
 --
--- Accounts seeded here (every account below shares the same password, Oikos@2026):
+-- Accounts seeded here (every account below shares the same password, Oikos@2026).
+-- full_name is a display persona (Moroccan names, mostly, with a couple of
+-- French ones for variety) - the login identifier is always the email below,
+-- never the name:
 --   admin@oikos.com  - system administrator (ROLE_MASTER + ROLE_ADMIN)
---   user1@oikos.com  - CASE 1
---   user2@oikos.com  - CASE 2
---   user3@oikos.com  - CASE 3
---   user4@oikos.com  - CASE 4
---   user5@oikos.com  - CASE 5
---   user6@oikos.com  - CASE 6
---   user7@oikos.com  - CASE 7
---   user8@oikos.com  - CASE 8
+--   user1@oikos.com  - CASE 1 - Karim Benali
+--   user2@oikos.com  - CASE 2 - Salma Idrissi
+--   user3@oikos.com  - CASE 3 - Youssef Alaoui
+--   user4@oikos.com  - CASE 4 - Nadia Cherkaoui
+--   user5@oikos.com  - CASE 5 - Rachid Tazi
+--   user6@oikos.com  - CASE 6 - Camille Rousseau
+--   user7@oikos.com  - CASE 7 - Hicham Sefrioui
+--   user8@oikos.com  - CASE 8 - Sophie Bernard
 -- =========================================================================
 
 -- =========================================================================
@@ -221,11 +224,11 @@ INSERT INTO unit (id, building_id, property_id, unit_number, unit_type_id, share
 -- =========================================================================
 
 INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
-    ('b1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'User 1', 'INDIVIDUAL', 'user1.party@oikos.com', NULL, now(), now(), 0);
+    ('b1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'Karim Benali', 'INDIVIDUAL', 'user1.party@oikos.com', NULL, now(), now(), 0);
 
 -- Password hash below is BCrypt("Oikos@2026"), same algorithm/strength as above.
 INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
-    ('b1000000-0000-0000-0000-000000000001', 'user1@oikos.com', 'User 1',
+    ('b1000000-0000-0000-0000-000000000001', 'user1@oikos.com', 'Karim Benali',
      '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
 
 INSERT INTO user_role (user_id, role) VALUES
@@ -246,10 +249,10 @@ INSERT INTO unit_ownership (id, unit_id, party_id, property_id, ownership_share,
 -- =========================================================================
 
 INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
-    ('b1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', 'User 2', 'INDIVIDUAL', 'user2.party@oikos.com', NULL, now(), now(), 0);
+    ('b1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', 'Salma Idrissi', 'INDIVIDUAL', 'user2.party@oikos.com', NULL, now(), now(), 0);
 
 INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
-    ('b1000000-0000-0000-0000-000000000002', 'user2@oikos.com', 'User 2',
+    ('b1000000-0000-0000-0000-000000000002', 'user2@oikos.com', 'Salma Idrissi',
      '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
 
 INSERT INTO user_role (user_id, role) VALUES
@@ -274,10 +277,10 @@ INSERT INTO board_member (id, property_id, party_id, board_role, status, created
 -- =========================================================================
 
 INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
-    ('b1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', 'User 3', 'INDIVIDUAL', 'user3.party@oikos.com', NULL, now(), now(), 0);
+    ('b1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', 'Youssef Alaoui', 'INDIVIDUAL', 'user3.party@oikos.com', NULL, now(), now(), 0);
 
 INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
-    ('b1000000-0000-0000-0000-000000000003', 'user3@oikos.com', 'User 3',
+    ('b1000000-0000-0000-0000-000000000003', 'user3@oikos.com', 'Youssef Alaoui',
      '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
 
 INSERT INTO user_role (user_id, role) VALUES
@@ -299,10 +302,10 @@ INSERT INTO unit_ownership (id, unit_id, party_id, property_id, ownership_share,
 -- =========================================================================
 
 INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
-    ('b1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', 'User 4', 'INDIVIDUAL', 'user4.party@oikos.com', NULL, now(), now(), 0);
+    ('b1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', 'Nadia Cherkaoui', 'INDIVIDUAL', 'user4.party@oikos.com', NULL, now(), now(), 0);
 
 INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
-    ('b1000000-0000-0000-0000-000000000004', 'user4@oikos.com', 'User 4',
+    ('b1000000-0000-0000-0000-000000000004', 'user4@oikos.com', 'Nadia Cherkaoui',
      '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
 
 INSERT INTO user_role (user_id, role) VALUES
@@ -330,11 +333,11 @@ INSERT INTO board_member (id, property_id, party_id, board_role, status, created
 -- =========================================================================
 
 INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
-    ('a1000000-0000-0000-0000-000000000105', 'a1000000-0000-0000-0000-000000000001', 'User 5 (Al Amal)', 'INDIVIDUAL', 'user5.alamal.party@oikos.com', NULL, now(), now(), 0),
-    ('a2000000-0000-0000-0000-000000000105', 'a2000000-0000-0000-0000-000000000001', 'User 5 (Safae)', 'INDIVIDUAL', 'user5.safae.party@oikos.com', NULL, now(), now(), 0);
+    ('a1000000-0000-0000-0000-000000000105', 'a1000000-0000-0000-0000-000000000001', 'Rachid Tazi (Al Amal)', 'INDIVIDUAL', 'user5.alamal.party@oikos.com', NULL, now(), now(), 0),
+    ('a2000000-0000-0000-0000-000000000105', 'a2000000-0000-0000-0000-000000000001', 'Rachid Tazi (Safae)', 'INDIVIDUAL', 'user5.safae.party@oikos.com', NULL, now(), now(), 0);
 
 INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
-    ('b2000000-0000-0000-0000-000000000005', 'user5@oikos.com', 'User 5',
+    ('b2000000-0000-0000-0000-000000000005', 'user5@oikos.com', 'Rachid Tazi',
      '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
 
 INSERT INTO user_role (user_id, role) VALUES
@@ -358,11 +361,11 @@ INSERT INTO unit_ownership (id, unit_id, party_id, property_id, ownership_share,
 -- =========================================================================
 
 INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
-    ('a1000000-0000-0000-0000-000000000106', 'a1000000-0000-0000-0000-000000000001', 'User 6 (Al Amal)', 'INDIVIDUAL', 'user6.alamal.party@oikos.com', NULL, now(), now(), 0),
-    ('a2000000-0000-0000-0000-000000000106', 'a2000000-0000-0000-0000-000000000001', 'User 6 (Safae)', 'INDIVIDUAL', 'user6.safae.party@oikos.com', NULL, now(), now(), 0);
+    ('a1000000-0000-0000-0000-000000000106', 'a1000000-0000-0000-0000-000000000001', 'Camille Rousseau (Al Amal)', 'INDIVIDUAL', 'user6.alamal.party@oikos.com', NULL, now(), now(), 0),
+    ('a2000000-0000-0000-0000-000000000106', 'a2000000-0000-0000-0000-000000000001', 'Camille Rousseau (Safae)', 'INDIVIDUAL', 'user6.safae.party@oikos.com', NULL, now(), now(), 0);
 
 INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
-    ('b2000000-0000-0000-0000-000000000006', 'user6@oikos.com', 'User 6',
+    ('b2000000-0000-0000-0000-000000000006', 'user6@oikos.com', 'Camille Rousseau',
      '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
 
 INSERT INTO user_role (user_id, role) VALUES
@@ -391,11 +394,11 @@ INSERT INTO board_member (id, property_id, party_id, board_role, status, created
 -- =========================================================================
 
 INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
-    ('a1000000-0000-0000-0000-000000000107', 'a1000000-0000-0000-0000-000000000001', 'User 7 (Al Amal)', 'INDIVIDUAL', 'user7.alamal.party@oikos.com', NULL, now(), now(), 0),
-    ('a2000000-0000-0000-0000-000000000107', 'a2000000-0000-0000-0000-000000000001', 'User 7 (Safae)', 'INDIVIDUAL', 'user7.safae.party@oikos.com', NULL, now(), now(), 0);
+    ('a1000000-0000-0000-0000-000000000107', 'a1000000-0000-0000-0000-000000000001', 'Hicham Sefrioui (Al Amal)', 'INDIVIDUAL', 'user7.alamal.party@oikos.com', NULL, now(), now(), 0),
+    ('a2000000-0000-0000-0000-000000000107', 'a2000000-0000-0000-0000-000000000001', 'Hicham Sefrioui (Safae)', 'INDIVIDUAL', 'user7.safae.party@oikos.com', NULL, now(), now(), 0);
 
 INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
-    ('b2000000-0000-0000-0000-000000000007', 'user7@oikos.com', 'User 7',
+    ('b2000000-0000-0000-0000-000000000007', 'user7@oikos.com', 'Hicham Sefrioui',
      '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
 
 INSERT INTO user_role (user_id, role) VALUES
@@ -430,11 +433,11 @@ INSERT INTO board_member (id, property_id, party_id, board_role, status, created
 -- =========================================================================
 
 INSERT INTO party (id, property_id, full_name, party_type, email, phone, created_date, last_modified_date, version) VALUES
-    ('a2000000-0000-0000-0000-000000000108', 'a2000000-0000-0000-0000-000000000001', 'User 8 (Safae)', 'INDIVIDUAL', 'user8.safae.party@oikos.com', '0600000008', now(), now(), 0),
-    ('a3000000-0000-0000-0000-000000000108', 'a3000000-0000-0000-0000-000000000001', 'User 8 (Nour)', 'INDIVIDUAL', 'user8.nour.party@oikos.com', '0600000008', now(), now(), 0);
+    ('a2000000-0000-0000-0000-000000000108', 'a2000000-0000-0000-0000-000000000001', 'Sophie Bernard (Safae)', 'INDIVIDUAL', 'user8.safae.party@oikos.com', '0600000008', now(), now(), 0),
+    ('a3000000-0000-0000-0000-000000000108', 'a3000000-0000-0000-0000-000000000001', 'Sophie Bernard (Nour)', 'INDIVIDUAL', 'user8.nour.party@oikos.com', '0600000008', now(), now(), 0);
 
 INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version) VALUES
-    ('b2000000-0000-0000-0000-000000000008', 'user8@oikos.com', 'User 8',
+    ('b2000000-0000-0000-0000-000000000008', 'user8@oikos.com', 'Sophie Bernard',
      '$2b$10$jpckGCVGgZLfqalSSjZBhume5BA3lUn2WRFJfQwMgQNb2oPtrJoOu', TRUE, TRUE, now(), now(), 0);
 
 INSERT INTO user_role (user_id, role) VALUES

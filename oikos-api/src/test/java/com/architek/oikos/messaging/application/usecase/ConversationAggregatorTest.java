@@ -23,6 +23,7 @@ import com.architek.oikos.messaging.domain.model.Conversation;
 import com.architek.oikos.messaging.domain.model.ConversationReadMarker;
 import com.architek.oikos.messaging.domain.model.ConversationType;
 import com.architek.oikos.messaging.domain.model.Message;
+import com.architek.oikos.messaging.domain.model.SenderIdentity;
 import com.architek.oikos.messaging.domain.repository.ConversationReadMarkerRepository;
 import com.architek.oikos.messaging.domain.repository.ConversationRepository;
 import com.architek.oikos.messaging.domain.repository.MessageRepository;
@@ -67,23 +68,25 @@ class ConversationAggregatorTest {
         EntityId other = EntityId.newId();
 
         ConversationId groupId = ConversationId.newId();
-        Conversation group = Conversation.createGroup(groupId, propertyId, caller, Set.of(caller, other), SUBJECT);
+        Conversation group = Conversation.createGroup(groupId, propertyId, caller, Set.of(caller, other), SUBJECT, null);
         ConversationId broadcastId = ConversationId.newId();
         Conversation broadcast = Conversation.createBroadcast(broadcastId, propertyId, other);
         ConversationId emptyGroupId = ConversationId.newId();
         EntityId other2 = EntityId.newId();
-        Conversation emptyGroup = Conversation.createGroup(emptyGroupId, propertyId, caller, Set.of(caller, other2), SUBJECT);
+        Conversation emptyGroup = Conversation.createGroup(emptyGroupId, propertyId, caller, Set.of(caller, other2), SUBJECT, null);
 
         when(conversationRepository.findAllGroupByParticipant(caller)).thenReturn(List.of(group, emptyGroup));
         when(userAccessPort.memberPropertyIds(caller)).thenReturn(Set.of(propertyId));
-        when(conversationRepository.findAllBroadcastByPropertyIds(Set.of(propertyId))).thenReturn(List.of(broadcast));
+        when(conversationRepository.findAllByPropertyIdsAndType(Set.of(propertyId), ConversationType.BROADCAST)).thenReturn(List.of(broadcast));
 
         when(propertyMemberDirectoryPort.getPropertyName(propertyId)).thenReturn("Copro Test");
         when(memberDisplayNameResolver.namesByUserId(propertyId)).thenReturn(Map.of(other, "Other Name", other2, "Other2 Name"));
 
-        Message groupLastMessage = Message.post(MessageId.newId(), groupId, other, MessageBody.of("Hi"), Instant.parse("2026-01-01T10:00:00Z"));
+        Message groupLastMessage = Message.post(MessageId.newId(), groupId, other, SenderIdentity.OWNER, MessageBody.of("Hi"),
+                Instant.parse("2026-01-01T10:00:00Z"));
         when(messageRepository.findLastMessage(groupId)).thenReturn(Optional.of(groupLastMessage));
-        Message broadcastLastMessage = Message.post(MessageId.newId(), broadcastId, other, MessageBody.of("Annonce"), Instant.parse("2026-01-02T10:00:00Z"));
+        Message broadcastLastMessage = Message.post(MessageId.newId(), broadcastId, other, SenderIdentity.BOARD,
+                MessageBody.of("Annonce"), Instant.parse("2026-01-02T10:00:00Z"));
         when(messageRepository.findLastMessage(broadcastId)).thenReturn(Optional.of(broadcastLastMessage));
         when(messageRepository.findLastMessage(emptyGroupId)).thenReturn(Optional.empty());
 
@@ -122,11 +125,11 @@ class ConversationAggregatorTest {
         EntityId recipientA = EntityId.newId();
         EntityId recipientB = EntityId.newId();
         ConversationId groupId = ConversationId.newId();
-        Conversation group = Conversation.createGroup(groupId, propertyId, caller, Set.of(caller, recipientA, recipientB), SUBJECT);
+        Conversation group = Conversation.createGroup(groupId, propertyId, caller, Set.of(caller, recipientA, recipientB), SUBJECT, null);
 
         when(conversationRepository.findAllGroupByParticipant(caller)).thenReturn(List.of(group));
         when(userAccessPort.memberPropertyIds(caller)).thenReturn(Set.of());
-        when(conversationRepository.findAllBroadcastByPropertyIds(Set.of())).thenReturn(List.of());
+        when(conversationRepository.findAllByPropertyIdsAndType(Set.of(), ConversationType.BROADCAST)).thenReturn(List.of());
         when(propertyMemberDirectoryPort.getPropertyName(propertyId)).thenReturn("Résidence Alpha");
         when(memberDisplayNameResolver.namesByUserId(propertyId)).thenReturn(Map.of(recipientA, "Alice", recipientB, "Bob"));
         when(messageRepository.findLastMessage(groupId)).thenReturn(Optional.empty());
@@ -145,11 +148,11 @@ class ConversationAggregatorTest {
         EntityId propertyId = EntityId.newId();
         EntityId other = EntityId.newId();
         ConversationId groupId = ConversationId.newId();
-        Conversation group = Conversation.createGroup(groupId, propertyId, caller, Set.of(caller, other), SUBJECT);
+        Conversation group = Conversation.createGroup(groupId, propertyId, caller, Set.of(caller, other), SUBJECT, null);
 
         when(conversationRepository.findAllGroupByParticipant(caller)).thenReturn(List.of(group));
         when(userAccessPort.memberPropertyIds(caller)).thenReturn(Set.of());
-        when(conversationRepository.findAllBroadcastByPropertyIds(Set.of())).thenReturn(List.of());
+        when(conversationRepository.findAllByPropertyIdsAndType(Set.of(), ConversationType.BROADCAST)).thenReturn(List.of());
         when(propertyMemberDirectoryPort.getPropertyName(propertyId)).thenReturn("Résidence Alpha");
         when(memberDisplayNameResolver.namesByUserId(propertyId)).thenReturn(Map.of(other, "Jean Dupont"));
         when(messageRepository.findLastMessage(groupId)).thenReturn(Optional.empty());
@@ -168,17 +171,17 @@ class ConversationAggregatorTest {
 
         // sentOnly: only the caller ever posted - Envoyé only, never Réception.
         ConversationId sentOnlyId = ConversationId.newId();
-        Conversation sentOnly = Conversation.createGroup(sentOnlyId, propertyId, caller, Set.of(caller, other), SUBJECT);
+        Conversation sentOnly = Conversation.createGroup(sentOnlyId, propertyId, caller, Set.of(caller, other), SUBJECT, null);
         // receivedOnly: only the other participant ever posted - Réception only, never Envoyé.
         ConversationId receivedOnlyId = ConversationId.newId();
-        Conversation receivedOnly = Conversation.createGroup(receivedOnlyId, propertyId, other, Set.of(caller, other), SUBJECT);
+        Conversation receivedOnly = Conversation.createGroup(receivedOnlyId, propertyId, other, Set.of(caller, other), SUBJECT, null);
         // both: a back-and-forth - visible in both boxes.
         ConversationId bothId = ConversationId.newId();
-        Conversation both = Conversation.createGroup(bothId, propertyId, caller, Set.of(caller, other), SUBJECT);
+        Conversation both = Conversation.createGroup(bothId, propertyId, caller, Set.of(caller, other), SUBJECT, null);
 
         when(conversationRepository.findAllGroupByParticipant(caller)).thenReturn(List.of(sentOnly, receivedOnly, both));
         when(userAccessPort.memberPropertyIds(caller)).thenReturn(Set.of());
-        when(conversationRepository.findAllBroadcastByPropertyIds(Set.of())).thenReturn(List.of());
+        when(conversationRepository.findAllByPropertyIdsAndType(Set.of(), ConversationType.BROADCAST)).thenReturn(List.of());
         when(propertyMemberDirectoryPort.getPropertyName(propertyId)).thenReturn("Résidence Alpha");
         when(memberDisplayNameResolver.namesByUserId(propertyId)).thenReturn(Map.of(other, "Jean Dupont"));
 
@@ -212,13 +215,13 @@ class ConversationAggregatorTest {
         EntityId propertyId = EntityId.newId();
         EntityId other = EntityId.newId();
         ConversationId groupId = ConversationId.newId();
-        Conversation group = Conversation.createGroup(groupId, propertyId, caller, Set.of(caller, other), SUBJECT);
+        Conversation group = Conversation.createGroup(groupId, propertyId, caller, Set.of(caller, other), SUBJECT, null);
         MessageId lastReadId = MessageId.newId();
         ConversationReadMarker marker = ConversationReadMarker.reconstruct(groupId, caller, lastReadId, Instant.EPOCH);
 
         when(conversationRepository.findAllGroupByParticipant(caller)).thenReturn(List.of(group));
         when(userAccessPort.memberPropertyIds(caller)).thenReturn(Set.of());
-        when(conversationRepository.findAllBroadcastByPropertyIds(Set.of())).thenReturn(List.of());
+        when(conversationRepository.findAllByPropertyIdsAndType(Set.of(), ConversationType.BROADCAST)).thenReturn(List.of());
         when(propertyMemberDirectoryPort.getPropertyName(propertyId)).thenReturn("Résidence Alpha");
         when(memberDisplayNameResolver.namesByUserId(propertyId)).thenReturn(Map.of(other, "Jean Dupont"));
         when(messageRepository.findLastMessage(groupId)).thenReturn(Optional.empty());

@@ -38,8 +38,10 @@ import com.architek.oikos.messaging.application.port.in.ListRecipientCandidatesU
 import com.architek.oikos.messaging.application.port.in.MarkConversationReadUseCase;
 import com.architek.oikos.messaging.application.port.in.SendBroadcastMessageUseCase;
 import com.architek.oikos.messaging.application.port.in.SendMessageUseCase;
+import com.architek.oikos.messaging.application.port.in.StartBoardConversationUseCase;
 import com.architek.oikos.messaging.application.port.in.StartGroupConversationUseCase;
 import com.architek.oikos.messaging.domain.model.ConversationType;
+import com.architek.oikos.messaging.domain.model.SenderIdentity;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
 import com.architek.oikos.messaging.domain.valueobject.MessageId;
 import com.architek.oikos.shared.domain.pagination.Page;
@@ -65,6 +67,9 @@ class ConversationControllerWebMvcTest {
 
     @MockitoBean
     private StartGroupConversationUseCase startGroupConversationUseCase;
+
+    @MockitoBean
+    private StartBoardConversationUseCase startBoardConversationUseCase;
 
     @MockitoBean
     private SendBroadcastMessageUseCase sendBroadcastMessageUseCase;
@@ -341,7 +346,7 @@ class ConversationControllerWebMvcTest {
         when(getConversationUseCase.getConversation(any())).thenReturn(new ConversationView(
                 conversationId, EntityId.of(propertyId), ConversationType.BROADCAST, EntityId.newId(), Set.of()));
         when(sendMessageUseCase.send(any())).thenReturn(new MessageView(MessageId.newId(), conversationId, EntityId.of(callerId),
-                "Caller", "Merci pour l'info", Instant.now(), true));
+                "Caller", SenderIdentity.BOARD, "Merci pour l'info", Instant.now(), true));
 
         mockMvc.perform(post("/api/v1/conversations/" + conversationId + "/messages")
                         .header("Authorization", token)
@@ -380,7 +385,7 @@ class ConversationControllerWebMvcTest {
         when(getUserAccessUseCase.getAccess(any())).thenReturn(new UserAccessView(
                 Set.of(), Map.of(propertyId, Set.of(PropertyRole.PROPERTY_OWNER)), Map.of(), Set.of(), Set.of()));
         when(listRecipientCandidatesUseCase.listCandidates(any())).thenReturn(List.of(
-                new RecipientCandidateView(EntityId.newId(), "Jean Dupont", "Bureau de syndic")));
+                new RecipientCandidateView(EntityId.newId(), "Jean Dupont", "Bureau de syndic", List.of(), true)));
 
         mockMvc.perform(get("/api/v1/properties/" + propertyId + "/messaging/recipients")
                         .header("Authorization", bearerToken("PROPERTY_OWNER")))

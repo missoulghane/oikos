@@ -2,8 +2,10 @@ package com.architek.oikos.messaging.infrastructure.adapter;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
@@ -64,22 +66,34 @@ public class MessagingPropertyMemberDirectoryAdapter implements PropertyMemberDi
     public List<PropertyMemberInfo> listMembers(EntityId propertyId) {
         PropertyId typedPropertyId = PropertyId.of(propertyId.value());
         // Keyed by partyId: ListContactsByPropertyUseCase flattens one row per unit-ownership, so
-        // a party owning several units would otherwise appear more than once.
-        Map<EntityId, PropertyMemberInfo> members = new LinkedHashMap<>();
+        // a party owning several units contributes one unit number per row here instead of
+        // appearing more than once - and a party who is both an owner and a board member keeps
+        // its unit numbers even once the board loop below relabels it BOARD_ROLE_LABEL.
+        Map<EntityId, String> fullNameByParty = new LinkedHashMap<>();
+        Map<EntityId, Boolean> hasLinkedAccountByParty = new LinkedHashMap<>();
+        Map<EntityId, List<String>> unitNumbersByParty = new LinkedHashMap<>();
+        Set<EntityId> boardPartyIds = new LinkedHashSet<>();
 
         for (PropertyContactView contact : listAllContacts(typedPropertyId)) {
-            members.putIfAbsent(contact.partyId(),
-                    new PropertyMemberInfo(contact.partyId(), contact.partyFullName(), OWNER_ROLE_LABEL, contact.hasLinkedAccount()));
+            fullNameByParty.putIfAbsent(contact.partyId(), contact.partyFullName());
+            hasLinkedAccountByParty.putIfAbsent(contact.partyId(), contact.hasLinkedAccount());
+            unitNumbersByParty.computeIfAbsent(contact.partyId(), key -> new ArrayList<>()).add(contact.unitNumber());
         }
 
         for (BoardMemberView boardMember : listBoardMembersByPropertyUseCase.listBoardMembers(new ListBoardMembersByPropertyQuery(typedPropertyId))) {
             if (boardMember.status() == BoardMemberStatus.ACTIVE) {
-                members.put(boardMember.partyId(), new PropertyMemberInfo(boardMember.partyId(), boardMember.partyFullName(),
-                        BOARD_ROLE_LABEL, boardMember.hasLinkedAccount()));
+                fullNameByParty.put(boardMember.partyId(), boardMember.partyFullName());
+                hasLinkedAccountByParty.put(boardMember.partyId(), boardMember.hasLinkedAccount());
+                boardPartyIds.add(boardMember.partyId());
             }
         }
 
-        return new ArrayList<>(members.values());
+        return fullNameByParty.keySet().stream()
+                .map(partyId -> new PropertyMemberInfo(partyId, fullNameByParty.get(partyId),
+                        boardPartyIds.contains(partyId) ? BOARD_ROLE_LABEL : OWNER_ROLE_LABEL,
+                        hasLinkedAccountByParty.get(partyId), unitNumbersByParty.getOrDefault(partyId, List.of()),
+                        boardPartyIds.contains(partyId)))
+                .toList();
     }
 
     private List<PropertyContactView> listAllContacts(PropertyId propertyId) {

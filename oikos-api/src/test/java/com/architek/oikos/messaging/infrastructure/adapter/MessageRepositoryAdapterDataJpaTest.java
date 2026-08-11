@@ -11,6 +11,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.context.annotation.Import;
 
 import com.architek.oikos.messaging.domain.model.Message;
+import com.architek.oikos.messaging.domain.model.SenderIdentity;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
 import com.architek.oikos.messaging.domain.valueobject.MessageBody;
 import com.architek.oikos.messaging.domain.valueobject.MessageId;
@@ -28,7 +29,8 @@ class MessageRepositoryAdapterDataJpaTest {
     private MessageRepositoryAdapter adapter;
 
     private Message post(ConversationId conversationId, EntityId senderId, String body, Instant createdDate) {
-        return adapter.save(Message.post(MessageId.newId(), conversationId, senderId, MessageBody.of(body), createdDate));
+        return adapter.save(Message.post(MessageId.newId(), conversationId, senderId, SenderIdentity.OWNER, MessageBody.of(body),
+                createdDate));
     }
 
     @Test

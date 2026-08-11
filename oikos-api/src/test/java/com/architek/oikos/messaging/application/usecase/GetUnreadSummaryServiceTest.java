@@ -30,7 +30,7 @@ class GetUnreadSummaryServiceTest {
 
     private static ConversationSummaryView summary(long unreadCount) {
         return new ConversationSummaryView(ConversationId.newId(), ConversationType.BROADCAST, EntityId.newId(), "Copro",
-                null, List.of(), null, Instant.EPOCH, unreadCount, 1);
+                null, null, List.of(), null, Instant.EPOCH, unreadCount, 1);
     }
 
     @Test

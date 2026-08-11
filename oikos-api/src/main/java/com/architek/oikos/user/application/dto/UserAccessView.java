@@ -42,6 +42,17 @@ public record UserAccessView(Set<String> globalRoles,
         return roles != null && roles.stream().anyMatch(role -> role != PropertyRole.PROPERTY_OWNER);
     }
 
+    /**
+     * True if the caller holds PROPERTY_OWNER on this property (alongside any
+     * other role it may also hold there). Unlike managesProperty, an admin
+     * does not automatically satisfy this - being platform staff is not the
+     * same as owning a unit.
+     */
+    public boolean ownsProperty(String propertyId) {
+        Set<PropertyRole> roles = rolesByProperty.get(propertyId);
+        return roles != null && roles.contains(PropertyRole.PROPERTY_OWNER);
+    }
+
     public boolean hasPermission(String propertyId, Permission permission) {
         if (isAdmin() || globalPermissions.contains(permission)) {
             return true;

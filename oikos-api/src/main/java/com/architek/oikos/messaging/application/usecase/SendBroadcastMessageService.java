@@ -9,6 +9,7 @@ import com.architek.oikos.messaging.application.command.SendBroadcastMessageComm
 import com.architek.oikos.messaging.application.port.in.SendBroadcastMessageUseCase;
 import com.architek.oikos.messaging.domain.model.Conversation;
 import com.architek.oikos.messaging.domain.model.Message;
+import com.architek.oikos.messaging.domain.model.SenderIdentity;
 import com.architek.oikos.messaging.domain.repository.ConversationRepository;
 import com.architek.oikos.messaging.domain.repository.MessageRepository;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
@@ -43,8 +44,8 @@ public class SendBroadcastMessageService implements SendBroadcastMessageUseCase 
                 .orElseGet(() -> conversationRepository.save(
                         Conversation.createBroadcast(ConversationId.newId(), command.propertyId(), command.senderId())));
 
-        Message message = Message.post(MessageId.newId(), conversation.getId(), command.senderId(), command.body(),
-                clock.instant());
+        Message message = Message.post(MessageId.newId(), conversation.getId(), command.senderId(), SenderIdentity.BOARD,
+                command.body(), clock.instant());
         messageRepository.save(message);
 
         return conversation.getId();

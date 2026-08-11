@@ -47,7 +47,8 @@ public class ListRecipientCandidatesService implements ListRecipientCandidatesUs
                 members.stream().map(PropertyMemberInfo::partyId).toList());
 
         return members.stream()
-                .map(member -> new RecipientCandidateView(userIdByPartyId.get(member.partyId()), member.fullName(), member.roleLabel()))
+                .map(member -> new RecipientCandidateView(userIdByPartyId.get(member.partyId()), member.fullName(),
+                        member.roleLabel(), member.unitNumbers(), member.isStaff()))
                 .filter(candidate -> candidate.userId() != null && !candidate.userId().equals(query.userId()))
                 .filter(candidate -> matchesSearch(candidate.fullName(), query.search()))
                 .sorted(Comparator.comparing(RecipientCandidateView::fullName, String.CASE_INSENSITIVE_ORDER))

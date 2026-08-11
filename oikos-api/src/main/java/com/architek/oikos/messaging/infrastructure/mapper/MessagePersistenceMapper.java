@@ -17,6 +17,7 @@ public interface MessagePersistenceMapper {
         entity.setId(message.getId().asUuid());
         entity.setConversationId(message.getConversationId().asUuid());
         entity.setSenderId(message.getSenderId().value());
+        entity.setSenderIdentity(message.getSenderIdentity());
         entity.setBody(message.getBody().value());
         entity.setCreatedDate(message.getCreatedDate());
         return entity;
@@ -24,6 +25,7 @@ public interface MessagePersistenceMapper {
 
     default Message toDomain(MessageEntity entity) {
         return Message.reconstruct(MessageId.of(entity.getId()), ConversationId.of(entity.getConversationId()),
-                EntityId.of(entity.getSenderId()), MessageBody.of(entity.getBody()), entity.getCreatedDate());
+                EntityId.of(entity.getSenderId()), entity.getSenderIdentity(), MessageBody.of(entity.getBody()),
+                entity.getCreatedDate());
     }
 }

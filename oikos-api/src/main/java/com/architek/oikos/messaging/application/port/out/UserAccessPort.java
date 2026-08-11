@@ -20,4 +20,10 @@ public interface UserAccessPort {
     boolean isMember(EntityId userId, EntityId propertyId);
 
     boolean canBroadcast(EntityId userId, EntityId propertyId);
+
+    /** True for a STAFF property-scoped role (board or manager, admin or member tier) - the population eligible for SenderIdentity.BOARD and for BOARD_PRIVATE membership. */
+    boolean managesProperty(EntityId userId, EntityId propertyId);
+
+    /** True if the user holds PROPERTY_OWNER on this property - the population eligible for SenderIdentity.OWNER. */
+    boolean ownsProperty(EntityId userId, EntityId propertyId);
 }

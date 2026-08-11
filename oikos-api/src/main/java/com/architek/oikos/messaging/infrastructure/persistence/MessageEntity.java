@@ -5,11 +5,15 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import com.architek.oikos.messaging.domain.model.SenderIdentity;
 
 /**
  * Immutable history record - no AuditableEntity (no last_modified_date/
@@ -32,6 +36,10 @@ public class MessageEntity {
 
     @Column(name = "sender_id", nullable = false)
     private UUID senderId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sender_identity", nullable = false, length = 10)
+    private SenderIdentity senderIdentity;
 
     // length matches MessageBody's domain cap (see MessageBody.java) - without it Hibernate
     // defaults to varchar(255) when generating the dev/H2 schema from these annotations

@@ -24,6 +24,7 @@ public interface ConversationPersistenceMapper {
         entity.setType(conversation.getType());
         entity.setCreatedBy(conversation.getCreatedBy().value());
         entity.setSubject(conversation.getSubject() != null ? conversation.getSubject().value() : null);
+        entity.setConcernsUnit(conversation.getConcernsUnit());
         entity.setParticipantUserIds(conversation.getParticipantUserIds().stream().map(EntityId::value).collect(Collectors.toSet()));
         return entity;
     }
@@ -32,6 +33,6 @@ public interface ConversationPersistenceMapper {
         Set<EntityId> participantUserIds = entity.getParticipantUserIds().stream().map(EntityId::of).collect(Collectors.toSet());
         ConversationSubject subject = entity.getSubject() != null ? ConversationSubject.of(entity.getSubject()) : null;
         return Conversation.reconstruct(ConversationId.of(entity.getId()), EntityId.of(entity.getPropertyId()), entity.getType(),
-                EntityId.of(entity.getCreatedBy()), participantUserIds, subject, entity.getCreatedDate());
+                EntityId.of(entity.getCreatedBy()), participantUserIds, subject, entity.getConcernsUnit(), entity.getCreatedDate());
     }
 }

@@ -71,9 +71,14 @@ public class SendMessageDraftService implements SendMessageDraftUseCase {
                 new SendBroadcastMessageCommand(draft.getPropertyId(), draft.getCreatedBy(), messageBody(draft)));
     }
 
+    // No senderIdentity concept on MessageDraft yet - null lets
+    // SenderIdentityValidator.resolve auto-pick the sender's one eligible
+    // identity on the property; a dual-role sender (case 2/4/6/7) drafting a
+    // GROUP message must currently pick one at send time via the regular
+    // compose flow, since a draft can't yet carry that choice.
     private ConversationId startGroupConversation(MessageDraft draft) {
         return startGroupConversationUseCase.start(new StartGroupConversationCommand(draft.getPropertyId(),
-                draft.getCreatedBy(), draft.getRecipientUserIds(), conversationSubject(draft), messageBody(draft)));
+                draft.getCreatedBy(), draft.getRecipientUserIds(), conversationSubject(draft), messageBody(draft), null, null));
     }
 
     // A still-null subject/body (never filled in) must surface as the same 400 IllegalArgumentException

@@ -12,6 +12,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.context.annotation.Import;
 
 import com.architek.oikos.messaging.domain.model.Conversation;
+import com.architek.oikos.messaging.domain.model.ConversationType;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
 import com.architek.oikos.messaging.domain.valueobject.ConversationSubject;
 import com.architek.oikos.messaging.infrastructure.mapper.ConversationPersistenceMapperImpl;
@@ -34,7 +35,7 @@ class ConversationRepositoryAdapterDataJpaTest {
         EntityId sender = EntityId.newId();
         EntityId recipient = EntityId.newId();
         Conversation saved = adapter.save(
-                Conversation.createGroup(ConversationId.newId(), propertyId, sender, Set.of(sender, recipient), SUBJECT));
+                Conversation.createGroup(ConversationId.newId(), propertyId, sender, Set.of(sender, recipient), SUBJECT, null));
 
         Conversation reloaded = adapter.findById(saved.getId()).orElseThrow();
 
@@ -49,7 +50,7 @@ class ConversationRepositoryAdapterDataJpaTest {
         EntityId recipientA = EntityId.newId();
         EntityId recipientB = EntityId.newId();
         Conversation saved = adapter.save(Conversation.createGroup(ConversationId.newId(), propertyId, sender,
-                Set.of(sender, recipientA, recipientB), SUBJECT));
+                Set.of(sender, recipientA, recipientB), SUBJECT, null));
 
         Conversation reloaded = adapter.findById(saved.getId()).orElseThrow();
 
@@ -78,11 +79,11 @@ class ConversationRepositoryAdapterDataJpaTest {
     void finds_all_group_conversations_a_user_participates_in() {
         EntityId userId = EntityId.newId();
         Conversation first = adapter.save(Conversation.createGroup(ConversationId.newId(), EntityId.newId(), userId,
-                Set.of(userId, EntityId.newId()), SUBJECT));
+                Set.of(userId, EntityId.newId()), SUBJECT, null));
         Conversation second = adapter.save(Conversation.createGroup(ConversationId.newId(), EntityId.newId(), EntityId.newId(),
-                Set.of(EntityId.newId(), userId), SUBJECT));
+                Set.of(EntityId.newId(), userId), SUBJECT, null));
         adapter.save(Conversation.createGroup(ConversationId.newId(), EntityId.newId(), EntityId.newId(),
-                Set.of(EntityId.newId(), EntityId.newId()), SUBJECT));
+                Set.of(EntityId.newId(), EntityId.newId()), SUBJECT, null));
 
         List<Conversation> found = adapter.findAllGroupByParticipant(userId);
 
@@ -96,9 +97,9 @@ class ConversationRepositoryAdapterDataJpaTest {
         EntityId recipient = EntityId.newId();
 
         Conversation first =
-                adapter.save(Conversation.createGroup(ConversationId.newId(), propertyId, sender, Set.of(sender, recipient), SUBJECT));
+                adapter.save(Conversation.createGroup(ConversationId.newId(), propertyId, sender, Set.of(sender, recipient), SUBJECT, null));
         Conversation second =
-                adapter.save(Conversation.createGroup(ConversationId.newId(), propertyId, sender, Set.of(sender, recipient), SUBJECT));
+                adapter.save(Conversation.createGroup(ConversationId.newId(), propertyId, sender, Set.of(sender, recipient), SUBJECT, null));
 
         assertThat(first.getId()).isNotEqualTo(second.getId());
         assertThat(adapter.findAllGroupByParticipant(sender)).extracting(Conversation::getId)
@@ -114,13 +115,27 @@ class ConversationRepositoryAdapterDataJpaTest {
         Conversation broadcastB = adapter.save(Conversation.createBroadcast(ConversationId.newId(), propertyB, EntityId.newId()));
         adapter.save(Conversation.createBroadcast(ConversationId.newId(), propertyC, EntityId.newId()));
 
-        List<Conversation> found = adapter.findAllBroadcastByPropertyIds(List.of(propertyA, propertyB));
+        List<Conversation> found = adapter.findAllByPropertyIdsAndType(List.of(propertyA, propertyB), ConversationType.BROADCAST);
 
         assertThat(found).extracting(Conversation::getId).containsExactlyInAnyOrder(broadcastA.getId(), broadcastB.getId());
     }
 
     @Test
     void finding_broadcast_conversations_for_an_empty_batch_returns_an_empty_list() {
-        assertThat(adapter.findAllBroadcastByPropertyIds(List.of())).isEmpty();
+        assertThat(adapter.findAllByPropertyIdsAndType(List.of(), ConversationType.BROADCAST)).isEmpty();
+    }
+
+    @Test
+    void finds_board_private_conversations_for_a_batch_of_properties() {
+        EntityId propertyA = EntityId.newId();
+        EntityId propertyB = EntityId.newId();
+        Conversation threadA =
+                adapter.save(Conversation.createBoardPrivate(ConversationId.newId(), propertyA, EntityId.newId(), SUBJECT));
+        adapter.save(Conversation.createGroup(ConversationId.newId(), propertyA, EntityId.newId(),
+                Set.of(EntityId.newId(), EntityId.newId()), SUBJECT, null));
+
+        List<Conversation> found = adapter.findAllByPropertyIdsAndType(List.of(propertyA, propertyB), ConversationType.BOARD_PRIVATE);
+
+        assertThat(found).extracting(Conversation::getId).containsExactly(threadA.getId());
     }
 }

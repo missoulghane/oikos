@@ -22,7 +22,7 @@ class ConversationTest {
         EntityId recipient = EntityId.newId();
 
         Conversation conversation = Conversation.createGroup(ConversationId.newId(), propertyId, sender,
-                Set.of(sender, recipient), SUBJECT);
+                Set.of(sender, recipient), SUBJECT, null);
 
         assertThat(conversation.getType()).isEqualTo(ConversationType.GROUP);
         assertThat(conversation.getParticipantUserIds()).containsExactlyInAnyOrder(sender, recipient);
@@ -40,7 +40,7 @@ class ConversationTest {
         EntityId recipientB = EntityId.newId();
 
         Conversation conversation = Conversation.createGroup(ConversationId.newId(), propertyId, sender,
-                Set.of(sender, recipientA, recipientB), SUBJECT);
+                Set.of(sender, recipientA, recipientB), SUBJECT, null);
 
         assertThat(conversation.getType()).isEqualTo(ConversationType.GROUP);
         assertThat(conversation.getParticipantUserIds()).containsExactlyInAnyOrder(sender, recipientA, recipientB);
@@ -58,14 +58,14 @@ class ConversationTest {
     @Test
     void reconstructing_a_group_conversation_with_fewer_than_two_participants_is_rejected() {
         assertThatThrownBy(() -> Conversation.reconstruct(ConversationId.newId(), EntityId.newId(), ConversationType.GROUP,
-                EntityId.newId(), Set.of(EntityId.newId()), SUBJECT, null))
+                EntityId.newId(), Set.of(EntityId.newId()), SUBJECT, null, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void reconstructing_a_broadcast_conversation_with_a_participant_is_rejected() {
         assertThatThrownBy(() -> Conversation.reconstruct(ConversationId.newId(), EntityId.newId(), ConversationType.BROADCAST,
-                EntityId.newId(), Set.of(EntityId.newId()), null, null))
+                EntityId.newId(), Set.of(EntityId.newId()), null, null, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -75,14 +75,21 @@ class ConversationTest {
         EntityId recipient = EntityId.newId();
 
         assertThatThrownBy(() -> Conversation.reconstruct(ConversationId.newId(), EntityId.newId(), ConversationType.GROUP,
-                sender, Set.of(sender, recipient), null, null))
+                sender, Set.of(sender, recipient), null, null, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void reconstructing_a_broadcast_conversation_with_a_subject_is_rejected() {
         assertThatThrownBy(() -> Conversation.reconstruct(ConversationId.newId(), EntityId.newId(), ConversationType.BROADCAST,
-                EntityId.newId(), Set.of(), SUBJECT, null))
+                EntityId.newId(), Set.of(), SUBJECT, null, null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void creating_a_group_conversation_with_a_non_group_type_and_a_concerns_unit_is_rejected() {
+        assertThatThrownBy(() -> Conversation.reconstruct(ConversationId.newId(), EntityId.newId(), ConversationType.BROADCAST,
+                EntityId.newId(), Set.of(), null, "Appartement 3", null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

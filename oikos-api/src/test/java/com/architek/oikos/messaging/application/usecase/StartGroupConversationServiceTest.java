@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +14,7 @@ import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -22,6 +24,7 @@ import com.architek.oikos.messaging.application.command.StartGroupConversationCo
 import com.architek.oikos.messaging.application.port.out.UserAccessPort;
 import com.architek.oikos.messaging.domain.exception.RecipientNotPropertyMemberException;
 import com.architek.oikos.messaging.domain.model.Conversation;
+import com.architek.oikos.messaging.domain.model.SenderIdentity;
 import com.architek.oikos.messaging.domain.repository.ConversationRepository;
 import com.architek.oikos.messaging.domain.repository.MessageRepository;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
@@ -48,9 +51,19 @@ class StartGroupConversationServiceTest {
     @Mock
     private MemberDisplayNameResolver memberDisplayNameResolver;
 
+    @Mock
+    private SenderIdentityValidator senderIdentityValidator;
+
+    @BeforeEach
+    void resolvesAsOwnerByDefault() {
+        // Not every test reaches identity resolution (some fail validation earlier) - lenient so
+        // those don't trip strict-stubbing.
+        lenient().when(senderIdentityValidator.resolve(any(), any(), any())).thenReturn(SenderIdentity.OWNER);
+    }
+
     private StartGroupConversationService newService() {
         return new StartGroupConversationService(conversationRepository, messageRepository, userAccessPort,
-                memberDisplayNameResolver, CLOCK);
+                memberDisplayNameResolver, senderIdentityValidator, CLOCK);
     }
 
     @Test
@@ -63,7 +76,8 @@ class StartGroupConversationServiceTest {
         when(conversationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(messageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ConversationId id = newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(recipient), SUBJECT, BODY));
+        ConversationId id = newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(recipient),
+                SUBJECT, BODY, SenderIdentity.OWNER, null));
 
         assertThat(id).isNotNull();
         verify(conversationRepository).save(argThat(conversation -> conversation.getSubject().equals(SUBJECT)));
@@ -80,8 +94,8 @@ class StartGroupConversationServiceTest {
         when(conversationRepository.save(any(Conversation.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(messageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ConversationId id = newService()
-                .start(new StartGroupConversationCommand(propertyId, sender, Set.of(recipientA, recipientB), SUBJECT, BODY));
+        ConversationId id = newService().start(new StartGroupConversationCommand(propertyId, sender,
+                Set.of(recipientA, recipientB), SUBJECT, BODY, SenderIdentity.OWNER, null));
 
         assertThat(id).isNotNull();
     }
@@ -96,8 +110,10 @@ class StartGroupConversationServiceTest {
         when(conversationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(messageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ConversationId first = newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(recipient), SUBJECT, BODY));
-        ConversationId second = newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(recipient), SUBJECT, BODY));
+        ConversationId first = newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(recipient),
+                SUBJECT, BODY, SenderIdentity.OWNER, null));
+        ConversationId second = newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(recipient),
+                SUBJECT, BODY, SenderIdentity.OWNER, null));
 
         assertThat(first).isNotEqualTo(second);
     }
@@ -107,7 +123,8 @@ class StartGroupConversationServiceTest {
         EntityId propertyId = EntityId.newId();
         EntityId sender = EntityId.newId();
 
-        assertThatThrownBy(() -> newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(), SUBJECT, BODY)))
+        assertThatThrownBy(() -> newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(), SUBJECT,
+                BODY, SenderIdentity.OWNER, null)))
                 .isInstanceOf(RecipientNotPropertyMemberException.class);
     }
 
@@ -116,7 +133,8 @@ class StartGroupConversationServiceTest {
         EntityId propertyId = EntityId.newId();
         EntityId sender = EntityId.newId();
 
-        assertThatThrownBy(() -> newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(sender), SUBJECT, BODY)))
+        assertThatThrownBy(() -> newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(sender),
+                SUBJECT, BODY, SenderIdentity.OWNER, null)))
                 .isInstanceOf(RecipientNotPropertyMemberException.class);
     }
 
@@ -127,7 +145,8 @@ class StartGroupConversationServiceTest {
         EntityId recipient = EntityId.newId();
         when(userAccessPort.isMember(sender, propertyId)).thenReturn(false);
 
-        assertThatThrownBy(() -> newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(recipient), SUBJECT, BODY)))
+        assertThatThrownBy(() -> newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(recipient),
+                SUBJECT, BODY, SenderIdentity.OWNER, null)))
                 .isInstanceOf(RecipientNotPropertyMemberException.class);
     }
 
@@ -139,7 +158,8 @@ class StartGroupConversationServiceTest {
         when(userAccessPort.isMember(sender, propertyId)).thenReturn(true);
         when(memberDisplayNameResolver.namesByUserId(propertyId)).thenReturn(Map.of());
 
-        assertThatThrownBy(() -> newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(recipient), SUBJECT, BODY)))
+        assertThatThrownBy(() -> newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(recipient),
+                SUBJECT, BODY, SenderIdentity.OWNER, null)))
                 .isInstanceOf(RecipientNotPropertyMemberException.class);
     }
 
@@ -153,7 +173,21 @@ class StartGroupConversationServiceTest {
         when(memberDisplayNameResolver.namesByUserId(propertyId)).thenReturn(Map.of(recipientWithAccount, "Has Account"));
 
         assertThatThrownBy(() -> newService().start(new StartGroupConversationCommand(propertyId, sender,
-                Set.of(recipientWithAccount, recipientWithoutAccount), SUBJECT, BODY)))
+                Set.of(recipientWithAccount, recipientWithoutAccount), SUBJECT, BODY, SenderIdentity.OWNER, null)))
                 .isInstanceOf(RecipientNotPropertyMemberException.class);
+    }
+
+    @Test
+    void starting_a_conversation_with_an_identity_the_sender_does_not_hold_is_rejected() {
+        EntityId propertyId = EntityId.newId();
+        EntityId sender = EntityId.newId();
+        EntityId recipient = EntityId.newId();
+        when(userAccessPort.isMember(sender, propertyId)).thenReturn(true);
+        when(senderIdentityValidator.resolve(sender, propertyId, SenderIdentity.BOARD))
+                .thenThrow(new com.architek.oikos.shared.exception.UnauthorizedException("not eligible"));
+
+        assertThatThrownBy(() -> newService().start(new StartGroupConversationCommand(propertyId, sender, Set.of(recipient),
+                SUBJECT, BODY, SenderIdentity.BOARD, null)))
+                .isInstanceOf(com.architek.oikos.shared.exception.UnauthorizedException.class);
     }
 }

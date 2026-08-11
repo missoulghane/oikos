@@ -33,6 +33,10 @@ import com.architek.oikos.messaging.application.query.GetMessageDraftQuery;
 import com.architek.oikos.messaging.domain.model.ConversationType;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
 import com.architek.oikos.messaging.domain.valueobject.MessageDraftId;
+import com.architek.oikos.notification.application.dto.NotificationView;
+import com.architek.oikos.notification.application.port.in.GetNotificationUseCase;
+import com.architek.oikos.notification.application.query.GetNotificationQuery;
+import com.architek.oikos.notification.domain.valueobject.NotificationId;
 import com.architek.oikos.party.application.port.in.GetPartyUseCase;
 import com.architek.oikos.party.application.query.GetPartyQuery;
 import com.architek.oikos.party.domain.valueobject.PartyId;
@@ -75,6 +79,7 @@ public class PropertyAccessEvaluator {
     private final GetConversationUseCase getConversationUseCase;
     private final GetMessageDraftUseCase getMessageDraftUseCase;
     private final GetDocumentUseCase getDocumentUseCase;
+    private final GetNotificationUseCase getNotificationUseCase;
 
     public PropertyAccessEvaluator(GetUserAccessUseCase getUserAccessUseCase,
                                     GetUnitUseCase getUnitUseCase,
@@ -87,7 +92,8 @@ public class PropertyAccessEvaluator {
                                     GetMembershipRequestUseCase getMembershipRequestUseCase,
                                     GetConversationUseCase getConversationUseCase,
                                     GetMessageDraftUseCase getMessageDraftUseCase,
-                                    GetDocumentUseCase getDocumentUseCase) {
+                                    GetDocumentUseCase getDocumentUseCase,
+                                    GetNotificationUseCase getNotificationUseCase) {
         this.getUserAccessUseCase = getUserAccessUseCase;
         this.getUnitUseCase = getUnitUseCase;
         this.getBuildingUseCase = getBuildingUseCase;
@@ -100,6 +106,7 @@ public class PropertyAccessEvaluator {
         this.getConversationUseCase = getConversationUseCase;
         this.getMessageDraftUseCase = getMessageDraftUseCase;
         this.getDocumentUseCase = getDocumentUseCase;
+        this.getNotificationUseCase = getNotificationUseCase;
     }
 
     /** ADMIN is a global, JWT-embedded authority (same trust boundary as the existing
@@ -256,9 +263,11 @@ public class PropertyAccessEvaluator {
 
     /** Gates every messaging endpoint scoped by conversationId (list/send messages, mark read):
      * true for ADMIN, or if the caller is one of the GROUP conversation's participants, or - for
-     * BROADCAST - if the caller is still a member of the conversation's property (membership is
-     * resolved dynamically, never stored on a BROADCAST conversation - see Conversation's
-     * javadoc). */
+     * BROADCAST - if the caller is still a member of the conversation's property, or - for
+     * BOARD_PRIVATE - if the caller currently holds a staff role on it (stricter than BROADCAST: a
+     * plain owner must never read the board's private thread just by being a property member).
+     * Membership for BROADCAST/BOARD_PRIVATE is resolved dynamically, never stored - see
+     * Conversation's javadoc. */
     public boolean isConversationParticipant(Authentication authentication, String conversationId) {
         if (isAdminAuthority(authentication)) {
             return true;
@@ -271,6 +280,9 @@ public class PropertyAccessEvaluator {
         if (conversation.type() == ConversationType.GROUP) {
             return conversation.participantUserIds().contains(callerId);
         }
+        if (conversation.type() == ConversationType.BOARD_PRIVATE) {
+            return managesProperty(authentication, conversation.propertyId().toString());
+        }
         return isPropertyMember(authentication, conversation.propertyId().toString());
     }
 
@@ -278,11 +290,11 @@ public class PropertyAccessEvaluator {
      * isConversationParticipant which also gates read-only access (list messages, mark read):
      * true for ADMIN, or if the caller is one of the GROUP conversation's participants (any
      * participant may reply), or - for BROADCAST - only if the caller holds
-     * Permission.MESSAGING_BROADCAST on the conversation's property. Every property member can
-     * read the announcement channel (isConversationParticipant), but replying into it is the same
-     * board/manager-only action as starting it (canBroadcastOnProperty) - a plain owner must not
-     * be able to post there just because the generic "send a message" endpoint doesn't otherwise
-     * know which conversation type it's posting into. */
+     * Permission.MESSAGING_BROADCAST on the conversation's property, or - for BOARD_PRIVATE - only
+     * if the caller currently holds a staff role on it (same population allowed to read it, unlike
+     * BROADCAST where reading and replying have different populations). A plain owner must not be
+     * able to post into either just because the generic "send a message" endpoint doesn't
+     * otherwise know which conversation type it's posting into. */
     public boolean canSendToConversation(Authentication authentication, String conversationId) {
         if (isAdminAuthority(authentication)) {
             return true;
@@ -294,6 +306,9 @@ public class PropertyAccessEvaluator {
 
         if (conversation.type() == ConversationType.GROUP) {
             return conversation.participantUserIds().contains(callerId);
+        }
+        if (conversation.type() == ConversationType.BOARD_PRIVATE) {
+            return managesProperty(authentication, conversation.propertyId().toString());
         }
         return canBroadcastOnProperty(authentication, conversation.propertyId().toString());
     }
@@ -308,6 +323,19 @@ public class PropertyAccessEvaluator {
         MessageDraftView draft = getMessageDraftUseCase.getDraft(new GetMessageDraftQuery(MessageDraftId.of(draftId)));
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         return draft.createdBy().equals(EntityId.of(principal.getUserId()));
+    }
+
+    /** Gates every notification endpoint scoped by notification id (get/mark read): true for
+     * ADMIN, or if the caller is the notification's own recipient - a notification is never
+     * visible to anyone else, same rationale as isDraftOwner. */
+    public boolean isNotificationOwner(Authentication authentication, String notificationId) {
+        if (isAdminAuthority(authentication)) {
+            return true;
+        }
+        NotificationView notification =
+                getNotificationUseCase.getNotification(new GetNotificationQuery(NotificationId.of(notificationId)));
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return notification.recipientUserId().equals(EntityId.of(principal.getUserId()));
     }
 
     /** Gates GET /documents (list) and POST /documents (upload), scoped by the owner

@@ -40,9 +40,9 @@ class ListRecipientCandidatesServiceTest {
         EntityId aliceUser = EntityId.newId();
         EntityId bobParty = EntityId.newId();
 
-        PropertyMemberInfo callerInfo = new PropertyMemberInfo(callerParty, "Caller Self", "Copropriétaire", true);
-        PropertyMemberInfo aliceInfo = new PropertyMemberInfo(aliceParty, "Alice Owner", "Copropriétaire", true);
-        PropertyMemberInfo bobInfo = new PropertyMemberInfo(bobParty, "Bob NoAccount", "Copropriétaire", false);
+        PropertyMemberInfo callerInfo = new PropertyMemberInfo(callerParty, "Caller Self", "Copropriétaire", true, List.of("A1"), false);
+        PropertyMemberInfo aliceInfo = new PropertyMemberInfo(aliceParty, "Alice Owner", "Copropriétaire", true, List.of("B2"), false);
+        PropertyMemberInfo bobInfo = new PropertyMemberInfo(bobParty, "Bob NoAccount", "Copropriétaire", false, List.of("C3"), false);
 
         when(propertyMemberDirectoryPort.listMembers(propertyId)).thenReturn(List.of(callerInfo, aliceInfo, bobInfo));
         when(partyAccountDirectoryPort.resolveUserIds(List.of(callerParty, aliceParty)))
@@ -63,8 +63,8 @@ class ListRecipientCandidatesServiceTest {
         EntityId bobParty = EntityId.newId();
         EntityId bobUser = EntityId.newId();
 
-        PropertyMemberInfo aliceInfo = new PropertyMemberInfo(aliceParty, "Alice Owner", "Copropriétaire", true);
-        PropertyMemberInfo bobInfo = new PropertyMemberInfo(bobParty, "Bob Board", "Bureau de syndic", true);
+        PropertyMemberInfo aliceInfo = new PropertyMemberInfo(aliceParty, "Alice Owner", "Copropriétaire", true, List.of("A1"), false);
+        PropertyMemberInfo bobInfo = new PropertyMemberInfo(bobParty, "Bob Board", "Bureau de syndic", true, List.of(), true);
 
         when(propertyMemberDirectoryPort.listMembers(propertyId)).thenReturn(List.of(aliceInfo, bobInfo));
         when(partyAccountDirectoryPort.resolveUserIds(List.of(aliceParty, bobParty)))

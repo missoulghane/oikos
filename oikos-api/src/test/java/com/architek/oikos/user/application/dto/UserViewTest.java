@@ -20,8 +20,8 @@ import com.architek.oikos.user.domain.valueobject.UserId;
 /**
  * A caller can hold more than one grant on the same property - e.g. a board
  * member who is also a unit owner (see dev.sql CASE 2/4/6/7) - so
- * UserView.of's collision resolution must always keep the most privileged
- * grant, not whichever one a HashSet happens to iterate last.
+ * UserView.of must expose the full set of roles per property rather than
+ * collapsing to a single dominant one.
  */
 class UserViewTest {
 
@@ -35,29 +35,31 @@ class UserViewTest {
     }
 
     @Test
-    void keeps_board_member_over_owner_when_both_are_granted_on_the_same_property() {
+    void exposes_both_roles_when_owner_and_board_member_are_granted_on_the_same_property() {
         User user = userWithGrants(PropertyRole.PROPERTY_OWNER, PropertyRole.PROPERTY_BOARD_MEMBER);
 
         UserView view = UserView.of(user);
 
-        assertThat(view.roleByProperty()).containsValue(PropertyRole.PROPERTY_BOARD_MEMBER);
+        assertThat(view.roleByProperty().values()).singleElement()
+                .isEqualTo(Set.of(PropertyRole.PROPERTY_OWNER, PropertyRole.PROPERTY_BOARD_MEMBER));
     }
 
     @Test
-    void keeps_board_admin_over_owner_when_both_are_granted_on_the_same_property() {
+    void exposes_both_roles_when_owner_and_board_admin_are_granted_on_the_same_property() {
         User user = userWithGrants(PropertyRole.PROPERTY_OWNER, PropertyRole.PROPERTY_BOARD_ADMIN);
 
         UserView view = UserView.of(user);
 
-        assertThat(view.roleByProperty()).containsValue(PropertyRole.PROPERTY_BOARD_ADMIN);
+        assertThat(view.roleByProperty().values()).singleElement()
+                .isEqualTo(Set.of(PropertyRole.PROPERTY_OWNER, PropertyRole.PROPERTY_BOARD_ADMIN));
     }
 
     @Test
-    void keeps_admin_tier_over_member_tier_when_both_are_granted_on_the_same_property() {
-        User user = userWithGrants(PropertyRole.PROPERTY_BOARD_MEMBER, PropertyRole.PROPERTY_BOARD_ADMIN);
+    void exposes_a_single_role_when_only_one_grant_exists_on_the_property() {
+        User user = userWithGrants(PropertyRole.PROPERTY_OWNER);
 
         UserView view = UserView.of(user);
 
-        assertThat(view.roleByProperty()).containsValue(PropertyRole.PROPERTY_BOARD_ADMIN);
+        assertThat(view.roleByProperty().values()).singleElement().isEqualTo(Set.of(PropertyRole.PROPERTY_OWNER));
     }
 }

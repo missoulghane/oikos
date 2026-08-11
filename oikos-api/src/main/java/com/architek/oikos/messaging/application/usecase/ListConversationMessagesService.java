@@ -40,7 +40,7 @@ public class ListConversationMessagesService implements ListConversationMessages
         Map<EntityId, String> namesByUserId = memberDisplayNameResolver.namesByUserId(conversation.getPropertyId());
 
         return messages.map(message -> new MessageView(message.getId(), message.getConversationId(), message.getSenderId(),
-                namesByUserId.get(message.getSenderId()), message.getBody().value(), message.getCreatedDate(),
-                message.getSenderId().equals(query.userId())));
+                namesByUserId.get(message.getSenderId()), message.getSenderIdentity(), message.getBody().value(),
+                message.getCreatedDate(), message.getSenderId().equals(query.userId())));
     }
 }

@@ -32,7 +32,7 @@ class ListMyConversationsServiceTest {
 
     private static ConversationSummaryView summary(EntityId propertyId) {
         return new ConversationSummaryView(ConversationId.newId(), ConversationType.BROADCAST, propertyId, "Copro",
-                null, List.of(), null, Instant.EPOCH, 0, 1);
+                null, null, List.of(), null, Instant.EPOCH, 0, 1);
     }
 
     @Test

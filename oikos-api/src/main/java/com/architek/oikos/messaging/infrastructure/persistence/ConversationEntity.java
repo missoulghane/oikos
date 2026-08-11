@@ -53,6 +53,10 @@ public class ConversationEntity extends AuditableEntity {
     @Column
     private String subject;
 
+    /** Optional lot label the GROUP thread concerns (see Conversation's javadoc) - always null otherwise. */
+    @Column(name = "concerns_unit")
+    private String concernsUnit;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "conversation_participant", joinColumns = @JoinColumn(name = "conversation_id"))
     @Column(name = "user_id", nullable = false)

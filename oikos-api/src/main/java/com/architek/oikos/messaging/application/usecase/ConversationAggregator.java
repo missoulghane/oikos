@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
@@ -67,11 +69,22 @@ class ConversationAggregator {
      * caller has received into (box == RECEIVED) or sent into (box == SENT) at least one message;
      * box == null means unfiltered. */
     List<ConversationSummaryView> listAll(EntityId userId, String search, ConversationBox box) {
+        Set<EntityId> memberPropertyIds = userAccessPort.memberPropertyIds(userId);
         List<Conversation> groups = conversationRepository.findAllGroupByParticipant(userId);
-        List<Conversation> broadcasts = conversationRepository.findAllBroadcastByPropertyIds(userAccessPort.memberPropertyIds(userId));
+        List<Conversation> broadcasts =
+                conversationRepository.findAllByPropertyIdsAndType(memberPropertyIds, ConversationType.BROADCAST);
+        // Unlike BROADCAST (any member reads it), a BOARD_PRIVATE thread is only
+        // ever surfaced to properties the caller currently has a staff role on -
+        // a plain owner must never see it exists, even in a list they can't open.
+        Set<EntityId> staffPropertyIds = memberPropertyIds.stream()
+                .filter(propertyId -> userAccessPort.managesProperty(userId, propertyId))
+                .collect(Collectors.toSet());
+        List<Conversation> boardPrivates =
+                conversationRepository.findAllByPropertyIdsAndType(staffPropertyIds, ConversationType.BOARD_PRIVATE);
 
         List<Conversation> all = new ArrayList<>(groups);
         all.addAll(broadcasts);
+        all.addAll(boardPrivates);
 
         Map<EntityId, String> propertyNameCache = new HashMap<>();
         Map<EntityId, Map<EntityId, String>> memberNamesByPropertyCache = new HashMap<>();
@@ -113,7 +126,7 @@ class ConversationAggregator {
 
             String subject = conversation.getSubject() != null ? conversation.getSubject().value() : null;
             views.add(new ConversationSummaryView(conversation.getId(), conversation.getType(), propertyId, propertyName,
-                    subject, participants, preview, lastMessageAt, unreadCount, messageCount));
+                    subject, conversation.getConcernsUnit(), participants, preview, lastMessageAt, unreadCount, messageCount));
         }
 
         return views.stream()

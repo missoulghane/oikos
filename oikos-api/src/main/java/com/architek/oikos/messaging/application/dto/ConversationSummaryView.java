@@ -23,7 +23,7 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * never "starts a conversation" by itself, a second message does.
  */
 public record ConversationSummaryView(ConversationId id, ConversationType type, EntityId propertyId, String propertyName,
-                                       String subject, List<ConversationParticipantView> participants,
+                                       String subject, String concernsUnit, List<ConversationParticipantView> participants,
                                        String lastMessagePreview, Instant lastMessageAt, long unreadCount,
                                        long messageCount) {
 }

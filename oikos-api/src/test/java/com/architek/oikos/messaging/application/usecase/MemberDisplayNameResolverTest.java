@@ -37,8 +37,8 @@ class MemberDisplayNameResolverTest {
         EntityId bobParty = EntityId.newId();
 
         when(propertyMemberDirectoryPort.listMembers(propertyId)).thenReturn(List.of(
-                new PropertyMemberInfo(aliceParty, "Alice", "Copropriétaire", true),
-                new PropertyMemberInfo(bobParty, "Bob", "Copropriétaire", false)));
+                new PropertyMemberInfo(aliceParty, "Alice", "Copropriétaire", true, List.of(), false),
+                new PropertyMemberInfo(bobParty, "Bob", "Copropriétaire", false, List.of(), false)));
         when(partyAccountDirectoryPort.resolveUserIds(List.of(aliceParty, bobParty))).thenReturn(Map.of(aliceParty, aliceUser));
 
         Map<EntityId, String> names = newResolver().namesByUserId(propertyId);

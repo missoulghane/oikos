@@ -21,20 +21,37 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * "New message" semantics) - see StartGroupConversationService, which never
  * performs a find-or-create for this type. Resuming an existing conversation
  * instead happens by simply reopening it from the inbox list
- * (ListMyConversationsUseCase), unrelated to creation. BROADCAST
- * conversations are unique per property (uk_conversation_broadcast_property),
- * carry no stored participants and no subject: their identity is already the
- * fixed channel label rendered by the frontend, not a per-message title.
- * Membership is resolved dynamically from the property's current roster at
- * read time (UserAccessPort/PropertyMemberDirectoryPort), so someone who
- * joins the property later immediately sees the channel's history, and
- * someone who leaves immediately loses access - nothing to migrate either
- * way.
+ * (ListMyConversationsUseCase), unrelated to creation.
+ *
+ * <p>BOARD_PRIVATE conversations require a subject like GROUP (several
+ * distinct threads can exist per property, e.g. one per topic the board is
+ * arbitrating), but store no participants: membership is resolved
+ * dynamically from the property's *current* staff roster
+ * (UserAccessPort/PropertyMemberDirectoryPort), the same mechanism BROADCAST
+ * uses - an ex-board-member loses access to the whole thread immediately,
+ * a newly elected one sees its history, nothing to migrate either way. No
+ * uniqueness constraint (unlike BROADCAST): starting a new board-private
+ * thread never reuses an earlier one, matching GROUP's "New message"
+ * semantics - see StartBoardConversationService.
+ *
+ * <p>BROADCAST conversations are unique per property
+ * (uk_conversation_broadcast_property), carry no stored participants and no
+ * subject: their identity is already the fixed channel label rendered by the
+ * frontend, not a per-message title. Membership is resolved dynamically from
+ * the property's current roster at read time, same as BOARD_PRIVATE above.
  *
  * <p>createdDate mirrors the persistence layer's audited created_date
  * (read-only from the domain's point of view - AuditableEntity/JPA auditing
  * is the sole writer): null on a freshly created, not-yet-persisted instance,
  * populated by the mapper once reloaded from a saved entity.
+ *
+ * <p>concernsUnit is an optional free-text lot label (e.g. "Appartement 3"),
+ * set once at compose time, GROUP only: a hint disambiguating which of a
+ * multi-lot recipient's units the thread is about (see NewConversationPage's
+ * "Concerne" picker, sourced from that recipient's own
+ * RecipientCandidate.unitNumbers - no foreign key, nothing validated against
+ * the property's actual unit registry, this is a display hint, not a
+ * structural link).
  *
  * <p>Immutable: this aggregate never changes after creation (nothing to
  * mutate - unlike Invitation/BoardMember, there is no lifecycle here beyond
@@ -48,10 +65,11 @@ public final class Conversation {
     private final EntityId createdBy;
     private final Set<EntityId> participantUserIds;
     private final ConversationSubject subject;
+    private final String concernsUnit;
     private final Instant createdDate;
 
     private Conversation(ConversationId id, EntityId propertyId, ConversationType type, EntityId createdBy,
-                          Set<EntityId> participantUserIds, ConversationSubject subject, Instant createdDate) {
+                          Set<EntityId> participantUserIds, ConversationSubject subject, String concernsUnit, Instant createdDate) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.propertyId = Objects.requireNonNull(propertyId, "propertyId must not be null");
         this.type = Objects.requireNonNull(type, "type must not be null");
@@ -60,33 +78,42 @@ public final class Conversation {
         if (type == ConversationType.GROUP && participants.size() < 2) {
             throw new IllegalArgumentException("a GROUP conversation must have at least 2 participants");
         }
-        if (type == ConversationType.BROADCAST && !participants.isEmpty()) {
-            throw new IllegalArgumentException("a BROADCAST conversation must not store participants");
+        if (type != ConversationType.GROUP && !participants.isEmpty()) {
+            throw new IllegalArgumentException("a " + type + " conversation must not store participants");
         }
-        if (type == ConversationType.GROUP && subject == null) {
-            throw new IllegalArgumentException("a GROUP conversation must have a subject");
+        if ((type == ConversationType.GROUP || type == ConversationType.BOARD_PRIVATE) && subject == null) {
+            throw new IllegalArgumentException("a " + type + " conversation must have a subject");
         }
         if (type == ConversationType.BROADCAST && subject != null) {
             throw new IllegalArgumentException("a BROADCAST conversation must not have a subject");
         }
+        if (type != ConversationType.GROUP && concernsUnit != null) {
+            throw new IllegalArgumentException("a " + type + " conversation must not concern a unit");
+        }
         this.participantUserIds = participants;
         this.subject = subject;
+        this.concernsUnit = concernsUnit;
         this.createdDate = createdDate;
     }
 
     public static Conversation createGroup(ConversationId id, EntityId propertyId, EntityId createdBy,
-                                            Set<EntityId> participantUserIds, ConversationSubject subject) {
-        return new Conversation(id, propertyId, ConversationType.GROUP, createdBy, participantUserIds, subject, null);
+                                            Set<EntityId> participantUserIds, ConversationSubject subject, String concernsUnit) {
+        return new Conversation(id, propertyId, ConversationType.GROUP, createdBy, participantUserIds, subject, concernsUnit, null);
     }
 
     public static Conversation createBroadcast(ConversationId id, EntityId propertyId, EntityId createdBy) {
-        return new Conversation(id, propertyId, ConversationType.BROADCAST, createdBy, Set.of(), null, null);
+        return new Conversation(id, propertyId, ConversationType.BROADCAST, createdBy, Set.of(), null, null, null);
+    }
+
+    public static Conversation createBoardPrivate(ConversationId id, EntityId propertyId, EntityId createdBy,
+                                                    ConversationSubject subject) {
+        return new Conversation(id, propertyId, ConversationType.BOARD_PRIVATE, createdBy, Set.of(), subject, null, null);
     }
 
     public static Conversation reconstruct(ConversationId id, EntityId propertyId, ConversationType type,
                                             EntityId createdBy, Set<EntityId> participantUserIds, ConversationSubject subject,
-                                            Instant createdDate) {
-        return new Conversation(id, propertyId, type, createdBy, participantUserIds, subject, createdDate);
+                                            String concernsUnit, Instant createdDate) {
+        return new Conversation(id, propertyId, type, createdBy, participantUserIds, subject, concernsUnit, createdDate);
     }
 
     public boolean hasParticipant(EntityId userId) {
@@ -95,6 +122,10 @@ public final class Conversation {
 
     public ConversationSubject getSubject() {
         return subject;
+    }
+
+    public String getConcernsUnit() {
+        return concernsUnit;
     }
 
     public ConversationId getId() {

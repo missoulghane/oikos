@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.architek.oikos.messaging.application.command.MarkConversationReadCommand;
 import com.architek.oikos.messaging.domain.model.ConversationReadMarker;
 import com.architek.oikos.messaging.domain.model.Message;
+import com.architek.oikos.messaging.domain.model.SenderIdentity;
 import com.architek.oikos.messaging.domain.repository.ConversationReadMarkerRepository;
 import com.architek.oikos.messaging.domain.repository.MessageRepository;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
@@ -45,7 +46,7 @@ class MarkConversationReadServiceTest {
     void marking_read_for_the_first_time_creates_a_new_marker_pointing_at_the_last_message() {
         ConversationId conversationId = ConversationId.newId();
         EntityId userId = EntityId.newId();
-        Message lastMessage = Message.post(MessageId.newId(), conversationId, EntityId.newId(), MessageBody.of("Hi"), Instant.EPOCH);
+        Message lastMessage = Message.post(MessageId.newId(), conversationId, EntityId.newId(), SenderIdentity.OWNER, MessageBody.of("Hi"), Instant.EPOCH);
         when(messageRepository.findLastMessage(conversationId)).thenReturn(Optional.of(lastMessage));
         when(readMarkerRepository.findByConversationIdAndUserId(conversationId, userId)).thenReturn(Optional.empty());
         when(readMarkerRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -79,7 +80,7 @@ class MarkConversationReadServiceTest {
         ConversationId conversationId = ConversationId.newId();
         EntityId userId = EntityId.newId();
         ConversationReadMarker existing = ConversationReadMarker.unread(conversationId, userId);
-        Message lastMessage = Message.post(MessageId.newId(), conversationId, EntityId.newId(), MessageBody.of("Hi"), Instant.EPOCH);
+        Message lastMessage = Message.post(MessageId.newId(), conversationId, EntityId.newId(), SenderIdentity.OWNER, MessageBody.of("Hi"), Instant.EPOCH);
         when(messageRepository.findLastMessage(conversationId)).thenReturn(Optional.of(lastMessage));
         when(readMarkerRepository.findByConversationIdAndUserId(conversationId, userId)).thenReturn(Optional.of(existing));
         when(readMarkerRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));

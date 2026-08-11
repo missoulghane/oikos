@@ -22,6 +22,7 @@ import com.architek.oikos.invitation.application.port.in.GetInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.GetMembershipRequestUseCase;
 import com.architek.oikos.messaging.application.port.in.GetConversationUseCase;
 import com.architek.oikos.messaging.application.port.in.GetMessageDraftUseCase;
+import com.architek.oikos.notification.application.port.in.GetNotificationUseCase;
 import com.architek.oikos.party.application.port.in.GetPartyUseCase;
 import com.architek.oikos.property.application.port.in.GetBuildingUseCase;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
@@ -83,7 +84,8 @@ public class WebSecuritySliceTestConfiguration {
                                             ObjectProvider<GetMembershipRequestUseCase> getMembershipRequestUseCase,
                                             ObjectProvider<GetConversationUseCase> getConversationUseCase,
                                             ObjectProvider<GetMessageDraftUseCase> getMessageDraftUseCase,
-                                            ObjectProvider<GetDocumentUseCase> getDocumentUseCase) {
+                                            ObjectProvider<GetDocumentUseCase> getDocumentUseCase,
+                                            ObjectProvider<GetNotificationUseCase> getNotificationUseCase) {
         return new PropertyAccessEvaluator(getUserAccessUseCase,
                 getUnitUseCase.getIfAvailable(() -> Mockito.mock(GetUnitUseCase.class)),
                 getBuildingUseCase.getIfAvailable(() -> Mockito.mock(GetBuildingUseCase.class)),
@@ -95,6 +97,7 @@ public class WebSecuritySliceTestConfiguration {
                 getMembershipRequestUseCase.getIfAvailable(() -> Mockito.mock(GetMembershipRequestUseCase.class)),
                 getConversationUseCase.getIfAvailable(() -> Mockito.mock(GetConversationUseCase.class)),
                 getMessageDraftUseCase.getIfAvailable(() -> Mockito.mock(GetMessageDraftUseCase.class)),
-                getDocumentUseCase.getIfAvailable(() -> Mockito.mock(GetDocumentUseCase.class)));
+                getDocumentUseCase.getIfAvailable(() -> Mockito.mock(GetDocumentUseCase.class)),
+                getNotificationUseCase.getIfAvailable(() -> Mockito.mock(GetNotificationUseCase.class)));
     }
 }

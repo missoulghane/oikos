@@ -45,15 +45,17 @@ public class StartGroupConversationService implements StartGroupConversationUseC
     private final MessageRepository messageRepository;
     private final UserAccessPort userAccessPort;
     private final MemberDisplayNameResolver memberDisplayNameResolver;
+    private final SenderIdentityValidator senderIdentityValidator;
     private final Clock clock;
 
     public StartGroupConversationService(ConversationRepository conversationRepository, MessageRepository messageRepository,
                                           UserAccessPort userAccessPort, MemberDisplayNameResolver memberDisplayNameResolver,
-                                          Clock clock) {
+                                          SenderIdentityValidator senderIdentityValidator, Clock clock) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.userAccessPort = userAccessPort;
         this.memberDisplayNameResolver = memberDisplayNameResolver;
+        this.senderIdentityValidator = senderIdentityValidator;
         this.clock = clock;
     }
 
@@ -70,6 +72,7 @@ public class StartGroupConversationService implements StartGroupConversationUseC
             throw new RecipientNotPropertyMemberException(
                     "sender is not a member of property " + command.propertyId());
         }
+        var senderIdentity = senderIdentityValidator.resolve(command.senderId(), command.propertyId(), command.senderIdentity());
 
         Map<EntityId, String> membersWithLinkedAccount = memberDisplayNameResolver.namesByUserId(command.propertyId());
         for (EntityId recipientId : command.recipientUserIds()) {
@@ -84,10 +87,11 @@ public class StartGroupConversationService implements StartGroupConversationUseC
         participantUserIds.add(command.senderId());
 
         Conversation created = Conversation.createGroup(ConversationId.newId(), command.propertyId(), command.senderId(),
-                Set.copyOf(participantUserIds), command.subject());
+                Set.copyOf(participantUserIds), command.subject(), command.concernsUnit());
         ConversationId conversationId = conversationRepository.save(created).getId();
 
-        Message firstMessage = Message.post(MessageId.newId(), conversationId, command.senderId(), command.body(), clock.instant());
+        Message firstMessage = Message.post(MessageId.newId(), conversationId, command.senderId(), senderIdentity,
+                command.body(), clock.instant());
         messageRepository.save(firstMessage);
 
         return conversationId;

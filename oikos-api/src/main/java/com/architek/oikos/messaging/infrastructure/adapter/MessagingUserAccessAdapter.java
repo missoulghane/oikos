@@ -45,6 +45,16 @@ public class MessagingUserAccessAdapter implements UserAccessPort {
         return access(userId).hasPermission(propertyId.toString(), Permission.MESSAGING_BROADCAST);
     }
 
+    @Override
+    public boolean managesProperty(EntityId userId, EntityId propertyId) {
+        return access(userId).managesProperty(propertyId.toString());
+    }
+
+    @Override
+    public boolean ownsProperty(EntityId userId, EntityId propertyId) {
+        return access(userId).ownsProperty(propertyId.toString());
+    }
+
     private UserAccessView access(EntityId userId) {
         return getUserAccessUseCase.getAccess(new GetUserAccessQuery(UserId.of(userId.value())));
     }
