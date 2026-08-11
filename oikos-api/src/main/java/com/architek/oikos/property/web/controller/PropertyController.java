@@ -63,7 +63,6 @@ import com.architek.oikos.user.application.port.in.AssignPropertyManagerUseCase;
 import com.architek.oikos.user.application.port.in.GetUserAccessUseCase;
 import com.architek.oikos.user.application.port.in.GrantCreatorAsManagerUseCase;
 import com.architek.oikos.user.application.query.GetUserAccessQuery;
-import com.architek.oikos.user.application.usecase.EnforcePropertyCreationLimitService;
 import com.architek.oikos.user.domain.model.PropertyRole;
 import com.architek.oikos.user.domain.valueobject.UserId;
 
@@ -75,11 +74,11 @@ import com.architek.oikos.user.domain.valueobject.UserId;
  * une copropriété (voir PropertyAccessEvaluator.canCreateProperty) - le
  * créateur devient automatiquement gestionnaire de la copropriété créée,
  * avec le même rôle ADMIN-tier que celui qu'il détient déjà ailleurs (voir
- * GrantCreatorAsManagerUseCase), sous réserve du plafond de cardinalité
- * (EnforcePropertyCreationLimitService - un compte PROPERTY_BOARD_ADMIN ne
- * peut en créer qu'une seule) - à l'exception des flux d'auto-inscription
- * publics (register-property-board-admin/register-property-manager-admin),
- * qui restent des chemins de code distincts.
+ * GrantCreatorAsManagerUseCase) - sans plafond de cardinalité : un compte
+ * PROPERTY_BOARD_ADMIN peut administrer plusieurs copropriétés, à
+ * l'exception des flux d'auto-inscription publics
+ * (register-property-board-admin/register-property-manager-admin), qui
+ * restent des chemins de code distincts.
  */
 @RestController
 @RequestMapping("/properties")
@@ -96,7 +95,6 @@ public class PropertyController {
     private final GetUserAccessUseCase getUserAccessUseCase;
     private final GrantCreatorAsManagerUseCase grantCreatorAsManagerUseCase;
     private final AssignPropertyManagerUseCase assignPropertyManagerUseCase;
-    private final EnforcePropertyCreationLimitService enforcePropertyCreationLimitService;
 
     public PropertyController(CreatePropertyUseCase createPropertyUseCase,
                                   ConfigurePropertyUseCase configurePropertyUseCase,
@@ -108,8 +106,7 @@ public class PropertyController {
                                   SetProjectedBudgetUseCase setProjectedBudgetUseCase,
                                   GetUserAccessUseCase getUserAccessUseCase,
                                   GrantCreatorAsManagerUseCase grantCreatorAsManagerUseCase,
-                                  AssignPropertyManagerUseCase assignPropertyManagerUseCase,
-                                  EnforcePropertyCreationLimitService enforcePropertyCreationLimitService) {
+                                  AssignPropertyManagerUseCase assignPropertyManagerUseCase) {
         this.createPropertyUseCase = createPropertyUseCase;
         this.configurePropertyUseCase = configurePropertyUseCase;
         this.configureExistingPropertyUseCase = configureExistingPropertyUseCase;
@@ -121,7 +118,6 @@ public class PropertyController {
         this.getUserAccessUseCase = getUserAccessUseCase;
         this.grantCreatorAsManagerUseCase = grantCreatorAsManagerUseCase;
         this.assignPropertyManagerUseCase = assignPropertyManagerUseCase;
-        this.enforcePropertyCreationLimitService = enforcePropertyCreationLimitService;
     }
 
     @GetMapping
@@ -232,16 +228,14 @@ public class PropertyController {
     /**
      * The role to grant the creator of a new property: the same ADMIN-tier
      * role they already hold elsewhere (board vs manager-firm track), or
-     * PROPERTY_MANAGER_ADMIN (uncapped) if they hold none yet - covers a
-     * platform SYSTEM_ADMIN using this authenticated endpoint directly.
-     * Assumes a caller holds at most one ADMIN-tier role type across all
-     * their properties (see UserAccessView.dominantAdminTierRole).
+     * PROPERTY_MANAGER_ADMIN if they hold none yet - covers a platform
+     * SYSTEM_ADMIN using this authenticated endpoint directly. Assumes a
+     * caller holds at most one ADMIN-tier role type across all their
+     * properties (see UserAccessView.dominantAdminTierRole).
      */
     private PropertyRole resolveRoleToGrant(UserId userId) {
         UserAccessView access = getUserAccessUseCase.getAccess(new GetUserAccessQuery(userId));
-        PropertyRole roleToGrant = access.dominantAdminTierRole().orElse(PropertyRole.PROPERTY_MANAGER_ADMIN);
-        enforcePropertyCreationLimitService.enforce(access, roleToGrant.category());
-        return roleToGrant;
+        return access.dominantAdminTierRole().orElse(PropertyRole.PROPERTY_MANAGER_ADMIN);
     }
 
     private static ConfigurePropertyCommand toCommand(ConfigurePropertyRequest request) {

@@ -17,10 +17,20 @@ public record UserView(UserId id, String fullName, String email, Set<Role> roles
                 .collect(Collectors.toMap(
                         grant -> grant.propertyId().toString(),
                         grant -> grant.role(),
-                        // A user should hold at most one role per property; if more than one
-                        // grant ever collides on the same property, keep the ADMIN-tier one.
-                        (existing, incoming) -> existing.isAdminTier() ? existing : incoming));
+                        // A caller can hold more than one grant on the same property (e.g. a
+                        // board member who is also a unit owner - see oikos-web's
+                        // canManageProperties, which this map feeds): keep the most
+                        // privileged one, ADMIN-tier > MEMBER-tier > OWNER, rather than
+                        // whichever grant the backing HashSet happens to iterate last.
+                        (existing, incoming) -> rank(incoming) > rank(existing) ? incoming : existing));
         return new UserView(user.getId(), user.getFullName(), user.getEmail().value(),
                 user.getRoles(), roleByProperty, user.isVerified(), user.isEnabled());
+    }
+
+    private static int rank(PropertyRole role) {
+        if (role.isAdminTier()) {
+            return 2;
+        }
+        return role == PropertyRole.PROPERTY_OWNER ? 0 : 1;
     }
 }

@@ -108,11 +108,11 @@ public class RegistrationController {
     }
 
     /**
-     * Volunteer syndic board admin - self-managed HOA, capped at one property (see
-     * EnforcePropertyCreationLimitService). Called at the end of step 2 of the wizard,
-     * as soon as the property has a name: the Party linking the account to its
-     * property cannot exist before that. Answers with the onboarding token the
-     * remaining steps need, since the account is not verified (hence cannot log in) yet.
+     * Volunteer syndic board admin - self-managed HOA. Called at the end of
+     * step 2 of the wizard, as soon as the property has a name: the Party
+     * linking the account to its property cannot exist before that.
+     * Answers with the onboarding token the remaining steps need, since the
+     * account is not verified (hence cannot log in) yet.
      */
     @PostMapping("/register-property-board-admin")
     public ResponseEntity<RegisteredBoardAdminResponse> registerPropertyBoardAdmin(

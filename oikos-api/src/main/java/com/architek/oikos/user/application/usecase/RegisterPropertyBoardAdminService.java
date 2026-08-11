@@ -37,13 +37,11 @@ import com.architek.oikos.user.domain.valueobject.UserId;
  * that property, assigns it as the property's PROPERTY_MANAGER board
  * member, and finally the User account (ROLE_USER globally,
  * PROPERTY_BOARD_ADMIN granted through the linked Party) - in that order,
- * since the Party can only be created once its property id is known. This
- * account is capped at managing exactly one property
- * (EnforcePropertyCreationLimitService, checked on any subsequent
- * authenticated POST /properties) - RegisterPropertyManagerAdminService is
- * the uncapped counterpart for professional management firms. Issues a
- * verification token and sends the verification email afterwards - same
- * activation flow as a plain user registration (see RegisterUserService).
+ * since the Party can only be created once its property id is known.
+ * RegisterPropertyManagerAdminService is the counterpart for professional
+ * management firms. Issues a verification token and sends the verification
+ * email afterwards - same activation flow as a plain user registration
+ * (see RegisterUserService).
  */
 @Component
 public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardAdminUseCase {

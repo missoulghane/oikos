@@ -17,8 +17,7 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * Enforces "every new accounting operation is attached to the property's
  * open exercise, in an open period" (spec &sect;3/I5): every write use case
  * calls this first to resolve the exercise/period its new entries belong
- * to, or fail fast if either is missing/closed. Same shape as
- * EnforcePropertyCreationLimitService (user module): a small dedicated
+ * to, or fail fast if either is missing/closed. A small dedicated
  * rule-check component invoked at the top of each use case.
  */
 @Component

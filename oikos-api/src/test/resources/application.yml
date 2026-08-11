@@ -26,9 +26,6 @@ oikos:
   property:
     configure:
       max-units: 500
-  rbac:
-    board-tier:
-      max-properties: 1
   mail:
     from: no-reply@oikos.ma
     verification-base-url: http://localhost:8080/api/v1/users/verify

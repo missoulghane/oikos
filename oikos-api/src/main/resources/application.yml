@@ -38,9 +38,6 @@ oikos:
   property:
     configure:
       max-units: 500
-  rbac:
-    board-tier:
-      max-properties: 1
   mail:
     # Set to false to skip real SMTP sending and log the email content instead
     # (see GmailEmailAdapter / LoggingEmailAdapter). Overridden to false in dev.
