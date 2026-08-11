@@ -6,19 +6,26 @@ kaoutar.salami.1990@gmail.com/Oikos@2026
 ######################### Oikos mails #########################
 admin@oikos.com => administrateur systeme
 
-manager1@oikos.com => manager pro d'une copros (Copro 1 : contient un batiement et deux units de type appartement (prix = 200))
-copr1_user1@oikos.com => user associé à l'unit 1 (type Appartment) du batiment 1 de la copro
-copr1_user2@oikos.com => user associé à l'unit 2 (type Appartment)  du batiment 1 de la copro
+Copro Al Amal : contient un batiement et 30 units. Gestion au forfait  de type appartement (prix = 200)
 
-manager2@oikos.com => manager pro de deux copros (Copro 2.1 et Copro 2.2, meme config que la copro 1)
-copr21_user1@oikos.com => user1 associé à l'unit 1 (type Appartment) du batiment 1 de la copro pro 2.1 
-copr21_user2@oikos.com => user1 associé à l'unit 2 (type Appartment) du batiment 1 de la copro pro 2.1 
-copr22_user1@oikos.com => user1 associé à l'unit 1 (type Appartment) du batiment 1 de la copro pro 2.2
-copr22_user2@oikos.com => user1 associé à l'unit 2 (type Appartment) du batiment 1 de la copro pro 2.2
 
-syndic1@oikos.com => syndic benevole d'une copros (Copro 3 : contient un batiement et deux units de type appartement (prix = 200))
-copr3_user1@oikos.com => user associé à l'unit 1 (type Appartment) du batiment 1 de la copro
-copr3_user2@oikos.com => user associé à l'unit 2 (type Appartment)  du batiment 1 de la copro
+user1@oikos.com => user associé à l'unit 1, 11, 12, 13 + Syndic
+user2@oikos.com => user associé à l'unit 2, 21, 
+user3@oikos.com => user associé à l'unit 3
+user4@oikos.com => user associé à l'unit 4
+user5@oikos.com => user associé à l'unit 5
+user6@oikos.com => user associé à l'unit 6
+user7@oikos.com => user associé à l'unit 7
+user8@oikos.com => user associé à l'unit 8
+user9@oikos.com => user associé à l'unit 9
+user10@oikos.com => user associé à l'unit 25, 26, 27, 28, 29, 30
+
+Copro Safae : contient un batiement et 15 units. Gestion au forfait  de type appartement (prix = 150)
+user11@oikos.com => user associé à l'unit 1 + Syndic
+user13@oikos.com => user associé à l'unit 3, et 4
+
+user2@oikos.com => user associé à l'unit 5, 6 (même que pour la résidence Alamal)
+user3@oikos.com => user associé à l'unit 7 (même que pour la résidence Alamal)
 
 Mot de passe globale : Oikos@2026
 ###############################################################
