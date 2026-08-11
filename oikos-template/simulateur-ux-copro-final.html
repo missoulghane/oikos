@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulateur UX — Gestion de copropriété</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   1. TOKENS
+   ============================================================ */
+:root{
+  --ink:#111631;
+  --ink-2:#3A4066;
+  --ink-3:#6C7398;
+  --majorelle:#4739C9;
+  --majorelle-soft:#EDEBFB;
+  --paper:#F6F6FB;
+  --surface:#FFFFFF;
+  --line:#E4E4F0;
+  --line-strong:#CFCFE2;
+  --danger:#B3261E;
+  --danger-soft:#FCECEA;
+  --ok:#0B7A4B;
+  --ok-soft:#E4F5EC;
+  --warn:#8A5A00;
+  --warn-soft:#FDF2DA;
+
+  --r-sm:8px; --r-md:14px; --r-lg:22px; --r-xl:34px;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+
+  /* couleur de rôle : réassignée par [data-space] */
+  --role:#0B7A6B; --role-soft:#E2F3F0; --role-ink:#06544A;
+}
+[data-space="syndic"]{ --role:#9A6410; --role-soft:#FBF0DC; --role-ink:#6E4708; }
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--f-body);
+  background:#0C0F26;
+  color:var(--ink);
+  min-height:100vh;
+  background-image:
+    radial-gradient(1200px 700px at 15% -10%, #241E63 0%, transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23FFFFFF' stroke-opacity='0.05' stroke-width='1'%3E%3Cpath d='M36 4 44 20 60 12 52 28 68 36 52 44 60 60 44 52 36 68 28 52 12 60 20 44 4 36 20 28 12 12 28 20Z'/%3E%3C/g%3E%3C/svg%3E");
+  background-attachment:fixed;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+ul{list-style:none}
+
+/* ============================================================
+   2. SHELL (poste de travail)
+   ============================================================ */
+.shell{max-width:1560px;margin:0 auto;padding:28px 24px 60px}
+.masthead{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between;margin-bottom:26px}
+.brand{color:#fff}
+.brand .eyebrow{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:#A79BFF;display:block;margin-bottom:8px
+}
+.brand h1{font-family:var(--f-display);font-weight:800;font-size:clamp(26px,3.4vw,40px);line-height:1.02;letter-spacing:-.02em}
+.brand p{color:#A8ADD6;font-size:14px;margin-top:8px;max-width:56ch;line-height:1.55}
+.viewtabs{display:flex;gap:6px;background:rgba(255,255,255,.07);padding:5px;border-radius:999px}
+.viewtabs button{
+  padding:9px 18px;border-radius:999px;font-size:13.5px;font-weight:600;color:#C3C7EA;white-space:nowrap
+}
+.viewtabs button[aria-selected="true"]{background:#fff;color:var(--ink)}
+
+.workbench{display:grid;grid-template-columns:296px minmax(0,392px) minmax(0,1fr);gap:26px;align-items:start}
+@media(max-width:1240px){.workbench{grid-template-columns:260px minmax(0,392px)}}
+@media(max-width:980px){.workbench{grid-template-columns:minmax(0,1fr);justify-items:center}}
+
+/* --- colonne cas --- */
+.cases{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:var(--r-lg);padding:14px;width:100%}
+.cases h2{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#8E93C4;padding:6px 8px 12px}
+.case{display:flex;gap:12px;width:100%;text-align:left;padding:12px 10px;border-radius:var(--r-md);color:#D6D9F2;transition:background .16s}
+.case:hover{background:rgba(255,255,255,.07)}
+.case[aria-current="true"]{background:#fff;color:var(--ink)}
+.case-n{
+  font-family:var(--f-mono);font-size:11px;font-weight:500;width:22px;flex:none;
+  padding-top:2px;color:#8E93C4
+}
+.case[aria-current="true"] .case-n{color:var(--majorelle)}
+.case .row-1{display:block}
+.case-t{display:block;font-size:13.2px;font-weight:600;line-height:1.3;margin-bottom:4px}
+.case-d{display:block;font-size:11.5px;line-height:1.4;opacity:.72}
+.case-tags{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.tag{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.05em;padding:2px 7px;border-radius:5px;background:rgba(255,255,255,.12);text-transform:uppercase}
+.case[aria-current="true"] .tag{background:var(--majorelle-soft);color:#3A2DA8}
+.tag.mandat{background:rgba(224,168,60,.22);color:#F0C177}
+.case[aria-current="true"] .tag.mandat{background:#FBF0DC;color:#6E4708}
+
+/* --- téléphone --- */
+.stage{width:100%;display:flex;flex-direction:column;align-items:center;gap:14px;position:sticky;top:24px}
+@media(max-width:980px){.stage{position:static}}
+.phone{
+  width:392px;max-width:100%;height:812px;background:var(--paper);border-radius:var(--r-xl);
+  border:9px solid #05061A;box-shadow:0 34px 70px rgba(0,0,0,.5);overflow:hidden;
+  display:flex;flex-direction:column;position:relative
+}
+.statusbar{
+  height:30px;flex:none;display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;font-family:var(--f-mono);font-size:10.5px;color:var(--ink-3);background:var(--surface)
+}
+.phone-note{font-size:12px;color:#8E93C4;text-align:center;max-width:392px;line-height:1.5}
+
+/* --- notes UX --- */
+.notes{width:100%;background:var(--surface);border-radius:var(--r-lg);padding:26px 26px 22px;min-width:0}
+@media(max-width:1240px){.notes{grid-column:1/-1;max-width:720px}}
+.notes h3{font-family:var(--f-display);font-size:21px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
+.notes .sub{color:var(--ink-3);font-size:13px;margin:7px 0 20px;line-height:1.5}
+.note{display:flex;gap:13px;padding:14px 0;border-top:1px solid var(--line)}
+.note-k{
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--majorelle);background:var(--majorelle-soft);padding:4px 8px;border-radius:5px;
+  height:fit-content;white-space:nowrap;flex:none;min-width:74px;text-align:center
+}
+.note-k.alert{color:var(--danger);background:var(--danger-soft)}
+.note-b{font-size:13.4px;line-height:1.6;color:var(--ink-2)}
+.note-b b{color:var(--ink);font-weight:600}
+.notes-cta{margin-top:20px;padding-top:18px;border-top:2px solid var(--ink);font-size:12.5px;color:var(--ink-3);line-height:1.6}
+
+/* ============================================================
+   3. MATRICE
+   ============================================================ */
+.matrix{background:var(--surface);border-radius:var(--r-lg);padding:28px;overflow-x:auto}
+.matrix h3{font-family:var(--f-display);font-size:24px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+.matrix p.lede{color:var(--ink-3);font-size:13.5px;margin-bottom:22px;max-width:80ch;line-height:1.6}
+table{border-collapse:collapse;width:100%;min-width:1420px;font-size:12.6px}
+th,td{text-align:left;padding:12px 13px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45}
+th{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);border-bottom:2px solid var(--ink);position:sticky;top:0;background:var(--surface)
+}
+td.cas{font-weight:600;width:180px}
+td.cas span{display:block;font-weight:400;color:var(--ink-3);font-size:11.5px;margin-top:3px}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;white-space:nowrap}
+.pill.no{background:var(--paper);color:var(--ink-3)}
+.pill.yes{background:var(--majorelle-soft);color:#3A2DA8}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* ============================================================
+   4. APPLICATION (dans le téléphone)
+   ============================================================ */
+.app{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--paper)}
+
+/* --- en-tête --- */
+.appbar{background:var(--surface);padding:10px 16px 0;flex:none;border-bottom:1px solid var(--line)}
+.appbar-top{display:flex;align-items:center;gap:12px;padding-bottom:10px}
+.ident{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.avatar{
+  width:36px;height:36px;border-radius:11px;flex:none;display:grid;place-items:center;
+  background:var(--role-soft);color:var(--role-ink);font-weight:700;font-size:13px;
+  border:1px solid color-mix(in srgb, var(--role) 25%, transparent)
+}
+.ident-txt{min-width:0}
+.ident-txt .nm{display:block;font-size:13.5px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ident-txt .rl{display:block;font-size:11px;color:var(--ink-3);line-height:1.3;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bell{position:relative;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none}
+.bell:hover{background:var(--paper)}
+.bell svg{width:20px;height:20px;stroke:var(--ink-2);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.bell b{
+  position:absolute;top:2px;right:1px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;
+  background:var(--danger);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;
+  border:2px solid var(--surface);font-family:var(--f-mono)
+}
+
+/* sélecteur d'espace */
+.spacebar{padding-bottom:10px}
+.space-static{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-3)}
+.space-static .dot{width:6px;height:6px;border-radius:50%;background:var(--role);flex:none}
+.seg{display:flex;gap:3px;background:var(--paper);padding:3px;border-radius:11px;border:1px solid var(--line)}
+.seg button{flex:1;padding:8px 6px;border-radius:8px;font-size:11.8px;font-weight:600;color:var(--ink-3);line-height:1.2}
+.seg button[aria-pressed="true"]{background:var(--role-soft);color:var(--role-ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.space-btn{
+  width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;
+  background:var(--role-soft);border:1px solid color-mix(in srgb, var(--role) 22%, transparent);text-align:left
+}
+.space-btn > span:first-child{min-width:0}
+.space-btn .sb-l{display:block;font-family:var(--f-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--role-ink);opacity:.75}
+.space-btn .sb-v{display:block;font-size:13px;font-weight:600;color:var(--role-ink);line-height:1.25;margin-top:2px}
+.space-btn .chev{margin-left:auto;color:var(--role-ink);font-size:15px;flex:none}
+
+/* --- contenu --- */
+.screen{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:16px 16px 24px}
+.screen::-webkit-scrollbar{width:0}
+.h1{font-family:var(--f-display);font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.h1-sub{font-size:12.3px;color:var(--ink-3);margin-top:5px;line-height:1.45}
+.sec{
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);margin:22px 0 9px;display:flex;align-items:center;gap:8px
+}
+.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:14px;margin-bottom:10px}
+.card.tap{width:100%;text-align:left;display:block}
+.card.tap:hover{border-color:var(--line-strong)}
+.card.accent{border-left:3px solid var(--role)}
+.row{display:flex;align-items:center;gap:11px}
+.row-1{flex:1;min-width:0}
+.ttl{font-size:14px;font-weight:600;line-height:1.3}
+.meta{font-size:11.6px;color:var(--ink-3);margin-top:4px;line-height:1.4}
+.amt{font-family:var(--f-mono);font-size:14.5px;font-weight:500;white-space:nowrap}
+.amt.due{color:var(--danger)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.chip{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--paper);color:var(--ink-3);border:1px solid var(--line)}
+.chip.res{background:var(--majorelle-soft);color:#3A2DA8;border-color:transparent}
+.chip.role{background:var(--role-soft);color:var(--role-ink);border-color:transparent}
+.chip.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.chip.late{background:var(--danger-soft);color:var(--danger);border-color:transparent}
+.chip.you{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.filters{display:flex;gap:7px;overflow-x:auto;padding:2px 0 4px;margin-bottom:12px}
+.filters::-webkit-scrollbar{height:0}
+.filters button{
+  flex:none;font-size:12px;font-weight:600;padding:7px 13px;border-radius:999px;
+  border:1px solid var(--line);color:var(--ink-3);background:var(--surface)
+}
+.filters button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.cta{
+  width:100%;padding:14px;border-radius:12px;background:var(--ink);color:#fff;
+  font-size:14px;font-weight:600;margin-top:6px
+}
+.cta.ghost{background:var(--surface);color:var(--ink);border:1.5px solid var(--ink)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:13px}
+.kpi .k{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.kpi .v{font-family:var(--f-display);font-size:22px;font-weight:800;margin-top:6px;letter-spacing:-.02em}
+.kpi .d{font-size:11px;color:var(--ink-3);margin-top:3px}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:9px}
+.bar i{display:block;height:100%;background:var(--role);border-radius:3px}
+.subtabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);padding:4px;border-radius:12px;margin-bottom:14px}
+.subtabs button{flex:1;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;color:var(--ink-3)}
+.subtabs button[aria-selected="true"]{background:var(--ink);color:#fff}
+.empty{text-align:center;padding:48px 20px;color:var(--ink-3)}
+.empty .e-t{font-size:14.5px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.empty .e-d{font-size:12.5px;line-height:1.5}
+.back{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink-3);margin-bottom:14px}
+.dl{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.8px}
+.dl:last-child{border-bottom:none}
+.dl dt{color:var(--ink-3);flex:none}
+.dl dd{text-align:right;font-weight:500}
+
+/* garde-fou / avertissement d'identité */
+.guard{
+  display:flex;gap:10px;padding:11px 12px;border-radius:11px;background:var(--warn-soft);
+  border:1px solid #EAD3A0;margin-bottom:12px
+}
+.guard .g-i{font-size:14px;line-height:1.2;flex:none}
+.guard .g-t{font-size:12.2px;line-height:1.5;color:var(--warn)}
+.guard .g-t b{font-weight:700}
+
+/* messagerie */
+.thread-msgs{display:flex;flex-direction:column;gap:11px;margin-bottom:16px}
+.msg{max-width:84%;padding:11px 13px;border-radius:14px;font-size:13px;line-height:1.5;background:var(--surface);border:1px solid var(--line)}
+.msg .who{display:block;font-size:10.5px;font-weight:700;color:var(--ink-3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.msg .tm{display:block;font-family:var(--f-mono);font-size:9.5px;color:var(--ink-3);margin-top:7px}
+.msg.me{align-self:flex-end;background:var(--role-soft);border-color:transparent}
+.msg.me .who{color:var(--role-ink)}
+.composer{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:12px}
+.as-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:10px;margin-bottom:10px;border-bottom:1px dashed var(--line)}
+.as-line .lb{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.as-pick{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;background:var(--role-soft);color:var(--role-ink);font-size:12px;font-weight:600}
+.fake-input{font-size:13px;color:var(--ink-3);padding:6px 0}
+.audience{font-size:11.4px;color:var(--ink-3);margin-top:10px;line-height:1.45}
+
+/* notifications */
+.notif{display:flex;gap:11px;width:100%;text-align:left;padding:13px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--line);margin-bottom:9px}
+.notif.unread{border-left:3px solid var(--majorelle)}
+.notif .n-i{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-size:14px;flex:none;background:var(--paper)}
+.notif .n-t{display:block;font-size:13.2px;font-weight:600;line-height:1.35}
+.notif .n-d{display:block;font-size:11.6px;color:var(--ink-3);margin-top:4px;line-height:1.45}
+.notif .n-w{display:block;font-family:var(--f-mono);font-size:9.5px;color:var(--ink-3);margin-top:7px}
+
+/* barre de navigation */
+.tabbar{
+  flex:none;display:flex;background:var(--surface);border-top:1px solid var(--line);
+  padding:7px 4px calc(7px + env(safe-area-inset-bottom))
+}
+.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:5px 2px;border-radius:10px;color:var(--ink-3)}
+.tabbar button[aria-current="true"]{color:var(--role)}
+.tabbar svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tabbar span{font-size:9.8px;font-weight:600;letter-spacing:-.01em}
+.tabbar .dotbadge{position:relative}
+.tabbar .dotbadge::after{content:"";position:absolute;top:-1px;right:-4px;width:7px;height:7px;border-radius:50%;background:var(--danger)}
+
+/* feuille modale */
+.sheet-bg{position:absolute;inset:0;background:rgba(10,12,32,.42);display:flex;align-items:flex-end;z-index:20;animation:fade .18s ease}
+.sheet{
+  width:100%;background:var(--surface);border-radius:22px 22px 0 0;padding:8px 16px 22px;
+  max-height:78%;overflow-y:auto;animation:up .22s cubic-bezier(.2,.8,.3,1)
+}
+.grab{width:38px;height:4px;border-radius:2px;background:var(--line-strong);margin:6px auto 14px}
+.sheet h4{font-family:var(--f-display);font-size:17px;font-weight:800;margin-bottom:4px}
+.sheet .sh-d{font-size:12px;color:var(--ink-3);margin-bottom:14px;line-height:1.45}
+.opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px;border-radius:12px;border:1px solid var(--line);margin-bottom:9px}
+.opt[aria-current="true"]{border-color:var(--ink);border-width:1.5px;background:var(--paper)}
+.opt .o-i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+.opt .o-t{display:block;font-size:13.5px;font-weight:600;line-height:1.25}
+.opt .o-d{display:block;font-size:11.4px;color:var(--ink-3);margin-top:3px;line-height:1.35}
+.opt .o-c{margin-left:auto;font-size:15px;color:var(--ink)}
+@keyframes fade{from{opacity:0}}
+@keyframes up{from{transform:translateY(26px)}}
+
+/* toast */
+.toast{
+  position:absolute;left:14px;right:14px;bottom:78px;z-index:30;background:var(--ink);color:#fff;
+  padding:12px 14px;border-radius:12px;font-size:12.5px;line-height:1.45;
+  box-shadow:0 10px 26px rgba(0,0,0,.3);animation:up .22s ease
+}
+.toast b{color:#C9C2FF}
+
+/* rédaction d'un nouveau message */
+.fab{
+  position:absolute;right:16px;bottom:84px;z-index:15;display:flex;align-items:center;gap:8px;
+  padding:13px 18px;border-radius:999px;background:var(--ink);color:#fff;font-size:13.4px;font-weight:600;
+  box-shadow:0 9px 24px rgba(10,12,32,.34)
+}
+.fab svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round}
+.chan{
+  width:100%;text-align:left;display:flex;align-items:center;gap:11px;padding:13px;
+  border-radius:var(--r-md);border:1.5px solid var(--role);background:var(--role-soft);margin-bottom:12px
+}
+.chan.todo{border-style:dashed;border-color:var(--line-strong);background:var(--surface)}
+.chan .c-l{display:block;font-family:var(--f-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--role-ink);opacity:.8}
+.chan .c-v{display:block;font-size:13.4px;font-weight:600;color:var(--role-ink);line-height:1.3;margin-top:3px}
+.chan .c-s{display:block;font-size:11.4px;color:var(--role-ink);opacity:.85;margin-top:3px}
+.chan.todo .c-l,.chan.todo .c-v,.chan.todo .c-s{color:var(--ink-3);opacity:1}
+.chan .c-a{margin-left:auto;flex:none;font-size:11.5px;font-weight:700;color:var(--role-ink);text-decoration:underline}
+.chan.todo .c-a{color:var(--majorelle)}
+.field{margin-bottom:12px}
+.field>label{display:block;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+.field input,.field textarea{
+  width:100%;font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface);
+  border:1px solid var(--line);border-radius:11px;padding:11px 12px;resize:none
+}
+.field textarea{min-height:104px;line-height:1.5}
+.field input::placeholder,.field textarea::placeholder{color:var(--ink-3)}
+.field input:focus,.field textarea:focus{border-color:var(--role);outline:none}
+.lotpick{display:flex;gap:6px;flex-wrap:wrap}
+.lotpick button{font-size:11.5px;font-weight:600;padding:7px 11px;border-radius:9px;border:1px solid var(--line);color:var(--ink-3);background:var(--surface)}
+.lotpick button[aria-pressed="true"]{background:var(--role-soft);color:var(--role-ink);border-color:var(--role)}
+.cta[disabled]{opacity:.34;cursor:not-allowed}
+.guard.stop{background:var(--danger-soft);border-color:#EFC3BE}
+.guard.stop .g-t{color:var(--danger)}
+.stop-actions{display:flex;gap:9px}
+.stop-actions .cta{margin-top:0}
+.sheet-grp{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:16px 0 8px}
+.sheet-grp:first-of-type{margin-top:4px}
+.opt.risk{border-color:#EFC3BE;background:var(--danger-soft)}
+.opt.risk .o-t{color:var(--danger)}
+
+/* écran de connexion et résolution du contexte */
+.login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:32px 26px;background:var(--surface);overflow-y:auto}
+.mark{
+  width:46px;height:46px;border-radius:14px;background:var(--ink);color:#fff;display:grid;place-items:center;
+  font-family:var(--f-display);font-weight:800;font-size:20px;margin-bottom:20px
+}
+.login .h1{font-size:26px}
+.login .field{margin-top:16px}
+.login input{background:var(--paper)}
+.resolve{flex:1;display:flex;flex-direction:column;padding:26px 20px;background:var(--surface);overflow-y:auto}
+.chk .row-1{display:block}
+.chk{display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.chk .c-ic{
+  width:20px;height:20px;border-radius:50%;flex:none;display:grid;place-items:center;
+  font-size:11px;font-weight:700;background:var(--ok-soft);color:var(--ok);margin-top:1px
+}
+.chk .c-k{display:block;font-size:11px;color:var(--ink-3);line-height:1.3}
+.chk .c-v{display:block;font-size:13.2px;font-weight:600;line-height:1.35;margin-top:3px}
+.verdict{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--majorelle);border-radius:12px;padding:13px;margin-top:12px}
+.verdict .v-k{font-family:var(--f-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--majorelle)}
+.verdict .v-v{font-family:var(--f-display);font-size:17px;font-weight:800;letter-spacing:-.015em;margin-top:5px;line-height:1.15}
+.verdict .v-r{font-size:11.8px;color:var(--ink-2);line-height:1.55;margin-top:7px}
+.welcome{
+  display:flex;gap:11px;padding:12px 13px;border-radius:12px;background:var(--majorelle-soft);
+  margin-bottom:14px;align-items:flex-start
+}
+.welcome .w-t{font-size:12.2px;line-height:1.5;color:#3A2DA8}
+.welcome .w-t b{font-weight:700}
+.welcome .w-x{margin-left:auto;flex:none;font-size:15px;color:#3A2DA8;line-height:1;padding:2px 4px}
+.mandat-card{
+  width:100%;text-align:left;display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-md);
+  background:#FBF0DC;border:1px solid #EAD3A0;margin-bottom:10px
+}
+.mandat-card .m-i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#F0DCB4;color:#6E4708;font-weight:700;font-size:13px;flex:none}
+.mandat-card .m-t{display:block;font-size:13.4px;font-weight:600;color:#6E4708;line-height:1.3}
+.mandat-card .m-d{display:block;font-size:11.5px;color:#8A5A12;margin-top:3px;line-height:1.35}
+.mandat-card .m-c{margin-left:auto;color:#6E4708;flex:none}
+.replay{
+  font-size:12px;font-weight:600;color:#A79BFF;background:rgba(255,255,255,.07);
+  padding:8px 14px;border-radius:999px
+}
+.replay:hover{background:rgba(255,255,255,.14);color:#fff}
+
+/* accueil / tableau de bord */
+.hello{font-family:var(--f-display);font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.today{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-top:6px}
+.hero{
+  background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--role);
+  border-radius:var(--r-md);padding:17px;margin:16px 0 10px
+}
+.hero .h-k{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.hero .h-v{font-family:var(--f-display);font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-top:8px}
+.hero .h-v small{font-size:15px;font-weight:600;margin-left:5px;letter-spacing:0}
+.hero .h-d{font-size:12.2px;color:var(--ink-3);margin-top:8px;line-height:1.45}
+.hero .h-d b{color:var(--danger);font-weight:600}
+.hero .cta{margin-top:14px}
+.split{display:flex;gap:8px}
+.split .cta{margin-top:0}
+.tile{
+  width:100%;text-align:left;display:flex;align-items:center;gap:12px;padding:13px 14px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);margin-bottom:9px
+}
+.tile:hover{border-color:var(--line-strong)}
+.tile .t-i{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--paper);font-size:14px;flex:none}
+.tile .t-t{display:block;font-size:13.4px;font-weight:600;line-height:1.3}
+.tile .t-d{display:block;font-size:11.5px;color:var(--ink-3);margin-top:3px;line-height:1.4}
+.tile .t-c{margin-left:auto;flex:none;color:var(--ink-3);font-size:15px}
+.tile .t-n{
+  margin-left:auto;flex:none;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--danger);
+  color:#fff;font-family:var(--f-mono);font-size:11px;font-weight:700;display:grid;place-items:center
+}
+.split-res{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+.split-res::-webkit-scrollbar{height:0}
+.split-res .sr{
+  flex:none;min-width:118px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:12px
+}
+.split-res .sr-n{display:block;font-size:11.5px;font-weight:600;color:var(--ink-3)}
+.split-res .sr-v{display:block;font-family:var(--f-mono);font-size:15px;font-weight:500;margin-top:6px}
+.split-res .prt{text-align:left;position:relative;padding-right:26px;cursor:pointer}
+.split-res .prt:hover{border-color:var(--line-strong)}
+.split-res .prt.on{border-color:var(--role);border-width:1.5px;background:var(--role-soft)}
+.split-res .prt.on .sr-n,.split-res .prt.on .sr-v{color:var(--role-ink)}
+.split-res .prt .sr-v{font-family:var(--f-body);font-size:12.5px;font-weight:600}
+.split-res .prt-n{
+  position:absolute;top:9px;right:9px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+  background:var(--danger);color:#fff;font-family:var(--f-mono);font-size:10px;font-weight:700;
+  display:grid;place-items:center
+}
+.ident{cursor:pointer;border-radius:12px;padding:2px 4px 2px 2px;margin-left:-2px}
+.ident:hover{background:var(--paper)}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+:focus-visible{outline:2.5px solid var(--majorelle);outline-offset:2px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="masthead">
+    <div class="brand">
+      <span class="eyebrow">Simulateur d'expérience · v1</span>
+      <h1>Un seul parcours,<br>sept situations de copropriétaire.</h1>
+      <p>Le modèle autorise le cumul des rôles et le multi-résidence. L'interface doit rester lisible pour celui qui n'a qu'un appartement, sans brider celui qui siège à deux bureaux de syndic.</p>
+    </div>
+    <div class="viewtabs" role="tablist">
+      <button role="tab" data-act="view" data-v="sim" aria-selected="true">Simulateur</button>
+      <button role="tab" data-act="view" data-v="mat" aria-selected="false">Matrice de décision</button>
+    </div>
+  </header>
+  <div id="root"></div>
+</div>
+
+<script>
+/* ==================================================================
+   MODÈLE DE DONNÉES
+   ================================================================== */
+const RES = {
+  atlas:  {id:'atlas',  nom:"Résidence Al Atlas",  court:"Al Atlas",  ville:"Kénitra",    adr:"12 av. Mohammed V, Maâmora", nbLots:48, budget:486000, solde:212400, recouvr:87, ag:"12/09/2026"},
+  yasmine:{id:'yasmine',nom:"Résidence Yasmine",   court:"Yasmine",   ville:"Rabat",      adr:"8 rue Oued Sebou, Agdal",    nbLots:24, budget:268000, solde:96300,  recouvr:92, ag:"03/10/2026"},
+  corail: {id:'corail', nom:"Résidence Le Corail", court:"Le Corail", ville:"Casablanca", adr:"45 bd d'Anfa",               nbLots:72, budget:912000, solde:341800, recouvr:78, ag:"27/09/2026"}
+};
+
+const L = (id,res,ref,type,det,surf,tant)=>({id,res,ref,type,det,surf,tant});
+
+const CASES = [
+  {
+    id:'c1', impaye:false, titre:"Un lot, une résidence",
+    desc:"Le cas majoritaire. Aucun cumul, aucun choix à faire.",
+    tags:["1 lot","1 résidence"],
+    persona:{prenom:"Karim",nom:"Benali",init:"KB"},
+    lots:[L('l1','atlas',"Appt. B-12","Appartement","2ᵉ étage · 3 pièces",86,142)],
+    mandats:[],
+    notes:[
+      ["Règle","Aucun sélecteur d'espace n'est affiché. Un choix à une seule option est un choix inexistant : on le supprime, on ne le grise pas."],
+      ["Lots","<b>Mes lots</b> ouvre directement la fiche du lot. Pas de liste intermédiaire à un seul élément."],
+      ["Notifications","La cloche vit dans l'en-tête, jamais dans la barre d'onglets. C'est une fonction transverse : elle ne dépend pas de l'écran où l'on se trouve."],
+      ["Messagerie","Un seul interlocuteur possible, le syndic. Le champ « destinataire » disparaît de la rédaction."],
+      ["À retenir","C'est ce cas qui fixe le plancher de simplicité. Tout ce qui est ajouté pour les cas 5 à 7 doit rester invisible ici."]
+    ]
+  },
+  {
+    id:'c2', impaye:true, titre:"Un lot + mandat au bureau",
+    desc:"Même résidence, deux casquettes : résident et trésorière.",
+    tags:["1 lot","1 résidence"], mandat:"Trésorière",
+    persona:{prenom:"Salma",nom:"Idrissi",init:"SI"},
+    lots:[L('l1','atlas',"Appt. C-04","Appartement","4ᵉ étage · 2 pièces",64,105)],
+    mandats:[{res:'atlas',role:"Trésorière"}],
+    notes:[
+      ["Bascule","Deux espaces exactement → commutateur segmenté, visible en permanence, une seule frappe. On réserve la feuille modale aux cas à trois options et plus."],
+      ["Couleur","L'accent passe du vert au laiton dès qu'on entre dans l'espace bureau. Le rôle actif se lit avant même de lire le texte."],
+      ["Conflit","Dans la liste des impayés du syndic, sa propre ligne porte le badge <b>Vous</b>. On ne masque rien, on signale — un trésorier qui gère ses propres impayés doit le voir."],
+      ["Messagerie","Un fil privé <b>Bureau</b> apparaît, invisible depuis l'espace copropriétaire. La confidentialité est portée par le fil, pas par un écran séparé."],
+      ["Alerte","Répondre dans un fil d'annonce depuis l'espace bureau écrit devant 48 personnes. L'identité d'envoi est rappelée au-dessus du champ, jamais enfouie dans un menu."]
+    ]
+  },
+  {
+    id:'c3', impaye:true, titre:"Plusieurs lots, une résidence",
+    desc:"Trois lots dans le même immeuble.",
+    tags:["3 lots","1 résidence"],
+    persona:{prenom:"Youssef",nom:"Alaoui",init:"YA"},
+    lots:[
+      L('l1','atlas',"Appt. A-03","Appartement","3ᵉ étage · 4 pièces",112,186),
+      L('l2','atlas',"Appt. A-04","Appartement","3ᵉ étage · 2 pièces",58,96),
+      L('l3','atlas',"Parking P-17","Parking","Sous-sol niveau -1",12,14)
+    ],
+    mandats:[],
+    notes:[
+      ["Lots","La liste réapparaît, avec le cumul de tantièmes en tête. C'est l'information qui n'existait pas au cas 1 et qui compte ici : le poids en assemblée."],
+      ["Échéances","Regroupées par appel de fonds, détaillées par lot. Le solde global reste l'accroche, le détail par lot se déplie."],
+      ["Paiement","Un règlement unique couvre les trois lots. La ventilation est faite par le système, pas par le copropriétaire."],
+      ["Messagerie","Un fil peut concerner un lot précis. On le rattache par une puce discrète plutôt que par un fil par lot, qui fragmenterait la conversation."],
+      ["Notifications","Toujours agrégées. Trois appels de fonds émis le même jour produisent une notification, pas trois."]
+    ]
+  },
+  {
+    id:'c4', impaye:false, titre:"Plusieurs lots + présidence",
+    desc:"Trois lots et la présidence du bureau, même résidence.",
+    tags:["3 lots","1 résidence"], mandat:"Présidente",
+    persona:{prenom:"Nadia",nom:"Cherkaoui",init:"NC"},
+    lots:[
+      L('l1','atlas',"Appt. D-08","Appartement","1ᵉʳ étage · 3 pièces",94,155),
+      L('l2','atlas',"Appt. D-09","Appartement","1ᵉʳ étage · 3 pièces",94,155),
+      L('l3','atlas',"Local L-02","Local commercial","Rez-de-chaussée",40,72)
+    ],
+    mandats:[{res:'atlas',role:"Présidente"}],
+    notes:[
+      ["Cumul","Le poids du copropriétaire monte à 382 tantièmes ; il préside aussi le bureau. L'interface doit rendre cette double position lisible, pas la dissimuler."],
+      ["Séparation","L'espace bureau ne montre jamais le solde personnel. Pour payer ses charges, il faut repasser côté copropriétaire — le geste de bascule fait office de garde-fou."],
+      ["Validation","La relance d'impayés qui inclut ses propres lots affiche un avertissement avant envoi. Le système n'interdit pas, il documente."],
+      ["Messagerie","Trois natures de fils cohabitent : demandes des copropriétaires, fil privé du bureau, annonces générales. Le sélecteur d'identité change selon le fil ouvert."],
+      ["Notifications","Deux origines dans une seule liste, distinguées par la puce de rôle. Séparer les listes obligerait à surveiller deux endroits."]
+    ]
+  },
+  {
+    id:'c5', impaye:true, titre:"Plusieurs résidences",
+    desc:"Des lots à Kénitra, Rabat et Casablanca.",
+    tags:["4 lots","3 résidences"],
+    persona:{prenom:"Rachid",nom:"Tazi",init:"RT"},
+    lots:[
+      L('l1','atlas',"Appt. B-21","Appartement","5ᵉ étage · 3 pièces",88,146),
+      L('l2','atlas',"Parking P-05","Parking","Sous-sol niveau -1",12,14),
+      L('l3','yasmine',"Appt. 14","Appartement","2ᵉ étage · 4 pièces",124,268),
+      L('l4','corail',"Studio S-07","Studio","7ᵉ étage",34,42)
+    ],
+    mandats:[],
+    notes:[
+      ["Décision clé","L'espace copropriétaire reste <b>consolidé</b>, jamais cloisonné par résidence. On possède un patrimoine, pas trois comptes. Aucun sélecteur de résidence n'est imposé."],
+      ["Filtres","Le filtrage par résidence est proposé, jamais forcé. Par défaut : tout, trié par urgence d'échéance."],
+      ["Repérage","Chaque ligne porte la puce de résidence. C'est le seul repère nécessaire tant qu'aucun mandat n'entre en jeu."],
+      ["Messagerie","Boîte unique, trois syndics différents. Le fil affiche la résidence, sinon on répond au mauvais gestionnaire."],
+      ["Notifications","Jamais restreintes au contexte affiché. Une relance sur Casablanca doit remonter pendant qu'on consulte Kénitra — c'est la règle non négociable."]
+    ]
+  },
+  {
+    id:'c6', impaye:false, titre:"Multi-résidences + un mandat",
+    desc:"Lots dans trois résidences, présidente à Rabat seulement.",
+    tags:["4 lots","3 résidences"], mandat:"1 mandat",
+    persona:{prenom:"Leïla",nom:"Bennani",init:"LB"},
+    lots:[
+      L('l1','yasmine',"Appt. 07","Appartement","1ᵉʳ étage · 3 pièces",96,205),
+      L('l2','yasmine',"Parking P-02","Parking","Cour intérieure",12,18),
+      L('l3','atlas',"Appt. C-11","Appartement","3ᵉ étage · 2 pièces",62,102),
+      L('l4','corail',"Appt. 32","Appartement","4ᵉ étage · 3 pièces",90,118)
+    ],
+    mandats:[{res:'yasmine',role:"Présidente"}],
+    notes:[
+      ["Sélecteur","Deux espaces seulement (copropriétaire consolidé + bureau Yasmine) : le commutateur segmenté suffit encore. On n'ouvre pas de feuille modale pour deux entrées."],
+      ["Asymétrie","Le côté copropriétaire est transversal, le côté bureau est <b>toujours rattaché à une résidence</b>. Cette asymétrie est le cœur du modèle de navigation."],
+      ["Bascule guidée","Une notification issue du mandat bascule l'espace automatiquement et l'annonce par un bandeau. On ne laisse jamais l'utilisateur atterrir sur un écran sans comprendre pourquoi le décor a changé."],
+      ["Messagerie","Le fil privé du bureau Yasmine n'apparaît que côté bureau. Ses fils personnels sur Kénitra et Casablanca restent côté copropriétaire."],
+      ["Piège évité","Ne pas créer deux comptes ni deux applications. Le mandat est un attribut de la personne dans une copropriété, pas une identité distincte."]
+    ]
+  },
+  {
+    id:'c7', impaye:true, titre:"Multi-résidences + plusieurs mandats",
+    desc:"Lots dans trois résidences, président à Kénitra et trésorier à Casablanca.",
+    tags:["5 lots","3 résidences"], mandat:"2 mandats",
+    persona:{prenom:"Hicham",nom:"Sefrioui",init:"HS"},
+    lots:[
+      L('l1','atlas',"Appt. A-15","Appartement","4ᵉ étage · 4 pièces",118,196),
+      L('l2','atlas',"Local L-01","Local commercial","Rez-de-chaussée",55,88),
+      L('l3','corail',"Appt. 45","Appartement","6ᵉ étage · 3 pièces",92,120),
+      L('l4','corail',"Parking P-30","Parking","Sous-sol niveau -2",12,10),
+      L('l5','yasmine',"Appt. 21","Appartement","3ᵉ étage · 2 pièces",58,124)
+    ],
+    mandats:[{res:'atlas',role:"Président"},{res:'corail',role:"Trésorier"}],
+    notes:[
+      ["Sélecteur","Trois espaces → feuille modale listant le couple (résidence, rôle). Un seul sélecteur, pas deux menus imbriqués résidence puis rôle."],
+      ["Charge mentale","C'est le cas où l'erreur coûte le plus cher : envoyer au nom du président de Kénitra un message destiné au trésorier de Casablanca. L'identité d'envoi est donc réaffirmée à chaque rédaction."],
+      ["Notifications","Une liste, trois origines. Filtres <i>Tout / Mes biens / Mes mandats</i>, et le compteur de la cloche reste global en permanence."],
+      ["Retour","Après une bascule déclenchée par une notification, un retour explicite vers l'espace précédent est proposé. Sans quoi l'utilisateur reste bloqué dans un décor qu'il n'a pas choisi."],
+      ["Volumétrie","Ce cas concerne une poignée d'utilisateurs mais ce sont les plus actifs : présidents et trésoriers. Les traiter en dernier dans le développement, jamais dans la conception."]
+    ]
+  },
+  {
+    id:'c8', impaye:false, titre:"Mandataire sans lot",
+    desc:"Gérant professionnel, membre de trois bureaux, propriétaire d'aucun lot.",
+    tags:["0 lot","3 résidences"], mandat:"3 mandats",
+    persona:{prenom:"Omar",nom:"Fassi",init:"OF"},
+    lots:[],
+    mandats:[{res:'atlas',role:"Gérant"},{res:'corail',role:"Gérant"},{res:'yasmine',role:"Trésorier"}],
+    notes:[
+      ["Rupture","Sans lot, <b>l'espace copropriétaire n'existe pas</b>. Le sélecteur ne propose que les mandats — il n'y a plus de retour possible vers un espace personnel."],
+      ["Connexion","On atterrit directement dans un bureau, le premier des mandats dans un ordre stable. Aucune résolution par urgence, comme partout ailleurs."],
+      ["Portefeuille","Un bandeau de mandats en tête de l'accueil fait passer d'une résidence à l'autre en un tap, sans rouvrir le sélecteur. C'est le geste le plus fréquent de ce profil."],
+      ["Position","Dans <i>Ma copro</i>, le bloc « vos lots » cède la place à une mention explicite : mandat de gestion, aucune part dans la copropriété. Le conflit d'intérêts n'existe pas ici, et l'interface le dit."],
+      ["Règle métier","Président et trésorier sont en principe réservés aux copropriétaires ; le gérant est le cas non-propriétaire typique. Si le modèle autorise les trois, il faut une contrainte explicite côté données."],
+      ["Volumétrie","Peu de comptes, mais les plus actifs de la plateforme : ce sont eux qui saisissent la comptabilité et répondent aux copropriétaires toute la journée."]
+    ]
+  }
+];
+
+/* note complémentaire : rédaction d'un nouveau message */
+const NOTE_NEW = {
+ c1:["Nouveau msg","Aucune question posée : un seul syndic possible, le canal est pré-rempli. L'écran se réduit à l'objet et au message."],
+ c2:["Nouveau msg","Depuis l'espace bureau, le canal par défaut est le <b>fil privé</b> — la plus faible audience possible. Diffuser à 48 personnes reste à une frappe, mais une frappe volontaire."],
+ c3:["Nouveau msg","Le champ <b>Concerne</b> apparaît pour rattacher le message à un lot. Facultatif : on ne bloque pas celui qui écrit pour l'immeuble entier."],
+ c4:["Nouveau msg","Trois canaux depuis le bureau : privé, un copropriétaire, annonce générale. Le passage à l'annonce déclenche une confirmation chiffrée avant envoi."],
+ c5:["Nouveau msg","Le destinataire n'est <b>pas deviné</b>. Trois syndics, trois entités juridiques distinctes : le choix précède la rédaction."],
+ c6:["Nouveau msg","Le canal suit l'espace actif à l'ouverture. Côté copropriétaire la résidence reste à choisir ; côté bureau Yasmine tout est déjà cadré."],
+ c8:["Nouveau msg","Aucun canal « copropriétaire » : les neuf canaux sont tous des canaux de bureau. L'identité personnelle n'existe pas dans ce compte."],
+ c7:["Nouveau msg","Neuf canaux existent. On n'en affiche jamais neuf : un canal pré-rempli par le contexte, et un lien <i>Changer</i> vers la liste groupée par casquette."]
+};
+CASES.forEach(c=>c.notes.push(NOTE_NEW[c.id]));
+
+const NOTE_LOGIN = {
+ c1:["Accueil","Arrivée sur l'accueil, réduit à l'essentiel : un solde, un lot, deux raccourcis. Rien à filtrer, rien à choisir."],
+ c2:["Accueil","Trésorière, mais l'accueil reste celui d'une copropriétaire. Le mandat est une <b>carte</b> sous le solde, jamais une bascule automatique."],
+ c3:["Accueil","Les trois lots sont agrégés en un solde unique. Le détail par lot reste à un tap, il n'encombre pas l'accueil."],
+ c4:["Accueil","L'ordre des blocs dit qui elle est par défaut : son solde personnel d'abord, la carte de mandat ensuite."],
+ c5:["Accueil","Solde consolidé en tête, puis la répartition par résidence en bandeau horizontal. Un seul chiffre à retenir, trois à vérifier."],
+ c6:["Accueil","Une seule carte de mandat pour Yasmine, malgré trois résidences détenues. Le mandat n'est pas une propriété de plus."],
+ c8:["Accueil","Accueil de bureau d'emblée, précédé du bandeau de portefeuille. Aucun solde personnel : ce compte n'a rien à payer."],
+ c7:["Accueil","Deux mandats agrégés en une carte unique. On ne multiplie jamais les points d'entrée sur l'accueil."]
+};
+CASES.forEach(c=>c.notes.push(NOTE_LOGIN[c.id]));
+
+const OWNERS=[["M. Ouazzani","Appt. B-07"],["Mme Rhali","Appt. C-02"],["Sté Chamal","Local L-04"],["M. Berrada","Appt. D-11"]];
+
+/* canaux d'émission = triplet (identité, résidence, audience) */
+function channels(){
+  const out=[];
+  resIdsOf().forEach(r=>out.push({
+    id:'c-'+r, ident:'copro', res:r, dest:'syndic',
+    label:"Le syndic — "+RES[r].court, sub:"En tant que copropriétaire",
+    aud:"Visible par le syndic de "+RES[r].court+" et par vous."}));
+  C.mandats.forEach(m=>{
+    out.push({id:'b-'+m.res, ident:'syndic', res:m.res, dest:'bureau',
+      label:"Le bureau — "+RES[m.res].court, sub:"En tant que "+m.role,
+      aud:"Visible par les 3 membres du bureau. Les copropriétaires n'y ont pas accès."});
+    out.push({id:'u-'+m.res, ident:'syndic', res:m.res, dest:'copro',
+      label:"Un copropriétaire — "+RES[m.res].court, sub:"En tant que "+m.role,
+      aud:"Visible par le destinataire et par le bureau."});
+    out.push({id:'a-'+m.res, ident:'syndic', res:m.res, dest:'annonce', risky:true,
+      label:"Tous les copropriétaires — "+RES[m.res].court, sub:"En tant que "+m.role,
+      aud:"Diffusé à "+RES[m.res].nbLots+" copropriétaires. Envoi irréversible."});
+  });
+  return out;
+}
+function defaultChannelId(){
+  if(S.space==='syndic') return 'b-'+S.ctx;      // toujours la plus faible audience
+  if(!hasCopro()) return 'b-'+C.mandats[0].res;   // compte de mandataire : pas d'identité personnelle
+  if(nbRes()===1) return 'c-'+resIdsOf()[0];      // un seul syndic : rien à demander
+  return null;                                     // multi-résidence : choix imposé
+}
+function curChan(){ return S.draft ? channels().find(c=>c.id===S.draft.ch)||null : null; }
+function composeReady(){
+  const ch=curChan(); if(!ch||!S.draft) return false;
+  if(!S.draft.objet.trim()) return false;
+  if(ch.dest==='copro' && !S.draft.to) return false;
+  return true;
+}
+function openCompose(){
+  S.draft={ch:defaultChannelId(), to:null, lot:null, objet:'', corps:''};
+  S.screen='compose'; S.thread=null; S.lot=null;
+}
+function doSend(){
+  const ch=curChan(), d=S.draft;
+  const scope = ch.dest==='syndic'?'copro' : ch.dest==='bureau'?'bureau' : ch.dest==='annonce'?'annonce':'demande';
+  const who = ch.ident==='copro' ? C.persona.prenom+" (copropriétaire)"
+            : (C.mandats.find(m=>m.res===ch.res)||{}).role;
+  const avec = ch.dest==='syndic' ? "Syndic — "+RES[ch.res].court
+             : ch.dest==='bureau' ? "Bureau — "+RES[ch.res].court+" · 3 membres"
+             : ch.dest==='annonce'? "Annonce · tous les copropriétaires"
+             : d.to+" · copropriétaire";
+  const id='new'+Date.now();
+  FILS.unshift({id, res:ch.res, scope, sujet:d.objet.trim(), avec, envoye:true,
+    ap:(d.corps.trim()||"Message envoyé").slice(0,64), date:"À l'instant", nonlu:false,
+    msgs:[{who, me:true, t:d.corps.trim()||"(message vide)", d:"À l'instant"}]});
+  if(ch.ident==='syndic'){ if(S.space!=='syndic'||S.ctx!==ch.res) setSpace('syndic',ch.res); }
+  else if(S.space==='syndic'){ setSpace('copro',null); }
+  S.draft=null; S.sheet=null; S.screen='messages'; S.thread=id;
+  toast(ch.dest==='annonce'
+    ? `Annonce diffusée à <b>${RES[ch.res].nbLots} copropriétaires</b> de ${RES[ch.res].court}.`
+    : `Message envoyé — <b>${avec}</b>.`);
+}
+
+function composeHTML(){
+  const d=S.draft, ch=curChan();
+  const lotsRes = ch&&ch.ident==='copro' ? C.lots.filter(l=>l.res===ch.res) : [];
+  const ready = composeReady();
+  return `<button class="back" data-act="back">‹ Messagerie</button>
+    <h1 class="h1">Nouveau message</h1>
+    <p class="h1-sub">${ch?"Le canal est pré-rempli par le contexte actif. Il reste modifiable.":"Choisissez d'abord à qui vous écrivez : chaque résidence a son propre syndic."}</p>
+    <div style="height:14px"></div>
+    ${ch ? `<button class="chan" data-act="sheet" data-s="canal">
+        <span class="row-1"><span class="c-l">À</span><span class="c-v">${ch.label}</span>
+        <span class="c-s">${ch.sub}</span></span>
+        ${channels().length>1?'<span class="c-a">Changer</span>':''}</button>`
+      : `<button class="chan todo" data-act="sheet" data-s="canal">
+        <span class="row-1"><span class="c-l">À</span><span class="c-v">Choisir le destinataire</span>
+        <span class="c-s">${resIdsOf().length} syndics différents</span></span>
+        <span class="c-a">Choisir</span></button>`}
+    ${ch&&ch.dest==='copro' ? `<button class="chan ${d.to?'':'todo'}" data-act="sheet" data-s="dest">
+        <span class="row-1"><span class="c-l">Destinataire</span>
+        <span class="c-v">${d.to||"Choisir un copropriétaire"}</span></span>
+        <span class="c-a">${d.to?'Changer':'Choisir'}</span></button>`:''}
+    ${lotsRes.length>1 ? `<div class="field"><label>Concerne (facultatif)</label>
+      <div class="lotpick">
+        <button data-act="draftlot" data-id="" aria-pressed="${!d.lot}">Aucun lot</button>
+        ${lotsRes.map(l=>`<button data-act="draftlot" data-id="${l.id}" aria-pressed="${d.lot===l.id}">${l.ref}</button>`).join('')}
+      </div></div>`:''}
+    <div class="field"><label>Objet</label>
+      <input type="text" data-field="objet" value="${esc(d.objet)}" placeholder="Résumez la demande en quelques mots"></div>
+    <div class="field"><label>Message</label>
+      <textarea data-field="corps" placeholder="Écrivez votre message…">${esc(d.corps)}</textarea></div>
+    ${ch&&ch.risky ? `<div class="guard stop"><span class="g-i">▲</span>
+      <span class="g-t">Ce message part à <b>${RES[ch.res].nbLots} copropriétaires</b> et ne peut pas être rappelé. Une confirmation vous sera demandée.</span></div>`:''}
+    <button class="cta" id="sendBtn" data-act="send" ${ready?'':'disabled'}>Envoyer</button>
+    <p class="audience" id="audLine">${ch?ch.aud:"Aucun destinataire choisi. En multi-résidence, le système ne devine jamais à quel syndic vous écrivez."}</p>`;
+}
+function fabHTML(){
+  return `<button class="fab" data-act="compose">
+    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nouveau message</button>`;
+}
+
+/* --- échéances, paiements, fils, notifications : générés par cas --- */
+const LIB = ["Appel de charges — T3 2026","Appel de charges — T2 2026","Fonds de travaux — ravalement","Régularisation annuelle 2025"];
+
+function buildEcheances(c){
+  const out=[]; let i=0;
+  c.lots.forEach(l=>{
+    const base = Math.round(l.tant*13.5/10)*10;
+    out.push({id:'e'+(++i),res:l.res,lot:l,lib:LIB[0],montant:base,ech:"30/09/2026",statut:"a-payer"});
+    if(c.impaye && i%2===1) out.push({id:'e'+(++i),res:l.res,lot:l,lib:LIB[2],montant:Math.round(base*0.4/10)*10,ech:"15/08/2026",statut:"retard"});
+  });
+  return out;
+}
+function buildPaiements(c){
+  const moyens=["Virement bancaire","Chèque","Espèces — reçu n°","Carte bancaire"];
+  return c.lots.slice(0,3).map((l,k)=>({
+    id:'p'+k, res:l.res, lot:l, lib:LIB[1], montant:Math.round(l.tant*13.5/10)*10,
+    date:["04/07/2026","28/06/2026","12/06/2026"][k], moyen:moyens[k%4],
+    ref:"REG-2026-"+(1840+k*7), statut:k===2?"attente":"encaisse"
+  }));
+}
+
+function buildFils(c){
+  const lotRes=[...new Set(c.lots.map(l=>l.res))];
+  const f=[];
+  if(lotRes.length){
+    f.push({id:'f1',res:lotRes[0],scope:'copro',sujet:"Infiltration au plafond du parking",
+      avec:"Syndic — "+RES[lotRes[0]].court, ap:"Le plombier passe jeudi entre 9h et 11h.", date:"Hier · 17:42", nonlu:true,
+      msgs:[
+        {who:c.persona.prenom+" (copropriétaire)",me:true,t:"Bonjour, une infiltration s'est déclarée au-dessus de la place P-17 depuis les pluies de la semaine dernière. La flaque s'étend.",d:"Lun. 09:12"},
+        {who:"Syndic",me:false,t:"Bonjour, merci pour le signalement. Un plombier est mandaté, il interviendra jeudi entre 9h et 11h. Merci de dégager le véhicule.",d:"Hier · 17:42"}
+      ]});
+    if(lotRes.length>1){
+      f.push({id:'f3',res:lotRes[1],scope:'copro',sujet:"Attestation de charges 2025",
+        avec:"Syndic — "+RES[lotRes[1]].court, ap:"Document transmis, disponible dans vos paiements.", date:"29 juil.", nonlu:false,
+        msgs:[
+          {who:c.persona.prenom+" (copropriétaire)",me:true,t:"Bonjour, j'ai besoin de l'attestation de charges 2025 pour ma déclaration fiscale.",d:"27 juil."},
+          {who:"Syndic",me:false,t:"Bonjour, l'attestation est émise et déposée dans l'onglet Mes paiements. Bonne réception.",d:"29 juil."}
+        ]});
+    }
+    if(lotRes.length>2){
+      f.push({id:'f4',res:lotRes[2],scope:'copro',sujet:"Relance — solde débiteur",
+        avec:"Syndic — "+RES[lotRes[2]].court, ap:"Merci de régulariser avant le 31 août.", date:"1 août", nonlu:true,
+        msgs:[{who:"Syndic",me:false,t:"Votre compte présente un solde débiteur de 1 240 MAD au titre du T2. Merci de régulariser avant le 31 août.",d:"1 août · 10:05"}]});
+    }
+  }
+  /* annonce générale : une par résidence concernée, que l'on y possède ou qu'on y siège */
+  [...new Set(lotRes.concat(c.mandats.map(m=>m.res)))].slice(0,2).forEach((r,k)=>{
+    f.push({id:'fan'+k,res:r,scope:'annonce',sujet:"Coupure d'eau — mardi 18 août",
+      avec:"Annonce · tous les copropriétaires", ap:"Coupure de 9h à 13h pour raccordement du surpresseur.", date:"3 août", nonlu:false,
+      msgs:[{who:"Syndic",me:false,t:"La distribution d'eau sera interrompue le mardi 18 août de 9h à 13h pour le raccordement du nouveau surpresseur. Prévoyez une réserve.",d:"3 août · 08:30"}]});
+  });
+  c.mandats.forEach((m,k)=>{
+    f.push({id:'fb'+k,res:m.res,scope:'bureau',sujet:"Devis ascenseur — trois offres à arbitrer",
+      avec:"Bureau — "+RES[m.res].court+" · 3 membres", ap:"Otis est 12 % au-dessus mais couvre les pièces.", date:"Aujourd'hui · 08:15", nonlu:true,
+      msgs:[
+        {who:"Trésorier",me:false,t:"J'ai reçu les trois devis pour la remise à niveau de l'ascenseur. Écart de 12 % entre le moins-disant et Otis, qui inclut les pièces sur 5 ans.",d:"Aujourd'hui · 08:15"},
+        {who:"Membre du bureau",me:false,t:"Il faut trancher avant la convocation de l'AG, la résolution doit figurer à l'ordre du jour.",d:"Aujourd'hui · 08:31"}
+      ]});
+    f.push({id:'fd'+k,res:m.res,scope:'demande',sujet:"Demande — bruit de chantier le dimanche",
+      avec:"M. Ouazzani · Appt. B-07", ap:"Des travaux sont menés le dimanche matin depuis trois semaines.", date:"Hier · 20:10", nonlu:true,
+      msgs:[{who:"M. Ouazzani",me:false,t:"Bonjour, des travaux bruyants sont menés au 4ᵉ étage le dimanche matin depuis trois semaines. Le règlement de copropriété l'interdit.",d:"Hier · 20:10"}]});
+  });
+  return f;
+}
+
+function buildNotifs(c){
+  const lotRes=[...new Set(c.lots.map(l=>l.res))];
+  const n=[];
+  if(lotRes.length){
+    n.push({id:'n1',res:lotRes[0],scope:'copro',ico:"💳",titre:"Appel de charges T3 2026 disponible",
+      detail: c.lots.filter(l=>l.res===lotRes[0]).length>1
+        ? "Un règlement unique couvre vos "+c.lots.filter(l=>l.res===lotRes[0]).length+" lots. Échéance au 30/09."
+        : "Échéance au 30 septembre 2026.",
+      when:"Il y a 2 heures", nonlu:true, go:{space:'copro',screen:'echeances'}});
+    n.push({id:'n2',res:lotRes[0],scope:'copro',ico:"🗓️",titre:"Assemblée générale convoquée",
+      detail:"Le "+RES[lotRes[0]].ag+" à 18h30, salle polyvalente. Ordre du jour joint.",when:"Hier",nonlu:true,go:{space:'copro',screen:'messages'}});
+    if(lotRes[1]) n.push({id:'n3',res:lotRes[1],scope:'copro',ico:"✅",titre:"Paiement encaissé",
+      detail:"1 296 MAD reçus par virement. Reçu disponible.",when:"Il y a 3 jours",nonlu:false,go:{space:'copro',screen:'paiements'}});
+    if(lotRes[2]) n.push({id:'n4',res:lotRes[2],scope:'copro',ico:"⚠️",titre:"Solde débiteur à régulariser",
+      detail:"1 240 MAD au titre du T2. Date limite : 31 août.",when:"Il y a 10 jours",nonlu:true,go:{space:'copro',screen:'echeances'}});
+  }
+  c.mandats.forEach((m,k)=>{
+    n.push({id:'nm'+k,res:m.res,scope:'syndic',ico:"📨",titre:"Nouvelle demande d'un copropriétaire",
+      detail:"M. Ouazzani signale des travaux bruyants le dimanche matin.",when:"Hier · 20:10",nonlu:true,
+      go:{space:'syndic',ctx:m.res,screen:'messages'}});
+    n.push({id:'nv'+k,res:m.res,scope:'syndic',ico:"📊",titre:"Relance d'impayés à valider",
+      detail:"7 lots concernés, 18 400 MAD. En attente de votre validation.",when:"Il y a 5 heures",nonlu:true,
+      go:{space:'syndic',ctx:m.res,screen:'echeances'}});
+  });
+  return n;
+}
+
+/* ==================================================================
+   ÉTAT
+   ================================================================== */
+const S = {view:'sim', cas:'c1', space:'copro', ctx:null, screen:'accueil', sub:'infos',
+           thread:null, lot:null, sheet:null, filter:'tout', nfilter:'tout', toast:null,
+           draft:null, auth:false, welcome:false};
+let C, ECH, PAY, FILS, NOTIFS;
+
+function loadCase(id){
+  S.cas=id; C=CASES.find(c=>c.id===id);
+  ECH=buildEcheances(C); PAY=buildPaiements(C); FILS=buildFils(C); NOTIFS=buildNotifs(C);
+  const d0=defaultSpace(); S.space=d0.space; S.ctx=d0.ctx; S.screen='accueil'; S.sub='infos';
+  S.thread=null; S.lot=null; S.sheet=null; S.filter='tout'; S.nfilter='tout';
+  S.toast=null; S.draft=null; S.auth=false; S.welcome=false;
+}
+
+const resIdsOf    = ()=>[...new Set(C.lots.map(l=>l.res))];   // résidences où l'on possède
+const mandatResIds= ()=>C.mandats.map(m=>m.res);              // résidences où l'on siège
+const allResIds   = ()=>[...new Set(resIdsOf().concat(mandatResIds()))];
+const hasCopro    = ()=>C.lots.length>0;                      // l'espace personnel existe-t-il ?
+const defaultSpace= ()=>hasCopro() ? {space:'copro',ctx:null} : {space:'syndic',ctx:C.mandats[0].res};
+const nbRes       = ()=>resIdsOf().length;
+
+const spaces = ()=>(hasCopro()
+    ? [{k:'copro',label:"Copropriétaire",sub:nbRes()>1?"Tous mes biens":RES[resIdsOf()[0]].court}]
+    : [])
+  .concat(C.mandats.map(m=>({k:'syndic',ctx:m.res,label:"Bureau — "+RES[m.res].court,sub:m.role})));
+
+const currentMandat = ()=>C.mandats.find(m=>m.res===S.ctx);
+const money = n=>n.toLocaleString('fr-FR').replace(/\u202f|\s/g,' ')+" MAD";
+const esc = s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+/* ==================================================================
+   CONNEXION ET RÉSOLUTION DU CONTEXTE D'ARRIVÉE
+   Deux règles, dans cet ordre :
+   1. L'espace par défaut est TOUJOURS « Copropriétaire ». On n'atterrit
+      jamais dans un espace bureau : le mandat s'assume, il ne s'impose pas.
+   2. L'écran d'arrivée dépend de l'urgence : un impayé passe devant
+      l'écran d'information.
+   ================================================================== */
+function landing(){
+  /* Écran d'arrivée unique. Aucune résolution selon l'état du compte :
+     un point d'entrée constant est plus apprenable qu'un point d'entrée
+     « intelligent » que l'utilisateur ne peut pas anticiper. */
+  return {screen:'accueil', titre:"Accueil"};
+}
+function pendingMandat(){
+  return NOTIFS.filter(n=>n.scope==='syndic' && n.nonlu).length;
+}
+function loginHTML(){
+  return `<div class="app"><div class="login">
+    <div class="mark">◆</div>
+    <h1 class="h1">Syndic</h1>
+    <p class="h1-sub">Gestion de copropriété · Maroc</p>
+    <div class="field"><label>Téléphone</label>
+      <input type="text" value="+212 6 61 24 08 ${String(40+CASES.findIndex(c=>c.id===S.cas)).slice(0,2)}" readonly></div>
+    <div class="field"><label>Mot de passe</label>
+      <input type="password" value="motdepasse" readonly></div>
+    <button class="cta" data-act="signin" style="margin-top:8px">Se connecter</button>
+    <p class="audience">Compte simulé : ${C.persona.prenom} ${C.persona.nom} — ${C.lots.length?C.lots.length+" lot"+(C.lots.length>1?'s':'')+", "+nbRes()+" résidence"+(nbRes()>1?'s':''):"aucun lot"}${C.mandats.length?', '+C.mandats.length+' mandat'+(C.mandats.length>1?'s':''):''}.</p>
+  </div></div>`;
+}
+function resolveHTML(){
+  const pm = pendingMandat();
+  const checks = [
+    ["Compte reconnu", C.persona.prenom+" "+C.persona.nom],
+    ["Patrimoine", C.lots.length
+      ? C.lots.length+" lot"+(C.lots.length>1?'s':'')+" dans "+nbRes()+" résidence"+(nbRes()>1?'s':'')
+      : "Aucun lot détenu"],
+    ["Mandats actifs", C.mandats.length
+      ? C.mandats.map(m=>m.role+" — "+RES[m.res].court).join(" · ")
+      : "Aucun"]
+  ];
+  return `<div class="app"><div class="resolve">
+    <h1 class="h1" style="font-size:20px">Résolution du contexte</h1>
+    <p class="h1-sub">Ce que le système décide avant d'afficher le premier écran.</p>
+    <div style="margin-top:16px">
+      ${checks.map(([k,v])=>`<div class="chk"><span class="c-ic">✓</span>
+        <span class="row-1"><span class="c-k">${k}</span><span class="c-v">${v}</span></span></div>`).join('')}
+    </div>
+    <div class="verdict">
+      <div class="v-k">Espace par défaut</div>
+      <div class="v-v">${hasCopro() ? "Copropriétaire"+(nbRes()>1?" — consolidé":"") : "Bureau — "+RES[C.mandats[0].res].court}</div>
+      <div class="v-r">${!hasCopro()
+        ? "Aucun lot détenu : l'espace copropriétaire n'existe pas pour ce compte. On entre par le premier des mandats, dans un ordre stable d'une session à l'autre."
+        : C.mandats.length
+        ? "Même avec "+(C.mandats.length>1?C.mandats.length+" mandats":"un mandat")+", on n'atterrit jamais dans un espace bureau. Le mandat s'assume, il ne s'impose pas."
+        : "Aucun mandat : c'est le seul espace disponible."}</div>
+    </div>
+    <div class="verdict">
+      <div class="v-k">Écran d'arrivée</div>
+      <div class="v-v">Accueil</div>
+      <div class="v-r">Toujours le même écran, quel que soit l'état du compte. Un point d'entrée constant s'apprend ; un point d'entrée variable se subit.</div>
+    </div>
+    ${pm?`<div class="verdict" style="border-left-color:#C08A2E">
+      <div class="v-k" style="color:#8A5A12">Charge de mandat</div>
+      <div class="v-v" style="color:#6E4708">${pm} action${pm>1?'s':''} en attente</div>
+      <div class="v-r">Signalée par une carte sur l'écran d'arrivée, pas par une bascule automatique.</div>
+    </div>`:''}
+    <button class="cta" data-act="enter" style="margin-top:16px">Entrer dans l'application</button>
+  </div></div>`;
+}
+function welcomeHTML(){
+  /* La carte de mandat appartient désormais au tableau de bord :
+     le bandeau ne fait qu'expliquer l'arrivée, une seule fois. */
+  return `<div class="welcome"><span class="w-t">Vous arrivez sur l'<b>Accueil</b>${!hasCopro()?" du bureau — "+RES[S.ctx].court:(C.mandats.length?", dans l'espace copropriétaire":"")}. Même écran pour tout le monde, à chaque connexion.</span>
+    <button class="w-x" data-act="hidewelcome" aria-label="Masquer">×</button></div>`;
+}
+
+/* ==================================================================
+   RENDU — POSTE DE TRAVAIL
+   ================================================================== */
+function render(){
+  const root=document.getElementById('root');
+  document.querySelectorAll('.viewtabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.v===S.view));
+  root.innerHTML = S.view==='mat' ? matrixHTML() : workbenchHTML();
+}
+
+function workbenchHTML(){
+  return `<div class="workbench">
+    <nav class="cases" aria-label="Cas de figure">
+      <h2>Cas de figure · par volume d'usage</h2>
+      ${CASES.map((c,i)=>`
+        <button class="case" data-act="cas" data-id="${c.id}" aria-current="${c.id===S.cas}">
+          <span class="case-n">${String(i+1).padStart(2,'0')}</span>
+          <span class="row-1">
+            <span class="case-t">${c.titre}</span>
+            <span class="case-d">${c.desc}</span>
+            <span class="case-tags">
+              ${c.tags.map(t=>`<span class="tag">${t}</span>`).join('')}
+              ${c.mandat?`<span class="tag mandat">${c.mandat}</span>`:''}
+            </span>
+          </span>
+        </button>`).join('')}
+    </nav>
+
+    <div class="stage">
+      <div class="phone" data-space="${S.space}">
+        <div class="statusbar"><span>9:41</span><span>Kénitra · 5G</span></div>
+        ${appHTML()}
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center">
+        <button class="replay" data-act="logout">↺ Rejouer la connexion</button>
+        <p class="phone-note" style="margin:0">Cas ${CASES.findIndex(c=>c.id===S.cas)+1} · ${esc(C.persona.prenom)} ${esc(C.persona.nom)}</p>
+      </div>
+    </div>
+
+    <aside class="notes">
+      <h3>${C.titre}</h3>
+      <p class="sub">${C.desc} ${C.mandats.length?`Mandat : ${C.mandats.map(m=>m.role+" à "+RES[m.res].court).join(", ")}.`:"Aucun mandat."}</p>
+      ${C.notes.map(([k,b])=>`<div class="note">
+          <span class="note-k ${/alerte|piège|conflit/i.test(k)?'alert':''}">${k}</span>
+          <span class="note-b">${b}</span></div>`).join('')}
+      <p class="notes-cta">Les fonctions transverses — messagerie et notifications — sont les seules à ne jamais être cloisonnées par le contexte actif. Tout le reste s'y adapte.</p>
+    </aside>
+  </div>`;
+}
+
+function matrixHTML(){
+  const nRes = c => (new Set(c.lots.map(l=>l.res))).size;
+  const nSpaces = c => (c.lots.length?1:0) + c.mandats.length;
+  const rows=[
+    ["Espace personnel",c=>c.lots.length?['yes',"Existe"]:['no',"N'existe pas"]],
+    ["Sélecteur d'espace",c=>{const n=nSpaces(c);
+      return n===1?['no',"Aucun"]:n===2?['yes',"Commutateur 2 segments"]:['yes',"Feuille modale — "+n+" entrées"];}],
+    ["Écran « Mes lots »",c=>c.lots.length===0?['no',"Écran absent"]
+      :c.lots.length===1?['no',"Fiche directe"]
+      :nRes(c)>1?['warn',"Liste groupée par résidence"]:['yes',"Liste simple + tantièmes"]],
+    ["Filtre résidence",c=>nRes(c)>1?['yes',"Proposé, jamais imposé"]:['no',"Sans objet"]],
+    ["Boîte de réception",c=>c.mandats.length?(c.lots.length?['warn',"Unifiée + fils privés bureau"]:['warn',"Fils de bureau uniquement"]):['yes',"Unifiée"]],
+    ["Sélecteur « En tant que »",c=>{const n=nSpaces(c);
+      return n===1?['no',"Sans objet"]:['warn',n+" identités"];}],
+    ["Portée des notifications",()=>['yes',"Toujours globale"]],
+    ["Filtres de notification",c=>c.mandats.length
+      ?(c.lots.length?['yes',"Tout / Mes biens / Mes mandats"]:['yes',"Tout / par résidence gérée"])
+      :nRes(c)>1?['yes',"Tout / par résidence"]:['no',"Liste plate"]],
+    ["Espace à la connexion",c=>c.lots.length?['yes',"Copropriétaire"]:['warn',"Bureau — 1ᵉʳ mandat"]],
+    ["Écran d'arrivée",()=>['yes',"Accueil"]],
+    ["Contenu de l'accueil",c=>c.lots.length===0?['warn',"Portefeuille de mandats"]
+      :nRes(c)>1?['warn',"Solde + répartition par résidence"]:['yes',"Solde + patrimoine"]],
+    ["Rappel de mandat",c=>c.lots.length===0?['warn',"Bandeau permanent"]
+      :c.mandats.length?['warn',"Une carte, agrégée"]:['no',"Sans objet"]],
+    ["Badge « Vous » côté bureau",c=>!c.mandats.length?['no',"Sans objet"]
+      :c.lots.some(l=>c.mandats.some(m=>m.res===l.res))?['warn',"Affiché sur ses lots"]:['no',"Aucun lot ici"]],
+    ["Point de vigilance",c=>c.lots.length===0?['warn',"Aucun retour personnel"]
+      :c.mandats.length===0?['no',"Ne rien ajouter"]
+      :c.mandats.length===1?['warn',"Identité d'envoi"]:['warn',"Erreur de mandat croisé"]]
+  ];
+  return `<div class="matrix">
+    <h3>Ce qui apparaît, ce qui disparaît</h3>
+    <p class="lede">Chaque élément d'interface est conditionné par une propriété du modèle, jamais par un type d'utilisateur figé. Une personne qui achète un second lot, qui est élue au bureau, ou qui vend son dernier lot tout en gardant son mandat, change de colonne sans changer de compte.</p>
+    <table><thead><tr><th>Élément d'interface</th>${CASES.map((c,i)=>`<th>Cas ${i+1}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(([lab,fn])=>`<tr><td class="cas">${lab}</td>${CASES.map(c=>{
+      const [cls,txt]=fn(c); return `<td><span class="pill ${cls}">${txt}</span></td>`;}).join('')}</tr>`).join('')}
+    </tbody></table>
+  </div>`;
+}
+
+/* ==================================================================
+   RENDU — APPLICATION
+   ================================================================== */
+function appHTML(){
+  if(S.auth===false) return loginHTML();
+  if(S.auth==='resolve') return resolveHTML();
+  return `<div class="app">
+    ${appbarHTML()}
+    <div class="screen" id="screen">${screenHTML()}</div>
+    ${(S.screen==='messages'&&!S.thread)?fabHTML():''}
+    ${tabbarHTML()}
+    ${S.sheet?sheetHTML():''}
+    ${S.toast?`<div class="toast" role="status">${S.toast}</div>`:''}
+  </div>`;
+}
+
+function appbarHTML(){
+  const sp=spaces(), m=currentMandat();
+  const roleTxt = S.space==='syndic' ? `${m.role} · ${RES[S.ctx].court}`
+    : (nbRes()>1 ? `${C.lots.length} lots · ${nbRes()} résidences` : `Copropriétaire · ${RES[resIdsOf()[0]].court}`);
+  const unread = NOTIFS.filter(n=>n.nonlu).length;
+
+  let switcher='';
+  if(sp.length===1){
+    switcher=`<div class="space-static"><span class="dot"></span>${RES[resIdsOf()[0]].nom} · ${RES[resIdsOf()[0]].ville}</div>`;
+  } else if(sp.length===2){
+    switcher=`<div class="seg" role="group" aria-label="Espace actif">
+      ${sp.map(s=>`<button data-act="space" data-k="${s.k}" data-ctx="${s.ctx||''}"
+        aria-pressed="${s.k===S.space && (s.ctx||null)===S.ctx}">${s.k==='copro'?'Copropriétaire':(hasCopro()?'Bureau syndic':RES[s.ctx].court)}</button>`).join('')}
+    </div>`;
+  } else {
+    const cur = sp.find(s=>s.k===S.space && (s.ctx||null)===S.ctx);
+    switcher=`<button class="space-btn" data-act="sheet" data-s="space">
+      <span><span class="sb-l">Espace actif</span><span class="sb-v">${cur.label}</span></span>
+      <span class="chev">⌄</span></button>`;
+  }
+
+  return `<header class="appbar">
+    <div class="appbar-top">
+      <button class="ident" data-act="nav" data-s="profil" aria-label="Mon profil">
+        <span class="avatar">${C.persona.init}</span>
+        <span class="ident-txt">
+          <span class="nm">${esc(C.persona.prenom)} ${esc(C.persona.nom)}</span>
+          <span class="rl">${roleTxt}</span>
+        </span>
+      </button>
+      <button class="bell" data-act="nav" data-s="notifications" aria-label="Notifications, ${unread} non lues">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        ${unread?`<b>${unread}</b>`:''}
+      </button>
+    </div>
+    <div class="spacebar">${switcher}</div>
+  </header>`;
+}
+
+const ICO={
+  lots:'<path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/>',
+  ech:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M8 15h3"/>',
+  pay:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
+  msg:'<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.4 8.4 0 0 1-3.8-.9L3 20.5l1.5-5.2a8.4 8.4 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4h.5a8.4 8.4 0 0 1 8 8"/>',
+  prof:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  home:'<rect x="3" y="3" width="7.5" height="9" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="5.5" rx="1.6"/><rect x="13.5" y="10" width="7.5" height="11" rx="1.6"/><rect x="3" y="14.5" width="7.5" height="6.5" rx="1.6"/>',
+  copro:'<path d="M3 21h18M4 21V7l8-4 8 4v14M9 21v-5h6v5M9 11h.01M15 11h.01"/>',
+  cpt:'<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h4"/>'
+};
+function tabbarHTML(){
+  const unreadMsg = FILS.filter(f=>f.nonlu && visibleFil(f)).length;
+  const tabs = S.space==='copro'
+    ? [['accueil',"Accueil",ICO.home],['lots',"Mes lots",ICO.lots],['echeances',"Échéances",ICO.ech],['paiements',"Paiements",ICO.pay],['messages',"Messages",ICO.msg]]
+    : [['accueil',"Accueil",ICO.home],['copro',"Ma copro",ICO.copro],['echeances',"Échéances",ICO.ech],['compta',"Comptabilité",ICO.cpt],['messages',"Messages",ICO.msg]];
+  return `<nav class="tabbar">${tabs.map(([k,l,p])=>`
+    <button data-act="nav" data-s="${k}" aria-current="${S.screen===k}">
+      <span class="${k==='messages'&&unreadMsg?'dotbadge':''}"><svg viewBox="0 0 24 24">${p}</svg></span>
+      <span>${l}</span></button>`).join('')}</nav>`;
+}
+
+/* --- visibilité d'un fil selon l'espace actif --- */
+function visibleFil(f){
+  if(S.space==='copro') return f.scope!=='bureau' && f.scope!=='demande' && resIdsOf().includes(f.res);
+  return f.res===S.ctx; // espace bureau : tout ce qui concerne la résidence du mandat
+}
+
+function screenHTML(){
+  const wel = (S.welcome && !S.thread && !S.lot && S.screen==='accueil') ? welcomeHTML() : '';
+  if(S.screen==='compose') return composeHTML();
+  if(S.thread) return threadHTML();
+  if(S.lot) return lotHTML();
+  if(S.screen==='notifications') return notifsHTML();
+  if(S.space==='copro'){
+    return wel + {accueil:accueilHTML,lots:lotsHTML,echeances:echCoproHTML,paiements:payHTML,messages:msgHTML,profil:profilHTML}[S.screen]();
+  }
+  return wel + {accueil:accueilHTML,copro:maCoproHTML,echeances:echSyndicHTML,compta:comptaHTML,messages:msgHTML,profil:profilHTML}[S.screen]();
+}
+
+
+/* ---------- ACCUEIL / TABLEAU DE BORD ---------- */
+const JOUR = "Mardi 11 août 2026";
+
+function accueilHTML(){ return S.space==='syndic' ? accueilSyndicHTML() : accueilCoproHTML(); }
+
+function accueilCoproHTML(){
+  const multi = nbRes()>1;
+  const total = ECH.reduce((a,e)=>a+e.montant,0);
+  const late  = ECH.filter(e=>e.statut==='retard');
+  const dueLate = late.reduce((a,e)=>a+e.montant,0);
+  const nextEch = ECH.slice().sort((a,b)=>a.ech.localeCompare(b.ech))[0];
+  const unread = FILS.filter(f=>f.nonlu && visibleFil(f)).length;
+  const notifs = NOTIFS.filter(n=>n.nonlu).length;
+  const tant = C.lots.reduce((a,l)=>a+l.tant,0);
+  const pm = pendingMandat();
+  const ag = RES[resIdsOf()[0]];
+
+  return `<div class="hello">Bonjour, ${esc(C.persona.prenom)}</div>
+    <div class="today">${JOUR}</div>
+
+    <div class="hero">
+      <div class="h-k">Solde à régler${multi?" · toutes résidences":""}</div>
+      <div class="h-v">${total.toLocaleString('fr-FR')}<small>MAD</small></div>
+      <div class="h-d">${late.length
+        ? `Dont <b>${dueLate.toLocaleString('fr-FR')} MAD en retard</b> sur ${late.length===1?'un lot':late.length+' lots'}.`
+        : `Vous êtes à jour. Prochaine échéance le ${nextEch?nextEch.ech:'—'}.`}</div>
+      <div class="split">
+        <button class="cta" data-act="nav" data-s="echeances">Voir mes échéances</button>
+        <button class="cta ghost" data-act="nav" data-s="paiements" style="flex:none;width:auto;padding-left:18px;padding-right:18px">Reçus</button>
+      </div>
+    </div>
+
+    ${multi?`<div class="split-res">${resIdsOf().map(r=>{
+      const t = ECH.filter(e=>e.res===r).reduce((a,e)=>a+e.montant,0);
+      return `<div class="sr"><div class="sr-n">${RES[r].court}</div><div class="sr-v">${t.toLocaleString('fr-FR')}</div></div>`;
+    }).join('')}</div>`:''}
+
+    ${pm?`<button class="mandat-card" data-act="space" data-k="syndic" data-ctx="${C.mandats[0].res}">
+      <span class="m-i">B</span>
+      <span class="row-1"><span class="m-t">${C.mandats.length>1?C.mandats.length+" mandats au bureau":C.mandats[0].role+" — "+RES[C.mandats[0].res].court}</span>
+      <span class="m-d">${pm} action${pm>1?'s':''} en attente${C.mandats.length>1?" sur vos deux bureaux":""}</span></span>
+      <span class="m-c">›</span></button>`:''}
+
+    <div class="sec">Vos raccourcis</div>
+    <button class="tile" data-act="nav" data-s="messages">
+      <span class="t-i">✉</span>
+      <span class="row-1"><span class="t-t">Messagerie</span>
+      <span class="t-d">${unread?`${unread} message${unread>1?'s':''} non lu${unread>1?'s':''}`:"Aucun message non lu"}</span></span>
+      ${unread?`<span class="t-n">${unread}</span>`:'<span class="t-c">›</span>'}</button>
+    <button class="tile" data-act="nav" data-s="notifications">
+      <span class="t-i">🔔</span>
+      <span class="row-1"><span class="t-t">Notifications</span>
+      <span class="t-d">${notifs?`${notifs} non lue${notifs>1?'s':''}`:"Tout est à jour"}</span></span>
+      ${notifs?`<span class="t-n">${notifs}</span>`:'<span class="t-c">›</span>'}</button>
+    <button class="tile" data-act="nav" data-s="lots">
+      <span class="t-i">🏢</span>
+      <span class="row-1"><span class="t-t">${C.lots.length>1?"Mes lots":"Mon lot"}</span>
+      <span class="t-d">${C.lots.length} lot${C.lots.length>1?'s':''}${multi?` · ${nbRes()} résidences`:''} · ${tant} tantièmes</span></span>
+      <span class="t-c">›</span></button>
+
+    <div class="sec">À venir</div>
+    <div class="card"><div class="row"><div class="row-1">
+      <div class="ttl">Assemblée générale</div>
+      <div class="meta">${ag.nom} · ${ag.ag} à 18h30</div>
+      ${multi?`<div class="chips"><span class="chip res">${ag.court}</span></div>`:''}
+    </div></div></div>`;
+}
+
+function accueilSyndicHTML(){
+  const R = RES[S.ctx], m = currentMandat();
+  const own = C.lots.filter(l=>l.res===S.ctx);
+  const dmd = FILS.filter(f=>f.res===S.ctx && f.scope==='demande' && f.nonlu).length;
+  const bur = FILS.filter(f=>f.res===S.ctx && f.scope==='bureau' && f.nonlu).length;
+  const reste = Math.round(R.budget/4*(100-R.recouvr)/100);
+
+  return `<div class="hello">${R.nom}</div>
+    <div class="today">${m.role} · mandat jusqu'au ${R.ag}</div>
+
+    ${C.mandats.length>1?`<div class="sec" style="margin-top:16px">Vos mandats · ${C.mandats.length}</div>
+      <div class="split-res">${C.mandats.map(x=>{
+        const pend = NOTIFS.filter(n=>n.scope==='syndic'&&n.res===x.res&&n.nonlu).length;
+        return `<button class="sr prt ${x.res===S.ctx?'on':''}" data-act="space" data-k="syndic" data-ctx="${x.res}">
+          <span class="sr-n">${RES[x.res].court}</span><span class="sr-v">${x.role}</span>
+          ${pend&&x.res!==S.ctx?`<span class="prt-n">${pend}</span>`:''}</button>`;}).join('')}</div>`:''}
+
+    <div class="hero">
+      <div class="h-k">Reste à recouvrer · trimestre</div>
+      <div class="h-v">${reste.toLocaleString('fr-FR')}<small>MAD</small></div>
+      <div class="h-d">7 lots en retard sur ${R.nbLots}. Taux de recouvrement : ${R.recouvr} %.</div>
+      <div class="bar"><i style="width:${R.recouvr}%"></i></div>
+      <button class="cta" data-act="nav" data-s="echeances">Gérer les impayés</button>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="k">Solde bancaire</div><div class="v">${Math.round(R.solde/1000)}k</div><div class="d">MAD au 11/08</div></div>
+      <div class="kpi"><div class="k">Budget consommé</div><div class="v">58 %</div><div class="d">sur ${Math.round(R.budget/1000)}k votés</div></div>
+    </div>
+
+    <div class="sec">À traiter</div>
+    <button class="tile" data-act="nav" data-s="messages">
+      <span class="t-i">📨</span>
+      <span class="row-1"><span class="t-t">Demandes des copropriétaires</span>
+      <span class="t-d">${dmd?`${dmd} demande${dmd>1?'s':''} sans réponse`:"Aucune demande en attente"}</span></span>
+      ${dmd?`<span class="t-n">${dmd}</span>`:'<span class="t-c">›</span>'}</button>
+    <button class="tile" data-act="nav" data-s="messages">
+      <span class="t-i">🔒</span>
+      <span class="row-1"><span class="t-t">Fil privé du bureau</span>
+      <span class="t-d">${bur?"Arbitrage en cours sur les devis ascenseur":"Aucun échange récent"}</span></span>
+      ${bur?`<span class="t-n">${bur}</span>`:'<span class="t-c">›</span>'}</button>
+    <button class="tile" data-act="nav" data-s="compta">
+      <span class="t-i">📘</span>
+      <span class="row-1"><span class="t-t">Comptabilité</span>
+      <span class="t-d">3 écritures depuis le 31 juillet</span></span>
+      <span class="t-c">›</span></button>
+
+    <div class="sec">Votre position</div>
+    ${own.length ? `<div class="card accent"><div class="row"><div class="row-1">
+      <div class="ttl">${own.length} lot${own.length>1?'s':''} vous appartenant ici</div>
+      <div class="meta">Vos charges se règlent dans l'espace copropriétaire, pas ici.</div>
+      <div class="chips"><span class="chip you">Vous</span><span class="chip role">${m.role}</span></div>
+    </div></div></div>
+    <button class="cta ghost" data-act="space" data-k="copro" data-ctx="">Revenir à l'espace copropriétaire</button>`
+    : `<div class="card"><div class="ttl">Mandat de gestion</div>
+      <div class="meta">Vous n'êtes pas copropriétaire de cette résidence. Aucune part, aucune charge, aucun conflit d'intérêts à signaler.</div>
+      <div class="chips"><span class="chip role">${m.role}</span></div></div>`}`;
+}
+
+/* ---------- ESPACE COPROPRIÉTAIRE ---------- */
+function lotsHTML(){
+  if(C.lots.length===1){
+    const l=C.lots[0];
+    return `<h1 class="h1">Mon lot</h1>
+      <p class="h1-sub">Un seul lot : la fiche s'ouvre directement, sans liste intermédiaire.</p>
+      ${lotCard(l,true)}
+      <div class="sec">Ma résidence</div>
+      ${resCard(l.res)}`;
+  }
+  const multi = nbRes()>1;
+  const tot = C.lots.reduce((a,l)=>a+l.tant,0);
+  let body='';
+  if(multi){
+    body = resIdsOf().map(r=>`<div class="sec">${RES[r].nom} · ${RES[r].ville}</div>
+      ${C.lots.filter(l=>l.res===r).map(l=>lotCard(l)).join('')}`).join('');
+  } else {
+    body = `<div class="sec">${RES[resIdsOf()[0]].nom}</div>` + C.lots.map(l=>lotCard(l)).join('');
+  }
+  return `<h1 class="h1">Mes lots</h1>
+    <p class="h1-sub">${C.lots.length} lots${multi?` répartis sur ${nbRes()} résidences`:''} · ${tot} tantièmes cumulés</p>
+    <div class="kpis" style="margin-top:14px">
+      <div class="kpi"><div class="k">Lots détenus</div><div class="v">${C.lots.length}</div><div class="d">${multi?nbRes()+' résidences':'1 résidence'}</div></div>
+      <div class="kpi"><div class="k">Tantièmes</div><div class="v">${tot}</div><div class="d">Poids en assemblée</div></div>
+    </div>
+    ${body}`;
+}
+function lotCard(l,open){
+  return `<button class="card tap ${open?'accent':''}" data-act="lot" data-id="${l.id}">
+    <div class="row"><div class="row-1">
+      <div class="ttl">${l.ref} · ${l.type}</div>
+      <div class="meta">${l.det} · ${l.surf} m² · ${l.tant} tantièmes</div>
+      <div class="chips">${nbRes()>1?`<span class="chip res">${RES[l.res].court}</span>`:''}<span class="chip">${l.surf} m²</span></div>
+    </div><span style="color:var(--ink-3)">›</span></div></button>`;
+}
+function resCard(r){
+  const R=RES[r];
+  return `<div class="card"><div class="ttl">${R.nom}</div>
+    <div class="meta">${R.adr} · ${R.ville}</div>
+    <dl style="margin-top:10px">
+      <div class="dl"><dt>Nombre de lots</dt><dd>${R.nbLots}</dd></div>
+      <div class="dl"><dt>Prochaine assemblée</dt><dd>${R.ag}</dd></div>
+      <div class="dl"><dt>Bureau de syndic</dt><dd>3 membres élus</dd></div>
+    </dl></div>`;
+}
+function lotHTML(){
+  const l=C.lots.find(x=>x.id===S.lot);
+  const e=ECH.filter(x=>x.lot.id===l.id);
+  return `<button class="back" data-act="back">‹ Retour</button>
+    <h1 class="h1">${l.ref}</h1><p class="h1-sub">${RES[l.res].nom} · ${RES[l.res].ville}</p>
+    <div class="card" style="margin-top:14px"><dl>
+      <div class="dl"><dt>Type</dt><dd>${l.type}</dd></div>
+      <div class="dl"><dt>Situation</dt><dd>${l.det}</dd></div>
+      <div class="dl"><dt>Surface</dt><dd>${l.surf} m²</dd></div>
+      <div class="dl"><dt>Tantièmes</dt><dd>${l.tant} / 1000</dd></div>
+    </dl></div>
+    <div class="sec">Échéances de ce lot</div>
+    ${e.map(x=>echCard(x,false)).join('')||'<div class="card"><div class="meta">Rien à régler pour ce lot.</div></div>'}`;
+}
+
+function echCoproHTML(){
+  const multi=nbRes()>1;
+  const list = ECH.filter(e=>S.filter==='tout'||e.res===S.filter);
+  const total = list.reduce((a,e)=>a+e.montant,0);
+  const retard = list.filter(e=>e.statut==='retard').reduce((a,e)=>a+e.montant,0);
+  return `<h1 class="h1">Mes échéances</h1>
+    <p class="h1-sub">${C.lots.length>1?"Un règlement unique couvre l'ensemble de vos lots. La ventilation est automatique.":"Vos appels de fonds en cours."}</p>
+    <div class="kpis" style="margin:14px 0 4px">
+      <div class="kpi"><div class="k">Solde à régler</div><div class="v">${total.toLocaleString('fr-FR')}</div><div class="d">MAD, toutes échéances</div></div>
+      <div class="kpi"><div class="k">Dont en retard</div><div class="v" style="color:var(--danger)">${retard.toLocaleString('fr-FR')}</div><div class="d">MAD, à régulariser</div></div>
+    </div>
+    <button class="cta" style="margin:10px 0 4px">Régler ${money(total)}</button>
+    ${multi?`<div class="filters" style="margin-top:16px">
+      <button data-act="filter" data-f="tout" aria-pressed="${S.filter==='tout'}">Toutes résidences</button>
+      ${resIdsOf().map(r=>`<button data-act="filter" data-f="${r}" aria-pressed="${S.filter===r}">${RES[r].court}</button>`).join('')}
+    </div>`:'<div class="sec">Détail</div>'}
+    ${list.map(e=>echCard(e,multi)).join('')}`;
+}
+function echCard(e,showRes){
+  const late=e.statut==='retard';
+  return `<div class="card"><div class="row"><div class="row-1">
+    <div class="ttl">${e.lib}</div>
+    <div class="meta">${e.lot.ref} · échéance ${e.ech}</div>
+    <div class="chips">
+      ${showRes?`<span class="chip res">${RES[e.res].court}</span>`:''}
+      <span class="chip ${late?'late':''}">${late?'En retard':'À payer'}</span>
+    </div>
+  </div><span class="amt ${late?'due':''}">${e.montant.toLocaleString('fr-FR')}</span></div></div>`;
+}
+
+function payHTML(){
+  const multi=nbRes()>1;
+  return `<h1 class="h1">Mes paiements</h1>
+    <p class="h1-sub">Historique et reçus. Chaque règlement est rattaché à son appel de fonds.</p>
+    <div class="sec">2026</div>
+    ${PAY.map(p=>`<div class="card"><div class="row"><div class="row-1">
+      <div class="ttl">${p.lib}</div>
+      <div class="meta">${p.date} · ${p.moyen} · ${p.ref}</div>
+      <div class="chips">
+        ${multi?`<span class="chip res">${RES[p.res].court}</span>`:''}
+        <span class="chip ${p.statut==='encaisse'?'ok':''}">${p.statut==='encaisse'?'Encaissé':'En attente de validation'}</span>
+      </div></div><span class="amt">${p.montant.toLocaleString('fr-FR')}</span></div>
+      <button class="cta ghost" style="margin-top:12px;padding:10px;font-size:12.5px">Télécharger le reçu</button>
+    </div>`).join('')}`;
+}
+
+/* ---------- ESPACE BUREAU DE SYNDIC ---------- */
+function maCoproHTML(){
+  const R=RES[S.ctx], m=currentMandat();
+  const own=C.lots.filter(l=>l.res===S.ctx);
+  const tabs=[['infos',"Infos générales"],['lots',"Lots"],['config',"Configuration"]];
+  let body='';
+  if(S.sub==='infos'){
+    body=`<div class="kpis">
+      <div class="kpi"><div class="k">Lots</div><div class="v">${R.nbLots}</div><div class="d">dont ${own.length} vous appartenant</div></div>
+      <div class="kpi"><div class="k">Recouvrement</div><div class="v">${R.recouvr}%</div><div class="d">exercice en cours</div></div>
+    </div>
+    <div class="card" style="margin-top:12px"><dl>
+      <div class="dl"><dt>Adresse</dt><dd>${R.adr}</dd></div>
+      <div class="dl"><dt>Ville</dt><dd>${R.ville}</dd></div>
+      <div class="dl"><dt>Prochaine AG</dt><dd>${R.ag}</dd></div>
+      <div class="dl"><dt>Votre mandat</dt><dd>${m.role}</dd></div>
+    </dl></div>
+    <div class="sec">Bureau de syndic</div>
+    <div class="card"><div class="row"><div class="row-1">
+      <div class="ttl">${C.persona.prenom} ${C.persona.nom}</div>
+      <div class="meta">${m.role}${own.length?" · également copropriétaire de "+own.length+" lot"+(own.length>1?'s':''):" · non copropriétaire de cette résidence"}</div>
+      <div class="chips"><span class="chip you">Vous</span><span class="chip role">${m.role}</span></div>
+    </div></div></div>
+    <div class="card"><div class="ttl">A. Ouazzani</div><div class="meta">Secrétaire</div></div>`;
+  } else if(S.sub==='lots'){
+    body=`<div class="filters">
+      <button aria-pressed="true">Tous (${R.nbLots})</button><button aria-pressed="false">Impayés (7)</button>${own.length?`<button aria-pressed="false">Mes lots (${own.length})</button>`:''}</div>
+    ${own.map(l=>`<div class="card accent"><div class="row"><div class="row-1">
+      <div class="ttl">${l.ref} · ${l.type}</div>
+      <div class="meta">${C.persona.prenom} ${C.persona.nom} · ${l.tant} tantièmes</div>
+      <div class="chips"><span class="chip you">Vous</span></div>
+    </div></div></div>`).join('')}
+    ${[["Appt. B-07","M. Ouazzani",118],["Appt. C-02","Mme Rhali",96],["Local L-04","Sté Chamal",144]].map(([r,p,t])=>
+      `<div class="card"><div class="row"><div class="row-1"><div class="ttl">${r}</div>
+      <div class="meta">${p} · ${t} tantièmes</div></div><span style="color:var(--ink-3)">›</span></div></div>`).join('')}
+    ${own.length?`<div class="guard"><span class="g-i">◆</span><span class="g-t">Vos propres lots portent le badge <b>Vous</b>. Ils ne sont ni masqués ni traités à part — un mandataire doit voir sa position comme les autres la voient.</span></div>`
+    :`<div class="guard"><span class="g-i">◆</span><span class="g-t">Aucun lot ne vous appartient ici. La colonne « Vous » n'existe pas : rien à signaler, rien à masquer.</span></div>`}`;
+  } else {
+    body=`<div class="card"><div class="ttl">Clés de répartition</div><div class="meta">3 grilles actives : charges générales, ascenseur, parking.</div></div>
+    <div class="card"><div class="ttl">Périodicité des appels</div><div class="meta">Trimestrielle · émission le 1ᵉʳ du mois</div></div>
+    <div class="card"><div class="ttl">Moyens de paiement acceptés</div><div class="meta">Virement, chèque, espèces avec reçu, carte bancaire</div></div>
+    <div class="card"><div class="ttl">Membres du bureau</div><div class="meta">3 membres · mandat jusqu'au ${R.ag}</div></div>`;
+  }
+  return `<h1 class="h1">${R.nom}</h1>
+    <p class="h1-sub">${R.ville} · vous agissez en tant que ${m.role}</p>
+    <div class="subtabs" style="margin-top:14px">${tabs.map(([k,l])=>
+      `<button data-act="sub" data-s="${k}" aria-selected="${S.sub===k}">${l}</button>`).join('')}</div>
+    ${body}`;
+}
+
+function echSyndicHTML(){
+  const R=RES[S.ctx];
+  const own=C.lots.filter(l=>l.res===S.ctx);
+  return `<h1 class="h1">Gestion des échéances</h1>
+    <p class="h1-sub">${R.nom} · appels de fonds et recouvrement</p>
+    <div class="kpis" style="margin-top:14px">
+      <div class="kpi"><div class="k">Appelé T3</div><div class="v">${Math.round(R.budget/4/1000)}k</div><div class="d">MAD sur ${R.nbLots} lots</div></div>
+      <div class="kpi"><div class="k">Encaissé</div><div class="v">${R.recouvr}%</div><div class="d">reste ${Math.round(R.budget/4*(100-R.recouvr)/100).toLocaleString('fr-FR')} MAD</div>
+        <div class="bar"><i style="width:${R.recouvr}%"></i></div></div>
+    </div>
+    <div class="sec">Impayés · 7 lots</div>
+    ${own.length?`<div class="guard"><span class="g-i">▲</span><span class="g-t">La relance couvre <b>${own.length} lot${own.length>1?'s':''} vous appartenant</b>. Vous vous adressez à vous-même : la trace de l'envoi sera consignée au registre.</span></div>`:''}
+    ${own.slice(0,1).map(l=>`<div class="card accent"><div class="row"><div class="row-1">
+      <div class="ttl">${l.ref}</div><div class="meta">${C.persona.prenom} ${C.persona.nom} · retard de 32 jours</div>
+      <div class="chips"><span class="chip you">Vous</span><span class="chip late">Impayé</span></div>
+    </div><span class="amt due">2 340</span></div></div>`).join('')}
+    ${[["Appt. B-07","M. Ouazzani","retard de 61 jours",4180],["Local L-04","Sté Chamal","retard de 18 jours",6900]].map(([r,p,d,mt])=>
+      `<div class="card"><div class="row"><div class="row-1"><div class="ttl">${r}</div>
+      <div class="meta">${p} · ${d}</div><div class="chips"><span class="chip late">Impayé</span></div></div>
+      <span class="amt due">${mt.toLocaleString('fr-FR')}</span></div></div>`).join('')}
+    <button class="cta">Valider la relance · 7 lots</button>
+    <button class="cta ghost" style="margin-top:9px">Émettre l'appel de fonds T4</button>`;
+}
+
+function comptaHTML(){
+  const R=RES[S.ctx];
+  return `<h1 class="h1">Gestion comptable</h1>
+    <p class="h1-sub">${R.nom} · exercice 2026, plan comptable CGNC</p>
+    <div class="kpis" style="margin-top:14px">
+      <div class="kpi"><div class="k">Solde bancaire</div><div class="v">${Math.round(R.solde/1000)}k</div><div class="d">MAD au 11/08</div></div>
+      <div class="kpi"><div class="k">Budget voté</div><div class="v">${Math.round(R.budget/1000)}k</div><div class="d">MAD sur l'exercice</div></div>
+    </div>
+    <div class="sec">Consommé · 58 % du budget</div>
+    <div class="card"><div class="bar" style="margin:0 0 12px"><i style="width:58%"></i></div>
+      <dl>
+        <div class="dl"><dt>Entretien et nettoyage</dt><dd>112 400 MAD</dd></div>
+        <div class="dl"><dt>Eau et électricité</dt><dd>78 200 MAD</dd></div>
+        <div class="dl"><dt>Ascenseur</dt><dd>46 800 MAD</dd></div>
+        <div class="dl"><dt>Gardiennage</dt><dd>44 500 MAD</dd></div>
+      </dl></div>
+    <div class="sec">Dernières écritures</div>
+    ${[["Facture ASCENSA — maintenance T3","06/08/2026",-11700],["Encaissement — appel T3 (12 lots)","04/08/2026",28640],["Facture RADEEK — eau juillet","31/07/2026",-9240]].map(([l,d,m])=>
+      `<div class="card"><div class="row"><div class="row-1"><div class="ttl" style="font-size:13.2px">${l}</div>
+      <div class="meta">${d}</div></div><span class="amt ${m<0?'due':''}">${m>0?'+':''}${m.toLocaleString('fr-FR')}</span></div></div>`).join('')}
+    <button class="cta ghost">Exporter le grand livre</button>`;
+}
+
+/* ---------- MESSAGERIE ---------- */
+function msgHTML(){
+  const list=FILS.filter(visibleFil);
+  const m=currentMandat();
+  const asLabel = S.space==='syndic' ? `${m.role} · ${RES[S.ctx].court}` : "Copropriétaire";
+  return `<h1 class="h1">Messagerie</h1>
+    <p class="h1-sub">${S.space==='syndic'
+      ? `Fils de la ${RES[S.ctx].nom}, y compris les échanges privés du bureau.`
+      : (nbRes()>1 ? "Une boîte unique pour vos trois syndics. La résidence est rappelée sur chaque fil." : "Vos échanges avec le syndic.")}</p>
+    ${C.mandats.length?`<div class="guard" style="margin-top:14px"><span class="g-i">◆</span>
+      <span class="g-t">Vous écrivez en tant que <b>${asLabel}</b>. L'identité d'envoi suit l'espace actif et reste modifiable à la rédaction.</span></div>`:''}
+    ${S.space==='copro'&&C.mandats.length?`<p class="audience" style="margin-bottom:12px">Les fils privés du bureau ne sont pas listés ici. Basculez sur l'espace bureau pour y accéder.</p>`:''}
+    <div class="sec">${list.filter(f=>f.nonlu).length} non lus</div>
+    ${list.map(f=>`<button class="card tap ${f.nonlu?'accent':''}" data-act="thread" data-id="${f.id}">
+      <div class="row"><div class="row-1">
+        <div class="ttl">${f.sujet}</div>
+        <div class="meta">${f.avec} · ${f.ap}</div>
+        <div class="chips">
+          ${nbRes()>1||S.space==='syndic'?`<span class="chip res">${RES[f.res].court}</span>`:''}
+          ${f.scope==='bureau'?'<span class="chip role">Privé · bureau</span>':''}
+          ${f.scope==='annonce'?'<span class="chip">Annonce générale</span>':''}
+          ${f.scope==='demande'?'<span class="chip role">Demande reçue</span>':''}
+          <span class="chip">${f.date}</span>
+        </div>
+      </div></div></button>`).join('')}`;
+}
+
+function threadHTML(){
+  const f=FILS.find(x=>x.id===S.thread);
+  const m=currentMandat();
+  const asLabel = S.space==='syndic' ? `${m.role}, ${RES[S.ctx].court}` : "Copropriétaire";
+  let audience = "Visible par le syndic de "+RES[f.res].court+" et par vous.";
+  if(f.scope==='bureau') audience="Visible par les 3 membres du bureau. Les copropriétaires n'y ont pas accès.";
+  if(f.scope==='annonce') audience=`Répondre ici écrit devant les ${RES[f.res].nbLots} copropriétaires de la résidence.`;
+  if(f.scope==='demande') audience="Visible par le demandeur et par le bureau.";
+  const risky = f.scope==='annonce' || (f.scope==='bureau' && S.space==='syndic');
+  return `<button class="back" data-act="back">‹ Messagerie</button>
+    <h1 class="h1" style="font-size:19px">${f.sujet}</h1>
+    <p class="h1-sub">${f.avec} · ${RES[f.res].nom}</p>
+    <div class="chips" style="margin:10px 0 16px">
+      <span class="chip res">${RES[f.res].court}</span>
+      ${f.scope==='bureau'?'<span class="chip role">Privé · bureau</span>':''}
+      ${f.scope==='annonce'?'<span class="chip">Annonce générale</span>':''}
+    </div>
+    <div class="thread-msgs">${f.msgs.map(x=>`<div class="msg ${x.me?'me':''}">
+      <div class="who">${x.who}</div>${x.t}<div class="tm">${x.d}</div></div>`).join('')}</div>
+    ${risky?`<div class="guard"><span class="g-i">▲</span><span class="g-t">${audience}</span></div>`:''}
+    <div class="composer">
+      <div class="as-line">
+        <span class="lb">Répondre en tant que</span>
+        ${C.mandats.length
+          ? `<button class="as-pick" data-act="sheet" data-s="ident">${asLabel} ⌄</button>`
+          : `<span class="as-pick">Copropriétaire</span>`}
+      </div>
+      <div class="fake-input">Écrire un message…</div>
+      <button class="cta" style="margin-top:10px">Envoyer</button>
+      ${!risky?`<p class="audience">${audience}</p>`:''}
+    </div>`;
+}
+
+/* ---------- NOTIFICATIONS ---------- */
+function notifsHTML(){
+  const hasM=C.mandats.length>0, multi=nbRes()>1;
+  let list=NOTIFS;
+  if(S.nfilter==='biens') list=NOTIFS.filter(n=>n.scope==='copro');
+  else if(S.nfilter==='mandats') list=NOTIFS.filter(n=>n.scope==='syndic');
+  else if(S.nfilter!=='tout') list=NOTIFS.filter(n=>n.res===S.nfilter);
+
+  const filters = (hasM && !hasCopro())
+    ? [['tout',"Tout"]].concat(C.mandats.map(m=>[m.res,RES[m.res].court]))
+    : hasM
+    ? [['tout',"Tout"],['biens',"Mes biens"],['mandats',"Mes mandats"]]
+    : multi ? [['tout',"Tout"]].concat(resIdsOf().map(r=>[r,RES[r].court])) : null;
+
+  return `<h1 class="h1">Notifications</h1>
+    <p class="h1-sub">Une seule liste, quelle que soit la résidence ou la casquette. Rien n'est masqué par le contexte actif.</p>
+    ${filters?`<div class="filters" style="margin-top:14px">${filters.map(([k,l])=>
+      `<button data-act="nfilter" data-f="${k}" aria-pressed="${S.nfilter===k}">${l}</button>`).join('')}</div>`:'<div class="sec">Récentes</div>'}
+    ${list.map(n=>`<button class="notif ${n.nonlu?'unread':''}" data-act="gonotif" data-id="${n.id}">
+      <span class="n-i">${n.ico}</span>
+      <span class="row-1">
+        <span class="n-t" style="display:block">${n.titre}</span>
+        <span class="n-d" style="display:block">${n.detail}</span>
+        <span class="chips">
+          ${multi||hasM?`<span class="chip res">${RES[n.res].court}</span>`:''}
+          ${n.scope==='syndic'?`<span class="chip role">${(C.mandats.find(m=>m.res===n.res)||{}).role||'Bureau'}</span>`:''}
+        </span>
+        <span class="n-w" style="display:block">${n.when}</span>
+      </span></button>`).join('')}
+    ${hasM?`<div class="guard" style="margin-top:6px"><span class="g-i">◆</span>
+      <span class="g-t">Ouvrir une notification de mandat bascule l'espace actif. Le changement est annoncé, jamais silencieux.</span></div>`:''}`;
+}
+
+/* ---------- PROFIL ---------- */
+function profilHTML(){
+  return `<h1 class="h1">Mon profil</h1>
+    <p class="h1-sub">Un compte unique. Les lots et les mandats en sont des attributs.</p>
+    <div class="card" style="margin-top:14px"><dl>
+      <div class="dl"><dt>Nom</dt><dd>${C.persona.prenom} ${C.persona.nom}</dd></div>
+      <div class="dl"><dt>Téléphone</dt><dd>+212 6 61 ** ** 42</dd></div>
+      <div class="dl"><dt>Courriel</dt><dd>${C.persona.prenom.toLowerCase()}.${C.persona.nom.toLowerCase()}@mail.ma</dd></div>
+      <div class="dl"><dt>Langue</dt><dd>Français</dd></div>
+    </dl></div>
+    <div class="sec">Mes biens</div>
+    ${!hasCopro()?`<div class="empty" style="padding:28px 20px"><div class="e-t">Aucun lot détenu</div>
+      <div class="e-d">Ce compte est un compte de mandataire. Si vous achetez un lot, un espace copropriétaire apparaîtra automatiquement.</div></div>`:''}
+    ${resIdsOf().map(r=>`<div class="card"><div class="row"><div class="row-1">
+      <div class="ttl">${RES[r].nom}</div>
+      <div class="meta">${C.lots.filter(l=>l.res===r).length} lot(s) · ${RES[r].ville}</div>
+    </div></div></div>`).join('')}
+    <div class="sec">Mes mandats</div>
+    ${C.mandats.length
+      ? C.mandats.map(m=>`<button class="card tap" data-act="space" data-k="syndic" data-ctx="${m.res}">
+          <div class="row"><div class="row-1"><div class="ttl">${m.role} — ${RES[m.res].nom}</div>
+          <div class="meta">Mandat en cours · échéance ${RES[m.res].ag}</div>
+          <div class="chips"><span class="chip role">Ouvrir l'espace bureau</span></div></div>
+          <span style="color:var(--ink-3)">›</span></div></button>`).join('')
+      : `<div class="empty"><div class="e-t">Aucun mandat en cours</div>
+         <div class="e-d">Si vous êtes élu au bureau de syndic, l'espace correspondant apparaîtra ici et dans l'en-tête.</div></div>`}
+    <div class="sec">Préférences de notification</div>
+    <div class="card"><div class="ttl" style="font-size:13.4px">Canaux actifs</div>
+      <div class="meta">Application, SMS pour les échéances, courriel pour les convocations.</div></div>`;
+}
+
+/* ---------- FEUILLES MODALES ---------- */
+function sheetHTML(){
+  if(S.sheet==='space'){
+    const sp=spaces();
+    return `<div class="sheet-bg" data-act="close"><div class="sheet" role="dialog" aria-label="Changer d'espace">
+      <div class="grab"></div>
+      <h4>Changer d'espace</h4>
+      <p class="sh-d">Un seul sélecteur pour le couple résidence et rôle. Vos biens restent consolidés dans l'espace copropriétaire.</p>
+      ${sp.map(s=>{
+        const cur = s.k===S.space && (s.ctx||null)===S.ctx;
+        const isS = s.k==='syndic';
+        return `<button class="opt" data-act="space" data-k="${s.k}" data-ctx="${s.ctx||''}" aria-current="${cur}">
+          <span class="o-i" style="background:${isS?'#FBF0DC':'#E2F3F0'};color:${isS?'#6E4708':'#06544A'}">${isS?'B':'C'}</span>
+          <span class="row-1"><span class="o-t" style="display:block">${s.label}</span>
+          <span class="o-d" style="display:block">${s.sub}</span></span>
+          ${cur?'<span class="o-c">✓</span>':''}</button>`;
+      }).join('')}
+    </div></div>`;
+  }
+  if(S.sheet==='canal'){
+    const chs=channels();
+    const groups=[{t:"En tant que copropriétaire",items:chs.filter(c=>c.ident==='copro')}]
+      .concat(C.mandats.map(m=>({t:"En tant que "+m.role+" — "+RES[m.res].court,
+        items:chs.filter(c=>c.ident==='syndic'&&c.res===m.res)})));
+    return `<div class="sheet-bg" data-act="close"><div class="sheet" role="dialog" aria-label="Choisir le destinataire">
+      <div class="grab"></div><h4>À qui écrivez-vous ?</h4>
+      <p class="sh-d">Chaque canal fixe d'un coup l'identité, la résidence et l'audience. Le défaut est toujours celui de plus faible portée.</p>
+      ${groups.filter(g=>g.items.length).map(g=>`<div class="sheet-grp">${g.t}</div>
+        ${g.items.map(c=>`<button class="opt ${c.risky?'risk':''}" data-act="canal" data-id="${c.id}" aria-current="${S.draft&&S.draft.ch===c.id}">
+          <span class="o-i" style="background:${c.ident==='syndic'?'#FBF0DC':'#E2F3F0'};color:${c.ident==='syndic'?'#6E4708':'#06544A'}">${c.ident==='syndic'?'B':'C'}</span>
+          <span class="row-1"><span class="o-t">${c.label}</span><span class="o-d">${c.aud}</span></span>
+          ${S.draft&&S.draft.ch===c.id?'<span class="o-c">✓</span>':''}</button>`).join('')}`).join('')}
+    </div></div>`;
+  }
+  if(S.sheet==='dest'){
+    const ch=curChan();
+    return `<div class="sheet-bg" data-act="close"><div class="sheet" role="dialog" aria-label="Choisir un copropriétaire">
+      <div class="grab"></div><h4>Choisir un copropriétaire</h4>
+      <p class="sh-d">${RES[ch.res].nom} · ${RES[ch.res].nbLots} lots. Le fil sera aussi visible par le bureau.</p>
+      ${OWNERS.map(([n,l])=>`<button class="opt" data-act="pickdest" data-n="${n}" aria-current="${S.draft.to===n}">
+        <span class="o-i" style="background:var(--paper);color:var(--ink-3)">${n.split(' ').pop()[0]}</span>
+        <span class="row-1"><span class="o-t">${n}</span><span class="o-d">${l}</span></span>
+        ${S.draft.to===n?'<span class="o-c">✓</span>':''}</button>`).join('')}
+    </div></div>`;
+  }
+  if(S.sheet==='confirm'){
+    const ch=curChan();
+    return `<div class="sheet-bg" data-act="close"><div class="sheet" role="dialog" aria-label="Confirmer la diffusion">
+      <div class="grab"></div><h4>Diffuser à ${RES[ch.res].nbLots} copropriétaires ?</h4>
+      <p class="sh-d">Vous écrivez en tant que ${ch.sub.replace('En tant que ','')} de ${RES[ch.res].court}. L'annonce sera lue par tous les copropriétaires et ne peut pas être rappelée.</p>
+      <div class="card" style="margin-bottom:14px"><div class="ttl">${esc(S.draft.objet)||'(sans objet)'}</div>
+        <div class="meta">${esc(S.draft.corps).slice(0,120)||'(message vide)'}</div></div>
+      <div class="stop-actions">
+        <button class="cta ghost" data-act="close-sheet">Revenir</button>
+        <button class="cta" data-act="dosend">Diffuser l'annonce</button></div>
+    </div></div>`;
+  }
+  // identité d'envoi
+  const opts=[{k:'copro',t:"Copropriétaire",d:"Votre voix personnelle. Visible par le syndic seul."}]
+    .concat(C.mandats.map(m=>({k:'syndic',ctx:m.res,t:m.role+" — "+RES[m.res].court,
+      d:"Engage le bureau. Visible par les "+RES[m.res].nbLots+" copropriétaires selon le fil."})));
+  return `<div class="sheet-bg" data-act="close"><div class="sheet" role="dialog" aria-label="Identité d'envoi">
+    <div class="grab"></div>
+    <h4>Envoyer en tant que</h4>
+    <p class="sh-d">Le choix détermine qui reçoit le message et sous quelle autorité il est lu. Il est réaffirmé à chaque rédaction, jamais mémorisé en silence.</p>
+    ${opts.map(o=>{
+      const cur=o.k===S.space&&(o.ctx||null)===S.ctx;
+      return `<button class="opt" data-act="ident" data-k="${o.k}" data-ctx="${o.ctx||''}" aria-current="${cur}">
+        <span class="o-i" style="background:${o.k==='syndic'?'#FBF0DC':'#E2F3F0'};color:${o.k==='syndic'?'#6E4708':'#06544A'}">${o.k==='syndic'?'B':'C'}</span>
+        <span class="row-1"><span class="o-t" style="display:block">${o.t}</span>
+        <span class="o-d" style="display:block">${o.d}</span></span>
+        ${cur?'<span class="o-c">✓</span>':''}</button>`;
+    }).join('')}
+  </div></div>`;
+}
+
+/* ==================================================================
+   INTERACTIONS
+   ================================================================== */
+let toastTimer;
+function toast(msg){
+  S.toast=msg; clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{S.toast=null;render();},3400);
+}
+function setSpace(k,ctx){
+  S.space=k; S.ctx=ctx||null; S.sheet=null; S.thread=null; S.lot=null; S.sub='infos';
+  S.screen = 'accueil';
+}
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-act]'); if(!t) return;
+  const a=t.dataset.act;
+
+  if(a==='view'){ S.view=t.dataset.v; return render(); }
+  if(a==='cas'){ loadCase(t.dataset.id); return render(); }
+  if(a==='space'){ S.welcome=false; setSpace(t.dataset.k,t.dataset.ctx); return render(); }
+  if(a==='nav'){ S.screen=t.dataset.s; S.thread=null; S.lot=null; S.welcome=false; return render(); }
+  if(a==='sub'){ S.sub=t.dataset.s; return render(); }
+  if(a==='lot'){ S.lot=t.dataset.id; return render(); }
+  if(a==='thread'){ const f=FILS.find(x=>x.id===t.dataset.id); if(f) f.nonlu=false; S.thread=t.dataset.id; return render(); }
+  if(a==='back'){ if(S.screen==='compose'){S.screen='messages';S.draft=null;} S.thread=null; S.lot=null; return render(); }
+  if(a==='compose'){ openCompose(); return render(); }
+  if(a==='signin'){ S.auth='resolve'; return render(); }
+  if(a==='enter'){ const d=defaultSpace(); S.auth=true; S.welcome=true; S.space=d.space; S.ctx=d.ctx; S.screen='accueil'; return render(); }
+  if(a==='hidewelcome'){ S.welcome=false; return render(); }
+  if(a==='logout'){ const d=defaultSpace(); S.auth=false; S.welcome=false; S.space=d.space; S.ctx=d.ctx; S.screen='accueil'; S.thread=null; S.lot=null; S.sheet=null; return render(); }
+  if(a==='canal'){ S.draft.ch=t.dataset.id; S.draft.to=null; S.sheet=null; return render(); }
+  if(a==='pickdest'){ S.draft.to=t.dataset.n; S.sheet=null; return render(); }
+  if(a==='draftlot'){ S.draft.lot=t.dataset.id||null; return render(); }
+  if(a==='close-sheet'){ S.sheet=null; return render(); }
+  if(a==='send'){ const ch=curChan(); if(!composeReady()) return; if(ch.risky){S.sheet='confirm';return render();} doSend(); return render(); }
+  if(a==='dosend'){ doSend(); return render(); }
+  if(a==='filter'){ S.filter=t.dataset.f; return render(); }
+  if(a==='nfilter'){ S.nfilter=t.dataset.f; return render(); }
+  if(a==='sheet'){ S.sheet=t.dataset.s; return render(); }
+  if(a==='close'){ if(e.target.classList.contains('sheet-bg')){ S.sheet=null; render(); } return; }
+  if(a==='ident'){
+    setSpace(t.dataset.k,t.dataset.ctx);
+    S.screen='messages';
+    toast(t.dataset.k==='syndic'
+      ? `Identité d'envoi : <b>${(C.mandats.find(m=>m.res===t.dataset.ctx)||{}).role} de ${RES[t.dataset.ctx].court}</b>. Le fil s'ouvre dans l'espace bureau.`
+      : `Identité d'envoi : <b>Copropriétaire</b>.`);
+    return render();
+  }
+  if(a==='gonotif'){
+    const n=NOTIFS.find(x=>x.id===t.dataset.id); if(!n) return;
+    n.nonlu=false;
+    const from=S.space;
+    if(n.go.space!==S.space || (n.go.ctx||null)!==S.ctx){
+      setSpace(n.go.space,n.go.ctx);
+      toast(n.go.space==='syndic'
+        ? `Espace basculé sur <b>Bureau — ${RES[n.go.ctx].court}</b> pour traiter cette notification.`
+        : `Retour à l'espace <b>Copropriétaire</b>.`);
+    }
+    S.screen=n.go.screen; S.thread=null; S.lot=null;
+    return render();
+  }
+});
+
+document.addEventListener('input',e=>{
+  const f=e.target.dataset.field; if(!f||!S.draft) return;
+  S.draft[f]=e.target.value;
+  const b=document.getElementById('sendBtn'); if(b) b.disabled=!composeReady();
+});
+
+loadCase('c1');
+render();
+</script>
+</body>
+</html>
