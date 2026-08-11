@@ -29,6 +29,7 @@ import com.architek.oikos.user.application.port.out.PropertyProvisioningPort;
 import com.architek.oikos.user.domain.model.PropertyRole;
 import com.architek.oikos.user.domain.model.Role;
 import com.architek.oikos.user.domain.model.User;
+import com.architek.oikos.user.domain.repository.OnboardingLeadRepository;
 import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.user.domain.repository.VerificationTokenRepository;
 import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
@@ -38,6 +39,9 @@ class RegisterPropertyBoardAdminServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private OnboardingLeadRepository onboardingLeadRepository;
 
     @Mock
     private PartyProvisioningPort partyProvisioningPort;
@@ -55,7 +59,7 @@ class RegisterPropertyBoardAdminServiceTest {
     private EmailSenderPort emailSenderPort;
 
     private RegisterPropertyBoardAdminService newService() {
-        return new RegisterPropertyBoardAdminService(userRepository, partyProvisioningPort, propertyProvisioningPort,
+        return new RegisterPropertyBoardAdminService(userRepository, onboardingLeadRepository, partyProvisioningPort, propertyProvisioningPort,
                 verificationTokenRepository, passwordEncoderPort, emailSenderPort, new VerificationTokenGenerator(),
                 new VerificationEmailComposer("http://localhost/verify"), Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
     }

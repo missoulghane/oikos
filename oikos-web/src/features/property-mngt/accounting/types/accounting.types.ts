@@ -127,6 +127,8 @@ export interface RecordBankChargePayload {
 
 export interface AddBankAccountPayload {
   label: string;
+  /** RIB/IBAN de la banque - libre et optionnel, distinct du numéro comptable 514100xx. */
+  bankAccountNumber?: string;
 }
 
 export interface JournalEntryListFilters {

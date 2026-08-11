@@ -50,4 +50,8 @@ public class LedgerAccountEntity extends AuditableEntity {
 
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal balance;
+
+    /** Bank's own reference (RIB/IBAN...), BANK accounts only - see LedgerAccount.withBankAccountNumber. */
+    @Column(name = "bank_account_number")
+    private String bankAccountNumber;
 }

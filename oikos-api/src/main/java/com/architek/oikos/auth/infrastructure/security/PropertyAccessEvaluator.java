@@ -1,5 +1,8 @@
 package com.architek.oikos.auth.infrastructure.security;
 
+import java.util.Map;
+import java.util.Set;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
@@ -361,7 +364,39 @@ public class PropertyAccessEvaluator {
                 .anyMatch(ownership -> access.ownedPartyIds().contains(ownership.partyId().toString()));
     }
 
+    /**
+     * The volunteer-syndic wizard finishing its configuration: accepted either
+     * with the short-lived onboarding token issued when the account was created
+     * (the account is not verified yet, so it cannot log in), or with an ordinary
+     * board-admin session once the visitor has verified their email and come back
+     * - which is what makes an expired token a non-event rather than a dead end.
+     */
+    public boolean canConfigureOnboarding(Authentication authentication, String propertyId) {
+        return hasOnboardingScope(authentication, propertyId) || managesProperty(authentication, propertyId);
+    }
+
+    private static boolean hasOnboardingScope(Authentication authentication, String propertyId) {
+        String expected = JwtService.ONBOARDING_AUTHORITY_PREFIX + propertyId;
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(expected::equals);
+    }
+
+    private static boolean isOnboardingToken(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> authority.startsWith(JwtService.ONBOARDING_AUTHORITY_PREFIX));
+    }
+
     private UserAccessView access(Authentication authentication) {
+        // Every rule but canConfigureOnboarding funnels through here, so denying an
+        // onboarding token once - rather than per rule - is what keeps it from
+        // behaving as a full session for an account that never verified its email.
+        // The grants exist in database (registration made the caller board admin of
+        // the property it just created); only the token's scope withholds them.
+        if (isOnboardingToken(authentication)) {
+            return new UserAccessView(Set.of(), Map.of(), Map.of(), Set.of(), Set.of());
+        }
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         return getUserAccessUseCase.getAccess(new GetUserAccessQuery(UserId.of(principal.getUserId())));
     }

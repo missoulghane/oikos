@@ -14,17 +14,30 @@ function GridShape() {
   );
 }
 
-export function AuthLayout({ children }: PropsWithChildren) {
+interface AuthLayoutProps {
+  /**
+   * Écrans en plusieurs étapes (wizard d'inscription) : carte plus large, et
+   * hauteur minimale plutôt que fixe, sinon une étape longue (liste de
+   * bâtiments) déborde sans pouvoir défiler.
+   */
+  wide?: boolean;
+}
+
+export function AuthLayout({ children, wide = false }: PropsWithChildren<AuthLayoutProps>) {
   return (
     <div className="relative z-1 bg-white dark:bg-gray-900 p-6 sm:p-0">
-      <div className="relative flex h-screen w-full flex-col justify-center lg:flex-row">
+      <div className={`relative flex w-full flex-col justify-center lg:flex-row ${wide ? 'min-h-screen py-8' : 'h-screen'}`}>
         <div className="flex w-full flex-1 flex-col justify-center">
-          <div className="mx-auto w-full max-w-sm">
-            <h1 className="mb-6 text-center text-xl font-semibold text-gray-900 dark:text-white/90">Oikos</h1>
-            {children}
+          <div className={`mx-auto flex w-full justify-center ${wide ? 'max-w-2xl px-4' : 'max-w-sm'}`}>
+            <div className="w-full">
+              <h1 className="mb-6 text-center text-xl font-semibold text-gray-900 dark:text-white/90">Oikos</h1>
+              {children}
+            </div>
           </div>
         </div>
-        <div className="hidden w-full items-center bg-brand-950 lg:grid lg:w-1/2">
+        {/* Panneau décoratif masqué en mode `wide` : un formulaire en 7 étapes a
+            besoin de toute la largeur, il n'y a rien à sacrifier pour un visuel. */}
+        <div className={`w-full items-center bg-brand-950 lg:w-1/2 ${wide ? 'hidden' : 'hidden lg:grid'}`}>
           <div className="relative z-1 flex items-center justify-center">
             <GridShape />
             <div className="flex max-w-xs flex-col items-center">

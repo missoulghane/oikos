@@ -60,7 +60,7 @@ class LedgerAccountControllerWebMvcTest {
         when(listLedgerAccountsByPropertyUseCase.list(any())).thenReturn(List.of(
                 new LedgerAccountView(LedgerAccountId.newId(), propertyId, null, "51610001", "Caisse", 5,
                         AccountNature.BALANCE_ASSET, EntryDirection.DEBIT, false, AccountRole.CASH, true,
-                        BigDecimal.ZERO)));
+                        BigDecimal.ZERO, null)));
 
         mockMvc.perform(get("/api/v1/properties/" + propertyId + "/accounting/ledger-accounts")
                         .header("Authorization", bearerToken("ROLE_ADMIN")))

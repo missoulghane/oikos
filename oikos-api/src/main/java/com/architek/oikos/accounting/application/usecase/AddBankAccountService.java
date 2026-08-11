@@ -43,7 +43,8 @@ public class AddBankAccountService implements AddBankAccountUseCase {
         int increment = sequenceRepository.allocateNextIncrement(command.propertyId(), BANK_NUMBER_PREFIX);
         AccountNumber accountNumber = AccountNumber.forSequence(BANK_NUMBER_PREFIX, increment);
         LedgerAccount account = LedgerAccount.create(LedgerAccountId.newId(), command.propertyId(), null, accountNumber,
-                command.label(), 5, AccountNature.BALANCE_ASSET, false, AccountRole.BANK);
+                command.label(), 5, AccountNature.BALANCE_ASSET, false, AccountRole.BANK)
+                .withBankAccountNumber(command.bankAccountNumber());
         return ledgerAccountRepository.save(account).getId();
     }
 }

@@ -41,10 +41,11 @@ public final class LedgerAccount {
     private final AccountRole role;
     private final boolean active;
     private final BigDecimal balance;
+    private final String bankAccountNumber;
 
     private LedgerAccount(LedgerAccountId id, EntityId propertyId, EntityId unitId, AccountNumber accountNumber,
                            String label, int accountClass, AccountNature nature, boolean collective,
-                           AccountRole role, boolean active, BigDecimal balance) {
+                           AccountRole role, boolean active, BigDecimal balance, String bankAccountNumber) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.propertyId = propertyId;
         this.unitId = unitId;
@@ -62,21 +63,40 @@ public final class LedgerAccount {
         if (unitId != null && propertyId == null) {
             throw new IllegalArgumentException("a unit-scoped ledger account must also carry its property");
         }
+        if (bankAccountNumber != null && role != AccountRole.BANK) {
+            throw new IllegalArgumentException("only a BANK account may carry bank details");
+        }
+        this.bankAccountNumber = bankAccountNumber;
     }
 
     public static LedgerAccount create(LedgerAccountId id, EntityId propertyId, EntityId unitId,
                                         AccountNumber accountNumber, String label, int accountClass,
                                         AccountNature nature, boolean collective, AccountRole role) {
         return new LedgerAccount(id, propertyId, unitId, accountNumber, label, accountClass, nature, collective,
-                role, true, BigDecimal.ZERO);
+                role, true, BigDecimal.ZERO, null);
+    }
+
+    /**
+     * The bank's own reference for the account (RIB, IBAN...), as typed by the
+     * property manager - free text, since accounts may be foreign and nothing
+     * here clears payments. Distinct from {@link #getAccountNumber()}, which is
+     * the system-generated accounting number (514100 + increment, ADR 0001).
+     * Blank collapses to absent so an empty form field is not stored as "".
+     */
+    public LedgerAccount withBankAccountNumber(String newBankAccountNumber) {
+        String normalized = newBankAccountNumber == null || newBankAccountNumber.isBlank()
+                ? null
+                : newBankAccountNumber.trim();
+        return new LedgerAccount(id, propertyId, unitId, accountNumber, label, accountClass, nature, collective,
+                role, active, balance, normalized);
     }
 
     public static LedgerAccount reconstruct(LedgerAccountId id, EntityId propertyId, EntityId unitId,
                                              AccountNumber accountNumber, String label, int accountClass,
                                              AccountNature nature, boolean collective, AccountRole role,
-                                             boolean active, BigDecimal balance) {
+                                             boolean active, BigDecimal balance, String bankAccountNumber) {
         return new LedgerAccount(id, propertyId, unitId, accountNumber, label, accountClass, nature, collective,
-                role, active, balance);
+                role, active, balance, bankAccountNumber);
     }
 
     private static String requireNonBlank(String value, String fieldName) {
@@ -89,6 +109,10 @@ public final class LedgerAccount {
     /** I6: a directly-postable (non-collective) account never requires an auxiliary; a collective one always does. */
     public boolean requiresAuxiliary() {
         return collective;
+    }
+
+    public Optional<String> getBankAccountNumber() {
+        return Optional.ofNullable(bankAccountNumber);
     }
 
     public LedgerAccountId getId() {

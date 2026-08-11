@@ -25,7 +25,7 @@ export function AddBankAccountForm({ propertyId, onCreated }: AddBankAccountForm
   const { mutate, isPending, error } = useAddBankAccount(propertyId);
 
   function onSubmit(values: AddBankAccountFormValues) {
-    mutate(values, {
+    mutate({ ...values, bankAccountNumber: values.bankAccountNumber || undefined }, {
       onSuccess: (accountId) => {
         reset();
         onCreated?.(accountId);
@@ -42,6 +42,12 @@ export function AddBankAccountForm({ propertyId, onCreated }: AddBankAccountForm
           placeholder="Attijariwafa Bank"
           {...register('label')}
           errorMessage={errors.label?.message}
+        />
+        <Input
+          label="Numéro de compte (optionnel)"
+          placeholder="RIB ou IBAN"
+          {...register('bankAccountNumber')}
+          errorMessage={errors.bankAccountNumber?.message}
         />
         <Button type="submit" isLoading={isPending}>
           Ajouter le compte bancaire

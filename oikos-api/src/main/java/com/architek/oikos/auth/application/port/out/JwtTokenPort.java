@@ -13,4 +13,9 @@ public interface JwtTokenPort {
     String generateAccessToken(EntityId userId, Set<String> authorities);
 
     long accessTokenTtlSeconds();
+
+    /** See JwtService.generateOnboardingToken - scoped to configuring one property. */
+    String generateOnboardingToken(EntityId userId, EntityId propertyId);
+
+    long onboardingTokenTtlSeconds();
 }

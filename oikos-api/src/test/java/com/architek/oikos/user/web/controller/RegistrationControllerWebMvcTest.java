@@ -4,17 +4,23 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.user.application.port.in.AcceptPartyInvitationUseCase;
 import com.architek.oikos.user.application.port.in.ActivateAccountUseCase;
+import com.architek.oikos.auth.infrastructure.security.JwtService;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
+import com.architek.oikos.user.application.dto.RegisteredBoardAdminView;
+import com.architek.oikos.user.application.port.in.CaptureOnboardingLeadUseCase;
 import com.architek.oikos.user.application.port.in.RegisterPropertyBoardAdminUseCase;
 import com.architek.oikos.user.application.port.in.RegisterPropertyManagerAdminUseCase;
 import com.architek.oikos.user.application.port.in.RegisterUserUseCase;
@@ -23,7 +29,11 @@ import com.architek.oikos.user.application.port.in.VerifyAccountUseCase;
 import com.architek.oikos.user.domain.exception.InvalidVerificationTokenException;
 import com.architek.oikos.user.domain.valueobject.UserId;
 
+// The real JwtService rather than a mock: the board-admin response must carry an
+// actually signed onboarding token, which is the only credential the wizard has
+// until the account is verified.
 @WebMvcTest(controllers = RegistrationController.class)
+@Import(JwtService.class)
 class RegistrationControllerWebMvcTest {
 
     @Autowired
@@ -34,6 +44,9 @@ class RegistrationControllerWebMvcTest {
 
     @MockitoBean
     private RegisterPropertyBoardAdminUseCase registerPropertyBoardAdminUseCase;
+
+    @MockitoBean
+    private CaptureOnboardingLeadUseCase captureOnboardingLeadUseCase;
 
     @MockitoBean
     private RegisterPropertyManagerAdminUseCase registerPropertyManagerAdminUseCase;
@@ -110,7 +123,9 @@ class RegistrationControllerWebMvcTest {
     @Test
     void register_property_board_admin_with_valid_body_returns_201_with_location() throws Exception {
         UserId userId = UserId.newId();
-        when(registerPropertyBoardAdminUseCase.register(any())).thenReturn(userId);
+        EntityId propertyId = EntityId.newId();
+        when(registerPropertyBoardAdminUseCase.register(any()))
+                .thenReturn(new RegisteredBoardAdminView(userId, propertyId));
 
         mockMvc.perform(post("/api/v1/users/register-property-board-admin")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -119,7 +134,12 @@ class RegistrationControllerWebMvcTest {
                                 "propertyName":"Residence A","propertyAddress":"1 rue de Paris"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/users/" + userId));
+                .andExpect(header().string("Location", "/api/v1/users/" + userId))
+                .andExpect(jsonPath("$.propertyId").value(propertyId.toString()))
+                // The wizard cannot log in yet (the account is unverified), so the token
+                // is the only thing letting steps 3 to 7 reach the configuration endpoint.
+                .andExpect(jsonPath("$.onboardingToken").isNotEmpty())
+                .andExpect(jsonPath("$.expiresInSeconds").isNumber());
     }
 
     @Test

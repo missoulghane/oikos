@@ -21,6 +21,7 @@ oikos:
     jwt:
       secret: test-secret-key-for-jwt-signing-must-be-at-least-32-bytes-long
       access-token-ttl-seconds: 900
+      onboarding-token-ttl-seconds: 7200
       refresh-token-ttl-seconds: 1209600
   property:
     configure:

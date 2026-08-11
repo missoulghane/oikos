@@ -4,8 +4,8 @@ import { Loader } from '@/shared/components/Loader/Loader';
 
 const LoginPage = lazy(() => import('@/features/identity/auth').then((m) => ({ default: m.LoginPage })));
 const RegisterUserPage = lazy(() => import('@/features/identity/register').then((m) => ({ default: m.RegisterUserPage })));
-const RegisterPropertyBoardAdminPage = lazy(() =>
-  import('@/features/identity/register').then((m) => ({ default: m.RegisterPropertyBoardAdminPage })),
+const OnboardingWizardPage = lazy(() =>
+  import('@/features/identity/onboarding').then((m) => ({ default: m.OnboardingWizardPage })),
 );
 const RegisterPropertyManagerAdminPage = lazy(() =>
   import('@/features/identity/register').then((m) => ({ default: m.RegisterPropertyManagerAdminPage })),
@@ -39,10 +39,11 @@ export const publicRoutes: RouteObject[] = [
     ),
   },
   {
-    path: '/register/board-admin',
+    // Sous-arbre complet : le wizard gère lui-même ses étapes (une URL chacune).
+    path: '/register/board-admin/*',
     element: (
       <Suspense fallback={<Loader />}>
-        <RegisterPropertyBoardAdminPage />
+        <OnboardingWizardPage />
       </Suspense>
     ),
   },

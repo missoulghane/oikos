@@ -45,7 +45,7 @@ class AddBankAccountServiceTest {
         when(sequenceRepository.allocateNextIncrement(eq(propertyId), eq("514100"))).thenReturn(1);
         when(ledgerAccountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        newService().add(new AddBankAccountCommand(propertyId, "Attijariwafa Bank"));
+        newService().add(new AddBankAccountCommand(propertyId, "Attijariwafa Bank", "007780000123456789012345"));
 
         ArgumentCaptor<LedgerAccount> captor = ArgumentCaptor.forClass(LedgerAccount.class);
         verify(ledgerAccountRepository).save(captor.capture());
@@ -56,6 +56,7 @@ class AddBankAccountServiceTest {
         assertThat(account.getRole()).contains(AccountRole.BANK);
         assertThat(account.isCollective()).isFalse();
         assertThat(account.getLabel()).isEqualTo("Attijariwafa Bank");
+        assertThat(account.getBankAccountNumber()).contains("007780000123456789012345");
     }
 
     @Test
@@ -63,7 +64,7 @@ class AddBankAccountServiceTest {
         EntityId propertyId = EntityId.newId();
         when(propertyDirectoryPort.exists(propertyId)).thenReturn(false);
 
-        assertThatThrownBy(() -> newService().add(new AddBankAccountCommand(propertyId, "Banque")))
+        assertThatThrownBy(() -> newService().add(new AddBankAccountCommand(propertyId, "Banque", null)))
                 .isInstanceOf(PropertyNotFoundException.class);
     }
 
@@ -74,7 +75,7 @@ class AddBankAccountServiceTest {
         when(sequenceRepository.allocateNextIncrement(eq(propertyId), eq("514100"))).thenReturn(2);
         when(ledgerAccountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        newService().add(new AddBankAccountCommand(propertyId, "Deuxieme banque"));
+        newService().add(new AddBankAccountCommand(propertyId, "Deuxieme banque", null));
 
         ArgumentCaptor<LedgerAccount> captor = ArgumentCaptor.forClass(LedgerAccount.class);
         verify(ledgerAccountRepository).save(captor.capture());

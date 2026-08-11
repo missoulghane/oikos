@@ -4,6 +4,7 @@ import { useProperty } from '@/features/property-mngt/properties/hooks/useProper
 import { useProperties } from '@/features/property-mngt/properties/hooks/useProperties';
 import { useMyUnits } from '@/features/property-ownership/units';
 import { useMyInstallments } from '@/features/property-ownership/installments/hooks/useMyInstallments';
+import { ResumeOnboardingBanner } from '@/features/identity/onboarding/components/ResumeOnboardingBanner';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
@@ -25,26 +26,29 @@ function BoardDashboard({ propertyId }: { propertyId: string }) {
   }
 
   return (
-    <Card className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">{property.data.name}</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{property.data.address}</p>
-      </div>
-      <div className="flex flex-wrap gap-3">
-        <Link
-          to={`/property-mngt/properties/${propertyId}/property`}
-          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-        >
-          Ma copropriété
-        </Link>
-        <Link
-          to={`/property-mngt/properties/${propertyId}/installments`}
-          className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
-        >
-          Gestion des échéances
-        </Link>
-      </div>
-    </Card>
+    <>
+      <ResumeOnboardingBanner />
+      <Card className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">{property.data.name}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{property.data.address}</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            to={`/property-mngt/properties/${propertyId}/property`}
+            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+          >
+            Ma copropriété
+          </Link>
+          <Link
+            to={`/property-mngt/properties/${propertyId}/installments`}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+          >
+            Gestion des échéances
+          </Link>
+        </div>
+      </Card>
+    </>
   );
 }
 

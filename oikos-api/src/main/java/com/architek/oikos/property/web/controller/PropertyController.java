@@ -14,11 +14,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 import jakarta.validation.Valid;
 import com.architek.oikos.property.application.command.BuildingConfiguration;
+import com.architek.oikos.property.application.command.ConfigureExistingPropertyCommand;
 import com.architek.oikos.property.application.command.ConfigurePropertyCommand;
 import com.architek.oikos.property.application.command.CreatePropertyCommand;
 import com.architek.oikos.property.application.command.SetProjectedBudgetCommand;
@@ -26,6 +28,7 @@ import com.architek.oikos.property.application.command.UnitTypeConfiguration;
 import com.architek.oikos.property.application.command.UpdateDuesCalculationModeCommand;
 import com.architek.oikos.property.application.command.UpdatePropertyCommand;
 import com.architek.oikos.property.application.dto.PropertyView;
+import com.architek.oikos.property.application.port.in.ConfigureExistingPropertyUseCase;
 import com.architek.oikos.property.application.port.in.ConfigurePropertyUseCase;
 import com.architek.oikos.property.application.port.in.CreatePropertyUseCase;
 import com.architek.oikos.property.application.port.in.GetPropertyUseCase;
@@ -38,6 +41,9 @@ import com.architek.oikos.property.application.query.ListPropertiesQuery;
 import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.web.request.AssignPropertyManagerRequest;
 import com.architek.oikos.property.web.request.BuildingConfigurationRequest;
+import com.architek.oikos.property.web.request.ConfigureExistingPropertyRequest;
+import com.architek.oikos.property.web.request.ConfiguredBuildingRequest;
+import com.architek.oikos.property.web.request.ConfiguredUnitCountRequest;
 import com.architek.oikos.property.web.request.ConfigurePropertyRequest;
 import com.architek.oikos.property.web.request.CreatePropertyRequest;
 import com.architek.oikos.property.web.request.SetProjectedBudgetRequest;
@@ -81,6 +87,7 @@ public class PropertyController {
 
     private final CreatePropertyUseCase createPropertyUseCase;
     private final ConfigurePropertyUseCase configurePropertyUseCase;
+    private final ConfigureExistingPropertyUseCase configureExistingPropertyUseCase;
     private final GetPropertyUseCase getPropertyUseCase;
     private final ListPropertiesUseCase listPropertiesUseCase;
     private final UpdatePropertyUseCase updatePropertyUseCase;
@@ -93,6 +100,7 @@ public class PropertyController {
 
     public PropertyController(CreatePropertyUseCase createPropertyUseCase,
                                   ConfigurePropertyUseCase configurePropertyUseCase,
+                                  ConfigureExistingPropertyUseCase configureExistingPropertyUseCase,
                                   GetPropertyUseCase getPropertyUseCase,
                                   ListPropertiesUseCase listPropertiesUseCase,
                                   UpdatePropertyUseCase updatePropertyUseCase,
@@ -104,6 +112,7 @@ public class PropertyController {
                                   EnforcePropertyCreationLimitService enforcePropertyCreationLimitService) {
         this.createPropertyUseCase = createPropertyUseCase;
         this.configurePropertyUseCase = configurePropertyUseCase;
+        this.configureExistingPropertyUseCase = configureExistingPropertyUseCase;
         this.getPropertyUseCase = getPropertyUseCase;
         this.listPropertiesUseCase = listPropertiesUseCase;
         this.updatePropertyUseCase = updatePropertyUseCase;
@@ -181,6 +190,21 @@ public class PropertyController {
         return ResponseEntity.created(URI.create("/api/v1/properties/" + id)).build();
     }
 
+    /**
+     * Final step of the volunteer-syndic wizard: lays out a property that already
+     * exists (registration created it together with the account and its party).
+     * Accepts the wizard's short-lived onboarding token as well as an ordinary
+     * board-admin session, so a wizard resumed after the token expired still goes
+     * through - see PropertyAccessEvaluator.canConfigureOnboarding.
+     */
+    @PreAuthorize("@propertyAccess.canConfigureOnboarding(authentication, #id)")
+    @PostMapping("/{id}/configuration")
+    public ResponseEntity<Void> configureExisting(@PathVariable String id,
+                                                   @Valid @RequestBody ConfigureExistingPropertyRequest request) {
+        configureExistingPropertyUseCase.configure(toCommand(PropertyId.of(id), request));
+        return ResponseEntity.noContent().build();
+    }
+
     @PreAuthorize("@propertyAccess.canInviteMemberOnProperty(authentication, #id)")
     @PostMapping("/{id}/managers")
     public ResponseEntity<Void> assignManager(@PathVariable String id, @Valid @RequestBody AssignPropertyManagerRequest request,
@@ -236,5 +260,33 @@ public class PropertyController {
 
     private static UnitTypeConfiguration toUnitTypeConfiguration(UnitTypeConfigurationRequest request) {
         return new UnitTypeConfiguration(request.unitTypeName(), request.count());
+    }
+
+    private static ConfigureExistingPropertyCommand toCommand(PropertyId propertyId,
+                                                                ConfigureExistingPropertyRequest request) {
+        List<BuildingConfiguration> buildings = new ArrayList<>();
+        for (int index = 0; index < request.buildings().size(); index++) {
+            ConfiguredBuildingRequest building = request.buildings().get(index);
+            // The wizard makes both optional; the domain requires both (Building).
+            String name = building.name() == null || building.name().isBlank()
+                    ? "Bâtiment " + (index + 1)
+                    : building.name().trim();
+            int floorCount = building.floorCount() == null ? 0 : building.floorCount();
+            buildings.add(new BuildingConfiguration(name, floorCount, building.unitTypes().stream()
+                    .filter(unitType -> unitType.count() > 0)
+                    .map(unitType -> new UnitTypeConfiguration(unitType.unitTypeName(), unitType.count()))
+                    .toList()));
+        }
+        return new ConfigureExistingPropertyCommand(propertyId, request.duesCalculationMode(),
+                request.projectedBudget(),
+                request.unitTypes().stream()
+                        .map(unitType -> new ConfigureExistingPropertyCommand.UnitTypePricing(unitType.name(),
+                                unitType.price()))
+                        .toList(),
+                buildings,
+                request.bankAccounts() == null ? List.of() : request.bankAccounts().stream()
+                        .map(bankAccount -> new ConfigureExistingPropertyCommand.BankAccountConfiguration(
+                                bankAccount.label(), bankAccount.bankAccountNumber()))
+                        .toList());
     }
 }

@@ -13,6 +13,7 @@ import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.user.application.command.RegisterPropertyBoardAdminCommand;
+import com.architek.oikos.user.application.dto.RegisteredBoardAdminView;
 import com.architek.oikos.user.application.port.in.RegisterPropertyBoardAdminUseCase;
 import com.architek.oikos.user.application.port.out.PartyProvisioningDetails;
 import com.architek.oikos.user.application.port.out.PartyProvisioningPort;
@@ -23,6 +24,7 @@ import com.architek.oikos.user.domain.model.PropertyRole;
 import com.architek.oikos.user.domain.model.Role;
 import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.model.VerificationToken;
+import com.architek.oikos.user.domain.repository.OnboardingLeadRepository;
 import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.user.domain.repository.VerificationTokenRepository;
 import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
@@ -47,6 +49,7 @@ import com.architek.oikos.user.domain.valueobject.UserId;
 public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardAdminUseCase {
 
     private final UserRepository userRepository;
+    private final OnboardingLeadRepository onboardingLeadRepository;
     private final PartyProvisioningPort partyProvisioningPort;
     private final PropertyProvisioningPort propertyProvisioningPort;
     private final VerificationTokenRepository verificationTokenRepository;
@@ -58,6 +61,7 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
     private final Duration verificationTokenTtl;
 
     public RegisterPropertyBoardAdminService(UserRepository userRepository,
+                                              OnboardingLeadRepository onboardingLeadRepository,
                                               PartyProvisioningPort partyProvisioningPort,
                                               PropertyProvisioningPort propertyProvisioningPort,
                                               VerificationTokenRepository verificationTokenRepository,
@@ -68,6 +72,7 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
                                               Clock clock,
                                               @Value("${oikos.mail.verification-token-ttl-hours}") long verificationTokenTtlHours) {
         this.userRepository = userRepository;
+        this.onboardingLeadRepository = onboardingLeadRepository;
         this.partyProvisioningPort = partyProvisioningPort;
         this.propertyProvisioningPort = propertyProvisioningPort;
         this.verificationTokenRepository = verificationTokenRepository;
@@ -81,7 +86,7 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
 
     @Override
     @Transactional
-    public UserId register(RegisterPropertyBoardAdminCommand command) {
+    public RegisteredBoardAdminView register(RegisterPropertyBoardAdminCommand command) {
         if (userRepository.existsByEmail(command.email().value())) {
             throw new EmailAlreadyUsedException(command.email().value());
         }
@@ -103,6 +108,14 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
         verificationTokenRepository.save(verificationToken);
 
         emailSenderPort.send(command.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken, null));
-        return savedUser.getId();
+
+        // Closes the funnel opened on step 1 of the wizard: the address became an
+        // account, so the follow-up job must leave it alone (see OnboardingLead).
+        onboardingLeadRepository.findByEmail(command.email())
+                .filter(lead -> !lead.isConverted())
+                .map(lead -> lead.convertedAt(clock.instant()))
+                .ifPresent(onboardingLeadRepository::save);
+
+        return new RegisteredBoardAdminView(savedUser.getId(), propertyId);
     }
 }

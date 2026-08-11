@@ -32,6 +32,9 @@ oikos:
       secret: ${JWT_SECRET:change-me-change-me-change-me-change-me-32bytes}
       access-token-ttl-seconds: 900
       refresh-token-ttl-seconds: 1209600
+      # Volunteer-syndic wizard: covers steps 3 to 7 in one sitting. Past that the
+      # visitor verifies their email and finishes as an ordinary board admin.
+      onboarding-token-ttl-seconds: 7200
   property:
     configure:
       max-units: 500

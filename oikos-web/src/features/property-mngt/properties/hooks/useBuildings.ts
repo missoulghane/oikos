@@ -8,5 +8,8 @@ export function useBuildings(propertyId: string, page = 0, size: number = DEFAUL
   return useQuery({
     queryKey: queryKeys.properties.buildings(propertyId, page, size),
     queryFn: () => getBuildings({ propertyId, page, size }),
+    // Même garde que useUnits : appelé avec un id vide (utilisateur sans
+    // copropriété), la requête partirait sur /properties//buildings.
+    enabled: Boolean(propertyId),
   });
 }

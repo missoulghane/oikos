@@ -29,6 +29,7 @@ public interface LedgerAccountPersistenceMapper {
         entity.setRole(account.getRole().map(Enum::name).orElse(null));
         entity.setActive(account.isActive());
         entity.setBalance(account.getBalance());
+        entity.setBankAccountNumber(account.getBankAccountNumber().orElse(null));
         return entity;
     }
 
@@ -39,6 +40,6 @@ public interface LedgerAccountPersistenceMapper {
                 AccountNumber.of(entity.getAccountNumber()), entity.getLabel(), entity.getAccountClass(),
                 AccountNature.valueOf(entity.getNature()), entity.isCollective(),
                 entity.getRole() == null ? null : AccountRole.valueOf(entity.getRole()), entity.isActive(),
-                entity.getBalance());
+                entity.getBalance(), entity.getBankAccountNumber());
     }
 }

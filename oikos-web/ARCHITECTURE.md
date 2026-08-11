@@ -249,7 +249,43 @@ Conventions de surfaces en sombre (identiques au template) : page et chrome
 bordures en `dark:border-gray-800`, texte principal en `dark:text-white/90` et
 secondaire en `dark:text-gray-400`.
 
-## 9. Limites connues de cette v1 (à traiter dans une itération suivante)
+## 9. Inscription du syndic bénévole (wizard)
+
+`/register/board-admin/*` est un wizard en 7 étapes
+(`features/identity/onboarding`), une URL par étape — d'où le lien profond, le
+bouton « Modifier » du récapitulatif et le retour navigateur gratuits.
+
+Deux écritures serveur seulement, et c'est ce qui structure tout le reste :
+
+- **Fin de l'étape 1** — `POST /users/onboarding-leads` enregistre l'email
+  seul. Le compte ne peut pas encore exister : une `Party` est portée par une
+  propriété (`party.property_id NOT NULL`), qui n'a pas de nom avant l'étape 2.
+  Sans cette capture, tout visiteur abandonnant entre les étapes 1 et 2 serait
+  perdu.
+- **Fin de l'étape 2** — `POST /users/register-property-board-admin` crée
+  compte + copropriété + party + rôle d'un bloc (couplage conservé) et renvoie
+  un **jeton d'onboarding** : le compte n'étant pas vérifié, il ne peut pas se
+  connecter, et ce jeton de portée réduite (un seul endpoint, une seule
+  propriété, ~2 h) est sa seule autorisation. À partir d'ici, un abandon laisse
+  derrière lui un compte utilisable.
+- **Étapes 3 à 6** — bufferisées côté client (`OnboardingProvider`,
+  `localStorage`). Le mot de passe, lui, reste en mémoire uniquement.
+- **Étape 7** — `POST /properties/{id}/configuration` commet le tout en une
+  transaction (mode, types + prix, bâtiments, lots, comptes bancaires). Un seul
+  commit rend les allers-retours depuis le récapitulatif sans effet de bord ;
+  l'API refuse en 409 une copropriété qui a déjà des bâtiments, ce qui rend le
+  double envoi inoffensif.
+
+Le jeton expiré n'est pas un cul-de-sac : l'endpoint accepte aussi une session
+de syndic ordinaire, et `ResumeOnboardingBanner` (tableau de bord) propose de
+reprendre à un syndic dont la copropriété n'a encore aucun bâtiment.
+
+L'étape 4 est conditionnelle : montants par type au forfait, budget
+prévisionnel en tantièmes (les tantièmes eux-mêmes se saisissent lot par lot
+ensuite). Les quatre champs d'adresse sont recomposés en une seule chaîne, seul
+format que l'API stocke (250 caractères, validés sur la concaténation).
+
+## 10. Limites connues de cette v1 (à traiter dans une itération suivante)
 
 - Pas de page 401/403 dédiée : une session invalide redirige silencieusement
   vers `/login`.

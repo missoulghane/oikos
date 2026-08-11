@@ -92,7 +92,10 @@ public class SecurityConfiguration {
                                 "/api/v1/users/register-property-board-admin",
                                 "/api/v1/users/register-property-manager-admin",
                                 "/api/v1/users/verify", "/api/v1/users/resend-verification",
-                                "/api/v1/users/activate-account", "/api/v1/users/accept-invitation").permitAll()
+                                "/api/v1/users/activate-account", "/api/v1/users/accept-invitation",
+                                // Step 1 of the volunteer-syndic wizard, typed before any
+                                // account can exist (see CaptureOnboardingLeadService).
+                                "/api/v1/users/onboarding-leads").permitAll()
                         // GET (preview/available-units) stays anonymous so the invitation
                         // landing page renders before the visitor logs in; the POST endpoints
                         // (accept/membership-requests) fall through to .anyRequest().authenticated()

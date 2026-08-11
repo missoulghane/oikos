@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.property.application.dto.PropertyView;
+import com.architek.oikos.property.application.port.in.ConfigureExistingPropertyUseCase;
 import com.architek.oikos.property.application.port.in.ConfigurePropertyUseCase;
 import com.architek.oikos.property.application.port.in.CreatePropertyUseCase;
 import com.architek.oikos.property.application.port.in.GetPropertyUseCase;
@@ -52,6 +53,9 @@ class PropertyControllerWebMvcTest {
 
     @MockitoBean
     private ConfigurePropertyUseCase configurePropertyUseCase;
+
+    @MockitoBean
+    private ConfigureExistingPropertyUseCase configureExistingPropertyUseCase;
 
     @MockitoBean
     private GetPropertyUseCase getPropertyUseCase;
@@ -241,5 +245,65 @@ class PropertyControllerWebMvcTest {
                                 {"projectedBudget":0}
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    private static final String CONFIGURATION_BODY = """
+            {"duesCalculationMode":"FLAT_RATE",
+             "unitTypes":[{"name":"Appartement","price":50}],
+             "buildings":[{"unitTypes":[{"unitTypeName":"Appartement","count":12}]}],
+             "bankAccounts":[{"label":"Attijariwafa Bank","bankAccountNumber":"0077800001234"}]}
+            """;
+
+    @Test
+    void configuring_a_property_is_allowed_with_the_wizard_s_onboarding_token() throws Exception {
+        PropertyId propertyId = PropertyId.newId();
+        String onboardingToken = jwtService.generateOnboardingToken(EntityId.newId(),
+                EntityId.of(propertyId.asUuid()));
+
+        mockMvc.perform(post("/api/v1/properties/" + propertyId + "/configuration")
+                        .header("Authorization", "Bearer " + onboardingToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(CONFIGURATION_BODY))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void an_onboarding_token_issued_for_another_property_is_refused() throws Exception {
+        String onboardingToken = jwtService.generateOnboardingToken(EntityId.newId(), EntityId.newId());
+
+        mockMvc.perform(post("/api/v1/properties/" + PropertyId.newId() + "/configuration")
+                        .header("Authorization", "Bearer " + onboardingToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(CONFIGURATION_BODY))
+                .andExpect(status().isForbidden());
+    }
+
+    /** The token is a wizard credential, not a session: it must open nothing else. */
+    @Test
+    void an_onboarding_token_does_not_open_the_rest_of_the_property_api() throws Exception {
+        PropertyId propertyId = PropertyId.newId();
+        String onboardingToken = jwtService.generateOnboardingToken(EntityId.newId(),
+                EntityId.of(propertyId.asUuid()));
+
+        mockMvc.perform(get("/api/v1/properties/" + propertyId)
+                        .header("Authorization", "Bearer " + onboardingToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void configuring_a_property_is_also_allowed_with_an_ordinary_admin_session() throws Exception {
+        mockMvc.perform(post("/api/v1/properties/" + PropertyId.newId() + "/configuration")
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(CONFIGURATION_BODY))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void anonymous_configuration_is_rejected_with_401() throws Exception {
+        mockMvc.perform(post("/api/v1/properties/" + PropertyId.newId() + "/configuration")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(CONFIGURATION_BODY))
+                .andExpect(status().isUnauthorized());
     }
 }

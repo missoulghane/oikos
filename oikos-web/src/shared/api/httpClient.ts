@@ -2,6 +2,13 @@ import axios from 'axios';
 import { API_URL } from '@/config/env';
 import { useAuthStore } from '@/app/store';
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** Voir l'intercepteur de réponse plus bas : requêtes non rattachées à la session. */
+    skipSessionRefresh?: boolean;
+  }
+}
+
 export const httpClient = axios.create({ baseURL: API_URL });
 
 // Dedicated client for the token refresh call: it must never go through the
@@ -39,8 +46,13 @@ httpClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     const isAuthEndpoint = originalRequest?.url?.startsWith('/auth/');
+    // Requests authenticated by something other than the session (the onboarding
+    // wizard's own token) opt out: there is no refresh token to renew them with,
+    // so the recovery below would bounce an anonymous visitor to /login and drop
+    // them out of the funnel. They handle their own 401 instead.
+    const skipsSessionRefresh = originalRequest?.skipSessionRefresh === true;
 
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint && !skipsSessionRefresh) {
       originalRequest._retry = true;
       try {
         refreshPromise ??= refreshAccessToken().finally(() => {

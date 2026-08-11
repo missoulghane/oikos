@@ -14,4 +14,12 @@ public interface LedgerAccountProvisioningPort {
     void provisionPropertyCashAccount(EntityId propertyId);
 
     void provisionUnitReceivableAccount(EntityId propertyId, EntityId unitId);
+
+    /**
+     * Bank accounts declared while configuring a property (wizard step 6).
+     * Unlike the two above they are not automatic: a property may perfectly
+     * well have none. bankAccountNumber (RIB/IBAN) may be null - the account
+     * can be declared now and completed later.
+     */
+    void provisionBankAccount(EntityId propertyId, String label, String bankAccountNumber);
 }

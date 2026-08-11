@@ -1,9 +1,9 @@
 package com.architek.oikos.user.application.port.in;
 
 import com.architek.oikos.user.application.command.RegisterPropertyBoardAdminCommand;
-import com.architek.oikos.user.domain.valueobject.UserId;
+import com.architek.oikos.user.application.dto.RegisteredBoardAdminView;
 
 public interface RegisterPropertyBoardAdminUseCase {
 
-    UserId register(RegisterPropertyBoardAdminCommand command);
+    RegisteredBoardAdminView register(RegisterPropertyBoardAdminCommand command);
 }

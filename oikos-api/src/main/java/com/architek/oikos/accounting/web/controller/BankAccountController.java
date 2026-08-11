@@ -34,7 +34,7 @@ public class BankAccountController {
     @PreAuthorize("@propertyAccess.canWriteAccounting(authentication, #propertyId)")
     @PostMapping("/properties/{propertyId}/accounting/bank-accounts")
     public ResponseEntity<Void> add(@PathVariable String propertyId, @Valid @RequestBody AddBankAccountRequest request) {
-        LedgerAccountId id = addBankAccountUseCase.add(new AddBankAccountCommand(EntityId.of(propertyId), request.label()));
+        LedgerAccountId id = addBankAccountUseCase.add(new AddBankAccountCommand(EntityId.of(propertyId), request.label(), request.bankAccountNumber()));
         return ResponseEntity.created(
                         URI.create("/api/v1/properties/" + propertyId + "/accounting/ledger-accounts/" + id))
                 .build();
