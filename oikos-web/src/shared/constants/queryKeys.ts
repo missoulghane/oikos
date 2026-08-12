@@ -3,7 +3,9 @@ export const queryKeys = {
     detail: () => ['me', 'detail'] as const,
     units: () => ['me', 'units'] as const,
     installments: () => ['me', 'installments'] as const,
+    payments: () => ['me', 'payments'] as const,
     membershipRequests: () => ['me', 'membership-requests'] as const,
+    avatar: (hasAvatar: boolean) => ['me', 'avatar', hasAvatar] as const,
   },
   properties: {
     list: (page: number, size: number) => ['properties', 'list', page, size] as const,
@@ -54,7 +56,8 @@ export const queryKeys = {
     accountingJournalEntry: (propertyId: string, entryId: string) =>
       ['properties', propertyId, 'accounting', 'entries', entryId] as const,
     accountingExpenses: (propertyId: string) => ['properties', propertyId, 'accounting', 'expenses'] as const,
-    latestPayment: (propertyId: string) => ['properties', propertyId, 'payments', 'latest'] as const,
+    latestPayments: (propertyId: string, size: number) =>
+      ['properties', propertyId, 'payments', 'latest', size] as const,
     ledgerAccountEntries: (
       propertyId: string,
       accountId: string,
@@ -129,5 +132,9 @@ export const queryKeys = {
     drafts: (page: number, size: number, search: string | undefined) =>
       ['messaging', 'drafts', page, size, search] as const,
     draft: (draftId: string) => ['messaging', 'drafts', draftId] as const,
+  },
+  notifications: {
+    list: (page: number, size: number) => ['notifications', 'list', page, size] as const,
+    unreadCount: () => ['notifications', 'unread-count'] as const,
   },
 };

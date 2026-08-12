@@ -3,11 +3,16 @@
     "name": "oikos-mobile",
     "slug": "oikos-mobile",
     "version": "1.0.0",
+    "scheme": "oikos",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.issoulghane.oikosmobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -16,13 +21,28 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Oikos a besoin d'accéder à vos photos pour changer votre avatar."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c6711795-0a37-46d3-98f0-fd025888f281"
+      }
+    }
   }
 }

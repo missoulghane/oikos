@@ -10,6 +10,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.architek.oikos.invitation.application.command.SubmitMembershipRequestCommand;
 import com.architek.oikos.invitation.application.port.out.AccountDirectoryPort;
 import com.architek.oikos.invitation.application.port.out.AccountInfo;
+import com.architek.oikos.invitation.application.port.out.BoardStaffDirectoryPort;
+import com.architek.oikos.invitation.application.port.out.NotificationPort;
 import com.architek.oikos.invitation.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.invitation.application.port.out.UnitBasicInfo;
 import com.architek.oikos.invitation.application.port.out.UnitDirectoryPort;
@@ -55,9 +58,15 @@ class SubmitMembershipRequestServiceTest {
     @Mock
     private AccountDirectoryPort accountDirectoryPort;
 
+    @Mock
+    private BoardStaffDirectoryPort boardStaffDirectoryPort;
+
+    @Mock
+    private NotificationPort notificationPort;
+
     private SubmitMembershipRequestService newService() {
         return new SubmitMembershipRequestService(invitationRepository, membershipRequestRepository, partyDirectoryPort,
-                unitDirectoryPort, accountDirectoryPort, CLOCK);
+                unitDirectoryPort, accountDirectoryPort, boardStaffDirectoryPort, notificationPort, CLOCK);
     }
 
     private Invitation publicInvitation(EntityId propertyId) {
@@ -80,6 +89,8 @@ class SubmitMembershipRequestServiceTest {
         when(partyDirectoryPort.findIdByEmail(EmailVO.of("jane.doe@example.com"), propertyId)).thenReturn(Optional.empty());
         when(partyDirectoryPort.createParty(any(), eq(propertyId))).thenReturn(newPartyId);
         when(membershipRequestRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        EntityId boardUserId = EntityId.newId();
+        when(boardStaffDirectoryPort.listStaffUserIds(propertyId)).thenReturn(List.of(boardUserId));
 
         newService().submit(new SubmitMembershipRequestCommand("tok", actingUserId, unitId));
 
@@ -89,6 +100,8 @@ class SubmitMembershipRequestServiceTest {
         assertThat(captor.getValue().getUnitId()).isEqualTo(unitId);
         assertThat(captor.getValue().getPartyId()).isEqualTo(newPartyId);
         assertThat(captor.getValue().getUserId()).isEqualTo(actingUserId);
+        // REQUEST_RECEIVED (GAP.md §3.1): every active board seat on the property is notified.
+        org.mockito.Mockito.verify(notificationPort).notifyRequestReceived(eq(boardUserId), eq(propertyId), any(), any(), any());
     }
 
     @Test

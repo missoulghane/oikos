@@ -2,5 +2,5 @@ package com.architek.oikos.installment.application.query;
 
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
-public record GetLatestPaymentByPropertyQuery(EntityId propertyId) {
+public record GetLatestPaymentByPropertyQuery(EntityId propertyId, int size) {
 }

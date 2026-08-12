@@ -33,30 +33,35 @@ export function MyInstallmentsPage() {
         )}
         {installments.data && installments.data.length > 0 && (
           <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
-            {installments.data.map((installment) => {
-              const unit = unitsById.get(installment.unitId);
-              return (
-                <li key={installment.id} className="flex items-center justify-between py-2 text-sm">
-                  <div>
-                    {unit && (
-                      <Link
-                        to={`/property-ownership/units/${unit.propertyId}/${unit.unitId}`}
-                        className="text-gray-500 dark:text-gray-400 hover:underline"
-                      >
-                        {unit.propertyName} — {unit.buildingName} — Lot {unit.unitNumber}
-                      </Link>
-                    )}
-                    <p className="text-gray-700 dark:text-gray-300">
-                      Échéance du {new Date(installment.dueDate).toLocaleDateString('fr-FR')} — {installment.amount} MAD
-                      {installment.status === 'PARTIALLY_SETTLED' && ` (reste ${installment.outstandingAmount} MAD)`}
-                    </p>
-                  </div>
-                  <Badge color={INSTALLMENT_STATUS_BADGE_COLORS[installment.status]}>
-                    {INSTALLMENT_STATUS_LABELS[installment.status]}
-                  </Badge>
-                </li>
-              );
-            })}
+            {installments.data
+              .slice()
+              .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime())
+              .map((installment) => {
+                const unit = unitsById.get(installment.unitId);
+                return (
+                  <li key={installment.id} className="flex items-center justify-between py-2 text-sm">
+                    <div>
+                      {unit && (
+                        <Link
+                          to={`/property-ownership/units/${unit.propertyId}/${unit.unitId}`}
+                          className="text-gray-500 dark:text-gray-400 hover:underline"
+                        >
+                          {unit.propertyName} — {unit.buildingName} — Lot {unit.unitNumber}
+                        </Link>
+                      )}
+                      <p className="text-gray-700 dark:text-gray-300">
+                        Échéance du {new Date(installment.dueDate).toLocaleDateString('fr-FR')} —{' '}
+                        {installment.amount.toLocaleString('fr-FR')} MAD
+                        {installment.status === 'PARTIALLY_SETTLED' &&
+                          ` (reste ${installment.outstandingAmount.toLocaleString('fr-FR')} MAD)`}
+                      </p>
+                    </div>
+                    <Badge color={INSTALLMENT_STATUS_BADGE_COLORS[installment.status]}>
+                      {INSTALLMENT_STATUS_LABELS[installment.status]}
+                    </Badge>
+                  </li>
+                );
+              })}
           </ul>
         )}
       </Card>

@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { create } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 import * as SecureStore from 'expo-secure-store';
+import { queryClient } from '@/app/queryClient';
 import type { AuthTokens } from '@/features/identity/auth/types/auth.types';
 
 interface AccessTokenClaims {
@@ -79,7 +80,15 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
           roles: decodeRoles(tokens.accessToken),
         }),
-      clearSession: () => set({ accessToken: null, refreshToken: null, isAuthenticated: false, roles: [] }),
+      clearSession: () => {
+        // Every cached server response (current user, units, installments,
+        // conversations…) belongs to the session that's ending - without
+        // this, logging out and back in as someone else on the same device
+        // keeps rendering the previous account's data until each query's
+        // own staleTime happens to expire. Mirrors app/store.ts in oikos-web.
+        queryClient.clear();
+        set({ accessToken: null, refreshToken: null, isAuthenticated: false, roles: [] });
+      },
     }),
     {
       name: 'oikos-auth',

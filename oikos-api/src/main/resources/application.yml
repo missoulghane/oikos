@@ -17,8 +17,8 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:m.issoulghane@gmail.com}
-    password: ${MAIL_PASSWORD:oovc flco pllw ztpu}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -59,6 +59,15 @@ oikos:
   document:
     max-file-size-bytes: ${DOCUMENT_MAX_FILE_SIZE_BYTES:10485760}
     allowed-content-types: ${DOCUMENT_ALLOWED_CONTENT_TYPES:application/pdf,image/png,image/jpeg,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet}
+  avatar:
+    max-file-size-bytes: ${AVATAR_MAX_FILE_SIZE_BYTES:2097152}
+    allowed-content-types: ${AVATAR_ALLOWED_CONTENT_TYPES:image/png,image/jpeg,image/webp}
+  push:
+    # Unlike oikos.mail (defaults on, a working SMTP setup is assumed in
+    # production), this defaults OFF: no EAS/Expo project with push
+    # credentials is configured yet (see PLAN.md Phase 3 risks). Set to true
+    # once one exists, to switch from LoggingPushAdapter to ExpoPushAdapter.
+    enabled: ${PUSH_ENABLED:false}
 
 management:
   endpoints:

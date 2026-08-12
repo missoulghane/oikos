@@ -121,6 +121,9 @@ const ProfilePage = lazy(() => import('@/features/identity/me').then((m) => ({ d
 const MyInstallmentsPage = lazy(() =>
   import('@/features/property-ownership/installments').then((m) => ({ default: m.MyInstallmentsPage })),
 );
+const MyPaymentsPage = lazy(() =>
+  import('@/features/property-ownership/payments').then((m) => ({ default: m.MyPaymentsPage })),
+);
 const MyMembershipRequestsPage = lazy(() =>
   import('@/features/property-ownership/membership-requests').then((m) => ({
     default: m.MyMembershipRequestsPage,
@@ -137,6 +140,9 @@ const ConversationPage = lazy(() =>
 );
 const DraftsListPage = lazy(() =>
   import('@/features/messaging').then((m) => ({ default: m.DraftsListPage })),
+);
+const NotificationsListPage = lazy(() =>
+  import('@/features/notifications').then((m) => ({ default: m.NotificationsListPage })),
 );
 
 export const privateRoutes: RouteObject[] = [
@@ -234,6 +240,18 @@ export const privateRoutes: RouteObject[] = [
         element: (
           <Suspense fallback={<Loader />}>
             <NewConversationPage />
+          </Suspense>
+        ),
+      },
+      {
+        // Transverse, same rationale as /messages above - open to every
+        // authenticated user, cuts across both /property-mngt and
+        // /property-ownership (target UX rule 6: notifications are always
+        // global, never scoped to the active space).
+        path: '/notifications',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <NotificationsListPage />
           </Suspense>
         ),
       },
@@ -564,6 +582,14 @@ export const privateRoutes: RouteObject[] = [
             element: (
               <Suspense fallback={<Loader />}>
                 <MyInstallmentsPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'payments',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <MyPaymentsPage />
               </Suspense>
             ),
           },

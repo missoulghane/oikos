@@ -33,8 +33,25 @@ public class UserEntity extends AuditableEntity {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
+    @Column
+    private String phone;
+
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
+
+    // No @Lob: on PostgreSQL a plain byte[] column already maps to bytea (matches the
+    // V25 migration), and @Lob would instead trigger legacy Large Object (oid) semantics.
+    // columnDefinition pins the schema-from-entity DDL (H2 dev/test, ddl-auto=create-drop -
+    // production schema comes from the Flyway migration, not this annotation) to the same
+    // "bytea" keyword H2's MODE=PostgreSQL compatibility understands: left to its own
+    // inference, Hibernate defaults an unannotated byte[] to VARBINARY(255) (silently
+    // truncating any real image), and explicitly raising `length` instead promotes it to
+    // "blob" past a size threshold - a keyword MODE=PostgreSQL's H2 rejects outright.
+    @Column(columnDefinition = "bytea")
+    private byte[] avatar;
+
+    @Column(name = "avatar_content_type")
+    private String avatarContentType;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"))

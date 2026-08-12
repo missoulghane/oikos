@@ -13,4 +13,5 @@ export type {
   Message,
   PagedMessages,
   RecipientCandidate,
+  SenderIdentity,
 } from '@/features/messaging/types/messaging.types';

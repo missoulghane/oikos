@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { useCurrentUser, boardPropertyId } from '@/features/identity/me';
 import { useBuildings } from '@/features/property-mngt/properties/hooks/useBuildings';
 import { stepPath } from '@/features/identity/onboarding/constants/steps';
 
@@ -9,13 +8,15 @@ import { stepPath } from '@/features/identity/onboarding/constants/steps';
  * l'étape 7). Plutôt qu'une redirection forcée - qui l'enfermerait dans le
  * tunnel alors que son espace est parfaitement utilisable - on lui propose de
  * reprendre là où il s'est arrêté.
+ *
+ * propertyId vient de l'appelant (l'espace bureau actuellement affiché),
+ * jamais re-dérivé en interne : un compte avec plusieurs mandats doit voir
+ * ce bandeau pour CELUI qu'il consulte, pas systématiquement pour le premier.
  */
-export function ResumeOnboardingBanner() {
-  const currentUser = useCurrentUser();
-  const propertyId = currentUser.data ? boardPropertyId(currentUser.data) : null;
-  const buildings = useBuildings(propertyId ?? '');
+export function ResumeOnboardingBanner({ propertyId }: { propertyId: string }) {
+  const buildings = useBuildings(propertyId);
 
-  const isUnconfigured = Boolean(propertyId) && buildings.isSuccess && buildings.data.content.length === 0;
+  const isUnconfigured = buildings.isSuccess && buildings.data.content.length === 0;
   if (!isUnconfigured) {
     return null;
   }

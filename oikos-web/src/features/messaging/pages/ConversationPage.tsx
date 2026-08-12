@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
-import { useCurrentUser, isBoardTierOnProperty, isManagerTierOnProperty } from '@/features/identity/me';
+import { useCurrentUser, isBoardTierOnProperty, isManagerTierOnProperty, isOwnerOnProperty } from '@/features/identity/me';
+import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
 import { useConversationMessages } from '@/features/messaging/hooks/useConversationMessages';
 import { useMarkConversationRead } from '@/features/messaging/hooks/useMarkConversationRead';
 import { MessageThreadItem } from '@/features/messaging/components/MessageThreadItem';
@@ -67,26 +68,43 @@ export function ConversationPage() {
   }, [id]);
 
   const summary = conversationList.find((conversation) => conversation.id === id);
+  const effectiveSpace = useEffectiveSpace();
+
+  const isStaffOnThisProperty = Boolean(
+    currentUser.data &&
+      summary &&
+      (isBoardTierOnProperty(currentUser.data, summary.propertyId) ||
+        isManagerTierOnProperty(currentUser.data, summary.propertyId)),
+  );
 
   // Any participant may reply in a GROUP conversation (already enforced by
-  // the backend for read access to even be here). A BROADCAST channel is
-  // read-only for everyone except board/manager - mirrors
-  // canSendToConversation server-side, so "Répondre" is never shown to
-  // someone who'd get a 403 clicking it.
+  // the backend for read access to even be here). A BROADCAST or
+  // BOARD_PRIVATE thread is read-only for everyone except board/manager -
+  // mirrors canSendToConversation server-side, so "Répondre" is never shown
+  // to someone who'd get a 403 clicking it.
   const canReply =
-    summary?.type === 'GROUP' ||
-    (summary?.type === 'BROADCAST' &&
-      Boolean(
-        currentUser.data &&
-        (isBoardTierOnProperty(currentUser.data, summary.propertyId) ||
-          isManagerTierOnProperty(currentUser.data, summary.propertyId)),
-      ));
+    summary?.type === 'GROUP' || ((summary?.type === 'BROADCAST' || summary?.type === 'BOARD_PRIVATE') && isStaffOnThisProperty);
+
+  // Same "envoyer en tant que" rule as composing a new message: only a real
+  // choice for a GROUP thread where the sender holds both roles on this
+  // property (case 2/4/6/7) - BOARD_PRIVATE/BROADCAST replies are always
+  // BOARD regardless, the backend enforces it either way.
+  const identityChoiceNeeded =
+    summary?.type === 'GROUP' &&
+    Boolean(currentUser.data && summary && isOwnerOnProperty(currentUser.data, summary.propertyId)) &&
+    isStaffOnThisProperty;
+  const defaultIdentity =
+    summary && effectiveSpace.kind === 'board' && effectiveSpace.propertyId === summary.propertyId
+      ? 'BOARD'
+      : effectiveSpace.kind === 'owner'
+        ? 'OWNER'
+        : undefined;
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 p-3">
         <Link
-          to={BOX_PATH[box]}
+          to={`${BOX_PATH[box]}${spaceQuerySuffix(effectiveSpace)}`}
           aria-label="Retour à la liste des messages"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
         >
@@ -113,7 +131,7 @@ export function ConversationPage() {
       {canReply && (
         <div className="border-t border-gray-100 dark:border-gray-800 p-3">
           {isReplying ? (
-            <MessageComposer conversationId={id} />
+            <MessageComposer conversationId={id} identityChoiceNeeded={identityChoiceNeeded} defaultIdentity={defaultIdentity} />
           ) : (
             <Button
               type="button"

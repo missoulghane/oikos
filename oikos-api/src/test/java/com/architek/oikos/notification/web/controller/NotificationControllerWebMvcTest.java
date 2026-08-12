@@ -21,11 +21,13 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.notification.application.command.MarkNotificationReadCommand;
+import com.architek.oikos.notification.application.command.RegisterDevicePushTokenCommand;
 import com.architek.oikos.notification.application.dto.NotificationView;
 import com.architek.oikos.notification.application.port.in.GetNotificationUseCase;
 import com.architek.oikos.notification.application.port.in.GetUnreadNotificationCountUseCase;
 import com.architek.oikos.notification.application.port.in.ListMyNotificationsUseCase;
 import com.architek.oikos.notification.application.port.in.MarkNotificationReadUseCase;
+import com.architek.oikos.notification.application.port.in.RegisterDevicePushTokenUseCase;
 import com.architek.oikos.notification.application.query.GetNotificationQuery;
 import com.architek.oikos.notification.domain.model.NotificationType;
 import com.architek.oikos.notification.domain.valueobject.NotificationId;
@@ -57,6 +59,9 @@ class NotificationControllerWebMvcTest {
 
     @MockitoBean
     private MarkNotificationReadUseCase markNotificationReadUseCase;
+
+    @MockitoBean
+    private RegisterDevicePushTokenUseCase registerDevicePushTokenUseCase;
 
     private String bearerToken(UUID userId, String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(userId), Set.of(authorities));
@@ -121,5 +126,19 @@ class NotificationControllerWebMvcTest {
                         .header("Authorization", bearerToken(userId, "ROLE_USER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void the_current_user_can_register_a_device_push_token() throws Exception {
+        UUID userId = UUID.randomUUID();
+
+        mockMvc.perform(post("/api/v1/users/me/push-tokens")
+                        .header("Authorization", bearerToken(userId, "ROLE_USER"))
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"expoPushToken\":\"ExponentPushToken[abc]\"}"))
+                .andExpect(status().isNoContent());
+
+        verify(registerDevicePushTokenUseCase)
+                .register(new RegisterDevicePushTokenCommand(EntityId.of(userId), "ExponentPushToken[abc]"));
     }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useParams } from 'react-router-dom';
+import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
 import { useMyConversations } from '@/features/messaging/hooks/useMyConversations';
 import { ConversationListItem } from '@/features/messaging/components/ConversationListItem';
 import { Input } from '@/shared/components/Input/Input';
@@ -66,6 +67,10 @@ export function MessagingLayout({ box }: MessagingLayoutProps) {
 
   const conversations = useMyConversations(page, box, search || undefined);
   const hasConversationOpen = Boolean(conversationId);
+  // Carried onto "Nouveau message" so composing from the board space doesn't
+  // silently drop the viewer back into owner (see spaceQuerySuffix).
+  const effectiveSpace = useEffectiveSpace();
+  const newMessageHref = `/messages/new${spaceQuerySuffix(effectiveSpace)}`;
 
   const data = conversations.data;
   const from = data && data.totalElements > 0 ? data.pageNumber * data.pageSize + 1 : 0;
@@ -87,7 +92,7 @@ export function MessagingLayout({ box }: MessagingLayoutProps) {
               <RefreshIcon className={`h-4 w-4 ${conversations.isFetching ? 'animate-spin' : ''}`} />
             </button>
             <Link
-              to="/messages/new"
+              to={newMessageHref}
               className="inline-flex min-h-9 items-center rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
             >
               Nouveau message
@@ -129,6 +134,7 @@ export function MessagingLayout({ box }: MessagingLayoutProps) {
                   conversation={conversation}
                   box={box}
                   isActive={conversation.id === conversationId}
+                  spaceSuffix={spaceQuerySuffix(effectiveSpace)}
                 />
               ))}
             </ul>

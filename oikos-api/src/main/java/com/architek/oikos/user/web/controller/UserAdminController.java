@@ -100,7 +100,7 @@ public class UserAdminController {
     @PatchMapping("/{id}/profile")
     public UserResponse updateProfile(@PathVariable String id, @Valid @RequestBody UpdateProfileRequest request) {
         UpdateUserProfileCommand command = new UpdateUserProfileCommand(
-                UserId.of(id), request.fullName(), EmailVO.of(request.email()));
+                UserId.of(id), request.fullName(), EmailVO.of(request.email()), request.phone());
         return UserResponse.from(updateUserProfileUseCase.updateProfile(command));
     }
 

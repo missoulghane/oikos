@@ -18,7 +18,7 @@ export function EditProfileForm({ user }: { user: CurrentUser }) {
     formState: { errors },
   } = useForm<UpdateProfileFormValues>({
     resolver: zodResolver(updateProfileSchema),
-    defaultValues: { fullName: user.fullName, email: user.email },
+    defaultValues: { fullName: user.fullName, email: user.email, phone: user.phone ?? '' },
   });
   const { mutate, isPending, isSuccess, error } = useUpdateProfile();
 
@@ -32,6 +32,7 @@ export function EditProfileForm({ user }: { user: CurrentUser }) {
       {error && <Alert message={getErrorMessage(error)} />}
       <Input label="Nom complet" {...register('fullName')} errorMessage={errors.fullName?.message} />
       <Input label="Email" type="email" {...register('email')} errorMessage={errors.email?.message} />
+      <Input label="Téléphone" type="tel" {...register('phone')} errorMessage={errors.phone?.message} />
       <Button type="submit" isLoading={isPending} className="w-fit">
         Enregistrer
       </Button>

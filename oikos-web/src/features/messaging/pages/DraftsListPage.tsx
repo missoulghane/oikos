@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
 import { useMyDrafts } from '@/features/messaging/hooks/useMyDrafts';
 import { useDeleteDraft } from '@/features/messaging/hooks/useDeleteDraft';
 import { DraftListItem } from '@/features/messaging/components/DraftListItem';
@@ -28,6 +29,10 @@ export function DraftsListPage() {
 
   const drafts = useMyDrafts(page, search || undefined);
   const deleteDraft = useDeleteDraft();
+  // Carried onto "Nouveau message" so composing from the board space doesn't
+  // silently drop the viewer back into owner (see spaceQuerySuffix).
+  const effectiveSpace = useEffectiveSpace();
+  const newMessageHref = `/messages/new${spaceQuerySuffix(effectiveSpace)}`;
 
   const data = drafts.data;
   const from = data && data.totalElements > 0 ? data.pageNumber * data.pageSize + 1 : 0;
@@ -38,7 +43,7 @@ export function DraftsListPage() {
       <div className="flex items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-800 p-4">
         <h1 className="text-base font-semibold text-gray-900 dark:text-white/90">Brouillon</h1>
         <Link
-          to="/messages/new"
+          to={newMessageHref}
           className="inline-flex min-h-9 items-center rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
         >
           Nouveau message
@@ -79,6 +84,7 @@ export function DraftsListPage() {
                 draft={draft}
                 onDelete={(draftId) => deleteDraft.mutate(draftId)}
                 isDeleting={deleteDraft.isPending && deleteDraft.variables === draft.id}
+                spaceSuffix={spaceQuerySuffix(effectiveSpace)}
               />
             ))}
           </ul>

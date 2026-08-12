@@ -1,6 +1,6 @@
 package com.architek.oikos.installment.application.usecase;
 
-import java.util.Optional;
+import java.util.List;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +21,9 @@ public class GetLatestPaymentByPropertyService implements GetLatestPaymentByProp
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<PaymentView> getLatestPayment(GetLatestPaymentByPropertyQuery query) {
-        return paymentRepository.findLatestByPropertyId(query.propertyId()).map(PaymentView::from);
+    public List<PaymentView> getLatestPayment(GetLatestPaymentByPropertyQuery query) {
+        return paymentRepository.findLatestByPropertyId(query.propertyId(), query.size()).stream()
+                .map(PaymentView::from)
+                .toList();
     }
 }

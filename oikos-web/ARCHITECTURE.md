@@ -1,8 +1,10 @@
 # Architecture
 
-Application organisée **par fonctionnalité métier** (feature-based), suivant
-[../react_best_practices.md](../react_best_practices.md). Ce document décrit
-comment ces règles sont appliquées concrètement dans `oikos-web`.
+Application organisée **par fonctionnalité métier** (feature-based). Ce
+document décrit l'organisation du code et les conventions suivies dans
+`oikos-web` — la section [7. Conventions](#7-conventions) ci-dessous fait
+office de guide de référence pour ces règles, partagé avec `oikos-mobile`
+(voir [oikos-mobile/ARCHITECTURE.md](../oikos-mobile/ARCHITECTURE.md)).
 
 ## 1. Arborescence
 
@@ -120,9 +122,8 @@ ses propres lots — quitte à réutiliser sans duplication les sections déjà
 
 ## 2. Flux de dépendances
 
-`Page → Container/Component → Hook → API → shared/api/httpClient`, comme
-préconisé par le guide (§2). Concrètement pour la création d'une
-copropriété :
+`Page → Container/Component → Hook → API → shared/api/httpClient`.
+Concrètement pour la création d'une copropriété :
 
 ```text
 CreatePropertyPage
@@ -157,8 +158,8 @@ httpClient.post('/properties')
   vers `/login`.
 
 La session (`accessToken`, `refreshToken`, `isAuthenticated`) est le seul
-état global de l'application (§6 du guide : "utilisateur connecté" est un
-des rares cas légitimes de store global) et vit dans `app/store.ts`
+état global de l'application ("utilisateur connecté" étant l'un des rares
+cas légitimes de store global) et vit dans `app/store.ts`
 (Zustand + persist en `localStorage`). `router/ProtectedRoute.tsx` s'appuie
 dessus pour protéger `/properties` et `/properties/new`.
 
@@ -195,7 +196,7 @@ composant `Alert`.
 
 ## 6. Tests
 
-Trois niveaux couverts pour cette version (voir §14 du guide) :
+Trois niveaux couverts pour cette version :
 
 - **Utilitaires** — `shared/utils/getErrorMessage.test.ts`.
 - **Logique métier / schémas** — `features/property-mngt/properties/schemas/createPropertySchema.test.ts`.
@@ -207,9 +208,9 @@ la commande à intégrer dans une pipeline CI/CD.
 
 ## 7. Conventions
 
-- Nommage en anglais dans le code (voir §17 du guide), français réservé aux
-  textes affichés à l'utilisateur (labels, messages d'erreur) — cohérent
-  avec la règle 2 d'`oikos-api/docs/ARCHITECTURE.md`.
+- Nommage en anglais dans le code, français réservé aux textes affichés à
+  l'utilisateur (labels, messages d'erreur) — cohérent avec la règle 2
+  d'[oikos-api/ARCHITECTURE.md](../oikos-api/ARCHITECTURE.md).
 - Alias d'import `@/*` → `src/*` (voir `tsconfig.app.json`, `vite.config.ts`).
 - ESLint (flat config, `typescript-eslint` + `react-hooks` +
   `react-refresh`) et Prettier, avec `eslint-config-prettier` pour éviter

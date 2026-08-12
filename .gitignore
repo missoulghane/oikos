@@ -1,10 +1,9 @@
 # =============================================================================
-# Root .gitignore for the oikos monorepo.
+# Root .gitignore for the oikos monorepo (oikos-api, oikos-mobile, oikos-web).
 #
-# oikos-api/.gitignore and oikos-web/.gitignore already cover their own
-# language-specific build artifacts (target/, node_modules/, dist/, ...).
-# This file only covers cross-cutting concerns that can show up anywhere in
-# the tree: OS-generated junk, editor/IDE files, local env files and logs.
+# Single source of truth: patterns without a leading "/" match at any depth,
+# so per-project rules live here too instead of being duplicated in each
+# sub-project's own .gitignore.
 # =============================================================================
 
 ### Environment / secrets ###
@@ -12,6 +11,9 @@
 .env.local
 .env.*.local
 *.local
+
+### Working notes with credentials (never track, see history for the original) ###
+users.tests
 
 ### Logs ###
 *.log
@@ -76,3 +78,82 @@ $RECYCLE.BIN/
 *.tmp
 *.temp
 *.orig
+
+# =============================================================================
+# oikos-api (Spring Boot / Maven)
+# =============================================================================
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Local secrets/overrides
+application-local.yml
+application-local.yaml
+application-local.properties
+
+# STS / IntelliJ / NetBeans
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+.idea
+*.iws
+*.ipr
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# =============================================================================
+# oikos-mobile (Expo / React Native)
+# =============================================================================
+node_modules/
+.expo/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/oikos-mobile/ios
+/oikos-mobile/android
+
+# =============================================================================
+# oikos-web (Vite / React)
+# =============================================================================
+dist/
+dist-ssr/
+pnpm-debug.log*
+lerna-debug.log*
+
+# Tests / coverage
+coverage/
+.nyc_output/

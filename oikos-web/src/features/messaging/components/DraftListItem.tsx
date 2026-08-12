@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { MessageDraftSummary } from '@/features/messaging/types/messaging.types';
-import { formatRelativeTime } from '@/features/messaging/utils/formatRelativeTime';
+import { formatRelativeTime } from '@/shared/utils/formatRelativeTime';
 import { TrashBinIcon } from '@/shared/icons';
 
 function draftTitle(draft: MessageDraftSummary): string {
@@ -21,17 +21,25 @@ interface DraftListItemProps {
   draft: MessageDraftSummary;
   onDelete: (draftId: string) => void;
   isDeleting?: boolean;
+  /** "?space=…" from the caller's useEffectiveSpace() (see spaceQuerySuffix) - computed once by
+   * the list page rather than per-row, and carried onto the resume link so reopening a draft
+   * from the board space doesn't silently drop the viewer back into owner. Already has a
+   * "?draftId=" of its own, so the suffix (which starts with "?" when non-empty) is joined with
+   * "&" instead of appended verbatim. */
+  spaceSuffix?: string;
 }
 
 // Two clickable zones side by side rather than one big <Link> (unlike
 // ConversationListItem): the delete button must not be a descendant of the
 // row's Link (nested interactive elements + click-through navigation), so
 // only the content zone opens the draft in the compose form.
-export function DraftListItem({ draft, onDelete, isDeleting = false }: DraftListItemProps) {
+export function DraftListItem({ draft, onDelete, isDeleting = false, spaceSuffix = '' }: DraftListItemProps) {
+  const resumeHref = `/messages/new?draftId=${draft.id}${spaceSuffix ? `&${spaceSuffix.slice(1)}` : ''}`;
+
   return (
     <li className="flex items-center gap-1 border-b border-gray-100 dark:border-gray-800 pr-2">
       <Link
-        to={`/messages/new?draftId=${draft.id}`}
+        to={resumeHref}
         className="flex min-w-0 flex-1 flex-col gap-0.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
       >
         <div className="flex items-baseline justify-between gap-2">

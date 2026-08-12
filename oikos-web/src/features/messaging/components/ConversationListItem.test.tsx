@@ -10,6 +10,7 @@ const baseConversation: ConversationSummary = {
   propertyId: 'property-1',
   propertyName: 'Résidence Les Oliviers',
   subject: 'Fuite d’eau hall B',
+  concernsUnit: null,
   participants: [{ userId: 'user-2', fullName: 'Jean Dupont' }],
   lastMessagePreview: 'À bientôt !',
   lastMessageAt: new Date().toISOString(),
@@ -64,6 +65,30 @@ describe('ConversationListItem', () => {
     expect(screen.getByText('Annonces de la copropriété')).toBeInTheDocument();
     expect(screen.queryByText('Jean Dupont')).not.toBeInTheDocument();
     expect(screen.getByText('Résidence Les Oliviers')).toBeInTheDocument();
+  });
+
+  it('shows a "Privé · bureau" chip for a BOARD_PRIVATE conversation, keeping its own subject as the title', () => {
+    renderItem({
+      ...baseConversation,
+      type: 'BOARD_PRIVATE',
+      subject: 'Devis ascenseur',
+      participants: [],
+    });
+
+    expect(screen.getByText('Devis ascenseur')).toBeInTheDocument();
+    expect(screen.getByText('Privé · bureau')).toBeInTheDocument();
+  });
+
+  it('shows a "Concerne" chip when the conversation has a concernsUnit', () => {
+    renderItem({ ...baseConversation, concernsUnit: 'Appartement 3' });
+
+    expect(screen.getByText('Concerne Appartement 3')).toBeInTheDocument();
+  });
+
+  it('does not show a "Concerne" chip when concernsUnit is null', () => {
+    renderItem(baseConversation);
+
+    expect(screen.queryByText(/^Concerne /)).not.toBeInTheDocument();
   });
 
   it('shows an unread badge and bold styling when unreadCount > 0', () => {

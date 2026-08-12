@@ -1,14 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSidebar } from '@/shared/context/SidebarContext';
-import {
-  useCurrentUser,
-  boardPropertyId,
-  canManageProperties,
-  isManagerTier,
-  isManagerTierOnProperty,
-} from '@/features/identity/me';
+import { useCurrentUser, boardPropertyIds, canManageProperties, isManagerTier } from '@/features/identity/me';
+import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
 import { useUnreadSummary } from '@/features/messaging';
+import { useUnreadNotificationCount } from '@/features/notifications';
 import {
   GridIcon,
   PieChartIcon,
@@ -31,6 +27,7 @@ import {
   EnvelopeIcon,
   PencilIcon,
   LockIcon,
+  BellIcon,
 } from '@/shared/icons';
 import { Badge } from '@/shared/components/Badge/Badge';
 import { SidebarWidget } from './SidebarWidget';
@@ -87,24 +84,31 @@ const ACCOUNTING_TABS = [
 // "Messagerie" group icon above them (EnvelopeIcon) - see messagingGroup.
 // The unread count belongs to Réception specifically (it counts unread
 // received messages), not to the group as a whole.
-function messagingTabs(messagingUnreadCount: number) {
+//
+// spaceSuffix carries the currently active space along (e.g.
+// "?space=board&propertyId=…") - /messages/* itself is transverse and has
+// no property id in its path, so without this a click from the board space
+// lands on a URL useActiveSpace reads as neutral, and useEffectiveSpace's
+// landing default (owner-first) silently swaps the viewer into the owner
+// space instead of keeping them where they were.
+function messagingTabs(messagingUnreadCount: number, spaceSuffix: string) {
   return [
-    { name: 'Réception', path: '/messages/reception', icon: <MailIcon />, badge: messagingUnreadCount },
-    { name: 'Envoyé', path: '/messages/sent', icon: <PaperPlaneIcon /> },
-    { name: 'Brouillon', path: '/messages/drafts', icon: <PencilIcon /> },
+    { name: 'Réception', path: `/messages/reception${spaceSuffix}`, icon: <MailIcon />, badge: messagingUnreadCount },
+    { name: 'Envoyé', path: `/messages/sent${spaceSuffix}`, icon: <PaperPlaneIcon /> },
+    { name: 'Brouillon', path: `/messages/drafts${spaceSuffix}`, icon: <PencilIcon /> },
   ];
 }
 
 // Messaging is transverse to properties (a single mailbox aggregates every
-// property the account belongs to), so it always points at the same
-// top-level /messages/* routes regardless of which property context this
-// sidebar happens to be showing - shared by both the staff (property
-// context groups) and plain-owner (flat navItems) sidebar shapes.
-function messagingGroup(messagingUnreadCount: number): NavGroup {
+// property the account belongs to) - shared by both the staff (property
+// context groups) and plain-owner (flat navItems) sidebar shapes - but the
+// space the viewer is composing/reading from still needs to survive the
+// click, see messagingTabs.
+function messagingGroup(messagingUnreadCount: number, spaceSuffix: string): NavGroup {
   return {
     name: 'Messagerie',
     icon: <EnvelopeIcon />,
-    children: messagingTabs(messagingUnreadCount),
+    children: messagingTabs(messagingUnreadCount, spaceSuffix),
   };
 }
 
@@ -117,11 +121,17 @@ function messagingGroup(messagingUnreadCount: number): NavGroup {
 // a prefix of every one of its siblings - so a plain startsWith lights it up on
 // every sub-tab as well. Resolving a single winner by longest match keeps the
 // nested-detail behaviour while letting the more specific sibling take over.
+//
+// Compared on the path only, ignoring any ?space=… query string a child may
+// carry (see messagingTabs) - location.pathname never has one, so comparing
+// the raw child.path would never match and messaging tabs would never
+// highlight as active.
 function activeChildPath(children: { path: string }[], pathname: string): string | null {
   return children.reduce<string | null>((best, child) => {
-    const matches = pathname === child.path || pathname.startsWith(`${child.path}/`);
+    const childPathname = child.path.split('?')[0];
+    const matches = pathname === childPathname || pathname.startsWith(`${childPathname}/`);
     if (!matches) return best;
-    return best === null || child.path.length > best.length ? child.path : best;
+    return best === null || childPathname.length > best.split('?')[0].length ? child.path : best;
   }, null);
 }
 
@@ -169,78 +179,162 @@ export function AppSidebar() {
   // "Messagerie" below, kept in sync with the header bell (same query/cache).
   const unreadSummary = useUnreadSummary();
   const messagingUnreadCount = unreadSummary.data?.totalUnreadMessageCount ?? 0;
-  // Both groups start expanded (matching the previous always-open behaviour);
-  // the user can collapse either one independently from there.
-  const [openGroups, setOpenGroups] = useState<Set<string>>(
-    () => new Set(['Ma copropriété', 'Gestion des échéances', 'Comptabilité', 'Messagerie']),
-  );
-
-  const showExpanded = isExpanded || isHovered || isMobileOpen;
+  // Same rationale: always mounted, drives the badge next to "Notifications"
+  // below, kept in sync with the header bell (same query/cache).
+  const notificationsUnreadCount = useUnreadNotificationCount();
 
   const user = currentUser.data;
-  const boardId = user ? boardPropertyId(user) : null;
+  const effectiveSpace = useEffectiveSpace();
+  const mandateIds = user ? boardPropertyIds(user) : [];
   const managerTier = user ? isManagerTier(user) : false;
-  const currentPropertyId = location.pathname.match(/^\/property-mngt\/properties\/([^/]+)/)?.[1] ?? null;
-  const isInOwnManagedProperty =
-    managerTier &&
-    currentPropertyId !== null &&
-    user !== undefined &&
-    isManagerTierOnProperty(user, currentPropertyId);
+
+  // Which property's admin menu (Ma copropriété/Échéances/Comptabilité) to
+  // show: exactly the property of the resolved space when it's 'board',
+  // none otherwise - owner and manager both show no property-scoped group.
+  // Reads the same resolution as the dashboard and the space switcher (see
+  // useEffectiveSpace) so the three can never disagree on which space is
+  // actually showing, whether the URL says so explicitly or a default
+  // applies (landing on /dashboard with no ?space=).
+  const contextPropertyId = effectiveSpace.kind === 'board' ? effectiveSpace.propertyId : null;
+
+  // Carried onto the Messagerie links below so a click from the board space
+  // stays there instead of being read as neutral and defaulted back to
+  // owner (see messagingTabs' own note and useActiveSpace).
+  const spaceSuffix = spaceQuerySuffix(effectiveSpace);
 
   // Messagerie is always shown, for every account type, regardless of the current route - unlike
   // the property-scoped groups below (only meaningful while browsing a specific property), it
   // doesn't depend on where in the app the viewer currently is. A NavItem can't show children/
   // expand (see the NavItem/NavGroup split below), so plain owners get it as a NavGroup too
   // (instead of a flat link) to expose the 3 mailbox tabs at all.
-  const propertyGroups: NavGroup[] = boardId
-    ? propertyContextGroups(boardId)
-    : isInOwnManagedProperty && currentPropertyId
-      ? propertyContextGroups(currentPropertyId)
-      : [];
-  const groups: NavGroup[] = [...propertyGroups, messagingGroup(messagingUnreadCount)];
+  const propertyGroups: NavGroup[] = contextPropertyId ? propertyContextGroups(contextPropertyId) : [];
+  const groups: NavGroup[] = [...propertyGroups, messagingGroup(messagingUnreadCount, spaceSuffix)];
+
+  // Every menu starts closed - except the one holding the page the app
+  // actually opened on (owner space or board space alike), opened by
+  // itself with focus on that page, rather than every group expanded
+  // regardless of where we land. `groups` above must already be resolved
+  // (it depends on the space read off the initial URL) before this runs.
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const landingGroup = groups.find((group) => activeChildPath(group.children, location.pathname) !== null);
+    return landingGroup ? new Set([landingGroup.name]) : new Set();
+  });
+
+  const showExpanded = isExpanded || isHovered || isMobileOpen;
 
   const canManage = user ? canManageProperties(user) : false;
+  // Distinct from canManage: an account can own units AND hold a staff role
+  // elsewhere (e.g. board member on one property, owner on another) - those
+  // accounts still need the owner self-service links below while browsing
+  // their owner space, same as DashboardPage's defaultSpace already
+  // prioritizes 'owner' whenever hasCopro is true. Gated on the *current*
+  // effective space, not just account type: switching into a board mandate
+  // (SpaceSwitcher) must hide these again, or a mixed account sees the
+  // personal-space menu items while browsing a résidence it manages.
+  const isOwnerSpace = effectiveSpace.kind === 'owner';
+
+  // Always shown regardless of role, rendered after the groups below (see
+  // the trailing renderNavItem call) so it sits right under "Messagerie" -
+  // same rationale as messagingGroup for always being present (target UX
+  // rule 6: notifications are always global, never scoped to the active
+  // space or to a particular account type).
+  const notificationsNavItem: NavItem = {
+    name: 'Notifications',
+    path: `/notifications${spaceSuffix}`,
+    icon: <BellIcon />,
+    badge: notificationsUnreadCount.data?.unreadCount ?? 0,
+  };
 
   const navItems: NavItem[] = [
-    ...(boardId || managerTier
-      ? [{ name: 'Tableau de bord', path: '/dashboard', icon: <PieChartIcon /> }]
+    // Carries the resolved space along (see spaceSuffix above) - without it,
+    // clicking this from the board space lands on the param-less /dashboard,
+    // which useEffectiveSpace reads as neutral and defaults back to owner.
+    ...(mandateIds.length > 0 || managerTier
+      ? [{ name: 'Tableau de bord', path: `/dashboard${spaceSuffix}`, icon: <PieChartIcon /> }]
       : []),
-    ...(!boardId && canManage
+    ...(mandateIds.length === 0 && canManage
       ? [{ name: 'Copropriétés', path: '/property-mngt/properties', icon: <GridIcon /> }]
       : []),
     // Plain owner accounts (no board/manager role on any property) get their
     // own personal space instead of the staff property list.
     ...(!canManage ? [{ name: 'Mon tableau de bord', path: '/dashboard', icon: <PieChartIcon /> }] : []),
-    ...(!canManage ? [{ name: 'Mes lots', path: '/property-ownership/units', icon: <BoxIconLine /> }] : []),
-    ...(!canManage
+    // Owner self-service links: shown while the owner space is the active
+    // one, even for an account that also holds a staff role elsewhere -
+    // gating on canManage alone hid these entirely for that mixed case;
+    // gating on account type alone (hasCopro) showed them even while
+    // browsing a board mandate, which is the regression this guards against.
+    ...(isOwnerSpace ? [{ name: 'Mes lots', path: '/property-ownership/units', icon: <BoxIconLine /> }] : []),
+    ...(isOwnerSpace
       ? [{ name: 'Mes échéances', path: '/property-ownership/installments', icon: <TimeIcon /> }]
       : []),
-    ...(!canManage
+    ...(isOwnerSpace
+      ? [{ name: 'Mes paiements', path: '/property-ownership/payments', icon: <DollarLineIcon /> }]
+      : []),
+    ...(isOwnerSpace
       ? [{ name: 'Mes invitations', path: '/property-ownership/membership-requests', icon: <MailIcon /> }]
       : []),
   ];
 
+  // Accordion behaviour: opening a group collapses every other one, except a
+  // group currently holding the active page (see activeChildPath) - that one
+  // stays open regardless, so navigating deeper into it never hides where
+  // you are. Closing the group you clicked (it was already open) never
+  // touches the others.
   function toggleGroup(name: string) {
     setOpenGroups((prev) => {
       const next = new Set(prev);
       if (next.has(name)) {
         next.delete(name);
-      } else {
-        next.add(name);
+        return next;
       }
+      for (const group of groups) {
+        if (group.name !== name && activeChildPath(group.children, location.pathname) === null) {
+          next.delete(group.name);
+        }
+      }
+      next.add(name);
       return next;
     });
   }
 
   function isActive(path: string) {
+    // Compared on the path only, ignoring any ?space=… query string a nav
+    // item may carry (see the "Tableau de bord" item below) - location.pathname
+    // never has one, so comparing the raw path would never match.
+    const pathname = path.split('?')[0];
     // When a property context group is shown, the top-level properties list
     // itself only highlights on the list page - its nested paths are
     // represented by the contextual groups below, not by this item, to avoid
     // double-highlighting.
-    if (path === '/property-mngt/properties' && groups.length > 0) {
-      return location.pathname === path;
+    if (pathname === '/property-mngt/properties' && groups.length > 0) {
+      return location.pathname === pathname;
     }
-    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+    return location.pathname === pathname || location.pathname.startsWith(`${pathname}/`);
+  }
+
+  function renderNavItem(item: NavItem) {
+    return (
+      <li key={item.path}>
+        <Link
+          to={item.path}
+          className={`menu-item group ${isActive(item.path) ? 'menu-item-active' : 'menu-item-inactive'} ${
+            !showExpanded ? 'lg:justify-center' : ''
+          }`}
+        >
+          <span
+            className={`menu-item-icon-size ${isActive(item.path) ? 'menu-item-icon-active' : 'menu-item-icon-inactive'}`}
+          >
+            {item.icon}
+          </span>
+          {showExpanded && <span className="menu-item-text">{item.name}</span>}
+          {showExpanded && Boolean(item.badge) && (
+            <Badge color="error" variant="solid" className="ml-auto">
+              {item.badge}
+            </Badge>
+          )}
+        </Link>
+      </li>
+    );
   }
 
   return (
@@ -263,30 +357,7 @@ export function AppSidebar() {
           {showExpanded ? 'Menu' : <HorizontaLDots className="size-6" />}
         </span>
         <ul className="flex flex-col gap-2">
-          {navItems.map((item) => (
-            <li key={item.path}>
-              <Link
-                to={item.path}
-                className={`menu-item group ${isActive(item.path) ? 'menu-item-active' : 'menu-item-inactive'} ${
-                  !showExpanded ? 'lg:justify-center' : ''
-                }`}
-              >
-                <span
-                  className={`menu-item-icon-size ${
-                    isActive(item.path) ? 'menu-item-icon-active' : 'menu-item-icon-inactive'
-                  }`}
-                >
-                  {item.icon}
-                </span>
-                {showExpanded && <span className="menu-item-text">{item.name}</span>}
-                {showExpanded && Boolean(item.badge) && (
-                  <Badge color="error" variant="solid" className="ml-auto">
-                    {item.badge}
-                  </Badge>
-                )}
-              </Link>
-            </li>
-          ))}
+          {navItems.map(renderNavItem)}
           {groups.map((group) => {
             const isOpen = openGroups.has(group.name);
             const activePath = activeChildPath(group.children, location.pathname);
@@ -362,6 +433,7 @@ export function AppSidebar() {
               </li>
             );
           })}
+          {renderNavItem(notificationsNavItem)}
         </ul>
       </nav>
       {showExpanded && <SidebarWidget />}

@@ -100,8 +100,10 @@ INSERT INTO role_permission (role_name, permission_key) VALUES
 
 INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_MEMBER', 'property:read'),
+    ('PROPERTY_BOARD_MEMBER', 'property:create'),
     ('PROPERTY_BOARD_MEMBER', 'property:update'),
     ('PROPERTY_BOARD_MEMBER', 'property:board:manage'),
+    ('PROPERTY_BOARD_MEMBER', 'property:member:invite'),
     ('PROPERTY_BOARD_MEMBER', 'unit:read'),
     ('PROPERTY_BOARD_MEMBER', 'unit:write'),
     ('PROPERTY_BOARD_MEMBER', 'unit:ownership:write'),
@@ -112,6 +114,7 @@ INSERT INTO role_permission (role_name, permission_key) VALUES
     ('PROPERTY_BOARD_MEMBER', 'installment:call:write'),
     ('PROPERTY_BOARD_MEMBER', 'property:accounting:read'),
     ('PROPERTY_BOARD_MEMBER', 'property:accounting:write'),
+    ('PROPERTY_BOARD_MEMBER', 'invitation:manage'),
     ('PROPERTY_BOARD_MEMBER', 'document:read'),
     ('PROPERTY_BOARD_MEMBER', 'document:write'),
     ('PROPERTY_BOARD_MEMBER', 'messaging:broadcast');

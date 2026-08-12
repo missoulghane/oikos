@@ -39,7 +39,10 @@ public interface UserPersistenceMapper {
         entity.setId(user.getId().asUuid());
         entity.setEmail(user.getEmail().value());
         entity.setFullName(user.getFullName());
+        entity.setPhone(user.getPhone());
         entity.setPasswordHash(user.getPassword().value());
+        entity.setAvatar(user.getAvatar());
+        entity.setAvatarContentType(user.getAvatarContentType());
         entity.setRoles(user.getRoles().stream().map(Enum::name).collect(Collectors.toSet()));
         entity.setLinkedPartyIds(user.getLinkedPartyIds().stream().map(EntityId::value).collect(Collectors.toSet()));
         entity.setPropertyRoleGrants(user.getPropertyRoleGrants().stream()
@@ -61,11 +64,14 @@ public interface UserPersistenceMapper {
                 UserId.of(entity.getId()),
                 EmailVO.of(entity.getEmail()),
                 entity.getFullName(),
+                entity.getPhone(),
                 HashedPassword.of(entity.getPasswordHash()),
                 roles,
                 linkedPartyIds,
                 propertyRoleGrants,
                 entity.isVerified(),
-                entity.isEnabled());
+                entity.isEnabled(),
+                entity.getAvatar(),
+                entity.getAvatarContentType());
     }
 }

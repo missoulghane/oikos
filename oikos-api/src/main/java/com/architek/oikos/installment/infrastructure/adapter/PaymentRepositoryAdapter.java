@@ -3,6 +3,7 @@ package com.architek.oikos.installment.infrastructure.adapter;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import com.architek.oikos.installment.domain.model.Payment;
@@ -39,8 +40,11 @@ public class PaymentRepositoryAdapter implements PaymentRepository {
     }
 
     @Override
-    public Optional<Payment> findLatestByPropertyId(EntityId propertyId) {
-        return jpaRepository.findFirstByPropertyIdOrderByValueDateDescCreatedDateDesc(propertyId.value())
-                .map(mapper::toDomain);
+    public List<Payment> findLatestByPropertyId(EntityId propertyId, int limit) {
+        return jpaRepository
+                .findByPropertyIdOrderByValueDateDescCreatedDateDesc(propertyId.value(), Pageable.ofSize(limit))
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 }

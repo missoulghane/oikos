@@ -4,18 +4,21 @@ import { useUnitPayments } from '@/features/property-mngt/installments/hooks/use
 import { PAYMENT_MODE_LABELS } from '@/features/property-mngt/installments/constants/paymentModeLabels';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
+import { Badge } from '@/shared/components/Badge/Badge';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 
 interface UnitPaymentsSectionProps {
   propertyId: string;
   unitId: string;
+  /** Hides the record-payment action for callers without accounting-management rights (e.g. the owner's own read-only lot page). */
+  canManage?: boolean;
 }
 
-export function UnitPaymentsSection({ propertyId, unitId }: UnitPaymentsSectionProps) {
+export function UnitPaymentsSection({ propertyId, unitId, canManage = true }: UnitPaymentsSectionProps) {
   const currentUser = useCurrentUser();
   const payments = useUnitPayments(unitId);
-  const canWrite = currentUser.data ? canWriteAccounting(currentUser.data, propertyId) : false;
+  const canWrite = canManage && currentUser.data ? canWriteAccounting(currentUser.data, propertyId) : false;
 
   return (
     <div className="flex flex-col gap-4">
@@ -27,10 +30,10 @@ export function UnitPaymentsSection({ propertyId, unitId }: UnitPaymentsSectionP
           {payments.data.map((payment) => (
             <li key={payment.id} className="flex items-center justify-between py-2 text-sm">
               <p className="text-gray-700 dark:text-gray-300">
-                {new Date(payment.valueDate).toLocaleDateString('fr-FR')} — {payment.amount.toLocaleString('fr-FR')} MAD
-                {' · '}
-                {PAYMENT_MODE_LABELS[payment.mode]}
+                Paiement du {new Date(payment.valueDate).toLocaleDateString('fr-FR')} —{' '}
+                {payment.amount.toLocaleString('fr-FR')} MAD
               </p>
+              <Badge color="light">{PAYMENT_MODE_LABELS[payment.mode]}</Badge>
             </li>
           ))}
         </ul>

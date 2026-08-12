@@ -2,33 +2,35 @@ import { Link, useOutletContext } from 'react-router-dom';
 import { useCurrentUser, canWriteAccounting } from '@/features/identity/me';
 import { useLedgerAccounts } from '@/features/property-mngt/accounting/hooks/useLedgerAccounts';
 import { useExpenses } from '@/features/property-mngt/accounting/hooks/useExpenses';
-import { useLatestPayment } from '@/features/property-mngt/installments';
+import { ExpenseRow } from '@/features/property-mngt/accounting/components/ExpenseRow';
+import { useLatestPayments, PaymentRow } from '@/features/property-mngt/installments';
 import { TreasuryAccountCard } from '@/features/property-mngt/accounting/components/TreasuryAccountCard';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
-import { PAYMENT_MODE_LABELS } from '@/features/property-mngt/installments/constants/paymentModeLabels';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
+
+// How many recent expenses/payments the overview shows - kept as a single named
+// constant precisely so it stays a one-line change, per the product ask.
+const RECENT_ITEMS_COUNT = 5;
 
 export function AccountingOverviewTab() {
   const { property } = useOutletContext<{ property: Property }>();
   const currentUser = useCurrentUser();
   const ledgerAccounts = useLedgerAccounts(property.id);
   const expenses = useExpenses(property.id);
-  const latestPayment = useLatestPayment(property.id);
+  const latestPayments = useLatestPayments(property.id, RECENT_ITEMS_COUNT);
   const canWrite = currentUser.data ? canWriteAccounting(currentUser.data, property.id) : false;
 
   const treasuryAccounts = (ledgerAccounts.data ?? []).filter(
     (account) => account.role === 'CASH' || account.role === 'BANK',
   );
-  const lastExpense = (expenses.data ?? [])
+  const recentExpenses = (expenses.data ?? [])
     .slice()
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-  const lastExpenseLedgerAccount = lastExpense
-    ? ledgerAccounts.data?.find((account) => account.id === lastExpense.ledgerAccountId)
-    : undefined;
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, RECENT_ITEMS_COUNT);
 
   return (
     <div className="flex flex-col gap-6">
@@ -58,51 +60,55 @@ export function AccountingOverviewTab() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white/90">Dernière dépense</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white/90">Dernières dépenses</h2>
+            <Link
+              to={`/property-mngt/properties/${property.id}/accounting/expenses`}
+              className="text-sm font-medium text-brand-500 dark:text-brand-400 hover:underline"
+            >
+              Voir tout
+            </Link>
+          </div>
           {expenses.isLoading && <Loader label="Chargement…" />}
           {expenses.isError && <Alert message={getErrorMessage(expenses.error)} />}
-          {expenses.data && !lastExpense && <p className="text-sm text-gray-500 dark:text-gray-400">Aucune dépense pour le moment.</p>}
-          {lastExpense && (
-            <>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white/90">
-                {lastExpense.amount.toLocaleString('fr-FR')} MAD
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {new Date(lastExpense.date).toLocaleDateString('fr-FR')}
-                {lastExpenseLedgerAccount && ` · ${lastExpenseLedgerAccount.label}`}
-                {lastExpense.description && ` · ${lastExpense.description}`}
-              </p>
-              <Link
-                to={`/property-mngt/properties/${property.id}/accounting/expenses`}
-                className="text-sm font-medium text-brand-500 dark:text-brand-400 hover:underline"
-              >
-                Voir les dépenses
-              </Link>
-            </>
+          {expenses.data && recentExpenses.length === 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">Aucune dépense pour le moment.</p>
+          )}
+          {recentExpenses.length > 0 && (
+            <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
+              {recentExpenses.map((expense) => (
+                <ExpenseRow
+                  key={expense.id}
+                  expense={expense}
+                  propertyId={property.id}
+                  ledgerAccount={ledgerAccounts.data?.find((account) => account.id === expense.ledgerAccountId)}
+                />
+              ))}
+            </ul>
           )}
         </Card>
 
         <Card className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white/90">Dernière recette</h2>
-          {latestPayment.isLoading && <Loader label="Chargement…" />}
-          {latestPayment.isError && <Alert message={getErrorMessage(latestPayment.error)} />}
-          {latestPayment.data === null && <p className="text-sm text-gray-500 dark:text-gray-400">Aucune recette pour le moment.</p>}
-          {latestPayment.data && (
-            <>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white/90">
-                {latestPayment.data.amount.toLocaleString('fr-FR')} MAD
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {new Date(latestPayment.data.valueDate).toLocaleDateString('fr-FR')} ·{' '}
-                {PAYMENT_MODE_LABELS[latestPayment.data.mode]}
-              </p>
-              <Link
-                to={`/property-mngt/properties/${property.id}/accounting/journal/${latestPayment.data.journalEntryId}`}
-                className="text-sm font-medium text-brand-500 dark:text-brand-400 hover:underline"
-              >
-                Voir l'écriture
-              </Link>
-            </>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white/90">Dernières recettes</h2>
+            <Link
+              to={`/property-mngt/properties/${property.id}/accounting/journal`}
+              className="text-sm font-medium text-brand-500 dark:text-brand-400 hover:underline"
+            >
+              Voir tout
+            </Link>
+          </div>
+          {latestPayments.isLoading && <Loader label="Chargement…" />}
+          {latestPayments.isError && <Alert message={getErrorMessage(latestPayments.error)} />}
+          {latestPayments.data && latestPayments.data.length === 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">Aucune recette pour le moment.</p>
+          )}
+          {latestPayments.data && latestPayments.data.length > 0 && (
+            <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800">
+              {latestPayments.data.map((payment) => (
+                <PaymentRow key={payment.id} payment={payment} propertyId={property.id} />
+              ))}
+            </ul>
           )}
         </Card>
       </div>

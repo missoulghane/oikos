@@ -1,29 +1,80 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '@/shared/components/Button/Button';
 import { Card } from '@/shared/components/Card/Card';
-import { useAuthStore } from '@/app/store';
 import { useLogout } from '@/features/identity/auth';
+import { useUnreadNotificationCount } from '@/features/notifications';
+import { useUnreadSummary } from '@/features/messaging';
 import { colors } from '@/shared/theme/colors';
+import type { MainStackParamList } from '@/app/navigation/MainNavigator';
+
+type Props = NativeStackScreenProps<MainStackParamList, 'Home'>;
 
 /**
- * Placeholder landing screen for the Main stack - proves the auth flow (login,
- * token persistence, logout) end to end. Will be replaced once
- * features/property-mngt lands.
+ * Owner-space landing screen: flat list of links to each section, mirroring
+ * what oikos-web's sidebar gives free navigation-wise. No tab bar / sidebar
+ * equivalent built yet - revisit once more Main screens land (property-mngt)
+ * and a flat button list stops scaling.
+ *
+ * Messages/Notifications show their unread count in the button label itself
+ * rather than a separate badge overlay (like oikos-web's header bells do):
+ * there's no persistent header/chrome on mobile to mount a bell in, and
+ * Button only accepts a plain string label - see PLAN.md for why the
+ * dropdown-preview bells weren't ported as-is.
  */
-export function HomeScreen() {
-  const roles = useAuthStore((state) => state.roles);
+export function HomeScreen({ navigation }: Props) {
   const logout = useLogout();
+  const unreadNotifications = useUnreadNotificationCount();
+  const unreadMessages = useUnreadSummary();
+
+  const notificationsLabel =
+    unreadNotifications.data && unreadNotifications.data.unreadCount > 0
+      ? `Notifications (${unreadNotifications.data.unreadCount})`
+      : 'Notifications';
+  const messagesLabel =
+    unreadMessages.data && unreadMessages.data.totalUnreadMessageCount > 0
+      ? `Messages (${unreadMessages.data.totalUnreadMessageCount})`
+      : 'Messages';
 
   return (
     <SafeAreaView style={styles.container}>
-      <Card>
-        <Text style={styles.title}>Connecté</Text>
-        <Text style={styles.subtitle}>Rôles : {roles.length > 0 ? roles.join(', ') : 'aucun'}</Text>
-        <Button variant="secondary" onPress={logout} style={styles.logoutButton}>
-          Se déconnecter
-        </Button>
-      </Card>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.title}>Oikos</Text>
+
+        <Card style={styles.card}>
+          <Button variant="secondary" onPress={() => navigation.navigate('MyUnits')}>
+            Mes lots
+          </Button>
+          <Button variant="secondary" onPress={() => navigation.navigate('MyInstallments')}>
+            Mes échéances
+          </Button>
+          <Button variant="secondary" onPress={() => navigation.navigate('MyPayments')}>
+            Mes paiements
+          </Button>
+          <Button variant="secondary" onPress={() => navigation.navigate('MyMembershipRequests')}>
+            Mes invitations
+          </Button>
+        </Card>
+
+        <Card style={styles.card}>
+          <Button variant="secondary" onPress={() => navigation.navigate('ConversationList')}>
+            {messagesLabel}
+          </Button>
+          <Button variant="secondary" onPress={() => navigation.navigate('Notifications')}>
+            {notificationsLabel}
+          </Button>
+        </Card>
+
+        <Card style={styles.card}>
+          <Button variant="secondary" onPress={() => navigation.navigate('Profile')}>
+            Mon profil
+          </Button>
+          <Button variant="secondary" onPress={logout}>
+            Se déconnecter
+          </Button>
+        </Card>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -32,20 +83,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.gray[50],
+  },
+  content: {
     padding: 16,
-    justifyContent: 'center',
+    gap: 16,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
     color: colors.gray[900],
   },
-  subtitle: {
-    marginTop: 4,
-    fontSize: 14,
-    color: colors.gray[500],
-  },
-  logoutButton: {
-    marginTop: 16,
+  card: {
+    gap: 8,
   },
 });

@@ -1,8 +1,65 @@
-import { NavigationContainer } from '@react-navigation/native';
+import * as Linking from 'expo-linking';
+import { NavigationContainer, type LinkingOptions } from '@react-navigation/native';
 import { useAuthStore } from '@/app/store';
-import { AuthNavigator } from '@/app/navigation/AuthNavigator';
-import { MainNavigator } from '@/app/navigation/MainNavigator';
+import { AuthNavigator, type AuthStackParamList } from '@/app/navigation/AuthNavigator';
+import { MainNavigator, type MainStackParamList } from '@/app/navigation/MainNavigator';
 import { Loader } from '@/shared/components/Loader/Loader';
+
+/**
+ * Email links (verify-email, activate-account, accept-invitation,
+ * reset-password) all carry a `token` query param and are meant to be tapped
+ * before/without being logged in, so they only need to resolve against
+ * AuthNavigator's screens. Since AuthNavigator and MainNavigator are mounted
+ * exclusively (see below), their route names never collide today and can
+ * share one flat `screens` map - if a link is tapped while already
+ * authenticated, MainNavigator is mounted instead and these paths simply
+ * won't match anything yet (acceptable for this phase; revisit if that case
+ * needs handling, e.g. an already-logged-in user re-tapping an invite link).
+ */
+const linking: LinkingOptions<AuthStackParamList & MainStackParamList> = {
+  prefixes: [Linking.createURL('/'), 'oikos://'],
+  config: {
+    screens: {
+      Login: 'login',
+      RegisterUser: 'register',
+      VerifyEmail: 'verify-email',
+      ActivateAccount: 'activate-account',
+      AcceptInvitation: 'accept-invitation',
+      ForgotPassword: 'forgot-password',
+      ResetPassword: 'reset-password',
+      InvitationLanding: 'invitations',
+      RegisterPropertyManagerAdmin: 'register/manager-admin',
+      Onboarding: {
+        path: 'register/board-admin',
+        screens: {
+          Account: 'account',
+          Property: 'property',
+          DuesMode: 'dues-mode',
+          UnitTypes: 'unit-types',
+          Buildings: 'buildings',
+          BankAccounts: 'bank-accounts',
+          Summary: 'summary',
+          Done: 'done',
+        },
+      },
+      Home: 'home',
+      Profile: 'profile',
+      MyUnits: 'my-units',
+      MyInstallments: 'my-installments',
+      MyPayments: 'my-payments',
+      MyMembershipRequests: 'my-membership-requests',
+      // MyUnitDetail is deliberately not linkable: it takes the whole OwnedUnit
+      // object as a param (see MainNavigator.tsx), not just an id - there's no
+      // getUnit()-style fetch-by-id on mobile to resolve a bare id from a URL.
+      Notifications: 'notifications',
+      ConversationList: 'messages',
+      NewConversation: 'messages/new',
+      Drafts: 'messages/drafts',
+      // Conversation is deliberately not linkable, same reason as MyUnitDetail:
+      // it takes a whole ConversationSummary as a param, not just an id.
+    },
+  },
+};
 
 /**
  * Chooses between the Auth and Main stacks based on isAuthenticated - the
@@ -19,5 +76,9 @@ export function RootNavigator() {
     return <Loader label="Chargement de la session…" />;
   }
 
-  return <NavigationContainer>{isAuthenticated ? <MainNavigator /> : <AuthNavigator />}</NavigationContainer>;
+  return (
+    <NavigationContainer linking={linking}>
+      {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
+    </NavigationContainer>
+  );
 }

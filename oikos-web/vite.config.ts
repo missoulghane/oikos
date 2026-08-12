@@ -37,5 +37,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // Node 22+'s own (experimental, disabled-by-default) global `localStorage`
+    // shadows jsdom's working implementation once it exists as a global at
+    // all, breaking every test that touches window.localStorage. Disabling
+    // it lets jsdom's own polyfill through untouched.
+    execArgv: ['--no-experimental-webstorage'],
   },
 });

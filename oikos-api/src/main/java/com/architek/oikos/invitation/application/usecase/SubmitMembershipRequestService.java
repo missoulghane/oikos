@@ -10,6 +10,8 @@ import com.architek.oikos.invitation.application.command.SubmitMembershipRequest
 import com.architek.oikos.invitation.application.port.in.SubmitMembershipRequestUseCase;
 import com.architek.oikos.invitation.application.port.out.AccountDirectoryPort;
 import com.architek.oikos.invitation.application.port.out.AccountInfo;
+import com.architek.oikos.invitation.application.port.out.BoardStaffDirectoryPort;
+import com.architek.oikos.invitation.application.port.out.NotificationPort;
 import com.architek.oikos.invitation.application.port.out.PartyDetails;
 import com.architek.oikos.invitation.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.invitation.application.port.out.UnitBasicInfo;
@@ -41,17 +43,23 @@ public class SubmitMembershipRequestService implements SubmitMembershipRequestUs
     private final PartyDirectoryPort partyDirectoryPort;
     private final UnitDirectoryPort unitDirectoryPort;
     private final AccountDirectoryPort accountDirectoryPort;
+    private final BoardStaffDirectoryPort boardStaffDirectoryPort;
+    private final NotificationPort notificationPort;
     private final Clock clock;
 
     public SubmitMembershipRequestService(InvitationRepository invitationRepository,
                                            MembershipRequestRepository membershipRequestRepository,
                                            PartyDirectoryPort partyDirectoryPort, UnitDirectoryPort unitDirectoryPort,
-                                           AccountDirectoryPort accountDirectoryPort, Clock clock) {
+                                           AccountDirectoryPort accountDirectoryPort,
+                                           BoardStaffDirectoryPort boardStaffDirectoryPort,
+                                           NotificationPort notificationPort, Clock clock) {
         this.invitationRepository = invitationRepository;
         this.membershipRequestRepository = membershipRequestRepository;
         this.partyDirectoryPort = partyDirectoryPort;
         this.unitDirectoryPort = unitDirectoryPort;
         this.accountDirectoryPort = accountDirectoryPort;
+        this.boardStaffDirectoryPort = boardStaffDirectoryPort;
+        this.notificationPort = notificationPort;
         this.clock = clock;
     }
 
@@ -88,11 +96,23 @@ public class SubmitMembershipRequestService implements SubmitMembershipRequestUs
 
         MembershipRequest request = MembershipRequest.submit(MembershipRequestId.newId(),
                 EntityId.of(invitation.getId().asUuid()), invitation.getPropertyId(), command.unitId(), partyId, userId);
-        return membershipRequestRepository.save(request).getId();
+        MembershipRequestId savedId = membershipRequestRepository.save(request).getId();
+        notifyStaff(invitation.getPropertyId(), accountInfo.fullName(), unit.unitNumber());
+        return savedId;
     }
 
     private EntityId resolveParty(EmailVO email, String fullName, EntityId propertyId) {
         return partyDirectoryPort.findIdByEmail(email, propertyId)
                 .orElseGet(() -> partyDirectoryPort.createParty(new PartyDetails(fullName, PartyType.INDIVIDUAL, email, null), propertyId));
+    }
+
+    /** REQUEST_RECEIVED (GAP.md §3.1): only fired on an actual new request, never on the idempotent-duplicate early return above. */
+    private void notifyStaff(EntityId propertyId, String requesterFullName, String unitNumber) {
+        String title = "Nouvelle demande d'adhésion";
+        String body = requesterFullName + " souhaite rejoindre le lot " + unitNumber + ".";
+        String linkPath = "/property-mngt/properties/" + propertyId.value() + "/property/invitations";
+        for (EntityId staffUserId : boardStaffDirectoryPort.listStaffUserIds(propertyId)) {
+            notificationPort.notifyRequestReceived(staffUserId, propertyId, title, body, linkPath);
+        }
     }
 }

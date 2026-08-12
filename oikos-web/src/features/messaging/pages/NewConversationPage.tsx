@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCurrentUser, isBoardTierOnProperty, isManagerTierOnProperty } from '@/features/identity/me';
+import { useCurrentUser, isBoardTierOnProperty, isManagerTierOnProperty, isOwnerOnProperty } from '@/features/identity/me';
+import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
 import { useProperties } from '@/features/property-mngt/properties/hooks/useProperties';
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import { useStartConversation } from '@/features/messaging/hooks/useStartConversation';
+import { useStartBoardConversation } from '@/features/messaging/hooks/useStartBoardConversation';
 import { useSendBroadcastMessage } from '@/features/messaging/hooks/useSendBroadcastMessage';
 import { useDraft } from '@/features/messaging/hooks/useDraft';
 import { useCreateDraft } from '@/features/messaging/hooks/useCreateDraft';
@@ -15,12 +17,17 @@ import {
   RecipientPicker,
   EVERYONE_RECIPIENT,
   isEveryoneRecipient,
+  isBoardRecipient,
 } from '@/features/messaging/components/RecipientPicker';
 import {
   startConversationSchema,
   type StartConversationFormValues,
 } from '@/features/messaging/schemas/startConversationSchema';
-import type { RecipientCandidate, SaveMessageDraftPayload } from '@/features/messaging/types/messaging.types';
+import type {
+  RecipientCandidate,
+  SaveMessageDraftPayload,
+  SenderIdentity,
+} from '@/features/messaging/types/messaging.types';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { Loader } from '@/shared/components/Loader/Loader';
@@ -77,6 +84,17 @@ export function NewConversationPage() {
   const myUnits = useMyUnits();
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [selectedRecipients, setSelectedRecipients] = useState<RecipientCandidate[]>([]);
+  // Explicit override for "envoyer en tant que" - null means "follow the
+  // active space" (see identitySentAs below), so switching space before
+  // composing keeps defaulting correctly without this ever going stale.
+  const [identityOverride, setIdentityOverride] = useState<SenderIdentity | null>(null);
+  // Which of the sole selected recipient's units this thread concerns
+  // (see RecipientCandidate.unitNumbers) - only meaningful while that
+  // recipient is actually multi-lot (see concernsUnitChoiceAvailable below),
+  // never reset explicitly on recipient changes since it's simply ignored
+  // (not sent) once the condition stops holding.
+  const [concernsUnit, setConcernsUnit] = useState<string | null>(null);
+  const effectiveSpace = useEffectiveSpace();
   // Tracks which draft (if any) this compose session is attached to: seeded
   // from ?draftId=, then updated once "Enregistrer comme brouillon" creates a
   // fresh one, so a second save in the same session updates it instead of
@@ -107,7 +125,7 @@ export function NewConversationPage() {
       setSelectedRecipients(
         draft.data.broadcast
           ? [EVERYONE_RECIPIENT]
-          : draft.data.recipients.map((recipient) => ({ ...recipient, roleLabel: '' })),
+          : draft.data.recipients.map((recipient) => ({ ...recipient, roleLabel: '', unitNumbers: [], isStaff: false })),
       );
       reset({ subject: draft.data.subject ?? '', body: draft.data.body ?? '' });
     }
@@ -117,6 +135,7 @@ export function NewConversationPage() {
   const propertyIds = user ? Object.keys(user.roleByProperty) : [];
   const effectivePropertyId = selectedPropertyId ?? (propertyIds.length === 1 ? propertyIds[0] : null);
   const startConversation = useStartConversation(effectivePropertyId ?? '');
+  const startBoardConversation = useStartBoardConversation(effectivePropertyId ?? '');
   const sendBroadcastMessage = useSendBroadcastMessage(effectivePropertyId ?? '');
   const createDraft = useCreateDraft(effectivePropertyId ?? '');
   const updateDraft = useUpdateDraft(currentDraftId ?? '');
@@ -136,24 +155,66 @@ export function NewConversationPage() {
   (properties.data?.content ?? []).forEach((property) => propertyNamesById.set(property.id, property.name));
   (myUnits.data ?? []).forEach((unit) => propertyNamesById.set(unit.propertyId, unit.propertyName));
 
-  const canBroadcast =
+  // Same population for both: any staff member (board or manager tier) may
+  // both broadcast to everyone and start a private board thread.
+  const isStaffOnProperty =
     effectivePropertyId !== null &&
     (isBoardTierOnProperty(user, effectivePropertyId) || isManagerTierOnProperty(user, effectivePropertyId));
+  const canBroadcast = isStaffOnProperty;
+  const canBoardPrivate = isStaffOnProperty;
   const isEveryoneSelected = selectedRecipients.some(isEveryoneRecipient);
+  const isBoardSelected = selectedRecipients.some(isBoardRecipient);
+
+  // "Envoyer en tant que" only means something for a GROUP message from an
+  // account holding both roles on this property (case 2/4/6/7) - a
+  // single-role sender is never asked a question with one answer, and
+  // BOARD_PRIVATE/BROADCAST are always sent as BOARD regardless.
+  const identityChoiceNeeded =
+    !isEveryoneSelected &&
+    !isBoardSelected &&
+    effectivePropertyId !== null &&
+    isOwnerOnProperty(user, effectivePropertyId) &&
+    isStaffOnProperty;
+  const defaultIdentity: SenderIdentity | undefined =
+    effectiveSpace.kind === 'board' && effectiveSpace.propertyId === effectivePropertyId
+      ? 'BOARD'
+      : effectiveSpace.kind === 'owner'
+        ? 'OWNER'
+        : undefined;
+  const selectedIdentity = identityOverride ?? defaultIdentity;
+
+  // "Concerne (facultatif)" only makes sense once composing to exactly one
+  // real recipient (not "toute la copropriété"/"le bureau") who owns more
+  // than one lot here - the exact ambiguity it exists to resolve (e.g.
+  // contacting a co-owner about Appartement 3 specifically, not their other
+  // lot). Re-derived from the sole recipient's own units on every render
+  // rather than reset via an effect, so swapping recipients can never leave
+  // a stale lot label from a previous, different recipient selected.
+  const soleRecipient =
+    !isEveryoneSelected && !isBoardSelected && selectedRecipients.length === 1 ? selectedRecipients[0] : null;
+  const concernsUnitChoiceAvailable = soleRecipient !== null && soleRecipient.unitNumbers.length > 1;
+  const effectiveConcernsUnit =
+    concernsUnitChoiceAvailable && concernsUnit && soleRecipient!.unitNumbers.includes(concernsUnit)
+      ? concernsUnit
+      : null;
+
   const isSending =
     startConversation.isPending ||
+    startBoardConversation.isPending ||
     sendBroadcastMessage.isPending ||
     sendDraft.isPending ||
     (isSendingViaDraft && updateDraft.isPending);
   const isSavingDraft = createDraft.isPending || (!isSendingViaDraft && updateDraft.isPending);
-  const sendError = startConversation.error ?? sendBroadcastMessage.error ?? sendDraft.error;
+  const sendError = startConversation.error ?? startBoardConversation.error ?? sendBroadcastMessage.error ?? sendDraft.error;
   const saveDraftError = createDraft.error ?? updateDraft.error;
 
   function onSubmit(values: StartConversationFormValues) {
     const onSuccess = (result: { conversationId: string }) => {
       reset({ subject: '', body: '' });
       setSelectedRecipients([]);
-      navigate(`/messages/reception/${result.conversationId}`);
+      // Carries the active space along so landing on the sent thread doesn't
+      // silently drop the viewer back into owner (see spaceQuerySuffix).
+      navigate(`/messages/reception/${result.conversationId}${spaceQuerySuffix(effectiveSpace)}`);
     };
 
     if (currentDraftId) {
@@ -176,11 +237,18 @@ export function NewConversationPage() {
       return;
     }
 
+    if (isBoardSelected) {
+      startBoardConversation.mutate({ subject: values.subject, body: values.body }, { onSuccess });
+      return;
+    }
+
     startConversation.mutate(
       {
         recipientUserIds: selectedRecipients.map((recipient) => recipient.userId),
         subject: values.subject,
         body: values.body,
+        senderIdentity: identityChoiceNeeded ? selectedIdentity : undefined,
+        concernsUnit: effectiveConcernsUnit ?? undefined,
       },
       { onSuccess },
     );
@@ -189,15 +257,17 @@ export function NewConversationPage() {
   function onSaveDraft() {
     const values = getValues();
     const payload = toDraftPayload(selectedRecipients, isEveryoneSelected, values.subject, values.body);
+    // Carries the active space along, same reason as onSubmit's onSuccess above.
+    const draftsListHref = `/messages/drafts${spaceQuerySuffix(effectiveSpace)}`;
 
     if (currentDraftId) {
-      updateDraft.mutate(payload, { onSuccess: () => navigate('/messages/drafts') });
+      updateDraft.mutate(payload, { onSuccess: () => navigate(draftsListHref) });
       return;
     }
     createDraft.mutate(payload, {
       onSuccess: (result) => {
         setCurrentDraftId(result.draftId);
-        navigate('/messages/drafts');
+        navigate(draftsListHref);
       },
     });
   }
@@ -270,7 +340,73 @@ export function NewConversationPage() {
               onChange={setSelectedRecipients}
               disabled={isSending || isSavingDraft}
               canBroadcast={canBroadcast}
+              canBoardPrivate={canBoardPrivate}
             />
+
+            {identityChoiceNeeded && (
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Envoyer en tant que</span>
+                <div
+                  role="group"
+                  aria-label="Envoyer en tant que"
+                  className="flex w-fit rounded-lg border border-gray-200 p-0.5 dark:border-gray-800"
+                >
+                  {(['OWNER', 'BOARD'] as const).map((identity) => (
+                    <button
+                      key={identity}
+                      type="button"
+                      disabled={isSending || isSavingDraft}
+                      aria-pressed={selectedIdentity === identity}
+                      onClick={() => setIdentityOverride(identity)}
+                      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                        selectedIdentity === identity
+                          ? 'bg-brand-500 text-white'
+                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.05]'
+                      }`}
+                    >
+                      {identity === 'OWNER' ? 'Copropriétaire' : 'Membre du bureau'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {concernsUnitChoiceAvailable && (
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Concerne (facultatif)</span>
+                <div role="group" aria-label="Concerne" className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={isSending || isSavingDraft}
+                    aria-pressed={effectiveConcernsUnit === null}
+                    onClick={() => setConcernsUnit(null)}
+                    className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                      effectiveConcernsUnit === null
+                        ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/[0.12] dark:text-brand-400'
+                        : 'border-gray-300 text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-400 dark:hover:text-brand-400'
+                    }`}
+                  >
+                    Aucun lot
+                  </button>
+                  {soleRecipient!.unitNumbers.map((unitNumber) => (
+                    <button
+                      key={unitNumber}
+                      type="button"
+                      disabled={isSending || isSavingDraft}
+                      aria-pressed={effectiveConcernsUnit === unitNumber}
+                      onClick={() => setConcernsUnit(unitNumber)}
+                      className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                        effectiveConcernsUnit === unitNumber
+                          ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/[0.12] dark:text-brand-400'
+                          : 'border-gray-300 text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-400 dark:hover:text-brand-400'
+                      }`}
+                    >
+                      Lot {unitNumber}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col gap-1">
               <label htmlFor="new-message-subject" className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -309,7 +445,10 @@ export function NewConversationPage() {
               <Button
                 type="button"
                 variant="secondary"
-                disabled={isSending}
+                // Un brouillon "bureau" n'existe pas encore côté serveur (le
+                // fil privé est toujours envoyé directement, jamais mis en
+                // attente) - voir SendMessageDraftService.
+                disabled={isSending || isBoardSelected}
                 isLoading={isSavingDraft}
                 onClick={onSaveDraft}
               >

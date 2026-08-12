@@ -1,6 +1,6 @@
 # Nomenclature FR → EN
 
-Référencé par [ARCHITECTURE.md, règle 2](ARCHITECTURE.md#règle-2--nomenclature-en-anglais).
+Référencé par [ARCHITECTURE.md, règle 2](../ARCHITECTURE.md#règle-2--nomenclature-en-anglais).
 Table de correspondance entre le vocabulaire métier français (SFD, échanges
 fonctionnels) et les noms utilisés dans le code. À compléter à chaque
 nouvelle SFD, **avant** d'écrire le code correspondant.

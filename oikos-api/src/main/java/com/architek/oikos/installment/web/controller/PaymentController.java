@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
@@ -62,10 +63,12 @@ public class PaymentController {
 
     @PreAuthorize("@propertyAccess.canReadAccounting(authentication, #propertyId)")
     @GetMapping("/properties/{propertyId}/payments/latest")
-    public ResponseEntity<PaymentResponse> latestForProperty(@PathVariable String propertyId) {
-        return getLatestPaymentByPropertyUseCase.getLatestPayment(
-                        new GetLatestPaymentByPropertyQuery(EntityId.of(propertyId)))
-                .map(payment -> ResponseEntity.ok(PaymentResponse.from(payment)))
-                .orElseGet(() -> ResponseEntity.noContent().build());
+    public List<PaymentResponse> latestForProperty(@PathVariable String propertyId,
+                                                    @RequestParam(defaultValue = "5") int size) {
+        return getLatestPaymentByPropertyUseCase
+                .getLatestPayment(new GetLatestPaymentByPropertyQuery(EntityId.of(propertyId), size))
+                .stream()
+                .map(PaymentResponse::from)
+                .toList();
     }
 }

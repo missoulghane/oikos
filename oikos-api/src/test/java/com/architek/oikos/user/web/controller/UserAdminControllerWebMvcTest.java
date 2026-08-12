@@ -71,7 +71,8 @@ class UserAdminControllerWebMvcTest {
     }
 
     private static UserView newUserView(UserId userId, boolean enabled) {
-        return new UserView(userId, "Jane Doe", "user@oikos.com", Set.of(Role.ROLE_USER), Map.of(), true, enabled);
+        return new UserView(userId, "Jane Doe", "user@oikos.com", null, Set.of(Role.ROLE_USER), Map.of(), true,
+                enabled, false);
     }
 
     @Test

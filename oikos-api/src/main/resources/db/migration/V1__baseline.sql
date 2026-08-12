@@ -1,372 +1,2236 @@
--- =========================================================================
--- Baseline schema for the OIKOS application: property (properties, buildings,
--- unit types, units, pricing, ownership and board), party (identity of a
--- legal actor, scoped to one property), user/auth (platform accounts,
--- independent of any property) and installment (cotisation calls) features.
--- All identifiers are UUIDs assigned application-side (never DB-generated).
--- =========================================================================
+-- V1 baseline
+--
+-- Consolidated schema, generated on 2026-08-12 by replaying the former
+-- V1..V26 migrations against a real PostgreSQL 16 instance and dumping the
+-- resulting schema (pg_dump --schema-only). No production deployment has
+-- ever run against this project, so there is no schema history to preserve;
+-- this single file is now the sole source of truth for the database schema.
 
--- =========================================================================
--- 1. PROPERTY FEATURE (root): property, its buildings and its per-property
--- unit type catalog. Units and the two pivots rattaching a party to the
--- structure (unit_ownership, board_member) come later, once Party (which
--- they reference) is defined.
--- =========================================================================
 
-CREATE TABLE property (
-    id                  UUID PRIMARY KEY,
-    name                VARCHAR(100) NOT NULL,
-    address             VARCHAR(250) NOT NULL,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0
+--
+-- Name: reject_journal_entry_line_mutation_when_not_draft(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.reject_journal_entry_line_mutation_when_not_draft() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    parent_status VARCHAR(20);
+BEGIN
+    SELECT status INTO parent_status FROM journal_entry WHERE id = COALESCE(NEW.journal_entry_id, OLD.journal_entry_id);
+    IF parent_status IS DISTINCT FROM 'DRAFT' THEN
+        RAISE EXCEPTION 'journal_entry_line for entry % cannot be inserted, updated or deleted once the entry left DRAFT (I4/ADR 0001)',
+            COALESCE(NEW.journal_entry_id, OLD.journal_entry_id);
+    END IF;
+    RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+
+--
+-- Name: reject_journal_entry_mutation(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.reject_journal_entry_mutation() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'journal_entry % can never be physically deleted (I4/ADR 0001)', OLD.id;
+    END IF;
+    IF OLD.status = 'DRAFT' THEN
+        RETURN NEW;
+    END IF;
+    IF OLD.status = 'POSTED' AND NEW.status = 'REVERSED' THEN
+        RETURN NEW;
+    END IF;
+    RAISE EXCEPTION 'journal_entry % is not DRAFT and cannot be mutated except DRAFT->POSTED or POSTED->REVERSED (I4/ADR 0001)', OLD.id;
+END;
+$$;
+
+
+
+
+--
+-- Name: accounting_exercise; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.accounting_exercise (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    label character varying(200) NOT NULL,
+    start_date date NOT NULL,
+    end_date date NOT NULL,
+    status character varying(20) NOT NULL,
+    closed_at timestamp with time zone,
+    closed_by_user_id uuid,
+    comment character varying(1000),
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
 );
 
-CREATE TABLE building (
-    id                  UUID PRIMARY KEY,
-    property_id         UUID NOT NULL,
-    name                VARCHAR(100) NOT NULL,
-    floor_count         INTEGER NOT NULL,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT fk_building_property FOREIGN KEY (property_id) REFERENCES property (id)
+
+--
+-- Name: allocation; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.allocation (
+    id uuid NOT NULL,
+    debit_line_id uuid NOT NULL,
+    credit_line_id uuid NOT NULL,
+    amount numeric(14,2) NOT NULL,
+    allocated_date date NOT NULL,
+    allocated_by_user_id uuid NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    CONSTRAINT allocation_amount_check CHECK ((amount > (0)::numeric))
 );
 
-CREATE INDEX idx_building_property_id ON building (property_id);
 
--- Per-property, user-defined unit type catalog (e.g. "Appartement", "Box"),
--- always seeded with one default "OTHERS" row at property creation (see
--- CreatePropertyService/ConfigurePropertyService).
-CREATE TABLE unit_type_definition (
-    id                  UUID PRIMARY KEY,
-    property_id         UUID NOT NULL,
-    name                VARCHAR(50) NOT NULL,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT fk_unit_type_definition_property FOREIGN KEY (property_id) REFERENCES property (id),
-    CONSTRAINT uk_unit_type_definition_property_name UNIQUE (property_id, name)
+--
+-- Name: app_user; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.app_user (
+    id uuid NOT NULL,
+    email character varying(150) NOT NULL,
+    full_name character varying(200) NOT NULL,
+    password_hash character varying(255) NOT NULL,
+    verified boolean DEFAULT false NOT NULL,
+    enabled boolean DEFAULT true NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    phone character varying(20),
+    avatar bytea,
+    avatar_content_type character varying(100)
 );
 
-CREATE INDEX idx_unit_type_definition_property_id ON unit_type_definition (property_id);
 
--- =========================================================================
--- 2. PARTY FEATURE
--- Identity record of a legal actor (individual or company), scoped to
--- exactly one property (tenant boundary): the same real person owning units
--- or sitting on boards in two different properties is represented by two
--- distinct Party rows, one per property. unit_ownership and board_member
--- both reference party by id, always within the same property (enforced by
--- composite FKs below). A Party may optionally be linked to at most one
--- AppUser (app_user_party), independent of any application account.
--- =========================================================================
+--
+-- Name: app_user_party; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE party (
-    id                  UUID PRIMARY KEY,
-    property_id         UUID NOT NULL,
-    full_name           VARCHAR(200) NOT NULL,
-    party_type          VARCHAR(20) NOT NULL,
-    email               VARCHAR(150) NOT NULL,
-    phone               VARCHAR(20),
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT fk_party_property FOREIGN KEY (property_id) REFERENCES property (id),
-    CONSTRAINT uk_party_property_email UNIQUE (property_id, email),
-    -- Composite-FK target for unit_ownership/board_member: guarantees a
-    -- party can only be referenced together with the property_id it
-    -- actually belongs to.
-    CONSTRAINT uk_party_id_property UNIQUE (id, property_id)
+CREATE TABLE public.app_user_party (
+    app_user_id uuid NOT NULL,
+    party_id uuid NOT NULL
 );
 
-CREATE INDEX idx_party_property_id ON party (property_id);
-CREATE UNIQUE INDEX uk_party_property_phone ON party (property_id, phone) WHERE phone IS NOT NULL;
 
--- =========================================================================
--- 3. PROPERTY FEATURE (continued): units (now that unit_type_definition
--- exists) and the two pivots rattaching a party to the structure (SFD
--- "Gestion de la Structure des Coproprietes et des Acces"), now that Party
--- exists.
--- =========================================================================
+--
+-- Name: app_user_party_role; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE unit (
-    id                  UUID PRIMARY KEY,
-    building_id         UUID NOT NULL,
-    property_id         UUID NOT NULL,
-    unit_number         VARCHAR(20) NOT NULL,
-    unit_type_id        UUID NOT NULL,
-    shares              NUMERIC(12, 2) NOT NULL,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT fk_unit_building FOREIGN KEY (building_id) REFERENCES building (id),
-    CONSTRAINT fk_unit_property FOREIGN KEY (property_id) REFERENCES property (id),
-    CONSTRAINT fk_unit_unit_type FOREIGN KEY (unit_type_id) REFERENCES unit_type_definition (id),
-    -- Composite-FK target for unit_ownership: guarantees a unit can only be
-    -- referenced together with the property_id it actually belongs to.
-    CONSTRAINT uk_unit_id_property UNIQUE (id, property_id)
+CREATE TABLE public.app_user_party_role (
+    app_user_id uuid NOT NULL,
+    party_id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    role character varying(30) NOT NULL
 );
 
-CREATE INDEX idx_unit_building_id ON unit (building_id);
-CREATE INDEX idx_unit_property_id ON unit (property_id);
-CREATE INDEX idx_unit_unit_type_id ON unit (unit_type_id);
 
--- Optional price per unit type for a given property (e.g. Appartement: 300,
--- Box: 100). At most one row per unit type; a unit type without a row simply
--- has no configured price (no default, no error). Removing a unit type
--- cascades to its price row.
-CREATE TABLE unit_type_pricing (
-    id                  UUID PRIMARY KEY,
-    property_id         UUID NOT NULL,
-    unit_type_id        UUID NOT NULL,
-    price               NUMERIC(12, 2) NOT NULL,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT fk_unit_type_pricing_property FOREIGN KEY (property_id) REFERENCES property (id),
-    CONSTRAINT fk_unit_type_pricing_unit_type FOREIGN KEY (unit_type_id)
-        REFERENCES unit_type_definition (id) ON DELETE CASCADE,
-    CONSTRAINT uk_unit_type_pricing_unit_type UNIQUE (unit_type_id)
+--
+-- Name: board_member; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.board_member (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    party_id uuid NOT NULL,
+    board_role character varying(30) NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    status character varying(30) DEFAULT 'ACTIVE'::character varying NOT NULL,
+    user_id uuid
 );
 
-CREATE INDEX idx_unit_type_pricing_property_id ON unit_type_pricing (property_id);
-CREATE INDEX idx_unit_type_pricing_unit_type_id ON unit_type_pricing (unit_type_id);
 
--- unit_id and party_id are each paired with property_id via composite FKs,
--- so a unit and its owner are guaranteed to belong to the same property -
--- the DB rejects any cross-property ownership row outright.
-CREATE TABLE unit_ownership (
-    id                  UUID PRIMARY KEY,
-    unit_id             UUID NOT NULL,
-    party_id            UUID NOT NULL,
-    property_id         UUID NOT NULL,
-    ownership_share     NUMERIC(5, 2) NOT NULL,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT uk_unit_ownership_unit_party UNIQUE (unit_id, party_id),
-    CONSTRAINT fk_unit_ownership_unit_property FOREIGN KEY (unit_id, property_id) REFERENCES unit (id, property_id),
-    CONSTRAINT fk_unit_ownership_party_property FOREIGN KEY (party_id, property_id) REFERENCES party (id, property_id)
+--
+-- Name: building; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.building (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    name character varying(100) NOT NULL,
+    floor_count integer NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
 );
 
-CREATE INDEX idx_unit_ownership_unit_id ON unit_ownership (unit_id);
-CREATE INDEX idx_unit_ownership_party_id ON unit_ownership (party_id);
-CREATE INDEX idx_unit_ownership_property_id ON unit_ownership (property_id);
 
--- party_id is paired with property_id via a composite FK, so a board member
--- is guaranteed to belong to the same property they sit on the board of.
-CREATE TABLE board_member (
-    id                  UUID PRIMARY KEY,
-    property_id         UUID NOT NULL,
-    party_id            UUID NOT NULL,
-    board_role          VARCHAR(30) NOT NULL,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT fk_board_member_property FOREIGN KEY (property_id) REFERENCES property (id),
-    CONSTRAINT fk_board_member_party_property FOREIGN KEY (party_id, property_id) REFERENCES party (id, property_id),
-    CONSTRAINT uk_board_member_property_party_role UNIQUE (property_id, party_id, board_role)
+--
+-- Name: conversation; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.conversation (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    type character varying(20) NOT NULL,
+    created_by uuid NOT NULL,
+    subject character varying(200),
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    concerns_unit character varying(100),
+    CONSTRAINT chk_conversation_concerns_unit CHECK (((concerns_unit IS NULL) OR ((type)::text = 'GROUP'::text))),
+    CONSTRAINT chk_conversation_subject CHECK (((((type)::text = ANY ((ARRAY['GROUP'::character varying, 'BOARD_PRIVATE'::character varying])::text[])) AND (subject IS NOT NULL)) OR (((type)::text = 'BROADCAST'::text) AND (subject IS NULL)))),
+    CONSTRAINT conversation_type_check CHECK (((type)::text = ANY ((ARRAY['GROUP'::character varying, 'BOARD_PRIVATE'::character varying, 'BROADCAST'::character varying])::text[])))
 );
 
-CREATE INDEX idx_board_member_property_id ON board_member (property_id);
-CREATE INDEX idx_board_member_party_id ON board_member (party_id);
 
--- =========================================================================
--- 4. USER FEATURE TABLES
--- app_user is a fully standalone platform account (its own email/full_name),
--- independent of any Party. It may optionally be linked to any number of
--- per-property Party rows via app_user_party (at most one AppUser per
--- Party), each carrying its own set of property-scoped roles via
--- app_user_party_role. Platform-wide roles (ROLE_USER, ROLE_ADMIN,
--- ROLE_MASTER) live directly on app_user via user_role.
--- =========================================================================
+--
+-- Name: conversation_participant; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE app_user (
-    id                  UUID PRIMARY KEY,
-    email               VARCHAR(150) NOT NULL,
-    full_name           VARCHAR(200) NOT NULL,
-    password_hash       VARCHAR(255) NOT NULL,
-    verified            BOOLEAN NOT NULL DEFAULT FALSE,
-    enabled             BOOLEAN NOT NULL DEFAULT TRUE,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT uk_app_user_email UNIQUE (email)
+CREATE TABLE public.conversation_participant (
+    conversation_id uuid NOT NULL,
+    user_id uuid NOT NULL
 );
 
-CREATE TABLE user_role (
-    user_id UUID NOT NULL,
-    role    VARCHAR(50) NOT NULL,
-    CONSTRAINT pk_user_role PRIMARY KEY (user_id, role),
-    CONSTRAINT fk_user_role_user FOREIGN KEY (user_id) REFERENCES app_user (id) ON DELETE CASCADE
+
+--
+-- Name: conversation_read_marker; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.conversation_read_marker (
+    conversation_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    last_read_message_id uuid,
+    last_read_at timestamp with time zone
 );
 
-CREATE TABLE verification_token (
-    id                  UUID PRIMARY KEY,
-    user_id             UUID NOT NULL,
-    token               VARCHAR(255) NOT NULL,
-    expires_at          TIMESTAMPTZ NOT NULL,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT uk_verification_token_token UNIQUE (token),
-    CONSTRAINT fk_verification_token_user FOREIGN KEY (user_id) REFERENCES app_user (id) ON DELETE CASCADE
+
+--
+-- Name: device_push_token; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.device_push_token (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    expo_push_token character varying(200) NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
 );
 
-CREATE INDEX idx_verification_token_user_id ON verification_token (user_id);
 
--- A Party links to at most one AppUser (uk_app_user_party_party); an
--- AppUser may link to any number of Party rows across different properties.
-CREATE TABLE app_user_party (
-    app_user_id UUID NOT NULL,
-    party_id    UUID NOT NULL,
-    CONSTRAINT pk_app_user_party PRIMARY KEY (app_user_id, party_id),
-    CONSTRAINT uk_app_user_party_party UNIQUE (party_id),
-    CONSTRAINT fk_app_user_party_user FOREIGN KEY (app_user_id) REFERENCES app_user (id) ON DELETE CASCADE,
-    CONSTRAINT fk_app_user_party_party FOREIGN KEY (party_id) REFERENCES party (id) ON DELETE CASCADE
+--
+-- Name: document; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.document (
+    id uuid NOT NULL,
+    owner_type character varying(20) NOT NULL,
+    owner_id uuid NOT NULL,
+    file_name character varying(255) NOT NULL,
+    content_type character varying(100) NOT NULL,
+    size_bytes bigint NOT NULL,
+    storage_key character varying(255) NOT NULL,
+    checksum_sha256 character varying(64) NOT NULL,
+    uploaded_by uuid NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
 );
 
--- Per-property roles (e.g. ROLE_PROPERTY_MANAGER, ROLE_PROPERTY_ADMIN),
--- granted to an AppUser through one of its linked Party rows. property_id is
--- denormalized from that party's own property_id (composite FK below
--- guarantees they always agree) so authorization checks can filter an
--- AppUser's grants by property without reloading each referenced Party.
-CREATE TABLE app_user_party_role (
-    app_user_id UUID NOT NULL,
-    party_id    UUID NOT NULL,
-    property_id UUID NOT NULL,
-    role        VARCHAR(30) NOT NULL,
-    CONSTRAINT pk_app_user_party_role PRIMARY KEY (app_user_id, party_id, role),
-    CONSTRAINT fk_app_user_party_role_user FOREIGN KEY (app_user_id) REFERENCES app_user (id) ON DELETE CASCADE,
-    CONSTRAINT fk_app_user_party_role_party_property FOREIGN KEY (party_id, property_id) REFERENCES party (id, property_id) ON DELETE CASCADE
+
+--
+-- Name: expense; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.expense (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    date date NOT NULL,
+    ledger_account_id uuid NOT NULL,
+    amount numeric(14,2) NOT NULL,
+    description character varying(1000),
+    receipt_reference character varying(200),
+    journal_entry_id uuid NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    CONSTRAINT expense_amount_check CHECK ((amount > (0)::numeric))
 );
 
-CREATE INDEX idx_app_user_party_role_property_id ON app_user_party_role (property_id);
 
--- Single-use invitation linking an owner's Party to an AppUser account
--- (created new, or matched by email to an existing one) - see
--- InvitePartyService/AcceptPartyInvitationService. Keyed by party_id rather
--- than user_id since no AppUser may exist yet at issuance time.
-CREATE TABLE party_invitation_token (
-    id                  UUID PRIMARY KEY,
-    party_id            UUID NOT NULL,
-    email               VARCHAR(150) NOT NULL,
-    full_name           VARCHAR(200) NOT NULL,
-    token               VARCHAR(255) NOT NULL,
-    expires_at          TIMESTAMPTZ NOT NULL,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT uk_party_invitation_token_token UNIQUE (token),
-    CONSTRAINT fk_party_invitation_token_party FOREIGN KEY (party_id) REFERENCES party (id) ON DELETE CASCADE
+--
+-- Name: installment; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.installment (
+    id uuid NOT NULL,
+    unit_id uuid NOT NULL,
+    due_date date NOT NULL,
+    amount numeric(12,2) NOT NULL,
+    installment_call_id uuid,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    outstanding_amount numeric(12,2) NOT NULL,
+    journal_entry_line_id uuid
 );
 
-CREATE INDEX idx_party_invitation_token_party_id ON party_invitation_token (party_id);
 
--- =========================================================================
--- 5. AUTH FEATURE TABLES
--- =========================================================================
+--
+-- Name: installment_call; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE refresh_token (
-    id                  UUID PRIMARY KEY,
-    user_id             UUID NOT NULL,
-    token_hash          VARCHAR(255) NOT NULL,
-    expires_at          TIMESTAMPTZ NOT NULL,
-    revoked             BOOLEAN NOT NULL DEFAULT FALSE,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT uk_refresh_token_token_hash UNIQUE (token_hash)
+CREATE TABLE public.installment_call (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    period date NOT NULL,
+    due_date date NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    status character varying(20) NOT NULL,
+    journal_entry_id uuid
 );
 
-CREATE INDEX idx_refresh_token_user_id ON refresh_token (user_id);
 
-CREATE TABLE refresh_token_authority (
-    refresh_token_id UUID NOT NULL,
-    authority        VARCHAR(50) NOT NULL,
-    CONSTRAINT pk_refresh_token_authority PRIMARY KEY (refresh_token_id, authority),
-    CONSTRAINT fk_refresh_token_authority_token FOREIGN KEY (refresh_token_id) REFERENCES refresh_token (id) ON DELETE CASCADE
+--
+-- Name: invitation; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invitation (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    type character varying(30) NOT NULL,
+    target_role character varying(30) NOT NULL,
+    target_email character varying(150),
+    token character varying(255) NOT NULL,
+    status character varying(20) DEFAULT 'ACTIVE'::character varying NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    created_by_user_id uuid NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    consumed_email character varying(150),
+    target_board_role character varying(50),
+    CONSTRAINT chk_invitation_email_required CHECK ((((type)::text = 'PUBLIC'::text) OR (target_email IS NOT NULL)))
 );
 
--- =========================================================================
--- AUTH FEATURE: PASSWORD-RESET FLOW
--- =========================================================================
 
-CREATE TABLE password_reset_token (
-    id                  UUID PRIMARY KEY,
-    user_id             UUID NOT NULL,
-    token               VARCHAR(255) NOT NULL,
-    expires_at          TIMESTAMPTZ NOT NULL,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT uk_password_reset_token_token UNIQUE (token),
-    CONSTRAINT fk_password_reset_token_user FOREIGN KEY (user_id) REFERENCES app_user (id) ON DELETE CASCADE
+--
+-- Name: journal; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.journal (
+    code character varying(4) NOT NULL,
+    label character varying(100) NOT NULL,
+    type character varying(20) NOT NULL,
+    treasury_role character varying(30),
+    postable boolean DEFAULT true NOT NULL
 );
 
-CREATE INDEX idx_password_reset_token_user_id ON password_reset_token (user_id);
 
--- =========================================================================
--- 6. INSTALLMENT FEATURE: cotisation calls and the installments they raise
--- against units. An installment call is a fund-collection event for a
--- property over one month (period); generating one raises an Installment
--- for every priced unit of the property. Unique (property_id, period)
--- prevents an accidental double call for the same month.
--- installment.installment_call_id is nullable: the manual
--- POST /installment-calls flow (arbitrary caller-supplied lines) does not
--- attach to a batch.
--- =========================================================================
+--
+-- Name: journal_entry; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE installment_call (
-    id                  UUID PRIMARY KEY,
-    property_id         UUID NOT NULL,
-    period              DATE NOT NULL,
-    due_date            DATE NOT NULL,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT uk_installment_call_property_period UNIQUE (property_id, period)
+CREATE TABLE public.journal_entry (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    exercise_id uuid NOT NULL,
+    period_id uuid NOT NULL,
+    journal_code character varying(4) NOT NULL,
+    treasury_account_id uuid,
+    piece_date date NOT NULL,
+    piece_number integer,
+    external_reference character varying(200),
+    status character varying(20) NOT NULL,
+    original_entry_id uuid,
+    created_by_user_id uuid NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
 );
 
-CREATE TABLE installment (
-    id                  UUID PRIMARY KEY,
-    unit_id             UUID NOT NULL,
-    due_date            DATE NOT NULL,
-    amount              NUMERIC(12, 2) NOT NULL,
-    installment_call_id UUID,
-    created_date        TIMESTAMPTZ NOT NULL,
-    last_modified_date  TIMESTAMPTZ NOT NULL,
-    version             BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT fk_installment_unit FOREIGN KEY (unit_id) REFERENCES unit (id),
-    CONSTRAINT fk_installment_installment_call FOREIGN KEY (installment_call_id) REFERENCES installment_call (id)
+
+--
+-- Name: journal_entry_line; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.journal_entry_line (
+    id uuid NOT NULL,
+    journal_entry_id uuid NOT NULL,
+    line_order integer NOT NULL,
+    ledger_account_id uuid NOT NULL,
+    auxiliary_unit_id uuid,
+    auxiliary_party_id uuid,
+    direction character varying(10) NOT NULL,
+    amount numeric(14,2) NOT NULL,
+    label character varying(200) NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    CONSTRAINT journal_entry_line_amount_check CHECK ((amount > (0)::numeric))
 );
 
-CREATE INDEX idx_installment_unit_id ON installment (unit_id);
-CREATE INDEX idx_installment_installment_call_id ON installment (installment_call_id);
 
--- =========================================================================
--- 7. SEED / INITIAL DATA (Default Root Account)
--- Platform-wide account, not tied to any property: no Party needed.
--- =========================================================================
+--
+-- Name: ledger_account; Type: TABLE; Schema: public; Owner: -
+--
 
--- Password hash below is BCrypt("iam@root/2026"), generated with the same
--- algorithm/strength as com.architek.oikos.shared.infrastructure.configuration.PasswordEncoderConfiguration.
-INSERT INTO app_user (id, email, full_name, password_hash, verified, enabled, created_date, last_modified_date, version)
-VALUES (
-    '402888b2-2370-4c5e-aba6-985da776bb17',
-    'admin@oikos.com',
-    'Root IAM',
-    '$2y$10$lX.1MG7sstLRQVOXXF0SruxPiT.USXqTBZqmHAz.OO1dCZ9RTSMEO',
-    TRUE,
-    TRUE,
-    NOW(),
-    NOW(),
-    0
-)
-ON CONFLICT (email) DO NOTHING;
+CREATE TABLE public.ledger_account (
+    id uuid NOT NULL,
+    property_id uuid,
+    unit_id uuid,
+    account_number character varying(8) NOT NULL,
+    label character varying(200) NOT NULL,
+    account_class integer NOT NULL,
+    nature character varying(20) NOT NULL,
+    collective boolean DEFAULT false NOT NULL,
+    role character varying(30),
+    active boolean DEFAULT true NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    balance numeric(14,2) DEFAULT 0 NOT NULL,
+    bank_account_number character varying(64),
+    CONSTRAINT chk_ledger_account_unit_requires_property CHECK (((unit_id IS NULL) OR (property_id IS NOT NULL)))
+);
 
-INSERT INTO user_role (user_id, role)
-VALUES ('402888b2-2370-4c5e-aba6-985da776bb17', 'ROLE_MASTER'),
-       ('402888b2-2370-4c5e-aba6-985da776bb17', 'ROLE_ADMIN')
-ON CONFLICT DO NOTHING;
+
+--
+-- Name: ledger_account_number_sequence; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ledger_account_number_sequence (
+    property_id uuid NOT NULL,
+    number_prefix character varying(6) NOT NULL,
+    next_increment integer DEFAULT 1 NOT NULL
+);
+
+
+--
+-- Name: membership_request; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.membership_request (
+    id uuid NOT NULL,
+    invitation_id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    unit_id uuid NOT NULL,
+    party_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    status character varying(20) DEFAULT 'PENDING'::character varying NOT NULL,
+    decided_at timestamp with time zone,
+    decided_by_user_id uuid,
+    rejection_reason character varying(300),
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: message; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.message (
+    id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    sender_id uuid NOT NULL,
+    body text NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    sender_identity character varying(10) NOT NULL,
+    CONSTRAINT chk_message_sender_identity CHECK (((sender_identity)::text = ANY ((ARRAY['OWNER'::character varying, 'BOARD'::character varying])::text[])))
+);
+
+
+--
+-- Name: message_draft; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.message_draft (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    created_by uuid NOT NULL,
+    is_broadcast boolean DEFAULT false NOT NULL,
+    subject character varying(200),
+    body text,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: message_draft_recipient; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.message_draft_recipient (
+    message_draft_id uuid NOT NULL,
+    user_id uuid NOT NULL
+);
+
+
+--
+-- Name: notification; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.notification (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    property_id uuid,
+    type character varying(30) NOT NULL,
+    title character varying(200) NOT NULL,
+    body character varying(1000),
+    link_path character varying(300),
+    read_at timestamp with time zone,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    CONSTRAINT notification_type_check CHECK (((type)::text = ANY ((ARRAY['INSTALLMENT_OVERDUE'::character varying, 'GENERAL_MEETING_CALLED'::character varying, 'RELAUNCH_TO_VALIDATE'::character varying, 'REQUEST_RECEIVED'::character varying, 'GENERAL'::character varying])::text[])))
+);
+
+
+--
+-- Name: onboarding_lead; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.onboarding_lead (
+    id uuid NOT NULL,
+    email character varying(150) NOT NULL,
+    first_name character varying(100),
+    last_name character varying(100),
+    converted_at timestamp with time zone,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: party; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.party (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    full_name character varying(200) NOT NULL,
+    party_type character varying(20) NOT NULL,
+    email character varying(150) NOT NULL,
+    phone character varying(20),
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: party_invitation_token; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.party_invitation_token (
+    id uuid NOT NULL,
+    party_id uuid NOT NULL,
+    email character varying(150) NOT NULL,
+    full_name character varying(200) NOT NULL,
+    token character varying(255) NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: password_reset_token; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.password_reset_token (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    token character varying(255) NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: payment; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.payment (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    unit_id uuid NOT NULL,
+    mode character varying(20) NOT NULL,
+    value_date date NOT NULL,
+    amount numeric(14,2) NOT NULL,
+    journal_entry_id uuid NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    CONSTRAINT payment_amount_check CHECK ((amount > (0)::numeric))
+);
+
+
+--
+-- Name: period; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.period (
+    id uuid NOT NULL,
+    exercise_id uuid NOT NULL,
+    year_month date NOT NULL,
+    status character varying(20) NOT NULL,
+    closed_at timestamp with time zone,
+    closed_by_user_id uuid,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: permission; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.permission (
+    key character varying(60) NOT NULL,
+    description character varying(200) NOT NULL
+);
+
+
+--
+-- Name: property; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.property (
+    id uuid NOT NULL,
+    name character varying(100) NOT NULL,
+    address character varying(250) NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL,
+    dues_calculation_mode character varying(20) DEFAULT 'FLAT_RATE'::character varying NOT NULL,
+    projected_budget numeric(12,2)
+);
+
+
+--
+-- Name: refresh_token; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.refresh_token (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    token_hash character varying(255) NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    revoked boolean DEFAULT false NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: refresh_token_authority; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.refresh_token_authority (
+    refresh_token_id uuid NOT NULL,
+    authority character varying(50) NOT NULL
+);
+
+
+--
+-- Name: role_permission; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.role_permission (
+    role_name character varying(50) NOT NULL,
+    permission_key character varying(60) NOT NULL
+);
+
+
+--
+-- Name: sequence_piece; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sequence_piece (
+    property_id uuid NOT NULL,
+    exercise_id uuid NOT NULL,
+    journal_code character varying(4) NOT NULL,
+    next_number integer DEFAULT 1 NOT NULL
+);
+
+
+--
+-- Name: unit; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.unit (
+    id uuid NOT NULL,
+    building_id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    unit_number character varying(20) NOT NULL,
+    unit_type_id uuid NOT NULL,
+    shares numeric(12,2) NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: unit_ownership; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.unit_ownership (
+    id uuid NOT NULL,
+    unit_id uuid NOT NULL,
+    party_id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    ownership_share numeric(5,2) NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: unit_type_definition; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.unit_type_definition (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    name character varying(50) NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: unit_type_pricing; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.unit_type_pricing (
+    id uuid NOT NULL,
+    property_id uuid NOT NULL,
+    unit_type_id uuid NOT NULL,
+    price numeric(12,2) NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: user_role; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_role (
+    user_id uuid NOT NULL,
+    role character varying(50) NOT NULL
+);
+
+
+--
+-- Name: verification_token; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.verification_token (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    token character varying(255) NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    created_date timestamp with time zone NOT NULL,
+    last_modified_date timestamp with time zone NOT NULL,
+    version bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: accounting_exercise accounting_exercise_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.accounting_exercise
+    ADD CONSTRAINT accounting_exercise_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: allocation allocation_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.allocation
+    ADD CONSTRAINT allocation_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: app_user app_user_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_user
+    ADD CONSTRAINT app_user_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: board_member board_member_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.board_member
+    ADD CONSTRAINT board_member_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: building building_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.building
+    ADD CONSTRAINT building_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: conversation conversation_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conversation
+    ADD CONSTRAINT conversation_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: device_push_token device_push_token_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.device_push_token
+    ADD CONSTRAINT device_push_token_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: document document_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.document
+    ADD CONSTRAINT document_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: expense expense_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.expense
+    ADD CONSTRAINT expense_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: installment_call installment_call_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.installment_call
+    ADD CONSTRAINT installment_call_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: installment installment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.installment
+    ADD CONSTRAINT installment_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: invitation invitation_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation
+    ADD CONSTRAINT invitation_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: journal_entry_line journal_entry_line_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal_entry_line
+    ADD CONSTRAINT journal_entry_line_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: journal_entry journal_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal_entry
+    ADD CONSTRAINT journal_entry_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: journal journal_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal
+    ADD CONSTRAINT journal_pkey PRIMARY KEY (code);
+
+
+--
+-- Name: ledger_account_number_sequence ledger_account_number_sequence_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ledger_account_number_sequence
+    ADD CONSTRAINT ledger_account_number_sequence_pkey PRIMARY KEY (property_id, number_prefix);
+
+
+--
+-- Name: ledger_account ledger_account_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ledger_account
+    ADD CONSTRAINT ledger_account_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: membership_request membership_request_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.membership_request
+    ADD CONSTRAINT membership_request_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: message_draft message_draft_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.message_draft
+    ADD CONSTRAINT message_draft_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: message message_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.message
+    ADD CONSTRAINT message_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: notification notification_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notification
+    ADD CONSTRAINT notification_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: onboarding_lead onboarding_lead_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_lead
+    ADD CONSTRAINT onboarding_lead_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: party_invitation_token party_invitation_token_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.party_invitation_token
+    ADD CONSTRAINT party_invitation_token_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: party party_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.party
+    ADD CONSTRAINT party_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: password_reset_token password_reset_token_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.password_reset_token
+    ADD CONSTRAINT password_reset_token_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: payment payment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: period period_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.period
+    ADD CONSTRAINT period_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: permission permission_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.permission
+    ADD CONSTRAINT permission_pkey PRIMARY KEY (key);
+
+
+--
+-- Name: app_user_party pk_app_user_party; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_user_party
+    ADD CONSTRAINT pk_app_user_party PRIMARY KEY (app_user_id, party_id);
+
+
+--
+-- Name: app_user_party_role pk_app_user_party_role; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_user_party_role
+    ADD CONSTRAINT pk_app_user_party_role PRIMARY KEY (app_user_id, party_id, role);
+
+
+--
+-- Name: conversation_participant pk_conversation_participant; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conversation_participant
+    ADD CONSTRAINT pk_conversation_participant PRIMARY KEY (conversation_id, user_id);
+
+
+--
+-- Name: conversation_read_marker pk_conversation_read_marker; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conversation_read_marker
+    ADD CONSTRAINT pk_conversation_read_marker PRIMARY KEY (conversation_id, user_id);
+
+
+--
+-- Name: message_draft_recipient pk_message_draft_recipient; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.message_draft_recipient
+    ADD CONSTRAINT pk_message_draft_recipient PRIMARY KEY (message_draft_id, user_id);
+
+
+--
+-- Name: refresh_token_authority pk_refresh_token_authority; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token_authority
+    ADD CONSTRAINT pk_refresh_token_authority PRIMARY KEY (refresh_token_id, authority);
+
+
+--
+-- Name: role_permission pk_role_permission; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.role_permission
+    ADD CONSTRAINT pk_role_permission PRIMARY KEY (role_name, permission_key);
+
+
+--
+-- Name: user_role pk_user_role; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_role
+    ADD CONSTRAINT pk_user_role PRIMARY KEY (user_id, role);
+
+
+--
+-- Name: property property_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.property
+    ADD CONSTRAINT property_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: refresh_token refresh_token_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token
+    ADD CONSTRAINT refresh_token_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sequence_piece sequence_piece_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sequence_piece
+    ADD CONSTRAINT sequence_piece_pkey PRIMARY KEY (property_id, exercise_id, journal_code);
+
+
+--
+-- Name: app_user uk_app_user_email; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_user
+    ADD CONSTRAINT uk_app_user_email UNIQUE (email);
+
+
+--
+-- Name: app_user_party uk_app_user_party_party; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_user_party
+    ADD CONSTRAINT uk_app_user_party_party UNIQUE (party_id);
+
+
+--
+-- Name: board_member uk_board_member_property_party_role; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.board_member
+    ADD CONSTRAINT uk_board_member_property_party_role UNIQUE (property_id, party_id, board_role);
+
+
+--
+-- Name: device_push_token uk_device_push_token_token; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.device_push_token
+    ADD CONSTRAINT uk_device_push_token_token UNIQUE (expo_push_token);
+
+
+--
+-- Name: installment_call uk_installment_call_property_period; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.installment_call
+    ADD CONSTRAINT uk_installment_call_property_period UNIQUE (property_id, period);
+
+
+--
+-- Name: invitation uk_invitation_token; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation
+    ADD CONSTRAINT uk_invitation_token UNIQUE (token);
+
+
+--
+-- Name: onboarding_lead uk_onboarding_lead_email; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_lead
+    ADD CONSTRAINT uk_onboarding_lead_email UNIQUE (email);
+
+
+--
+-- Name: party uk_party_id_property; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.party
+    ADD CONSTRAINT uk_party_id_property UNIQUE (id, property_id);
+
+
+--
+-- Name: party_invitation_token uk_party_invitation_token_token; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.party_invitation_token
+    ADD CONSTRAINT uk_party_invitation_token_token UNIQUE (token);
+
+
+--
+-- Name: party uk_party_property_email; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.party
+    ADD CONSTRAINT uk_party_property_email UNIQUE (property_id, email);
+
+
+--
+-- Name: password_reset_token uk_password_reset_token_token; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.password_reset_token
+    ADD CONSTRAINT uk_password_reset_token_token UNIQUE (token);
+
+
+--
+-- Name: refresh_token uk_refresh_token_token_hash; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token
+    ADD CONSTRAINT uk_refresh_token_token_hash UNIQUE (token_hash);
+
+
+--
+-- Name: unit uk_unit_id_property; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit
+    ADD CONSTRAINT uk_unit_id_property UNIQUE (id, property_id);
+
+
+--
+-- Name: unit_ownership uk_unit_ownership_unit_party; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit_ownership
+    ADD CONSTRAINT uk_unit_ownership_unit_party UNIQUE (unit_id, party_id);
+
+
+--
+-- Name: unit_type_definition uk_unit_type_definition_property_name; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit_type_definition
+    ADD CONSTRAINT uk_unit_type_definition_property_name UNIQUE (property_id, name);
+
+
+--
+-- Name: unit_type_pricing uk_unit_type_pricing_unit_type; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit_type_pricing
+    ADD CONSTRAINT uk_unit_type_pricing_unit_type UNIQUE (unit_type_id);
+
+
+--
+-- Name: verification_token uk_verification_token_token; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.verification_token
+    ADD CONSTRAINT uk_verification_token_token UNIQUE (token);
+
+
+--
+-- Name: unit_ownership unit_ownership_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit_ownership
+    ADD CONSTRAINT unit_ownership_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: unit unit_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit
+    ADD CONSTRAINT unit_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: unit_type_definition unit_type_definition_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit_type_definition
+    ADD CONSTRAINT unit_type_definition_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: unit_type_pricing unit_type_pricing_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit_type_pricing
+    ADD CONSTRAINT unit_type_pricing_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: verification_token verification_token_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.verification_token
+    ADD CONSTRAINT verification_token_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: idx_accounting_exercise_property_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_accounting_exercise_property_id ON public.accounting_exercise USING btree (property_id);
+
+
+--
+-- Name: idx_allocation_credit_line; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_allocation_credit_line ON public.allocation USING btree (credit_line_id);
+
+
+--
+-- Name: idx_allocation_debit_line; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_allocation_debit_line ON public.allocation USING btree (debit_line_id);
+
+
+--
+-- Name: idx_app_user_party_role_property_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_app_user_party_role_property_id ON public.app_user_party_role USING btree (property_id);
+
+
+--
+-- Name: idx_board_member_party_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_board_member_party_id ON public.board_member USING btree (party_id);
+
+
+--
+-- Name: idx_board_member_property_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_board_member_property_id ON public.board_member USING btree (property_id);
+
+
+--
+-- Name: idx_building_property_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_building_property_id ON public.building USING btree (property_id);
+
+
+--
+-- Name: idx_conversation_participant_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_conversation_participant_user ON public.conversation_participant USING btree (user_id);
+
+
+--
+-- Name: idx_conversation_property; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_conversation_property ON public.conversation USING btree (property_id);
+
+
+--
+-- Name: idx_device_push_token_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_device_push_token_user_id ON public.device_push_token USING btree (user_id);
+
+
+--
+-- Name: idx_document_owner; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_document_owner ON public.document USING btree (owner_type, owner_id);
+
+
+--
+-- Name: idx_expense_property_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_expense_property_id ON public.expense USING btree (property_id);
+
+
+--
+-- Name: idx_installment_installment_call_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_installment_installment_call_id ON public.installment USING btree (installment_call_id);
+
+
+--
+-- Name: idx_installment_unit_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_installment_unit_id ON public.installment USING btree (unit_id);
+
+
+--
+-- Name: idx_invitation_property_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_invitation_property_status ON public.invitation USING btree (property_id, status);
+
+
+--
+-- Name: idx_journal_entry_line_account_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_journal_entry_line_account_id ON public.journal_entry_line USING btree (ledger_account_id);
+
+
+--
+-- Name: idx_journal_entry_line_auxiliary_party; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_journal_entry_line_auxiliary_party ON public.journal_entry_line USING btree (auxiliary_party_id);
+
+
+--
+-- Name: idx_journal_entry_line_auxiliary_unit; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_journal_entry_line_auxiliary_unit ON public.journal_entry_line USING btree (auxiliary_unit_id);
+
+
+--
+-- Name: idx_journal_entry_line_entry_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_journal_entry_line_entry_id ON public.journal_entry_line USING btree (journal_entry_id);
+
+
+--
+-- Name: idx_journal_entry_original_entry; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_journal_entry_original_entry ON public.journal_entry USING btree (original_entry_id);
+
+
+--
+-- Name: idx_journal_entry_property_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_journal_entry_property_date ON public.journal_entry USING btree (property_id, piece_date);
+
+
+--
+-- Name: idx_ledger_account_property_role; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ledger_account_property_role ON public.ledger_account USING btree (property_id, role);
+
+
+--
+-- Name: idx_ledger_account_unit_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ledger_account_unit_id ON public.ledger_account USING btree (unit_id);
+
+
+--
+-- Name: idx_membership_request_property_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_membership_request_property_status ON public.membership_request USING btree (property_id, status);
+
+
+--
+-- Name: idx_membership_request_unit_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_membership_request_unit_status ON public.membership_request USING btree (unit_id, status);
+
+
+--
+-- Name: idx_message_conversation; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_message_conversation ON public.message USING btree (conversation_id, created_date);
+
+
+--
+-- Name: idx_message_draft_created_by; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_message_draft_created_by ON public.message_draft USING btree (created_by);
+
+
+--
+-- Name: idx_notification_user_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_notification_user_created ON public.notification USING btree (user_id, created_date DESC);
+
+
+--
+-- Name: idx_notification_user_unread; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_notification_user_unread ON public.notification USING btree (user_id) WHERE (read_at IS NULL);
+
+
+--
+-- Name: idx_onboarding_lead_converted_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_onboarding_lead_converted_at ON public.onboarding_lead USING btree (converted_at);
+
+
+--
+-- Name: idx_party_invitation_token_party_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_party_invitation_token_party_id ON public.party_invitation_token USING btree (party_id);
+
+
+--
+-- Name: idx_party_property_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_party_property_id ON public.party USING btree (property_id);
+
+
+--
+-- Name: idx_password_reset_token_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_password_reset_token_user_id ON public.password_reset_token USING btree (user_id);
+
+
+--
+-- Name: idx_payment_property_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_payment_property_id ON public.payment USING btree (property_id);
+
+
+--
+-- Name: idx_payment_unit_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_payment_unit_id ON public.payment USING btree (unit_id);
+
+
+--
+-- Name: idx_refresh_token_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_refresh_token_user_id ON public.refresh_token USING btree (user_id);
+
+
+--
+-- Name: idx_unit_building_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_unit_building_id ON public.unit USING btree (building_id);
+
+
+--
+-- Name: idx_unit_ownership_party_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_unit_ownership_party_id ON public.unit_ownership USING btree (party_id);
+
+
+--
+-- Name: idx_unit_ownership_property_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_unit_ownership_property_id ON public.unit_ownership USING btree (property_id);
+
+
+--
+-- Name: idx_unit_ownership_unit_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_unit_ownership_unit_id ON public.unit_ownership USING btree (unit_id);
+
+
+--
+-- Name: idx_unit_property_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_unit_property_id ON public.unit USING btree (property_id);
+
+
+--
+-- Name: idx_unit_type_definition_property_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_unit_type_definition_property_id ON public.unit_type_definition USING btree (property_id);
+
+
+--
+-- Name: idx_unit_type_pricing_property_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_unit_type_pricing_property_id ON public.unit_type_pricing USING btree (property_id);
+
+
+--
+-- Name: idx_unit_type_pricing_unit_type_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_unit_type_pricing_unit_type_id ON public.unit_type_pricing USING btree (unit_type_id);
+
+
+--
+-- Name: idx_unit_unit_type_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_unit_unit_type_id ON public.unit USING btree (unit_type_id);
+
+
+--
+-- Name: idx_verification_token_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_verification_token_user_id ON public.verification_token USING btree (user_id);
+
+
+--
+-- Name: uk_accounting_exercise_property_open; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uk_accounting_exercise_property_open ON public.accounting_exercise USING btree (property_id) WHERE ((status)::text = 'OPEN'::text);
+
+
+--
+-- Name: uk_conversation_broadcast_property; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uk_conversation_broadcast_property ON public.conversation USING btree (property_id) WHERE ((type)::text = 'BROADCAST'::text);
+
+
+--
+-- Name: uk_document_owner_checksum; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uk_document_owner_checksum ON public.document USING btree (owner_type, owner_id, checksum_sha256);
+
+
+--
+-- Name: uk_journal_entry_piece; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uk_journal_entry_piece ON public.journal_entry USING btree (property_id, exercise_id, journal_code, piece_number) WHERE (piece_number IS NOT NULL);
+
+
+--
+-- Name: uk_ledger_account_global_number; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uk_ledger_account_global_number ON public.ledger_account USING btree (account_number) WHERE (property_id IS NULL);
+
+
+--
+-- Name: uk_ledger_account_scoped_number; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uk_ledger_account_scoped_number ON public.ledger_account USING btree (property_id, account_number) WHERE (property_id IS NOT NULL);
+
+
+--
+-- Name: uk_party_property_phone; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uk_party_property_phone ON public.party USING btree (property_id, phone) WHERE (phone IS NOT NULL);
+
+
+--
+-- Name: uk_period_exercise_year_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uk_period_exercise_year_month ON public.period USING btree (exercise_id, year_month);
+
+
+--
+-- Name: journal_entry trg_journal_entry_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_journal_entry_immutable BEFORE DELETE OR UPDATE ON public.journal_entry FOR EACH ROW EXECUTE FUNCTION public.reject_journal_entry_mutation();
+
+
+--
+-- Name: journal_entry_line trg_journal_entry_line_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_journal_entry_line_immutable BEFORE INSERT OR DELETE OR UPDATE ON public.journal_entry_line FOR EACH ROW EXECUTE FUNCTION public.reject_journal_entry_line_mutation_when_not_draft();
+
+
+--
+-- Name: accounting_exercise accounting_exercise_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.accounting_exercise
+    ADD CONSTRAINT accounting_exercise_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--
+-- Name: allocation allocation_credit_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.allocation
+    ADD CONSTRAINT allocation_credit_line_id_fkey FOREIGN KEY (credit_line_id) REFERENCES public.journal_entry_line(id);
+
+
+--
+-- Name: allocation allocation_debit_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.allocation
+    ADD CONSTRAINT allocation_debit_line_id_fkey FOREIGN KEY (debit_line_id) REFERENCES public.journal_entry_line(id);
+
+
+--
+-- Name: conversation conversation_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conversation
+    ADD CONSTRAINT conversation_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.app_user(id);
+
+
+--
+-- Name: conversation_participant conversation_participant_conversation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conversation_participant
+    ADD CONSTRAINT conversation_participant_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.conversation(id) ON DELETE CASCADE;
+
+
+--
+-- Name: conversation_participant conversation_participant_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conversation_participant
+    ADD CONSTRAINT conversation_participant_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id);
+
+
+--
+-- Name: conversation conversation_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conversation
+    ADD CONSTRAINT conversation_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.property(id) ON DELETE CASCADE;
+
+
+--
+-- Name: conversation_read_marker conversation_read_marker_conversation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conversation_read_marker
+    ADD CONSTRAINT conversation_read_marker_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.conversation(id) ON DELETE CASCADE;
+
+
+--
+-- Name: conversation_read_marker conversation_read_marker_last_read_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conversation_read_marker
+    ADD CONSTRAINT conversation_read_marker_last_read_message_id_fkey FOREIGN KEY (last_read_message_id) REFERENCES public.message(id);
+
+
+--
+-- Name: conversation_read_marker conversation_read_marker_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conversation_read_marker
+    ADD CONSTRAINT conversation_read_marker_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id);
+
+
+--
+-- Name: device_push_token device_push_token_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.device_push_token
+    ADD CONSTRAINT device_push_token_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: document document_uploaded_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.document
+    ADD CONSTRAINT document_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES public.app_user(id);
+
+
+--
+-- Name: expense expense_journal_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.expense
+    ADD CONSTRAINT expense_journal_entry_id_fkey FOREIGN KEY (journal_entry_id) REFERENCES public.journal_entry(id);
+
+
+--
+-- Name: expense expense_ledger_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.expense
+    ADD CONSTRAINT expense_ledger_account_id_fkey FOREIGN KEY (ledger_account_id) REFERENCES public.ledger_account(id);
+
+
+--
+-- Name: expense expense_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.expense
+    ADD CONSTRAINT expense_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--
+-- Name: app_user_party fk_app_user_party_party; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_user_party
+    ADD CONSTRAINT fk_app_user_party_party FOREIGN KEY (party_id) REFERENCES public.party(id) ON DELETE CASCADE;
+
+
+--
+-- Name: app_user_party_role fk_app_user_party_role_party_property; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_user_party_role
+    ADD CONSTRAINT fk_app_user_party_role_party_property FOREIGN KEY (party_id, property_id) REFERENCES public.party(id, property_id) ON DELETE CASCADE;
+
+
+--
+-- Name: app_user_party_role fk_app_user_party_role_user; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_user_party_role
+    ADD CONSTRAINT fk_app_user_party_role_user FOREIGN KEY (app_user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: app_user_party fk_app_user_party_user; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_user_party
+    ADD CONSTRAINT fk_app_user_party_user FOREIGN KEY (app_user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: board_member fk_board_member_party_property; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.board_member
+    ADD CONSTRAINT fk_board_member_party_property FOREIGN KEY (party_id, property_id) REFERENCES public.party(id, property_id);
+
+
+--
+-- Name: board_member fk_board_member_property; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.board_member
+    ADD CONSTRAINT fk_board_member_property FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--
+-- Name: building fk_building_property; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.building
+    ADD CONSTRAINT fk_building_property FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--
+-- Name: installment fk_installment_installment_call; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.installment
+    ADD CONSTRAINT fk_installment_installment_call FOREIGN KEY (installment_call_id) REFERENCES public.installment_call(id);
+
+
+--
+-- Name: installment fk_installment_unit; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.installment
+    ADD CONSTRAINT fk_installment_unit FOREIGN KEY (unit_id) REFERENCES public.unit(id);
+
+
+--
+-- Name: invitation fk_invitation_created_by; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation
+    ADD CONSTRAINT fk_invitation_created_by FOREIGN KEY (created_by_user_id) REFERENCES public.app_user(id);
+
+
+--
+-- Name: invitation fk_invitation_property; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation
+    ADD CONSTRAINT fk_invitation_property FOREIGN KEY (property_id) REFERENCES public.property(id) ON DELETE CASCADE;
+
+
+--
+-- Name: membership_request fk_membership_request_decided_by; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.membership_request
+    ADD CONSTRAINT fk_membership_request_decided_by FOREIGN KEY (decided_by_user_id) REFERENCES public.app_user(id);
+
+
+--
+-- Name: membership_request fk_membership_request_invitation; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.membership_request
+    ADD CONSTRAINT fk_membership_request_invitation FOREIGN KEY (invitation_id) REFERENCES public.invitation(id) ON DELETE CASCADE;
+
+
+--
+-- Name: membership_request fk_membership_request_unit; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.membership_request
+    ADD CONSTRAINT fk_membership_request_unit FOREIGN KEY (unit_id) REFERENCES public.unit(id) ON DELETE CASCADE;
+
+
+--
+-- Name: membership_request fk_membership_request_user; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.membership_request
+    ADD CONSTRAINT fk_membership_request_user FOREIGN KEY (user_id) REFERENCES public.app_user(id);
+
+
+--
+-- Name: party_invitation_token fk_party_invitation_token_party; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.party_invitation_token
+    ADD CONSTRAINT fk_party_invitation_token_party FOREIGN KEY (party_id) REFERENCES public.party(id) ON DELETE CASCADE;
+
+
+--
+-- Name: party fk_party_property; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.party
+    ADD CONSTRAINT fk_party_property FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--
+-- Name: password_reset_token fk_password_reset_token_user; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.password_reset_token
+    ADD CONSTRAINT fk_password_reset_token_user FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: refresh_token_authority fk_refresh_token_authority_token; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token_authority
+    ADD CONSTRAINT fk_refresh_token_authority_token FOREIGN KEY (refresh_token_id) REFERENCES public.refresh_token(id) ON DELETE CASCADE;
+
+
+--
+-- Name: role_permission fk_role_permission_permission; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.role_permission
+    ADD CONSTRAINT fk_role_permission_permission FOREIGN KEY (permission_key) REFERENCES public.permission(key);
+
+
+--
+-- Name: unit fk_unit_building; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit
+    ADD CONSTRAINT fk_unit_building FOREIGN KEY (building_id) REFERENCES public.building(id);
+
+
+--
+-- Name: unit_ownership fk_unit_ownership_party_property; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit_ownership
+    ADD CONSTRAINT fk_unit_ownership_party_property FOREIGN KEY (party_id, property_id) REFERENCES public.party(id, property_id);
+
+
+--
+-- Name: unit_ownership fk_unit_ownership_unit_property; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit_ownership
+    ADD CONSTRAINT fk_unit_ownership_unit_property FOREIGN KEY (unit_id, property_id) REFERENCES public.unit(id, property_id);
+
+
+--
+-- Name: unit fk_unit_property; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit
+    ADD CONSTRAINT fk_unit_property FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--
+-- Name: unit_type_definition fk_unit_type_definition_property; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit_type_definition
+    ADD CONSTRAINT fk_unit_type_definition_property FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--
+-- Name: unit_type_pricing fk_unit_type_pricing_property; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit_type_pricing
+    ADD CONSTRAINT fk_unit_type_pricing_property FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--
+-- Name: unit_type_pricing fk_unit_type_pricing_unit_type; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit_type_pricing
+    ADD CONSTRAINT fk_unit_type_pricing_unit_type FOREIGN KEY (unit_type_id) REFERENCES public.unit_type_definition(id) ON DELETE CASCADE;
+
+
+--
+-- Name: unit fk_unit_unit_type; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit
+    ADD CONSTRAINT fk_unit_unit_type FOREIGN KEY (unit_type_id) REFERENCES public.unit_type_definition(id);
+
+
+--
+-- Name: user_role fk_user_role_user; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_role
+    ADD CONSTRAINT fk_user_role_user FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: verification_token fk_verification_token_user; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.verification_token
+    ADD CONSTRAINT fk_verification_token_user FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: installment_call installment_call_journal_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.installment_call
+    ADD CONSTRAINT installment_call_journal_entry_id_fkey FOREIGN KEY (journal_entry_id) REFERENCES public.journal_entry(id);
+
+
+--
+-- Name: installment installment_journal_entry_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.installment
+    ADD CONSTRAINT installment_journal_entry_line_id_fkey FOREIGN KEY (journal_entry_line_id) REFERENCES public.journal_entry_line(id);
+
+
+--
+-- Name: journal_entry journal_entry_exercise_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal_entry
+    ADD CONSTRAINT journal_entry_exercise_id_fkey FOREIGN KEY (exercise_id) REFERENCES public.accounting_exercise(id);
+
+
+--
+-- Name: journal_entry journal_entry_journal_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal_entry
+    ADD CONSTRAINT journal_entry_journal_code_fkey FOREIGN KEY (journal_code) REFERENCES public.journal(code);
+
+
+--
+-- Name: journal_entry_line journal_entry_line_auxiliary_party_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal_entry_line
+    ADD CONSTRAINT journal_entry_line_auxiliary_party_id_fkey FOREIGN KEY (auxiliary_party_id) REFERENCES public.party(id);
+
+
+--
+-- Name: journal_entry_line journal_entry_line_auxiliary_unit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal_entry_line
+    ADD CONSTRAINT journal_entry_line_auxiliary_unit_id_fkey FOREIGN KEY (auxiliary_unit_id) REFERENCES public.unit(id);
+
+
+--
+-- Name: journal_entry_line journal_entry_line_journal_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal_entry_line
+    ADD CONSTRAINT journal_entry_line_journal_entry_id_fkey FOREIGN KEY (journal_entry_id) REFERENCES public.journal_entry(id);
+
+
+--
+-- Name: journal_entry_line journal_entry_line_ledger_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal_entry_line
+    ADD CONSTRAINT journal_entry_line_ledger_account_id_fkey FOREIGN KEY (ledger_account_id) REFERENCES public.ledger_account(id);
+
+
+--
+-- Name: journal_entry journal_entry_original_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal_entry
+    ADD CONSTRAINT journal_entry_original_entry_id_fkey FOREIGN KEY (original_entry_id) REFERENCES public.journal_entry(id);
+
+
+--
+-- Name: journal_entry journal_entry_period_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal_entry
+    ADD CONSTRAINT journal_entry_period_id_fkey FOREIGN KEY (period_id) REFERENCES public.period(id);
+
+
+--
+-- Name: journal_entry journal_entry_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal_entry
+    ADD CONSTRAINT journal_entry_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--
+-- Name: journal_entry journal_entry_treasury_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal_entry
+    ADD CONSTRAINT journal_entry_treasury_account_id_fkey FOREIGN KEY (treasury_account_id) REFERENCES public.ledger_account(id);
+
+
+--
+-- Name: ledger_account_number_sequence ledger_account_number_sequence_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ledger_account_number_sequence
+    ADD CONSTRAINT ledger_account_number_sequence_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--
+-- Name: ledger_account ledger_account_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ledger_account
+    ADD CONSTRAINT ledger_account_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--
+-- Name: ledger_account ledger_account_unit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ledger_account
+    ADD CONSTRAINT ledger_account_unit_id_fkey FOREIGN KEY (unit_id) REFERENCES public.unit(id);
+
+
+--
+-- Name: message message_conversation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.message
+    ADD CONSTRAINT message_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.conversation(id) ON DELETE CASCADE;
+
+
+--
+-- Name: message_draft message_draft_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.message_draft
+    ADD CONSTRAINT message_draft_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.app_user(id);
+
+
+--
+-- Name: message_draft message_draft_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.message_draft
+    ADD CONSTRAINT message_draft_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.property(id) ON DELETE CASCADE;
+
+
+--
+-- Name: message_draft_recipient message_draft_recipient_message_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.message_draft_recipient
+    ADD CONSTRAINT message_draft_recipient_message_draft_id_fkey FOREIGN KEY (message_draft_id) REFERENCES public.message_draft(id) ON DELETE CASCADE;
+
+
+--
+-- Name: message_draft_recipient message_draft_recipient_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.message_draft_recipient
+    ADD CONSTRAINT message_draft_recipient_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id);
+
+
+--
+-- Name: message message_sender_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.message
+    ADD CONSTRAINT message_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.app_user(id);
+
+
+--
+-- Name: notification notification_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notification
+    ADD CONSTRAINT notification_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.property(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notification notification_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notification
+    ADD CONSTRAINT notification_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: payment payment_journal_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_journal_entry_id_fkey FOREIGN KEY (journal_entry_id) REFERENCES public.journal_entry(id);
+
+
+--
+-- Name: payment payment_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--
+-- Name: payment payment_unit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_unit_id_fkey FOREIGN KEY (unit_id) REFERENCES public.unit(id);
+
+
+--
+-- Name: period period_exercise_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.period
+    ADD CONSTRAINT period_exercise_id_fkey FOREIGN KEY (exercise_id) REFERENCES public.accounting_exercise(id);
+
+
+--
+-- Name: sequence_piece sequence_piece_exercise_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sequence_piece
+    ADD CONSTRAINT sequence_piece_exercise_id_fkey FOREIGN KEY (exercise_id) REFERENCES public.accounting_exercise(id);
+
+
+--
+-- Name: sequence_piece sequence_piece_journal_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sequence_piece
+    ADD CONSTRAINT sequence_piece_journal_code_fkey FOREIGN KEY (journal_code) REFERENCES public.journal(code);
+
+
+--
+-- Name: sequence_piece sequence_piece_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sequence_piece
+    ADD CONSTRAINT sequence_piece_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.property(id);
+
+
+--

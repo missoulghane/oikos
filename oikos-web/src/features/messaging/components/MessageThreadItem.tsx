@@ -16,7 +16,17 @@ export function MessageThreadItem({ message }: { message: Message }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="truncate text-theme-sm font-semibold text-gray-900 dark:text-white/90">{senderLabel}</span>
+          <p className="flex min-w-0 items-baseline gap-1.5">
+            <span className="truncate text-theme-sm font-semibold text-gray-900 dark:text-white/90">{senderLabel}</span>
+            {/* OWNER is the unmarked default (matches the majority "un lot, une résidence" case);
+                only BOARD is called out, since it is the exception that needs signaling - see the
+                "en tant que" identity picker in NewConversationPage/MessageComposer. */}
+            {message.senderIdentity === 'BOARD' && (
+              <span className="shrink-0 rounded-full bg-warning-50 px-2 py-0.5 text-[11px] font-medium text-warning-700 dark:bg-warning-500/15 dark:text-warning-400">
+                Bureau
+              </span>
+            )}
+          </p>
           <span className="shrink-0 text-theme-xs text-gray-400 dark:text-gray-500">
             {new Date(message.createdAt).toLocaleString('fr-FR', {
               day: '2-digit',

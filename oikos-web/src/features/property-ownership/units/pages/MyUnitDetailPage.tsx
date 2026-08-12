@@ -54,12 +54,12 @@ export function MyUnitDetailPage() {
 
       <Card className="flex flex-col gap-2">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Échéances</h2>
-        <UnitInstallmentsSection propertyId={propertyId ?? ''} unitId={id} />
+        <UnitInstallmentsSection propertyId={propertyId ?? ''} unitId={id} canManage={false} />
       </Card>
 
       <Card className="flex flex-col gap-2">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Paiements</h2>
-        <UnitPaymentsSection propertyId={propertyId ?? ''} unitId={id} />
+        <UnitPaymentsSection propertyId={propertyId ?? ''} unitId={id} canManage={false} />
       </Card>
     </div>
   );

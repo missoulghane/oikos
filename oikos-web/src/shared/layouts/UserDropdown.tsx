@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/app/store';
 import { useCurrentUser } from '@/features/identity/me';
+import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
 import { Dropdown } from '@/shared/components/Dropdown/Dropdown';
 
 export function UserDropdown() {
@@ -9,6 +10,11 @@ export function UserDropdown() {
   const navigate = useNavigate();
   const currentUser = useCurrentUser();
   const clearSession = useAuthStore((state) => state.clearSession);
+  // Carried onto "Mes informations" so opening the profile from the board
+  // space doesn't silently drop the viewer back into owner (see
+  // spaceQuerySuffix) - /profile itself doesn't care, but the sidebar
+  // recomputes the effective space from the URL on every route.
+  const profileHref = `/profile${spaceQuerySuffix(useEffectiveSpace())}`;
 
   function handleLogout() {
     clearSession();
@@ -49,7 +55,7 @@ export function UserDropdown() {
           <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">{currentUser.data?.email}</span>
         </div>
         <Link
-          to="/profile"
+          to={profileHref}
           onClick={() => setIsOpen(false)}
           className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
         >

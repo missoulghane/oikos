@@ -16,7 +16,8 @@ export function useRecordOwnerPayment(propertyId: string, unitId: string) {
       // so a "saisir une recette" from an account's page shows the new entry
       // and updated balance immediately on return, not stale cached data.
       queryClient.invalidateQueries({ queryKey: queryKeys.properties.accountingLedgerAccounts(propertyId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.properties.latestPayment(propertyId) });
+      // Prefix match (no size): invalidates every configured "N latest payments" cache entry.
+      queryClient.invalidateQueries({ queryKey: ['properties', propertyId, 'payments', 'latest'] });
     },
   });
 }

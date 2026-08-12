@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Badge } from '@/shared/components/Badge/Badge';
 import type { ConversationBox, ConversationSummary } from '@/features/messaging/types/messaging.types';
-import { formatRelativeTime } from '@/features/messaging/utils/formatRelativeTime';
+import { formatRelativeTime } from '@/shared/utils/formatRelativeTime';
 import { BOX_PATH } from '@/features/messaging/utils/boxPath';
 
 export const BROADCAST_CONVERSATION_LABEL = 'Annonces de la copropriété';
@@ -27,13 +27,17 @@ interface ConversationListItemProps {
   conversation: ConversationSummary;
   box: ConversationBox;
   isActive?: boolean;
+  /** "?space=…" from the caller's useEffectiveSpace() (see spaceQuerySuffix) - computed once by
+   * the list page rather than per-row, and carried onto the link so opening a thread from the
+   * board space doesn't silently drop the viewer back into owner. */
+  spaceSuffix?: string;
 }
 
 // Dense, avatar-less table row (Outlook inbox style) rather than a
 // rounded-card + circular-avatar chat entry: title/timestamp on one line,
 // thin border-b divider between rows. No content preview - the list is
 // purely "who/what/when", the message body only appears once you open it.
-export function ConversationListItem({ conversation, box, isActive = false }: ConversationListItemProps) {
+export function ConversationListItem({ conversation, box, isActive = false, spaceSuffix = '' }: ConversationListItemProps) {
   const title = conversationTitle(conversation);
   const participants = participantsLine(conversation);
   const hasUnread = conversation.unreadCount > 0;
@@ -41,7 +45,7 @@ export function ConversationListItem({ conversation, box, isActive = false }: Co
   return (
     <li>
       <Link
-        to={`${BOX_PATH[box]}/${conversation.id}`}
+        to={`${BOX_PATH[box]}/${conversation.id}${spaceSuffix}`}
         className={`flex flex-col gap-0.5 border-b border-l-2 border-gray-100 dark:border-gray-800 px-3 py-2.5 ${
           isActive ? 'border-l-brand-500 bg-brand-50 dark:bg-brand-500/[0.12]' : 'border-l-transparent hover:bg-gray-50 dark:hover:bg-white/[0.03]'
         }`}
@@ -58,6 +62,16 @@ export function ConversationListItem({ conversation, box, isActive = false }: Co
             {conversation.messageCount > 1 && (
               <span className="shrink-0 text-theme-xs font-normal text-gray-400 dark:text-gray-500">
                 ({conversation.messageCount} messages)
+              </span>
+            )}
+            {conversation.type === 'BOARD_PRIVATE' && (
+              <span className="shrink-0 rounded-full bg-warning-50 px-2 py-0.5 text-[11px] font-medium text-warning-700 dark:bg-warning-500/15 dark:text-warning-400">
+                Privé · bureau
+              </span>
+            )}
+            {conversation.concernsUnit && (
+              <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500 dark:bg-white/[0.05] dark:text-gray-400">
+                Concerne {conversation.concernsUnit}
               </span>
             )}
           </p>

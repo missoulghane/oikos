@@ -1,17 +1,23 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
 import { Dropdown } from '@/shared/components/Dropdown/Dropdown';
 import { Badge } from '@/shared/components/Badge/Badge';
 import { ChatIcon } from '@/shared/icons';
 import { useUnreadSummary } from '@/features/messaging/hooks/useUnreadSummary';
 import { conversationTitle } from '@/features/messaging/components/ConversationListItem';
-import { formatRelativeTime } from '@/features/messaging/utils/formatRelativeTime';
+import { formatRelativeTime } from '@/shared/utils/formatRelativeTime';
 
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const unreadSummary = useUnreadSummary();
   const totalUnread = unreadSummary.data?.totalUnreadMessageCount ?? 0;
   const recentUnread = unreadSummary.data?.recentUnread ?? [];
+  // Carried onto every link below so opening a notification from the board
+  // space doesn't silently drop the viewer back into owner (see
+  // spaceQuerySuffix) - this bell is mounted in the header regardless of
+  // route, so it must never assume which space the viewer is currently in.
+  const spaceSuffix = spaceQuerySuffix(useEffectiveSpace());
 
   function closeDropdown() {
     setIsOpen(false);
@@ -45,7 +51,7 @@ export function NotificationBell() {
             return (
               <li key={conversation.id}>
                 <Link
-                  to={`/messages/reception/${conversation.id}`}
+                  to={`/messages/reception/${conversation.id}${spaceSuffix}`}
                   onClick={closeDropdown}
                   className="flex flex-col gap-0.5 rounded-lg border-b border-gray-100 dark:border-gray-800 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
                 >
@@ -66,7 +72,7 @@ export function NotificationBell() {
           })}
         </ul>
         <Link
-          to="/messages/reception"
+          to={`/messages/reception${spaceSuffix}`}
           onClick={closeDropdown}
           className="mt-3 block rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
         >

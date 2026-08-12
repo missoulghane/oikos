@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRecipientCandidates } from '@/features/messaging/hooks/useRecipientCandidates';
+import { useProperty } from '@/features/property-mngt/properties/hooks/useProperty';
 import { Input } from '@/shared/components/Input/Input';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
@@ -21,10 +22,39 @@ export const EVERYONE_RECIPIENT: RecipientCandidate = {
   userId: '__everyone__',
   fullName: 'Toute la copropriété',
   roleLabel: 'Diffusion',
+  unitNumbers: [],
+  isStaff: false,
 };
+
+// Pseudo-candidate representing "the board" - like EVERYONE_RECIPIENT, no
+// functional difference for the user between messaging a specific list of
+// board members and messaging "the board" as a whole; picking it routes the
+// send to the board-conversation endpoint (BOARD_PRIVATE) instead of the
+// group-conversation one (see NewConversationPage). Audience is resolved
+// server-side from the property's *current* staff roster at read time, never
+// this fixed candidate - an ex-board-member loses access immediately even
+// though this pseudo-candidate never changes.
+export const BOARD_RECIPIENT: RecipientCandidate = {
+  userId: '__board__',
+  fullName: 'Le bureau de syndic',
+  roleLabel: 'Fil privé',
+  unitNumbers: [],
+  isStaff: true,
+};
+
+/** "Jean Dupont - Lot 12B" (no lot suffix for a board/manager seat that owns nothing here). */
+function candidateNameLabel(candidate: RecipientCandidate): string {
+  return candidate.unitNumbers.length > 0
+    ? `${candidate.fullName} - Lot ${candidate.unitNumbers.join(', ')}`
+    : candidate.fullName;
+}
 
 export function isEveryoneRecipient(candidate: RecipientCandidate): boolean {
   return candidate.userId === EVERYONE_RECIPIENT.userId;
+}
+
+export function isBoardRecipient(candidate: RecipientCandidate): boolean {
+  return candidate.userId === BOARD_RECIPIENT.userId;
 }
 
 interface RecipientPickerProps {
@@ -34,6 +64,8 @@ interface RecipientPickerProps {
   disabled?: boolean;
   /** Whether "Toute la copropriété" may be picked as a recipient (board/manager tier only). */
   canBroadcast?: boolean;
+  /** Whether "Le bureau" (fil privé) may be picked as a recipient (board/manager tier only). */
+  canBoardPrivate?: boolean;
 }
 
 // Outlook "To:" style multi-select: selected recipients render as removable
@@ -52,6 +84,7 @@ export function RecipientPicker({
   onChange,
   disabled = false,
   canBroadcast = false,
+  canBoardPrivate = false,
 }: RecipientPickerProps) {
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -63,11 +96,18 @@ export function RecipientPicker({
 
   const isSearching = debouncedSearch.length > 0;
   const recipients = useRecipientCandidates(propertyId, debouncedSearch || undefined);
+  // Every candidate belongs to this same property (the endpoint is scoped to
+  // it) - fetched once here rather than per-candidate to name it alongside
+  // the role: "Al Amal - Président" reads better than a bare "Président"
+  // once messages start crossing several résidences in the same inbox.
+  const property = useProperty(propertyId);
   const selectedIds = new Set(value.map((recipient) => recipient.userId));
   const availableCandidates = (recipients.data ?? []).filter(
     (candidate) => !selectedIds.has(candidate.userId),
   );
   const isEveryoneSelected = value.some(isEveryoneRecipient);
+  const isBoardSelected = value.some(isBoardRecipient);
+  const isPseudoRecipientSelected = isEveryoneSelected || isBoardSelected;
 
   function addRecipient(candidate: RecipientCandidate) {
     onChange([...value, candidate]);
@@ -88,6 +128,12 @@ export function RecipientPicker({
     setDebouncedSearch('');
   }
 
+  function selectBoard() {
+    onChange([BOARD_RECIPIENT]);
+    setSearchInput('');
+    setDebouncedSearch('');
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {value.length > 0 && (
@@ -95,7 +141,7 @@ export function RecipientPicker({
           {value.map((recipient) => (
             <li key={recipient.userId}>
               <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-brand-50 dark:bg-brand-500/[0.12] py-1 pl-3 pr-1.5 text-sm font-medium text-brand-700 dark:text-brand-400">
-                {recipient.fullName}
+                {candidateNameLabel(recipient)}
                 <button
                   type="button"
                   disabled={disabled}
@@ -111,18 +157,32 @@ export function RecipientPicker({
         </ul>
       )}
 
-      {canBroadcast && !isEveryoneSelected && value.length === 0 && (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={selectEveryone}
-          className="inline-flex min-h-8 items-center self-start rounded-full border border-dashed border-gray-300 dark:border-gray-700 px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-brand-300 hover:text-brand-600 dark:hover:text-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Envoyer à toute la copropriété
-        </button>
+      {(canBroadcast || canBoardPrivate) && !isPseudoRecipientSelected && value.length === 0 && (
+        <div className="flex flex-wrap gap-2">
+          {canBroadcast && (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={selectEveryone}
+              className="inline-flex min-h-8 items-center self-start rounded-full border border-dashed border-gray-300 dark:border-gray-700 px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-brand-300 hover:text-brand-600 dark:hover:text-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Envoyer à toute la copropriété
+            </button>
+          )}
+          {canBoardPrivate && (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={selectBoard}
+              className="inline-flex min-h-8 items-center self-start rounded-full border border-dashed border-gray-300 dark:border-gray-700 px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-brand-300 hover:text-brand-600 dark:hover:text-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Écrire au bureau (fil privé)
+            </button>
+          )}
+        </div>
       )}
 
-      {!isEveryoneSelected && (
+      {!isPseudoRecipientSelected && (
         <>
           <Input
             id="recipient-search"
@@ -149,8 +209,12 @@ export function RecipientPicker({
                     onClick={() => addRecipient(candidate)}
                     className="flex min-h-11 w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-60 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <span className="text-sm font-medium text-gray-900 dark:text-white/90">{candidate.fullName}</span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">{candidate.roleLabel}</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white/90">
+                      {candidateNameLabel(candidate)}
+                    </span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {property.data ? `${property.data.name} - ${candidate.roleLabel}` : candidate.roleLabel}
+                    </span>
                   </button>
                 </li>
               ))}

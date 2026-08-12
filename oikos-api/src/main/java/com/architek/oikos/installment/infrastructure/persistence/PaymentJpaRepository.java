@@ -1,14 +1,14 @@
 package com.architek.oikos.installment.infrastructure.persistence;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PaymentJpaRepository extends JpaRepository<PaymentEntity, UUID> {
 
     List<PaymentEntity> findAllByUnitId(UUID unitId);
 
-    Optional<PaymentEntity> findFirstByPropertyIdOrderByValueDateDescCreatedDateDesc(UUID propertyId);
+    List<PaymentEntity> findByPropertyIdOrderByValueDateDescCreatedDateDesc(UUID propertyId, Pageable pageable);
 }

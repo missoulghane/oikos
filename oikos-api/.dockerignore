@@ -1,0 +1,8 @@
+target/
+docs/
+*.md
+.git
+.gitignore
+.gitattributes
+.idea/
+*.iml

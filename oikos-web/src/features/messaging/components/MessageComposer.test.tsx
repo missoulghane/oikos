@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -20,16 +21,17 @@ const sentMessage: Message = {
   conversationId: 'conversation-1',
   senderId: 'user-1',
   senderName: 'Jean Dupont',
+  senderIdentity: 'OWNER',
   body: 'Bonjour',
   createdAt: new Date().toISOString(),
   mine: true,
 };
 
-function renderComposer() {
+function renderComposer(props: Partial<ComponentProps<typeof MessageComposer>> = {}) {
   const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MessageComposer conversationId="conversation-1" />
+      <MessageComposer conversationId="conversation-1" {...props} />
     </QueryClientProvider>,
   );
 }
@@ -83,5 +85,28 @@ describe('MessageComposer', () => {
     await waitFor(() => expect(mockedSendMessage).toHaveBeenCalledTimes(2));
     expect(mockedSendMessage).toHaveBeenNthCalledWith(2, 'conversation-1', { body: 'Bonjour' });
     await waitFor(() => expect(textarea).toHaveValue(''));
+  });
+
+  it('does not show the "répondre en tant que" picker when the sender only holds one role here', () => {
+    renderComposer();
+
+    expect(screen.queryByText('Répondre en tant que')).not.toBeInTheDocument();
+  });
+
+  it('shows the picker preselected on the active space, and sends the chosen identity', async () => {
+    mockedSendMessage.mockResolvedValueOnce(sentMessage);
+    const user = userEvent.setup();
+    renderComposer({ identityChoiceNeeded: true, defaultIdentity: 'BOARD' });
+
+    expect(screen.getByRole('button', { name: 'Membre du bureau' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Copropriétaire' })).toHaveAttribute('aria-pressed', 'false');
+
+    await user.click(screen.getByRole('button', { name: 'Copropriétaire' }));
+    await user.type(screen.getByLabelText('Message'), 'Bonjour');
+    await user.click(screen.getByRole('button', { name: /envoyer/i }));
+
+    await waitFor(() =>
+      expect(mockedSendMessage).toHaveBeenCalledWith('conversation-1', { body: 'Bonjour', senderIdentity: 'OWNER' }),
+    );
   });
 });

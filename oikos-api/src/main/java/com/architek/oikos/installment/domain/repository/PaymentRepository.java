@@ -15,5 +15,6 @@ public interface PaymentRepository {
 
     List<Payment> findAllByUnitId(EntityId unitId);
 
-    Optional<Payment> findLatestByPropertyId(EntityId propertyId);
+    /** Most recent payments for the property, newest first, capped at {@code limit}. */
+    List<Payment> findLatestByPropertyId(EntityId propertyId, int limit);
 }

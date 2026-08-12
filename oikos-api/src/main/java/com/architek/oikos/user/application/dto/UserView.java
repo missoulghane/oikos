@@ -9,8 +9,9 @@ import com.architek.oikos.user.domain.model.Role;
 import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.valueobject.UserId;
 
-public record UserView(UserId id, String fullName, String email, Set<Role> roles,
-                        Map<String, Set<PropertyRole>> roleByProperty, boolean verified, boolean enabled) {
+public record UserView(UserId id, String fullName, String email, String phone, Set<Role> roles,
+                        Map<String, Set<PropertyRole>> roleByProperty, boolean verified, boolean enabled,
+                        boolean hasAvatar) {
 
     /**
      * A caller can hold more than one grant on the same property (e.g. a board member
@@ -24,7 +25,7 @@ public record UserView(UserId id, String fullName, String email, Set<Role> roles
                 .collect(Collectors.groupingBy(
                         grant -> grant.propertyId().toString(),
                         Collectors.mapping(grant -> grant.role(), Collectors.toSet())));
-        return new UserView(user.getId(), user.getFullName(), user.getEmail().value(),
-                user.getRoles(), roleByProperty, user.isVerified(), user.isEnabled());
+        return new UserView(user.getId(), user.getFullName(), user.getEmail().value(), user.getPhone(),
+                user.getRoles(), roleByProperty, user.isVerified(), user.isEnabled(), user.hasAvatar());
     }
 }

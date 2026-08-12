@@ -11,59 +11,91 @@ export function isAdmin(user: CurrentUser): boolean {
  * subtree; getting this wrong lets a plain unit owner into the gérant/syndic UI shell.
  */
 export function canManageProperties(user: CurrentUser): boolean {
-  return isAdmin(user) || Object.values(user.roleByProperty).some((role) => role !== 'PROPERTY_OWNER');
+  return (
+    isAdmin(user) ||
+    Object.values(user.roleByProperty).some((roles) => roles.some((role) => role !== 'PROPERTY_OWNER'))
+  );
 }
 
 /**
  * Only a manager-firm admin (uncapped) - or the platform admin - may create an
- * additional property. A board admin already holds their one and only
- * allowed property from registration onward (see the backend's
- * EnforcePropertyCreationLimitService), so this never lets them create a
- * second one.
+ * additional property. A board admin can also hold several properties today
+ * (the old one-property cap has been removed), so this is no longer their
+ * gate - board admins create properties through the board-admin registration
+ * flow, not here.
  */
 export function canCreateProperty(user: CurrentUser): boolean {
-  return isAdmin(user) || Object.values(user.roleByProperty).includes('PROPERTY_MANAGER_ADMIN');
+  return isAdmin(user) || Object.values(user.roleByProperty).some((roles) => roles.includes('PROPERTY_MANAGER_ADMIN'));
 }
 
 /** The single property this account is staff on, or null if it manages none or several. */
 export function singleManagedPropertyId(user: CurrentUser): string | null {
   const managedPropertyIds = Object.entries(user.roleByProperty)
-    .filter(([, role]) => role !== 'PROPERTY_OWNER')
+    .filter(([, roles]) => roles.some((role) => role !== 'PROPERTY_OWNER'))
     .map(([propertyId]) => propertyId);
   return managedPropertyIds.length === 1 ? managedPropertyIds[0] : null;
 }
 
 /** True if the caller holds an ADMIN-tier role (board or manager-firm) on this specific property. */
 export function isAdminTierOnProperty(user: CurrentUser, propertyId: string): boolean {
-  const role = user.roleByProperty[propertyId];
-  return isAdmin(user) || role === 'PROPERTY_BOARD_ADMIN' || role === 'PROPERTY_MANAGER_ADMIN';
+  const roles = user.roleByProperty[propertyId] ?? [];
+  return isAdmin(user) || roles.includes('PROPERTY_BOARD_ADMIN') || roles.includes('PROPERTY_MANAGER_ADMIN');
 }
 
-/** The id of the single property this account is a volunteer board member/admin of, or null. */
+/**
+ * All properties this account holds a volunteer board mandate (admin or
+ * member) on, in map iteration order. A caller can hold more than one
+ * simultaneous mandate on different properties.
+ */
+export function boardPropertyIds(user: CurrentUser): string[] {
+  return Object.entries(user.roleByProperty)
+    .filter(([, roles]) => roles.includes('PROPERTY_BOARD_ADMIN') || roles.includes('PROPERTY_BOARD_MEMBER'))
+    .map(([propertyId]) => propertyId);
+}
+
+/**
+ * The id of the first property this account is a volunteer board
+ * member/admin of, or null. Kept only for the current single-mandate UI
+ * (dashboard, sidebar, onboarding banner) - callers that need to show every
+ * mandate a multi-mandate account holds should use boardPropertyIds
+ * instead, which this delegates to.
+ */
 export function boardPropertyId(user: CurrentUser): string | null {
-  const entry = Object.entries(user.roleByProperty).find(
-    ([, role]) => role === 'PROPERTY_BOARD_ADMIN' || role === 'PROPERTY_BOARD_MEMBER',
-  );
-  return entry ? entry[0] : null;
+  return boardPropertyIds(user)[0] ?? null;
 }
 
 /** True if the caller holds a professional management-firm role (admin or member) on any property. */
 export function isManagerTier(user: CurrentUser): boolean {
   return Object.values(user.roleByProperty).some(
-    (role) => role === 'PROPERTY_MANAGER_ADMIN' || role === 'PROPERTY_MANAGER_MEMBER',
+    (roles) => roles.includes('PROPERTY_MANAGER_ADMIN') || roles.includes('PROPERTY_MANAGER_MEMBER'),
   );
 }
 
 /** True if the caller holds a board role (admin or member) specifically on this property. */
 export function isBoardTierOnProperty(user: CurrentUser, propertyId: string): boolean {
-  const role = user.roleByProperty[propertyId];
-  return role === 'PROPERTY_BOARD_ADMIN' || role === 'PROPERTY_BOARD_MEMBER';
+  const roles = user.roleByProperty[propertyId] ?? [];
+  return roles.includes('PROPERTY_BOARD_ADMIN') || roles.includes('PROPERTY_BOARD_MEMBER');
 }
 
 /** True if the caller holds a manager-firm role (admin or member) specifically on this property. */
 export function isManagerTierOnProperty(user: CurrentUser, propertyId: string): boolean {
-  const role = user.roleByProperty[propertyId];
-  return role === 'PROPERTY_MANAGER_ADMIN' || role === 'PROPERTY_MANAGER_MEMBER';
+  const roles = user.roleByProperty[propertyId] ?? [];
+  return roles.includes('PROPERTY_MANAGER_ADMIN') || roles.includes('PROPERTY_MANAGER_MEMBER');
+}
+
+/** True if the caller holds PROPERTY_OWNER specifically on this property (alongside any other role). */
+export function isOwnerOnProperty(user: CurrentUser, propertyId: string): boolean {
+  return (user.roleByProperty[propertyId] ?? []).includes('PROPERTY_OWNER');
+}
+
+/**
+ * True if the account owns at least one unit anywhere - i.e. whether the
+ * consolidated "copropriétaire" space exists for it at all. A pure
+ * mandataire (board/manager role with no PROPERTY_OWNER grant on any
+ * property, e.g. a professional gérant) has no personal space to land on.
+ */
+export function hasCopro(user: CurrentUser): boolean {
+  return Object.values(user.roleByProperty).some((roles) => roles.includes('PROPERTY_OWNER'));
 }
 
 /**

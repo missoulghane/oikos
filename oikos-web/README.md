@@ -14,7 +14,7 @@ Livrable volontairement réduit : le parcours **création d'une copropriété**.
   de l'API : une copropriété est créée avec son premier immeuble dans la
   même transaction (`CreatePropertyService`, côté `oikos-api`).
 
-Hors périmètre pour cette version (voir `oikos-api/docs/README.md` pour la
+Hors périmètre pour cette version (voir `oikos-api/README.md` pour la
 vision produit complète) : gestion des immeubles/lots au-delà de la
 création initiale, copropriétaires, membres du syndic, inscription de
 compte, mot de passe oublié.
@@ -40,6 +40,10 @@ L'application est servie sur `http://localhost:5173`. En développement, le
 serveur Vite proxifie les appels `/api/*` vers `http://localhost:8080` (voir
 `vite.config.ts`) : aucune configuration CORS n'est nécessaire côté API.
 
+Pour un environnement prod-like (build buildé, servi par nginx, Postgres
+réel) plutôt que `npm run dev`, voir
+[../README.md](../README.md#docker--recette) à la racine du repo.
+
 ### Compte de connexion (dev)
 
 En profil `dev`, l'API seed un compte `ROLE_ADMIN` (voir
@@ -60,19 +64,26 @@ npm run test:watch    # Vitest en mode watch
 
 ### Variables d'environnement
 
-Voir `.env.example`. `VITE_API_URL` :
+Voir `.env.example`. `VITE_API_URL`, selon le mode Vite (`npm run build --
+--mode <mode>`) :
 
-- en développement (`.env.development`) : `/api/v1`, relatif, résolu par le
-  proxy Vite ci-dessus.
-- en production (`.env.production`) : à surcharger avec l'origine réelle de
-  l'API au moment du build/déploiement (pas de proxy Vite en production).
+- développement (`.env.development`, mode par défaut de `npm run dev`) :
+  `/api/v1`, relatif, résolu par le proxy Vite ci-dessus.
+- recette (`.env.recette`) : origine réelle de l'API de recette — TODO,
+  domaine pas encore connu (voir le fichier).
+- production (`.env.production`) : origine réelle de l'API de prod — TODO,
+  domaine pas encore connu (voir le fichier).
+
+Pas de proxy Vite en dehors du développement : ces deux derniers modes
+doivent pointer vers une origine absolue.
 
 ## 4. Documentation
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — organisation du code, conventions,
   choix techniques.
 - Ce README — périmètre fonctionnel et démarrage.
-- `../oikos-api/docs/` — architecture et vision produit du backend.
+- `../oikos-api/README.md` / `../oikos-api/ARCHITECTURE.md` — architecture
+  et vision produit du backend.
 
 Les deux README (celui-ci et celui d'`oikos-api`) et leurs `ARCHITECTURE.md`
 respectifs sont complémentaires et doivent être tenus à jour à chaque

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/shared/components/Button/Button';
@@ -5,8 +6,19 @@ import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { useSendMessage } from '@/features/messaging/hooks/useSendMessage';
 import { sendMessageSchema, type SendMessageFormValues } from '@/features/messaging/schemas/sendMessageSchema';
+import type { SenderIdentity } from '@/features/messaging/types/messaging.types';
 
-export function MessageComposer({ conversationId }: { conversationId: string }) {
+interface MessageComposerProps {
+  conversationId: string;
+  /** Whether the sender holds both OWNER and BOARD on this thread's property - only then is "envoyer en tant que" a real choice. */
+  identityChoiceNeeded?: boolean;
+  /** Preselected from the active space (useEffectiveSpace) when the choice is offered. */
+  defaultIdentity?: SenderIdentity;
+}
+
+export function MessageComposer({ conversationId, identityChoiceNeeded = false, defaultIdentity }: MessageComposerProps) {
+  const [identityOverride, setIdentityOverride] = useState<SenderIdentity | null>(null);
+  const selectedIdentity = identityOverride ?? defaultIdentity;
   const {
     register,
     handleSubmit,
@@ -17,13 +29,19 @@ export function MessageComposer({ conversationId }: { conversationId: string }) 
   const { mutate, isPending, isError, error } = useSendMessage(conversationId);
 
   function onSubmit(values: SendMessageFormValues) {
-    mutate(values, { onSuccess: () => reset({ body: '' }) });
+    mutate(
+      { ...values, senderIdentity: identityChoiceNeeded ? selectedIdentity : undefined },
+      { onSuccess: () => reset({ body: '' }) },
+    );
   }
 
   function handleRetry() {
     // No optimistic UI in this app - the draft stays in the input until the
     // mutation actually succeeds, so retrying just resubmits the same text.
-    mutate({ body: getValues('body') }, { onSuccess: () => reset({ body: '' }) });
+    mutate(
+      { body: getValues('body'), senderIdentity: identityChoiceNeeded ? selectedIdentity : undefined },
+      { onSuccess: () => reset({ body: '' }) },
+    );
   }
 
   return (
@@ -40,6 +58,29 @@ export function MessageComposer({ conversationId }: { conversationId: string }) 
           >
             Réessayer
           </Button>
+        </div>
+      )}
+      {identityChoiceNeeded && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500 dark:text-gray-400">Répondre en tant que</span>
+          <div role="group" aria-label="Répondre en tant que" className="flex rounded-lg border border-gray-200 p-0.5 dark:border-gray-800">
+            {(['OWNER', 'BOARD'] as const).map((identity) => (
+              <button
+                key={identity}
+                type="button"
+                disabled={isPending}
+                aria-pressed={selectedIdentity === identity}
+                onClick={() => setIdentityOverride(identity)}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                  selectedIdentity === identity
+                    ? 'bg-brand-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.05]'
+                }`}
+              >
+                {identity === 'OWNER' ? 'Copropriétaire' : 'Membre du bureau'}
+              </button>
+            ))}
+          </div>
         </div>
       )}
       <div className="flex items-end gap-2">

@@ -1,0 +1,71 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: applies V1__baseline.sql before the api starts. Kept separate
+  # from the api's own Spring Boot process rather than relying on Spring's
+  # runtime Flyway auto-migration - in this Spring Boot 4 / packaged-jar
+  # combination, Flyway's automatic "run before JPA validates the schema"
+  # ordering does not reliably happen, so JPA validation fails against an
+  # empty schema. Running Flyway upfront here sidesteps that entirely.
+  flyway:
+    image: flyway/flyway:11-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: -url=jdbc:postgresql://postgres:5432/${POSTGRES_DB} -user=${POSTGRES_USER} -password=${POSTGRES_PASSWORD} -locations=filesystem:/flyway/sql migrate
+    volumes:
+      - ./oikos-api/src/main/resources/db/migration:/flyway/sql:ro
+
+  api:
+    build:
+      context: ./oikos-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+    env_file:
+      - ./oikos-api/.env
+    environment:
+      # Identifiants Postgres partagés avec le service "postgres" ci-dessus,
+      # définis une seule fois dans le .env racine (pas dans oikos-api/.env)
+      # pour ne jamais diverger entre les deux services.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - api-storage:/app/data
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  web:
+    build:
+      context: ./oikos-web
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    depends_on:
+      - api
+    ports:
+      - "8082:80"
+
+volumes:
+  postgres-data:
+  api-storage:

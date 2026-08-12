@@ -1,0 +1,36 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    defer-datasource-initialization: true
+  # Schema migration is applied by the standalone "flyway" service in
+  # docker-compose.yml before this app even starts (see its comment for
+  # why: Spring's own Flyway-before-JPA auto-ordering does not reliably
+  # trigger for this Spring Boot 4 / packaged-jar combination). Hibernate
+  # only validates here (ddl-auto: validate above), it never migrates.
+  flyway:
+    enabled: false
+  # Seeds the same test accounts as the dev profile (db/dev/dev.sql) so a
+  # freshly started recette environment has usable logins right away. Not
+  # idempotent (plain INSERTs) - continue-on-error means a restart against
+  # an already-seeded volume just logs the failed inserts instead of
+  # crashing startup. Run `docker compose down -v` for a truly clean reseed.
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+      data-locations: classpath:db/dev/dev.sql
+
+oikos:
+  mail:
+    enabled: true
+
+logging:
+  level:
+    com.architek.oikos: INFO
