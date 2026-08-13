@@ -84,15 +84,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
       - name: Sync compose files to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: "docker-compose.yml,docker-compose.staging.yml,Caddyfile,oikos-api/src/main/resources/db/migration"
-          target: /opt/oikos
-          strip_components: 0
+        run: |
+          scp -i ~/.ssh/id_deploy docker-compose.yml docker-compose.staging.yml Caddyfile \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/oikos/
+          ssh -i ~/.ssh/id_deploy ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "mkdir -p /opt/oikos/oikos-api/src/main/resources/db/migration"
+          scp -i ~/.ssh/id_deploy oikos-api/src/main/resources/db/migration/*.sql \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/oikos/oikos-api/src/main/resources/db/migration/
       - name: Pull & restart services on VPS
         uses: appleboy/ssh-action@v1
         with:
