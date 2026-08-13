@@ -85,11 +85,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
+          # Fail with an attributable message instead of a bare "exit code 1":
+          # GitHub masks every log occurrence of a secret's value, and
+          # ssh-keyscan's own stderr normally echoes the host back - so a
+          # masked failure here previously left nothing to debug from. None
+          # of the messages below embed $VPS_HOST/$VPS_SSH_KEY, so they
+          # can't be swallowed by masking themselves.
+          if [ -z "$VPS_HOST" ]; then
+            echo "::error::VPS_HOST secret is empty or unset"
+            exit 1
+          fi
+          if [ -z "$VPS_SSH_KEY" ]; then
+            echo "::error::VPS_SSH_KEY secret is empty or unset"
+            exit 1
+          fi
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_deploy
+          echo "$VPS_SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          if ! ssh-keyscan -T 10 -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/tmp/keyscan.err; then
+            echo "::error::ssh-keyscan failed - VPS_HOST is likely wrong, or the VPS is unreachable/down/firewalled on port 22"
+            sed "s/$VPS_HOST/<VPS_HOST>/g" /tmp/keyscan.err
+            exit 1
+          fi
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "::error::ssh-keyscan produced no host key - VPS_HOST is likely wrong, or the VPS is unreachable"
+            exit 1
+          fi
       - name: Sync compose files to VPS
         run: |
           scp -i ~/.ssh/id_deploy docker-compose.yml docker-compose.staging.yml Caddyfile \
