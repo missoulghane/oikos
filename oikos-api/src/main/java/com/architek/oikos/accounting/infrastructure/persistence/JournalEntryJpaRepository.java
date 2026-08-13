@@ -23,16 +23,30 @@ public interface JournalEntryJpaRepository extends JpaRepository<JournalEntryEnt
      * no single "the" treasuryAccountId (JournalEntry.draft() forbids one on
      * a non-TREASURY-type journal), so it must still show up on both
      * accounts' operations pages.
+     *
+     * <p>Every optional filter is cast explicitly, which PostgreSQL needs and
+     * H2 does not - hence {@code JournalEntrySearchPostgresIntegrationTest}
+     * rather than a plain repository test. Two distinct reasons:
+     * <ul>
+     * <li>each {@code (:p is null or ...)} guard compiles to two parameter
+     * markers, and the one inside {@code ? is null} has no surrounding
+     * expression to infer a type from, so PostgreSQL rejects it outright with
+     * {@code could not determine data type};</li>
+     * <li>{@code :search} additionally feeds {@code concat}, which Hibernate
+     * renders as {@code '%'||?||'%'} - untyped operands there resolve to
+     * {@code bytea||bytea}, and {@code lower(bytea)} does not exist.</li>
+     * </ul>
      */
     @Query("""
             select distinct j from JournalEntryEntity j
             join j.lines l
             where j.propertyId = :propertyId
               and l.ledgerAccountId = :treasuryAccountId
-              and (:pieceDateFrom is null or j.pieceDate >= :pieceDateFrom)
-              and (:pieceDateTo is null or j.pieceDate <= :pieceDateTo)
-              and (:search is null or lower(j.externalReference) like lower(concat('%', :search, '%')))
-              and (:status is null or j.status = :status)
+              and (cast(:pieceDateFrom as LocalDate) is null or j.pieceDate >= :pieceDateFrom)
+              and (cast(:pieceDateTo as LocalDate) is null or j.pieceDate <= :pieceDateTo)
+              and (cast(:search as String) is null
+                   or lower(j.externalReference) like lower(concat('%', cast(:search as String), '%')))
+              and (cast(:status as String) is null or j.status = :status)
             order by j.pieceDate desc
             """)
     Page<JournalEntryEntity> searchByTreasuryAccount(@Param("propertyId") UUID propertyId,

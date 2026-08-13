@@ -188,12 +188,46 @@ autorise `deploy@<IP>`. Deux options :
   la première) :
   ```bash
   ssh-keygen -t ed25519 -C "morad-<nom-machine>"
-  cat ~/.ssh/id_ed25519.pub | ssh deploy@<IP> "cat >> ~/.ssh/authorized_keys"
   ```
-  (même piège de retour à la ligne qu'en 1.5 — vérifier avec `cat -A`.)
+  Puis autoriser cette clé sur le VPS. ⚠️ **La commande ci-dessous doit être
+  lancée depuis une machine qui a *déjà* un accès autorisé** (la première),
+  pas depuis la nouvelle — sinon c'est l'œuf et la poule : le VPS n'accepte
+  que `publickey`, donc la nouvelle machine ne peut pas s'y connecter pour
+  y déposer sa propre clé. Copier le contenu de `id_ed25519.pub` de la
+  nouvelle machine, puis, **depuis l'ancienne** :
+  ```bash
+  echo 'ssh-ed25519 AAAA... morad-<nom-machine>' \
+    | ssh deploy@<IP> "cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+  ```
+  (même piège de retour à la ligne qu'en 1.5 — vérifier avec `cat -A` :
+  chaque clé doit occuper sa propre ligne.)
+
+  Si **aucune** machine n'a plus d'accès (VPS réinstallé, `authorized_keys`
+  perdu), le seul recours est la **console web/VNC de l'hébergeur** : s'y
+  connecter en root et créer l'entrée à la main, comme en 1.1.
 - Ou transférer la clé privée existante via un canal de confiance
   (gestionnaire de mots de passe, clé USB chiffrée — jamais par email/Slack
   en clair).
+
+> ⚠️ **`REMOTE HOST IDENTIFICATION HAS CHANGED!`** — après une
+> réinstallation du VPS, les clés d'hôte sont régénérées et SSH refuse de se
+> connecter tant que l'ancienne entrée traîne dans `known_hosts`. Ce n'est
+> pas une attaque *si* le serveur a bien été reconstruit. Vérifier
+> l'empreinte **hors-bande** (console de l'hébergeur, pas par SSH) :
+> ```bash
+> ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+> ```
+> puis, si elle correspond à celle affichée dans l'avertissement, purger
+> l'entrée périmée (une sauvegarde `known_hosts.old` est créée
+> automatiquement) et se reconnecter :
+> ```bash
+> ssh-keygen -f ~/.ssh/known_hosts -R '<IP>'
+> ```
+> À faire sur **chaque** machine qui se connecte au VPS. Si l'empreinte ne
+> correspond pas — ou si plus aucune clé n'est acceptée alors que rien n'a
+> été réinstallé — vérifier dans le panneau de l'hébergeur que l'IP
+> appartient toujours à votre instance : une IP réattribuée donne les mêmes
+> symptômes.
 
 **Le repo.** `git clone git@github.com:<owner>/oikos.git` (ou HTTPS + token
 si pas de clé SSH GitHub configurée sur cette machine — distincte de la
