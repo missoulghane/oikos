@@ -47,5 +47,13 @@ export default defineConfig({
     // individual wait already gets more room via asyncUtilTimeout
     // (src/test/setup.ts), this covers their sum within one test.
     testTimeout: 20000,
+    // OnboardingWizard.test.tsx drives 7 real steps through userEvent/router
+    // in one render tree ; it has failed on GitHub's shared runners on a
+    // different step each time despite being unreproducible locally (8+
+    // runs, incl. under a node:22-alpine container matching CI) and despite
+    // no data/logic dependency found in the step it got stuck on — a retry
+    // survives that class of one-off flake without hiding a deterministic
+    // failure, which would still fail after retrying.
+    retry: 1,
   },
 });
