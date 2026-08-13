@@ -11,7 +11,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OrderColumn;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -66,8 +66,11 @@ public class JournalEntryEntity extends AuditableEntity {
      * again once the entry leaves DRAFT) - the adapter never re-populates
      * this collection on a subsequent status-only update, so Hibernate never
      * re-issues insert/delete for already-persisted lines.
+     * @OrderBy (not @OrderColumn - Hibernate can't manage an order column on
+     * a mappedBy association, HHH160246) reads back in the order the mapper
+     * assigned via JournalEntryLineEntity.lineOrder at first save.
      */
     @OneToMany(mappedBy = "journalEntry", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @OrderColumn(name = "line_order")
+    @OrderBy("lineOrder ASC")
     private List<JournalEntryLineEntity> lines = new ArrayList<>();
 }

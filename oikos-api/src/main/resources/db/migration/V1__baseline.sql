@@ -2,9 +2,18 @@
 --
 -- Consolidated schema, generated on 2026-08-12 by replaying the former
 -- V1..V26 migrations against a real PostgreSQL 16 instance and dumping the
--- resulting schema (pg_dump --schema-only). No production deployment has
--- ever run against this project, so there is no schema history to preserve;
--- this single file is now the sole source of truth for the database schema.
+-- resulting schema (pg_dump --schema-only).
+--
+-- Re-consolidated on 2026-08-13 to fold in what were V2__seed_permission_catalog.sql
+-- and V3__seed_journal_reference_table.sql (see the seed data at the end of this
+-- file) - both were themselves fixes for gaps the 2026-08-12 --schema-only squash
+-- introduced (it captured schema only, never data). By this point the recette
+-- environment HAD already run against V1+V2+V3 - re-squashing into a single V1
+-- again required a deliberate reset of that environment's database (its Flyway
+-- history recorded 3 applied migrations that no longer resolve to any file once
+-- V2/V3 are deleted), not just a fresh deploy. Any future schema change is a new
+-- Vn file, never an edit to this one - see V2/V3's own git history for why
+-- "just amend the baseline" is the trap this file exists to stop repeating.
 
 
 --
@@ -2234,3 +2243,44 @@ ALTER TABLE ONLY public.sequence_piece
 
 
 --
+
+
+--
+-- Reference-table seed data, folded into this baseline on 2026-08-13
+-- (squashing what were V2__seed_permission_catalog.sql and
+-- V3__seed_journal_reference_table.sql - see git history for the incident
+-- narrative behind each: both tables were created empty by the original
+-- pg_dump --schema-only squash above, which captured schema only, no data).
+--
+
+-- permission: the closed catalog role_permission.permission_key FKs to (see Permission.java).
+INSERT INTO permission (key, description) VALUES
+    ('property:read', 'Read a property''s details'),
+    ('property:create', 'Create a new property'),
+    ('property:update', 'Update a property''s details'),
+    ('property:board:manage', 'Manage a property''s board members'),
+    ('property:member:invite', 'Invite a member onto a property'),
+    ('unit:read', 'Read a unit''s details'),
+    ('unit:write', 'Create or update a unit'),
+    ('unit:ownership:write', 'Create or update a unit''s ownership'),
+    ('party:read', 'Read a party''s details'),
+    ('party:write', 'Create or update a party'),
+    ('party:invite', 'Invite a party onto a property'),
+    ('installment:read', 'Read installments and installment calls'),
+    ('installment:call:write', 'Create or update an installment call'),
+    ('property:accounting:read', 'Read a property''s accounting module'),
+    ('property:accounting:write', 'Write to a property''s accounting module'),
+    ('user:admin', 'Administer user accounts'),
+    ('invitation:manage', 'Manage a property''s invitations and membership requests'),
+    ('messaging:broadcast', 'Post to a property''s broadcast announcement channel'),
+    ('document:read', 'Read documents'),
+    ('document:write', 'Upload or delete documents');
+
+-- journal: the 6 fixed journals of spec §3.3 that journal_entry/sequence_piece.journal_code FK to (see JournalCode.java).
+INSERT INTO journal (code, label, type, treasury_role, postable) VALUES
+    ('VT', 'Ventes / Appels de fonds', 'SALES', NULL, true),
+    ('BQ', 'Banque', 'TREASURY', 'BANK', true),
+    ('CA', 'Caisse', 'TREASURY', 'CASH', true),
+    ('AC', 'Achats', 'PURCHASES', NULL, true),
+    ('OD', 'Operations diverses', 'MISCELLANEOUS', NULL, true),
+    ('AN', 'A-nouveaux', 'OPENING', NULL, false);

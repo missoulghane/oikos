@@ -2,6 +2,7 @@ package com.architek.oikos.accounting.infrastructure.mapper;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import org.mapstruct.Mapper;
 
@@ -32,7 +33,9 @@ public interface JournalEntryPersistenceMapper {
     default JournalEntryEntity newEntity(JournalEntry entry) {
         JournalEntryEntity entity = new JournalEntryEntity();
         updateScalarFields(entry, entity);
-        List<JournalEntryLineEntity> lineEntities = entry.getLines().stream().map(line -> {
+        List<JournalEntryLine> domainLines = entry.getLines();
+        List<JournalEntryLineEntity> lineEntities = IntStream.range(0, domainLines.size()).mapToObj(index -> {
+            JournalEntryLine line = domainLines.get(index);
             JournalEntryLineEntity lineEntity = new JournalEntryLineEntity();
             lineEntity.setId(line.getId().asUuid());
             lineEntity.setJournalEntry(entity);
@@ -42,6 +45,9 @@ public interface JournalEntryPersistenceMapper {
             lineEntity.setDirection(line.getDirection().name());
             lineEntity.setAmount(line.getAmount().value());
             lineEntity.setLabel(line.getLabel());
+            // Preserves display order (see JournalEntryLineEntity.lineOrder) - the
+            // domain list's own order is the only place this is tracked upstream.
+            lineEntity.setLineOrder(index);
             return lineEntity;
         }).toList();
         entity.setLines(lineEntities);

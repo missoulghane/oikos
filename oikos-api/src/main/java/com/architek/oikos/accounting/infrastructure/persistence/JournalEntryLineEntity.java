@@ -46,4 +46,10 @@ public class JournalEntryLineEntity extends AuditableEntity {
 
     @Column(nullable = false)
     private String label;
+
+    /** Preserves the line's position within its JournalEntry (spec §4.1 display order) -
+     * see JournalEntryEntity.lines: with mappedBy, Hibernate can't manage this via
+     * @OrderColumn (HHH160246), so it's a real mapped column, set explicitly by the mapper. */
+    @Column(name = "line_order", nullable = false)
+    private int lineOrder;
 }
