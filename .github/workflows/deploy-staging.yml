@@ -90,7 +90,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "docker-compose.yml,docker-compose.staging.yml,Caddyfile"
+          source: "docker-compose.yml,docker-compose.staging.yml,Caddyfile,oikos-api/src/main/resources/db/migration"
           target: /opt/oikos
           strip_components: 0
       - name: Pull & restart services on VPS
@@ -104,5 +104,10 @@ jobs:
             cd /opt/oikos
             export IMAGE_TAG=sha-${{ github.sha }}
             docker compose -f docker-compose.yml -f docker-compose.staging.yml pull
+            # flyway est un service one-shot : "up -d" seul ne le relance pas
+            # une fois qu'il a déjà tourné (image/mount inchangés d'un point
+            # de vue compose), donc les migrations d'un nouveau déploiement
+            # ne s'appliqueraient jamais sans ce --force-recreate ciblé.
+            docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --force-recreate flyway
             docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
             docker image prune -f
