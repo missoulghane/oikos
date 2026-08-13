@@ -3,6 +3,7 @@ import { Badge } from '@/shared/components/Badge/Badge';
 import type { ConversationBox, ConversationSummary } from '@/features/messaging/types/messaging.types';
 import { formatRelativeTime } from '@/shared/utils/formatRelativeTime';
 import { BOX_PATH } from '@/features/messaging/utils/boxPath';
+import { stripMessageBodyMarkup } from '@/features/messaging/utils/renderMessageBody';
 
 export const BROADCAST_CONVERSATION_LABEL = 'Annonces de la copropriété';
 
@@ -16,11 +17,21 @@ export function conversationTitle(conversation: ConversationSummary): string {
   return conversation.subject ?? 'Conversation';
 }
 
-function participantsLine(conversation: ConversationSummary): string | null {
+export function participantsLine(conversation: ConversationSummary): string | null {
   if (conversation.type === 'BROADCAST' || conversation.participants.length === 0) {
     return null;
   }
   return conversation.participants.map((participant) => participant.fullName).join(', ');
+}
+
+const PREVIEW_MAX_CHARS = 100;
+
+function truncatePreview(preview: string | null): string | null {
+  if (!preview) {
+    return null;
+  }
+  const plain = stripMessageBodyMarkup(preview);
+  return plain.length > PREVIEW_MAX_CHARS ? `${plain.slice(0, PREVIEW_MAX_CHARS)}…` : plain;
 }
 
 interface ConversationListItemProps {
@@ -34,12 +45,15 @@ interface ConversationListItemProps {
 }
 
 // Dense, avatar-less table row (Outlook inbox style) rather than a
-// rounded-card + circular-avatar chat entry: title/timestamp on one line,
-// thin border-b divider between rows. No content preview - the list is
-// purely "who/what/when", the message body only appears once you open it.
+// rounded-card + circular-avatar chat entry: sender/timestamp on one line,
+// thin border-b divider between rows.
 export function ConversationListItem({ conversation, box, isActive = false, spaceSuffix = '' }: ConversationListItemProps) {
   const title = conversationTitle(conversation);
   const participants = participantsLine(conversation);
+  // For BROADCAST there's no "other participant" to name, so the sender
+  // line falls back to the broadcast label itself.
+  const senderLabel = participants ?? title;
+  const preview = truncatePreview(conversation.lastMessagePreview);
   const hasUnread = conversation.unreadCount > 0;
 
   return (
@@ -51,30 +65,11 @@ export function ConversationListItem({ conversation, box, isActive = false, spac
         }`}
       >
         <div className="flex items-baseline justify-between gap-2">
-          <p className="flex min-w-0 items-baseline gap-1.5">
-            <span
-              className={`truncate text-theme-sm ${hasUnread ? 'font-semibold text-gray-900 dark:text-white/90' : 'font-medium text-gray-700 dark:text-gray-300'}`}
-            >
-              {title}
-            </span>
-            {/* A conversation is a message with replies - only shown once
-                that's actually true, never for a plain single message. */}
-            {conversation.messageCount > 1 && (
-              <span className="shrink-0 text-theme-xs font-normal text-gray-400 dark:text-gray-500">
-                ({conversation.messageCount} messages)
-              </span>
-            )}
-            {conversation.type === 'BOARD_PRIVATE' && (
-              <span className="shrink-0 rounded-full bg-warning-50 px-2 py-0.5 text-[11px] font-medium text-warning-700 dark:bg-warning-500/15 dark:text-warning-400">
-                Privé · bureau
-              </span>
-            )}
-            {conversation.concernsUnit && (
-              <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500 dark:bg-white/[0.05] dark:text-gray-400">
-                Concerne {conversation.concernsUnit}
-              </span>
-            )}
-          </p>
+          <span
+            className={`truncate text-base ${hasUnread ? 'font-bold text-gray-900 dark:text-white/90' : 'font-bold text-gray-700 dark:text-gray-300'}`}
+          >
+            {senderLabel}
+          </span>
           <span className="flex shrink-0 items-center gap-2">
             {conversation.lastMessageAt && (
               <span className="text-theme-xs text-gray-400 dark:text-gray-500">
@@ -88,9 +83,29 @@ export function ConversationListItem({ conversation, box, isActive = false, spac
             )}
           </span>
         </div>
-        <p className="truncate text-theme-xs text-gray-400 dark:text-gray-500">
-          {participants ? `${participants} · ${conversation.propertyName}` : conversation.propertyName}
+        <p className="flex min-w-0 items-baseline gap-1.5">
+          <span className="truncate text-theme-xs font-normal text-gray-500 dark:text-gray-400">
+            {senderLabel === title ? conversation.propertyName : `${title} · ${conversation.propertyName}`}
+          </span>
+          {/* A conversation is a message with replies - only shown once
+              that's actually true, never for a plain single message. */}
+          {conversation.messageCount > 1 && (
+            <span className="shrink-0 text-theme-xs font-normal text-gray-400 dark:text-gray-500">
+              ({conversation.messageCount} messages)
+            </span>
+          )}
+          {conversation.type === 'BOARD_PRIVATE' && (
+            <span className="shrink-0 rounded-full bg-warning-50 px-2 py-0.5 text-[11px] font-medium text-warning-700 dark:bg-warning-500/15 dark:text-warning-400">
+              Privé · bureau
+            </span>
+          )}
+          {conversation.concernsUnit && (
+            <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500 dark:bg-white/[0.05] dark:text-gray-400">
+              Concerne {conversation.concernsUnit}
+            </span>
+          )}
         </p>
+        {preview && <p className="truncate text-theme-xs text-gray-400 dark:text-gray-500">{preview}</p>}
       </Link>
     </li>
   );

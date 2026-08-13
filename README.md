@@ -56,7 +56,9 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 
 Les `.env` du VPS sont créés une fois manuellement sur le serveur (jamais
 via CI) et contiennent les vraies valeurs (secrets, `https://oikos-staging.tech/...`
-à la place de `localhost`).
+à la place de `localhost`). Procédure complète (nouveau serveur from
+scratch, autre poste de travail, passage en production) :
+[DEPLOYMENT.md](DEPLOYMENT.md).
 
 - Web : http://localhost:8082
 - API : http://localhost:8080 (Swagger : http://localhost:8080/swagger-ui.html)

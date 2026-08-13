@@ -5,6 +5,7 @@ import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffective
 import { useConversationMessages } from '@/features/messaging/hooks/useConversationMessages';
 import { useMarkConversationRead } from '@/features/messaging/hooks/useMarkConversationRead';
 import { MessageThreadItem } from '@/features/messaging/components/MessageThreadItem';
+import { participantsLine } from '@/features/messaging/components/ConversationListItem';
 import { MessageComposer } from '@/features/messaging/components/MessageComposer';
 import type { MessagingOutletContext } from '@/features/messaging/pages/MessagingLayout';
 import { BOX_PATH } from '@/features/messaging/utils/boxPath';
@@ -68,6 +69,11 @@ export function ConversationPage() {
   }, [id]);
 
   const summary = conversationList.find((conversation) => conversation.id === id);
+  // "A :" label for messages the caller sent - same for every message in the
+  // thread, since a GROUP/BOARD_PRIVATE conversation has a fixed participant
+  // set and there's no per-message recipient list on the wire.
+  const recipientLabel =
+    summary?.type === 'BROADCAST' ? 'Tous les propriétaires' : (summary && participantsLine(summary)) || 'Vous';
   const effectiveSpace = useEffectiveSpace();
 
   const isStaffOnThisProperty = Boolean(
@@ -122,7 +128,7 @@ export function ConversationPage() {
         {messages.data && messages.data.content.length > 0 && (
           <div className="flex flex-col gap-3">
             {messages.data.content.map((message) => (
-              <MessageThreadItem key={message.id} message={message} />
+              <MessageThreadItem key={message.id} message={message} recipientLabel={recipientLabel} />
             ))}
           </div>
         )}

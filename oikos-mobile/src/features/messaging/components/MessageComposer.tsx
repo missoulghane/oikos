@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { StyleSheet, Text, View } from 'react-native';
-import { ControlledInput } from '@/shared/components/Input/ControlledInput';
+import { MessageBodyEditor } from '@/features/messaging/components/MessageBodyEditor';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
@@ -63,12 +63,11 @@ export function MessageComposer({ conversationId, identityChoiceNeeded = false }
         </View>
       )}
       <View style={styles.inputRow}>
-        <ControlledInput
+        <MessageBodyEditor
           control={control}
           name="body"
           label="Message"
           placeholder="Écrivez un message…"
-          multiline
           numberOfLines={2}
           editable={!isPending}
           errorMessage={errors.body?.message}

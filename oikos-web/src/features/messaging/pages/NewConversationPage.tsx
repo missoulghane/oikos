@@ -23,6 +23,9 @@ import {
   startConversationSchema,
   type StartConversationFormValues,
 } from '@/features/messaging/schemas/startConversationSchema';
+import { MessageBodyEditor } from '@/features/messaging/components/MessageBodyEditor';
+import type { QuillEditorHandle } from '@/features/messaging/components/QuillEditor';
+import { BOX_PATH } from '@/features/messaging/utils/boxPath';
 import type {
   RecipientCandidate,
   SaveMessageDraftPayload,
@@ -105,8 +108,10 @@ export function NewConversationPage() {
   // brouillon" uses - this flag is only there so the loading spinner lands
   // on "Envoyer" during that implicit save, not on "Enregistrer".
   const [isSendingViaDraft, setIsSendingViaDraft] = useState(false);
+  const editorRef = useRef<QuillEditorHandle>(null);
   const {
     register,
+    control,
     handleSubmit,
     reset,
     getValues,
@@ -128,6 +133,9 @@ export function NewConversationPage() {
           : draft.data.recipients.map((recipient) => ({ ...recipient, roleLabel: '', unitNumbers: [], isStaff: false })),
       );
       reset({ subject: draft.data.subject ?? '', body: draft.data.body ?? '' });
+      // Quill is uncontrolled after mount (see QuillEditor's doc comment) -
+      // reset() alone only seeds RHF's own state, not what's visibly shown.
+      editorRef.current?.setHtml(draft.data.body ?? '');
     }
   }, [draft.data, reset]);
 
@@ -210,11 +218,24 @@ export function NewConversationPage() {
 
   function onSubmit(values: StartConversationFormValues) {
     const onSuccess = (result: { conversationId: string }) => {
+      // No editorRef.current.setHtml('') here (unlike the draft-prefill
+      // effect above) - this navigates away immediately, so the page (and
+      // the editor) unmounts before there'd be anything to visibly clear.
       reset({ subject: '', body: '' });
       setSelectedRecipients([]);
-      // Carries the active space along so landing on the sent thread doesn't
-      // silently drop the viewer back into owner (see spaceQuerySuffix).
-      navigate(`/messages/reception/${result.conversationId}${spaceQuerySuffix(effectiveSpace)}`);
+      // Lands on the *sent* thread (BOX_PATH.SENT), not reception: this
+      // conversation only has the message the caller themselves just wrote,
+      // and "Envoyé" is defined as "the caller has sent at least one message
+      // in it" (see ConversationBox) - it doesn't belong under "Réception"
+      // until someone else replies. Landing on /messages/reception/:id here
+      // used to leave ConversationPage's conversationList.find(...) lookup
+      // empty (the brand-new conversation isn't in the Réception box's list),
+      // which silently broke everything derived from `summary` (the "De :/A :"
+      // line, "Répondre" visibility, "envoyer en tant que").
+      //
+      // Carries the active space along so landing here doesn't silently drop
+      // the viewer back into owner (see spaceQuerySuffix).
+      navigate(`${BOX_PATH.SENT}/${result.conversationId}${spaceQuerySuffix(effectiveSpace)}`);
     };
 
     if (currentDraftId) {
@@ -321,10 +342,12 @@ export function NewConversationPage() {
             onSubmit={handleSubmit(onSubmit)}
             // Enter inside the recipient search field must not submit the
             // whole compose form (only the "Envoyer" button should) - the
-            // message textarea is unaffected, Enter there just inserts a
-            // newline and never submits a form on its own.
+            // message editor is unaffected, Enter there just inserts a
+            // newline/paragraph break (via Quill's contenteditable) and
+            // never submits a form on its own.
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+              const target = e.target as HTMLElement;
+              if (e.key === 'Enter' && target.tagName !== 'TEXTAREA' && !target.closest('.ql-editor')) {
                 e.preventDefault();
               }
             }}
@@ -424,18 +447,17 @@ export function NewConversationPage() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="new-message-body" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Message
-              </label>
-              <textarea
-                id="new-message-body"
-                rows={4}
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Message</span>
+              <MessageBodyEditor
+                ref={editorRef}
+                control={control}
+                name="body"
+                ariaLabel="Message"
                 placeholder="Écrivez votre message…"
                 disabled={isSending || isSavingDraft}
-                className="min-h-24 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-base text-gray-800 dark:text-white/90 shadow-theme-xs placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 disabled:opacity-60"
-                {...register('body')}
+                error={errors.body?.message}
+                minHeight={140}
               />
-              {errors.body && <p className="text-sm text-error-500 dark:text-error-400">{errors.body.message}</p>}
             </div>
 
             <div className="flex items-center gap-2">

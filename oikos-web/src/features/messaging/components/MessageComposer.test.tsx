@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react';
+import { StrictMode, type ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -15,6 +15,15 @@ vi.mock('@/features/messaging/api/sendMessage', () => ({
 }));
 
 const mockedSendMessage = vi.mocked(sendMessage);
+
+// The body is Quill's HTML output (see MessageBodyEditor/QuillEditor), and
+// exactly how it wraps a plain word in <p> tags is a jsdom/userEvent
+// contenteditable-typing quirk, not part of the app's actual contract - these
+// tests only assert the visible text made it through intact, not the exact
+// markup.
+function plainText(html: string): string {
+  return html.replace(/<[^>]*>/g, '').trim();
+}
 
 const sentMessage: Message = {
   id: 'message-1',
@@ -56,12 +65,15 @@ describe('MessageComposer', () => {
     const user = userEvent.setup();
     renderComposer();
 
-    const textarea = screen.getByLabelText('Message');
-    await user.type(textarea, 'Bonjour');
+    const editor = screen.getByLabelText('Message');
+    await user.type(editor, 'Bonjour');
     await user.click(screen.getByRole('button', { name: /envoyer/i }));
 
-    await waitFor(() => expect(mockedSendMessage).toHaveBeenCalledWith('conversation-1', { body: 'Bonjour' }));
-    await waitFor(() => expect(textarea).toHaveValue(''));
+    await waitFor(() => expect(mockedSendMessage).toHaveBeenCalledTimes(1));
+    const [conversationId, payload] = mockedSendMessage.mock.calls[0];
+    expect(conversationId).toBe('conversation-1');
+    expect(plainText((payload as { body: string }).body)).toBe('Bonjour');
+    await waitFor(() => expect(editor).toHaveTextContent(''));
   });
 
   it('shows an error with a retry button that resubmits the same draft', async () => {
@@ -72,19 +84,37 @@ describe('MessageComposer', () => {
     const user = userEvent.setup();
     renderComposer();
 
-    const textarea = screen.getByLabelText('Message');
-    await user.type(textarea, 'Bonjour');
+    const editor = screen.getByLabelText('Message');
+    await user.type(editor, 'Bonjour');
     await user.click(screen.getByRole('button', { name: /envoyer/i }));
 
     expect(await screen.findByText('Erreur serveur')).toBeInTheDocument();
-    expect(textarea).toHaveValue('Bonjour');
+    expect(editor).toHaveTextContent('Bonjour');
 
     mockedSendMessage.mockResolvedValueOnce(sentMessage);
     await user.click(screen.getByRole('button', { name: /réessayer/i }));
 
     await waitFor(() => expect(mockedSendMessage).toHaveBeenCalledTimes(2));
-    expect(mockedSendMessage).toHaveBeenNthCalledWith(2, 'conversation-1', { body: 'Bonjour' });
-    await waitFor(() => expect(textarea).toHaveValue(''));
+    const [, secondPayload] = mockedSendMessage.mock.calls[1];
+    expect(plainText((secondPayload as { body: string }).body)).toBe('Bonjour');
+    await waitFor(() => expect(editor).toHaveTextContent(''));
+  });
+
+  it('mounts exactly one Quill toolbar/editor under StrictMode', () => {
+    // StrictMode double-invokes mount effects in dev to surface missing
+    // cleanup - QuillEditor's mount effect used to have none, so Quill's own
+    // DOM insertions (the toolbar, the editor root) piled up a second time.
+    const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const { container } = render(
+      <StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <MessageComposer conversationId="conversation-1" />
+        </QueryClientProvider>
+      </StrictMode>,
+    );
+
+    expect(container.querySelectorAll('.ql-toolbar')).toHaveLength(1);
+    expect(container.querySelectorAll('.ql-editor')).toHaveLength(1);
   });
 
   it('does not show the "répondre en tant que" picker when the sender only holds one role here', () => {
@@ -105,8 +135,10 @@ describe('MessageComposer', () => {
     await user.type(screen.getByLabelText('Message'), 'Bonjour');
     await user.click(screen.getByRole('button', { name: /envoyer/i }));
 
-    await waitFor(() =>
-      expect(mockedSendMessage).toHaveBeenCalledWith('conversation-1', { body: 'Bonjour', senderIdentity: 'OWNER' }),
-    );
+    await waitFor(() => expect(mockedSendMessage).toHaveBeenCalledTimes(1));
+    const [conversationId, payload] = mockedSendMessage.mock.calls[0];
+    expect(conversationId).toBe('conversation-1');
+    expect(plainText((payload as { body: string }).body)).toBe('Bonjour');
+    expect((payload as { senderIdentity?: string }).senderIdentity).toBe('OWNER');
   });
 });

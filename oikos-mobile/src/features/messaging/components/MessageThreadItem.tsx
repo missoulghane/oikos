@@ -1,12 +1,30 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/shared/theme/colors';
+import { renderMessageBody } from '@/features/messaging/utils/renderMessageBody';
 import type { Message } from '@/features/messaging/types/messaging.types';
 
-// Avatar-led card per message (initials circle) - sender + timestamp header
-// line, body paragraph below. No delete/archive/forward, a thread is just a
-// scroll of these, oldest first.
-export function MessageThreadItem({ message }: { message: Message }) {
+interface MessageThreadItemProps {
+  message: Message;
+  /** Who this message went to, e.g. the other participant(s)' names or a
+   * broadcast audience label - conversation-level (same for every message in
+   * the thread), since individual messages don't carry their own recipient
+   * list. */
+  recipientLabel: string;
+}
+
+// Avatar-led card per message (initials circle) - "De : … à …" / "A : …"
+// header lines, body paragraph below. No delete/archive/forward, a thread is
+// just a scroll of these, oldest first.
+export function MessageThreadItem({ message, recipientLabel }: MessageThreadItemProps) {
   const senderLabel = message.mine ? 'Vous' : message.senderName;
+  const toLabel = message.mine ? recipientLabel : 'Vous';
+  const dateLabel = new Date(message.createdAt).toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   return (
     <View style={styles.card}>
@@ -16,7 +34,8 @@ export function MessageThreadItem({ message }: { message: Message }) {
       <View style={styles.body}>
         <View style={styles.headerLine}>
           <View style={styles.senderGroup}>
-            <Text style={styles.senderName}>{senderLabel}</Text>
+            <Text style={styles.senderName}>De : {senderLabel}</Text>
+            <Text style={styles.time}>à {dateLabel}</Text>
             {/* OWNER is the unmarked default; only BOARD is called out. */}
             {message.senderIdentity === 'BOARD' && (
               <View style={styles.boardChip}>
@@ -24,16 +43,9 @@ export function MessageThreadItem({ message }: { message: Message }) {
               </View>
             )}
           </View>
-          <Text style={styles.time}>
-            {new Date(message.createdAt).toLocaleString('fr-FR', {
-              day: '2-digit',
-              month: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </Text>
         </View>
-        <Text style={styles.messageBody}>{message.body}</Text>
+        <Text style={styles.toLine}>A : {toLabel}</Text>
+        <View style={styles.messageBody}>{renderMessageBody(message.body, styles.messageBodyText)}</View>
       </View>
     </View>
   );
@@ -68,11 +80,11 @@ const styles = StyleSheet.create({
   headerLine: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    justifyContent: 'space-between',
     gap: 8,
   },
   senderGroup: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'baseline',
     gap: 6,
   },
@@ -96,7 +108,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.gray[400],
   },
+  toLine: {
+    fontSize: 12,
+    color: colors.gray[500],
+  },
   messageBody: {
+    marginTop: 4,
+  },
+  messageBodyText: {
     fontSize: 14,
     color: colors.gray[700],
   },

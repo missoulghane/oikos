@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/shared/components/Button/Button';
@@ -6,6 +6,8 @@ import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { useSendMessage } from '@/features/messaging/hooks/useSendMessage';
 import { sendMessageSchema, type SendMessageFormValues } from '@/features/messaging/schemas/sendMessageSchema';
+import { MessageBodyEditor } from '@/features/messaging/components/MessageBodyEditor';
+import type { QuillEditorHandle } from '@/features/messaging/components/QuillEditor';
 import type { SenderIdentity } from '@/features/messaging/types/messaging.types';
 
 interface MessageComposerProps {
@@ -20,19 +22,35 @@ export function MessageComposer({ conversationId, identityChoiceNeeded = false, 
   const [identityOverride, setIdentityOverride] = useState<SenderIdentity | null>(null);
   const selectedIdentity = identityOverride ?? defaultIdentity;
   const {
-    register,
+    control,
     handleSubmit,
     getValues,
     reset,
     formState: { errors },
   } = useForm<SendMessageFormValues>({ resolver: zodResolver(sendMessageSchema), defaultValues: { body: '' } });
   const { mutate, isPending, isError, error } = useSendMessage(conversationId);
+  const editorRef = useRef<QuillEditorHandle>(null);
+  // A ref can only be read/written outside of render (event handlers,
+  // effects) - `<form onSubmit={handleSubmit(onSubmit)}>` calls `onSubmit`
+  // (and therefore its onSuccess callback) reachably from render, so the
+  // actual editorRef.current.setHtml('') call is deferred into the effect
+  // below instead of happening directly inside clearBody.
+  const [clearSignal, setClearSignal] = useState(0);
+  useEffect(() => {
+    if (clearSignal > 0) {
+      editorRef.current?.setHtml('');
+    }
+  }, [clearSignal]);
+
+  function clearBody() {
+    // Quill is uncontrolled after mount (see QuillEditor's doc comment) -
+    // reset() alone only clears RHF's own state, not what's visibly typed.
+    reset({ body: '' });
+    setClearSignal((signal) => signal + 1);
+  }
 
   function onSubmit(values: SendMessageFormValues) {
-    mutate(
-      { ...values, senderIdentity: identityChoiceNeeded ? selectedIdentity : undefined },
-      { onSuccess: () => reset({ body: '' }) },
-    );
+    mutate({ ...values, senderIdentity: identityChoiceNeeded ? selectedIdentity : undefined }, { onSuccess: clearBody });
   }
 
   function handleRetry() {
@@ -40,7 +58,7 @@ export function MessageComposer({ conversationId, identityChoiceNeeded = false, 
     // mutation actually succeeds, so retrying just resubmits the same text.
     mutate(
       { body: getValues('body'), senderIdentity: identityChoiceNeeded ? selectedIdentity : undefined },
-      { onSuccess: () => reset({ body: '' }) },
+      { onSuccess: clearBody },
     );
   }
 
@@ -83,28 +101,22 @@ export function MessageComposer({ conversationId, identityChoiceNeeded = false, 
           </div>
         </div>
       )}
-      <div className="flex items-end gap-2">
-        <div className="flex-1">
-          <label htmlFor="message-body" className="sr-only">
-            Message
-          </label>
-          <textarea
-            id="message-body"
-            rows={2}
-            placeholder="Écrivez un message…"
-            disabled={isPending}
-            // Only rendered once the user explicitly clicks "Répondre"
-            // (ConversationPage), never on initial page load.
-            autoFocus
-            className="w-full resize-none rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-base text-gray-800 dark:text-white/90 shadow-theme-xs placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 disabled:opacity-60"
-            {...register('body')}
-          />
-          {errors.body && <p className="mt-1 text-sm text-error-500 dark:text-error-400">{errors.body.message}</p>}
-        </div>
-        <Button type="submit" isLoading={isPending}>
-          Envoyer
-        </Button>
-      </div>
+      <MessageBodyEditor
+        ref={editorRef}
+        control={control}
+        name="body"
+        ariaLabel="Message"
+        placeholder="Écrivez un message…"
+        disabled={isPending}
+        // Only rendered once the user explicitly clicks "Répondre"
+        // (ConversationPage), never on initial page load.
+        autoFocus
+        error={errors.body?.message}
+        minHeight={72}
+      />
+      <Button type="submit" isLoading={isPending} className="self-end">
+        Envoyer
+      </Button>
     </form>
   );
 }

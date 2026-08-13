@@ -1,8 +1,19 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Badge } from '@/shared/components/Badge/Badge';
 import { formatRelativeTime } from '@/shared/utils/formatRelativeTime';
+import { stripMessageBodyMarkup } from '@/features/messaging/utils/renderMessageBody';
 import { colors } from '@/shared/theme/colors';
 import type { ConversationSummary } from '@/features/messaging/types/messaging.types';
+
+const PREVIEW_MAX_CHARS = 100;
+
+function truncatePreview(preview: string | null): string | null {
+  if (!preview) {
+    return null;
+  }
+  const plain = stripMessageBodyMarkup(preview);
+  return plain.length > PREVIEW_MAX_CHARS ? `${plain.slice(0, PREVIEW_MAX_CHARS)}…` : plain;
+}
 
 export const BROADCAST_CONVERSATION_LABEL = 'Annonces de la copropriété';
 
@@ -16,7 +27,7 @@ export function conversationTitle(conversation: ConversationSummary): string {
   return conversation.subject ?? 'Conversation';
 }
 
-function participantsLine(conversation: ConversationSummary): string | null {
+export function participantsLine(conversation: ConversationSummary): string | null {
   if (conversation.type === 'BROADCAST' || conversation.participants.length === 0) {
     return null;
   }
@@ -26,19 +37,18 @@ function participantsLine(conversation: ConversationSummary): string | null {
 export function ConversationListItem({ conversation, onPress }: { conversation: ConversationSummary; onPress: () => void }) {
   const title = conversationTitle(conversation);
   const participants = participantsLine(conversation);
+  // For BROADCAST there's no "other participant" to name, so the sender
+  // line falls back to the broadcast label itself.
+  const senderLabel = participants ?? title;
+  const preview = truncatePreview(conversation.lastMessagePreview);
   const hasUnread = conversation.unreadCount > 0;
 
   return (
     <Pressable onPress={onPress} style={styles.row}>
       <View style={styles.headerLine}>
-        <View style={styles.titleGroup}>
-          <Text style={hasUnread ? styles.titleUnread : styles.titleRead} numberOfLines={1}>
-            {title}
-          </Text>
-          {/* A conversation is a message with replies - only shown once
-              that's actually true, never for a plain single message. */}
-          {conversation.messageCount > 1 && <Text style={styles.messageCount}>({conversation.messageCount} messages)</Text>}
-        </View>
+        <Text style={hasUnread ? styles.senderUnread : styles.senderRead} numberOfLines={1}>
+          {senderLabel}
+        </Text>
         <View style={styles.trailing}>
           {conversation.lastMessageAt && <Text style={styles.time}>{formatRelativeTime(conversation.lastMessageAt)}</Text>}
           {hasUnread && (
@@ -47,6 +57,14 @@ export function ConversationListItem({ conversation, onPress }: { conversation: 
             </Badge>
           )}
         </View>
+      </View>
+      <View style={styles.subjectLine}>
+        <Text style={styles.subject} numberOfLines={1}>
+          {senderLabel === title ? conversation.propertyName : `${title} · ${conversation.propertyName}`}
+        </Text>
+        {/* A conversation is a message with replies - only shown once
+            that's actually true, never for a plain single message. */}
+        {conversation.messageCount > 1 && <Text style={styles.messageCount}>({conversation.messageCount} messages)</Text>}
       </View>
       {(conversation.type === 'BOARD_PRIVATE' || conversation.concernsUnit) && (
         <View style={styles.chipsRow}>
@@ -62,9 +80,11 @@ export function ConversationListItem({ conversation, onPress }: { conversation: 
           )}
         </View>
       )}
-      <Text style={styles.subtitle} numberOfLines={1}>
-        {participants ? `${participants} · ${conversation.propertyName}` : conversation.propertyName}
-      </Text>
+      {preview && (
+        <Text style={styles.preview} numberOfLines={1}>
+          {preview}
+        </Text>
+      )}
     </Pressable>
   );
 }
@@ -76,27 +96,32 @@ const styles = StyleSheet.create({
   },
   headerLine: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
     justifyContent: 'space-between',
     gap: 8,
   },
-  titleGroup: {
+  senderRead: {
     flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.gray[700],
+  },
+  senderUnread: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.gray[900],
+  },
+  subjectLine: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 6,
   },
-  titleRead: {
+  subject: {
     flexShrink: 1,
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.gray[700],
-  },
-  titleUnread: {
-    flexShrink: 1,
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.gray[900],
+    fontSize: 12,
+    fontWeight: '400',
+    color: colors.gray[500],
   },
   messageCount: {
     fontSize: 12,
@@ -137,7 +162,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.gray[500],
   },
-  subtitle: {
+  preview: {
     fontSize: 12,
     color: colors.gray[400],
   },

@@ -7,6 +7,7 @@ import { useConversationMessages } from '@/features/messaging/hooks/useConversat
 import { useMarkConversationRead } from '@/features/messaging/hooks/useMarkConversationRead';
 import { MessageThreadItem } from '@/features/messaging/components/MessageThreadItem';
 import { MessageComposer } from '@/features/messaging/components/MessageComposer';
+import { participantsLine } from '@/features/messaging/components/ConversationListItem';
 import { Button } from '@/shared/components/Button/Button';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
@@ -28,6 +29,10 @@ export function ConversationScreen({ route, navigation }: Props) {
   const messages = useConversationMessages(id);
   const markRead = useMarkConversationRead(id);
   const [isReplying, setIsReplying] = useState(false);
+  // "A :" label for messages the caller sent - same for every message in the
+  // thread, since a GROUP/BOARD_PRIVATE conversation has a fixed participant
+  // set and there's no per-message recipient list on the wire.
+  const recipientLabel = summary.type === 'BROADCAST' ? 'Tous les propriétaires' : participantsLine(summary) ?? 'Vous';
 
   const lastMarkedReadConversationId = useRef<string | null>(null);
   useEffect(() => {
@@ -73,7 +78,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         data={messages.data?.content ?? []}
         keyExtractor={(message) => message.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }: { item: Message }) => <MessageThreadItem message={item} />}
+        renderItem={({ item }: { item: Message }) => <MessageThreadItem message={item} recipientLabel={recipientLabel} />}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
           <>

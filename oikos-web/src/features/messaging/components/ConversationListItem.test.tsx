@@ -29,20 +29,27 @@ function renderItem(conversation: ConversationSummary, box: 'RECEIVED' | 'SENT' 
 }
 
 describe('ConversationListItem', () => {
-  it('renders the subject as the title, and the participant/property line below', () => {
+  it('renders the sender name in the header line, and the subject/property line below', () => {
     renderItem(baseConversation);
 
-    expect(screen.getByText('Fuite d’eau hall B')).toBeInTheDocument();
-    expect(screen.getByText('Jean Dupont · Résidence Les Oliviers')).toBeInTheDocument();
+    expect(screen.getByText('Jean Dupont')).toBeInTheDocument();
+    expect(screen.getByText('Fuite d’eau hall B · Résidence Les Oliviers')).toBeInTheDocument();
   });
 
-  it('does not render a preview of the message content in the list', () => {
+  it('renders a preview of the last message below the subject line', () => {
     renderItem(baseConversation);
 
-    expect(screen.queryByText('À bientôt !')).not.toBeInTheDocument();
+    expect(screen.getByText('À bientôt !')).toBeInTheDocument();
   });
 
-  it('joins every participant name on the secondary line for a multi-recipient GROUP conversation', () => {
+  it('truncates a preview longer than 100 characters', () => {
+    const longPreview = 'a'.repeat(150);
+    renderItem({ ...baseConversation, lastMessagePreview: longPreview });
+
+    expect(screen.getByText(`${'a'.repeat(100)}…`)).toBeInTheDocument();
+  });
+
+  it('joins every participant name into the sender line for a multi-recipient GROUP conversation', () => {
     renderItem({
       ...baseConversation,
       participants: [
@@ -51,7 +58,7 @@ describe('ConversationListItem', () => {
       ],
     });
 
-    expect(screen.getByText('Jean Dupont, Marie Curie · Résidence Les Oliviers')).toBeInTheDocument();
+    expect(screen.getByText('Jean Dupont, Marie Curie')).toBeInTheDocument();
   });
 
   it('renders a distinct label for a BROADCAST conversation, without a participant line', () => {
@@ -91,18 +98,18 @@ describe('ConversationListItem', () => {
     expect(screen.queryByText(/^Concerne /)).not.toBeInTheDocument();
   });
 
-  it('shows an unread badge and bold styling when unreadCount > 0', () => {
+  it('shows an unread badge and darker sender styling when unreadCount > 0', () => {
     renderItem({ ...baseConversation, unreadCount: 3 });
 
     expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('Fuite d’eau hall B')).toHaveClass('font-semibold');
+    expect(screen.getByText('Jean Dupont')).toHaveClass('text-gray-900');
   });
 
   it('does not show an unread badge when the conversation is fully read', () => {
     renderItem(baseConversation);
 
     expect(screen.queryByText('0')).not.toBeInTheDocument();
-    expect(screen.getByText('Fuite d’eau hall B')).toHaveClass('font-medium');
+    expect(screen.getByText('Jean Dupont')).toHaveClass('text-gray-700');
   });
 
   it('does not show a message count for a plain single message', () => {

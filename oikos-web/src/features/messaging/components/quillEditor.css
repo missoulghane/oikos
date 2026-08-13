@@ -1,0 +1,92 @@
+/* Dark-mode + brand-color overrides for Quill's Snow theme (quill/dist/quill.snow.css),
+   which is light-only out of the box. Plain CSS with `.dark` ancestor selectors to match
+   this app's class-based dark mode toggle (see ThemeContext, index.css's
+   `@custom-variant dark (&:is(.dark *))`) - Tailwind's `dark:` utility classes can't reach
+   into Quill's own generated toolbar markup. */
+
+.ql-toolbar.ql-snow {
+  border-color: #d0d5dd;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.ql-container.ql-snow {
+  border-color: #d0d5dd;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.ql-editor.ql-blank::before {
+  color: #98a2b3;
+  font-style: normal;
+}
+
+.dark .ql-toolbar.ql-snow {
+  border-color: #344054;
+  background-color: transparent;
+}
+
+.dark .ql-container.ql-snow {
+  border-color: #344054;
+}
+
+.dark .ql-editor {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark .ql-editor.ql-blank::before {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.dark .ql-snow .ql-stroke {
+  stroke: #98a2b3;
+}
+
+.dark .ql-snow .ql-fill {
+  fill: #98a2b3;
+}
+
+.dark .ql-snow .ql-picker {
+  color: #98a2b3;
+}
+
+.dark .ql-snow.ql-toolbar button:hover,
+.dark .ql-snow .ql-toolbar button:hover,
+.dark .ql-snow.ql-toolbar button.ql-active,
+.dark .ql-snow .ql-toolbar button.ql-active {
+  color: #465fff;
+}
+
+.dark .ql-snow.ql-toolbar button:hover .ql-stroke,
+.dark .ql-snow .ql-toolbar button:hover .ql-stroke,
+.dark .ql-snow.ql-toolbar button.ql-active .ql-stroke,
+.dark .ql-snow .ql-toolbar button.ql-active .ql-stroke {
+  stroke: #465fff;
+}
+
+.dark .ql-snow.ql-toolbar button:hover .ql-fill,
+.dark .ql-snow .ql-toolbar button:hover .ql-fill,
+.dark .ql-snow.ql-toolbar button.ql-active .ql-fill,
+.dark .ql-snow .ql-toolbar button.ql-active .ql-fill {
+  fill: #465fff;
+}
+
+.dark .ql-snow .ql-picker-options {
+  background-color: #1d2939;
+  border-color: #344054;
+}
+
+.dark .ql-snow .ql-tooltip {
+  background-color: #1d2939;
+  border-color: #344054;
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow: none;
+}
+
+.dark .ql-snow .ql-tooltip input[type='text'] {
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  border-color: #344054;
+}

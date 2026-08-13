@@ -20,6 +20,7 @@ import {
   isBoardRecipient,
 } from '@/features/messaging/components/RecipientPicker';
 import { SenderIdentityToggle } from '@/features/messaging/components/SenderIdentityToggle';
+import { MessageBodyEditor } from '@/features/messaging/components/MessageBodyEditor';
 import { ControlledInput } from '@/shared/components/Input/ControlledInput';
 import {
   startConversationSchema,
@@ -335,12 +336,11 @@ export function NewConversationScreen({ route, navigation }: Props) {
               errorMessage={errors.subject?.message}
             />
 
-            <ControlledInput
+            <MessageBodyEditor
               control={control}
               name="body"
               label="Message"
               placeholder="Écrivez votre message…"
-              multiline
               numberOfLines={4}
               editable={!(isSending || isSavingDraft)}
               errorMessage={errors.body?.message}
