@@ -1,5 +1,6 @@
 package com.architek.oikos.auth.infrastructure.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -59,14 +60,17 @@ public class SecurityConfiguration {
     }
 
     /**
-     * Restricted to localhost/127.0.0.1 (any port): covers the Vite dev server,
+     * Defaults to localhost/127.0.0.1 (any port): covers the Vite dev server,
      * the Expo web/Metro dev server, and native app builds hitting a locally
      * forwarded port, without opening the API to arbitrary third-party origins.
+     * Recette/prod override via oikos.security.cors.allowed-origins
+     * (APP_CORS_ALLOWED_ORIGINS) with the real public origin(s) of oikos-web.
      */
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(
+            @Value("#{'${oikos.security.cors.allowed-origins}'.split(',')}") List<String> allowedOrigins) {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
+        configuration.setAllowedOriginPatterns(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

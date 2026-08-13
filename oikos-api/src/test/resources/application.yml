@@ -23,6 +23,8 @@ oikos:
       access-token-ttl-seconds: 900
       onboarding-token-ttl-seconds: 7200
       refresh-token-ttl-seconds: 1209600
+    cors:
+      allowed-origins: http://localhost:*,http://127.0.0.1:*
   property:
     configure:
       max-units: 500
