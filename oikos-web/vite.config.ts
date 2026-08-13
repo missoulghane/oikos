@@ -42,5 +42,10 @@ export default defineConfig({
     // all, breaking every test that touches window.localStorage. Disabling
     // it lets jsdom's own polyfill through untouched.
     execArgv: ['--no-experimental-webstorage'],
+    // Default (5000ms) is tight on a shared CI runner for tests that chain
+    // several findBy*/waitFor steps (e.g. the onboarding wizard) — each
+    // individual wait already gets more room via asyncUtilTimeout
+    // (src/test/setup.ts), this covers their sum within one test.
+    testTimeout: 20000,
   },
 });

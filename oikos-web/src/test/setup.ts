@@ -5,4 +5,4 @@ import { configure } from '@testing-library/react';
 // runners (shared vCPU, cold cache) can be slow enough to exceed it on
 // otherwise-correct async assertions (observed in GitHub Actions on
 // OnboardingWizard.test.tsx, never locally).
-configure({ asyncUtilTimeout: 5000 });
+configure({ asyncUtilTimeout: 8000 });
