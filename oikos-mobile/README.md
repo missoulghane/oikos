@@ -51,10 +51,12 @@ npx eas-cli build --profile development --platform ios
 paquet npm sans rapport nommé `eas`, pas `eas-cli`.)
 
 Variable d'environnement : `EXPO_PUBLIC_API_URL` — `.env.development` (dev),
-`.env.recette` (profil EAS `preview`), `.env.production` (profil EAS
-`production`, voir `eas.json`). Les deux derniers ont des URLs placeholder
-(TODO) : pas encore câblés dans `eas.json`, à faire quand la recette/le
-store seront réellement mis en place (voir `.env.example`).
+`.env.staging` (profil EAS `preview`, URL réelle `https://oikos-staging.tech`),
+`.env.production` (profil EAS `production`, voir `eas.json`). Ni l'un ni
+l'autre n'est encore câblé dans `eas.json` (aucune valeur EAS_ENV/env
+spécifique par profil pour l'instant) — `.env.production` garde en plus une
+URL placeholder (TODO), le domaine de prod n'étant pas encore connu (voir
+`.env.example`).
 
 ## 4. Fichiers agent
 

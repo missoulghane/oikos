@@ -40,10 +40,23 @@ cp oikos-api/.env.example oikos-api/.env  # secrets applicatifs (JWT_SECRET,
 docker compose up --build
 ```
 
-Ce même `docker-compose.yml` est prévu pour être réutilisé tel quel sur un
-vrai serveur de recette (VPS) : seules les valeurs des deux `.env` changent
-(vraies URLs à la place de `localhost`, vrais secrets) — pas de nouveau
-profil Spring ni de nouveaux Dockerfiles à créer pour ça.
+Ce même `docker-compose.yml` reste le flux local (build en direct) — pas de
+nouveau profil Spring ni de nouveaux Dockerfiles.
+
+Sur le vrai VPS de recette (`oikos-staging.tech`), les images ne sont **pas**
+buildées sur place (RAM limitée du serveur) : `docker-compose.staging.yml`
+surcharge `api`/`web` avec les images pré-buildées par GitHub Actions
+(`.github/workflows/deploy-staging.yml`, poussées sur GHCR) et ajoute un
+reverse proxy Caddy (HTTPS automatique). Déploiement déclenché à chaque push
+sur `main` :
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+```
+
+Les `.env` du VPS sont créés une fois manuellement sur le serveur (jamais
+via CI) et contiennent les vraies valeurs (secrets, `https://oikos-staging.tech/...`
+à la place de `localhost`).
 
 - Web : http://localhost:8082
 - API : http://localhost:8080 (Swagger : http://localhost:8080/swagger-ui.html)

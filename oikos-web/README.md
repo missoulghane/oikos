@@ -69,8 +69,8 @@ Voir `.env.example`. `VITE_API_URL`, selon le mode Vite (`npm run build --
 
 - développement (`.env.development`, mode par défaut de `npm run dev`) :
   `/api/v1`, relatif, résolu par le proxy Vite ci-dessus.
-- recette (`.env.recette`) : origine réelle de l'API de recette — TODO,
-  domaine pas encore connu (voir le fichier).
+- recette (`.env.staging`) : origine réelle de l'API de recette,
+  `https://oikos-staging.tech` (voir le fichier).
 - production (`.env.production`) : origine réelle de l'API de prod — TODO,
   domaine pas encore connu (voir le fichier).
 

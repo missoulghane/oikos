@@ -1,0 +1,54 @@
+# Override de docker-compose.yml pour le déploiement VPS de recette
+# (oikos-staging.tech) : les images "api"/"web" sont pré-buildées par
+# GitHub Actions et poussées sur GHCR (le VPS n'a que 4 Go de RAM, pas de
+# build Maven/npm sur place) ; un reverse proxy Caddy termine le TLS et
+# devient le seul point d'entrée public. Usage : docker compose -f
+# docker-compose.yml -f docker-compose.staging.yml up -d
+services:
+  postgres:
+    mem_limit: 400m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api:
+    build: !reset null
+    image: ghcr.io/missoulghane/oikos-api:${IMAGE_TAG:-recette}
+    ports: !reset []
+    mem_limit: 768m
+    environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70.0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  web:
+    build: !reset null
+    image: ghcr.io/missoulghane/oikos-web:${IMAGE_TAG:-recette}
+    ports: !reset []
+    mem_limit: 32m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - api
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    mem_limit: 64m
+
+volumes:
+  caddy-data:
