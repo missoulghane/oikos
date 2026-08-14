@@ -13,10 +13,10 @@ import { Badge } from '@/shared/components/Badge/Badge';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { colors } from '@/shared/theme/colors';
-import type { MainStackParamList } from '@/app/navigation/MainNavigator';
+import type { UnitsStackParamList } from '@/app/navigation/UnitsStackNavigator';
 import type { Installment } from '@/features/property-ownership/installments/types/installment.types';
 
-type Props = NativeStackScreenProps<MainStackParamList, 'MyInstallments'>;
+type Props = NativeStackScreenProps<UnitsStackParamList, 'MyInstallments'>;
 
 export function MyInstallmentsScreen({ navigation }: Props) {
   const installments = useMyInstallments();
@@ -36,7 +36,6 @@ export function MyInstallmentsScreen({ navigation }: Props) {
         data={sorted}
         keyExtractor={(installment) => installment.id}
         contentContainerStyle={styles.content}
-        ListHeaderComponent={<Text style={styles.title}>Mes échéances</Text>}
         renderItem={({ item }: { item: Installment }) => {
           const unit = unitsById.get(item.unitId);
           return (
@@ -82,12 +81,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     flexGrow: 1,
-  },
-  title: {
-    marginBottom: 16,
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.gray[900],
   },
   row: {
     flexDirection: 'row',

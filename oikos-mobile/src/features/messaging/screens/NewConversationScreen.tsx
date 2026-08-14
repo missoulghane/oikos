@@ -38,9 +38,9 @@ import { Alert } from '@/shared/components/Alert/Alert';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { colors } from '@/shared/theme/colors';
-import type { MainStackParamList } from '@/app/navigation/MainNavigator';
+import type { MessagingStackParamList } from '@/app/navigation/MessagingStackNavigator';
 
-type Props = NativeStackScreenProps<MainStackParamList, 'NewConversation'>;
+type Props = NativeStackScreenProps<MessagingStackParamList, 'NewConversation'>;
 
 // Outlook-style compose: pick recipients AND write the message body
 // together, one "Envoyer" action. No separate "broadcast composer" - see
@@ -242,8 +242,6 @@ export function NewConversationScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Nouveau message</Text>
-
         {!effectivePropertyId && (
           <View style={styles.propertyPicker}>
             <Text style={styles.pickerLabel}>Choisissez une copropriété :</Text>
@@ -377,11 +375,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     gap: 16,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.gray[900],
   },
   propertyPicker: {
     gap: 8,

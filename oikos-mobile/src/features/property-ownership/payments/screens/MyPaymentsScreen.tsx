@@ -10,10 +10,10 @@ import { Badge } from '@/shared/components/Badge/Badge';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { colors } from '@/shared/theme/colors';
-import type { MainStackParamList } from '@/app/navigation/MainNavigator';
+import type { UnitsStackParamList } from '@/app/navigation/UnitsStackNavigator';
 import type { Payment } from '@/features/property-ownership/payments/types/payment.types';
 
-type Props = NativeStackScreenProps<MainStackParamList, 'MyPayments'>;
+type Props = NativeStackScreenProps<UnitsStackParamList, 'MyPayments'>;
 
 export function MyPaymentsScreen({ navigation }: Props) {
   const payments = useMyPayments();
@@ -33,7 +33,6 @@ export function MyPaymentsScreen({ navigation }: Props) {
         data={sorted}
         keyExtractor={(payment) => payment.id}
         contentContainerStyle={styles.content}
-        ListHeaderComponent={<Text style={styles.title}>Mes paiements</Text>}
         renderItem={({ item }: { item: Payment }) => {
           const unit = unitsById.get(item.unitId);
           return (
@@ -78,12 +77,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     flexGrow: 1,
-  },
-  title: {
-    marginBottom: 16,
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.gray[900],
   },
   row: {
     flexDirection: 'row',

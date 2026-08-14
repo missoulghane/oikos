@@ -27,7 +27,6 @@ export function MyMembershipRequestsScreen() {
         data={requests.data ?? []}
         keyExtractor={(request) => request.id}
         contentContainerStyle={styles.content}
-        ListHeaderComponent={<Text style={styles.title}>Mes invitations</Text>}
         renderItem={({ item }: { item: OwnedMembershipRequest }) => {
           const badge = STATUS_BADGE[item.status];
           return (
@@ -71,12 +70,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     flexGrow: 1,
-  },
-  title: {
-    marginBottom: 16,
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.gray[900],
   },
   row: {
     gap: 4,

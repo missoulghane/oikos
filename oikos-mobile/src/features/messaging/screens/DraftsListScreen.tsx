@@ -12,9 +12,9 @@ import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { Button } from '@/shared/components/Button/Button';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { colors } from '@/shared/theme/colors';
-import type { MainStackParamList } from '@/app/navigation/MainNavigator';
+import type { MessagingStackParamList } from '@/app/navigation/MessagingStackNavigator';
 
-type Props = NativeStackScreenProps<MainStackParamList, 'Drafts'>;
+type Props = NativeStackScreenProps<MessagingStackParamList, 'Drafts'>;
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -35,7 +35,6 @@ export function DraftsListScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Brouillons</Text>
         <Button onPress={() => navigation.navigate('NewConversation', {})} style={styles.newButton}>
           Nouveau message
         </Button>
@@ -112,15 +111,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     gap: 8,
     padding: 16,
     paddingBottom: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.gray[900],
   },
   newButton: {
     minHeight: 36,

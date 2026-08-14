@@ -50,6 +50,34 @@ npx eas-cli build --profile development --platform ios
 (`eas-cli` doit être appelé explicitement — `npx eas ...` seul résout un
 paquet npm sans rapport nommé `eas`, pas `eas-cli`.)
 
+### Simulateur iOS via Xcode (development build local)
+
+Alternative à EAS pour tester en local sur le simulateur iOS de Xcode, sans
+passer par le cloud EAS. Prérequis : Xcode installé (avec un simulateur iOS
+téléchargé) et CocoaPods (`brew install cocoapods`).
+
+```bash
+# 1. Démarrer oikos-api en profil dev (voir oikos-api/README.md)
+
+# 2. Build natif + installation sur le simulateur (première fois seulement,
+#    ~5-15 min : génère ios/, pod install, xcodebuild)
+npx expo run:ios
+
+# 3. Lancements suivants : juste relancer Metro (le build natif est déjà
+#    installé, inutile de repasser par `expo run:ios`)
+NODE_OPTIONS=--dns-result-order=ipv4first npx expo start --dev-client --localhost
+# puis appuyer sur `i` dans le terminal pour rouvrir l'app sur le simulateur
+```
+
+`NODE_OPTIONS=--dns-result-order=ipv4first` contourne un bug connu de
+Node 18+ sur macOS : sans ça, `--localhost` fait écouter Metro uniquement en
+IPv6 (`::1`), et le simulateur (qui appelle l'URL IPv4 explicite
+`127.0.0.1:8081`) échoue avec *"Could not connect to the server"*. Sans
+`--localhost` du tout, Metro peut aussi choisir une IP LAN incorrecte
+(interface VPN/virtuelle) plutôt que le vrai Wi-Fi, d'où le choix de forcer
+localhost pour le simulateur (qui partage le réseau du Mac, contrairement à
+un device physique).
+
 Variable d'environnement : `EXPO_PUBLIC_API_URL` — `.env.development` (dev),
 `.env.staging` (profil EAS `preview`, URL réelle `https://oikos-staging.tech`),
 `.env.production` (profil EAS `production`, voir `eas.json`). Ni l'un ni
@@ -70,3 +98,10 @@ humain.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — organisation du code, conventions
   partagées avec `oikos-web`.
 - Ce README — périmètre et démarrage rapide.
+
+Arrût du simulateur 
+xcrun simctl shutdown 8A63D5F0-7865-443D-8E2E-73415C67401E
+xcrun simctl boot 8A63D5F0-7865-443D-8E2E-73415C67401E
+open -a Simulator
+
+NODE_OPTIONS=--dns-result-order=ipv4first npx expo start --dev-client --localhost

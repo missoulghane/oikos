@@ -12,10 +12,10 @@ import { Button } from '@/shared/components/Button/Button';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { BOX_LABEL, BOX_EMPTY_STATE } from '@/features/messaging/utils/boxPath';
 import { colors } from '@/shared/theme/colors';
-import type { MainStackParamList } from '@/app/navigation/MainNavigator';
+import type { MessagingStackParamList } from '@/app/navigation/MessagingStackNavigator';
 import type { ConversationBox } from '@/features/messaging/types/messaging.types';
 
-type Props = NativeStackScreenProps<MainStackParamList, 'ConversationList'>;
+type Props = NativeStackScreenProps<MessagingStackParamList, 'ConversationList'>;
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -30,13 +30,19 @@ export function ConversationListScreen({ navigation }: Props) {
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
+  // Title depends on `box`, a local state - can't be a static navigator
+  // `options`, and setOptions merges shallowly so it won't clobber the
+  // static `headerRight` bell set on this screen's registration.
+  useEffect(() => {
+    navigation.setOptions({ title: BOX_LABEL[box] });
+  }, [box, navigation]);
+
   const conversations = useMyConversations(page, box, search || undefined);
   const data = conversations.data;
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{BOX_LABEL[box]}</Text>
         <Button onPress={() => navigation.navigate('NewConversation', {})} style={styles.newButton}>
           Nouveau message
         </Button>
@@ -129,15 +135,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     gap: 8,
     padding: 16,
     paddingBottom: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.gray[900],
   },
   newButton: {
     minHeight: 36,

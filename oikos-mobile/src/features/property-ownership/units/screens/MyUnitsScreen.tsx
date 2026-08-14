@@ -3,15 +3,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import { MyUnitCard } from '@/features/property-ownership/units/components/MyUnitCard';
+import { Button } from '@/shared/components/Button/Button';
+import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { colors } from '@/shared/theme/colors';
-import type { MainStackParamList } from '@/app/navigation/MainNavigator';
+import type { UnitsStackParamList } from '@/app/navigation/UnitsStackNavigator';
 import type { OwnedUnit } from '@/features/property-ownership/units/types/unit.types';
 
-type Props = NativeStackScreenProps<MainStackParamList, 'MyUnits'>;
+type Props = NativeStackScreenProps<UnitsStackParamList, 'MyUnits'>;
 
 export function MyUnitsScreen({ navigation }: Props) {
   const units = useMyUnits();
@@ -22,7 +24,19 @@ export function MyUnitsScreen({ navigation }: Props) {
         data={units.data ?? []}
         keyExtractor={(unit) => unit.unitId}
         contentContainerStyle={styles.content}
-        ListHeaderComponent={<Text style={styles.title}>Mes lots</Text>}
+        ListHeaderComponent={
+          <Card style={styles.linksCard}>
+            <Button variant="secondary" onPress={() => navigation.navigate('MyInstallments')}>
+              Mes échéances
+            </Button>
+            <Button variant="secondary" onPress={() => navigation.navigate('MyPayments')}>
+              Mes paiements
+            </Button>
+            <Button variant="secondary" onPress={() => navigation.navigate('MyMembershipRequests')}>
+              Mes invitations
+            </Button>
+          </Card>
+        }
         renderItem={({ item }: { item: OwnedUnit }) => (
           <MyUnitCard unit={item} onPress={() => navigation.navigate('MyUnitDetail', { unit: item })} />
         )}
@@ -50,11 +64,9 @@ const styles = StyleSheet.create({
     padding: 16,
     flexGrow: 1,
   },
-  title: {
+  linksCard: {
     marginBottom: 16,
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.gray[900],
+    gap: 8,
   },
   separator: {
     height: 12,

@@ -53,7 +53,7 @@ export function NotificationsListScreen({ navigation }: Props) {
     // property-mngt-bound links (e.g. REQUEST_RECEIVED's board screen) have
     // nowhere to navigate to yet on mobile, so they just mark as read.
     if (notification.linkPath?.startsWith('/property-ownership/installments')) {
-      navigation.navigate('MyInstallments');
+      navigation.navigate('MainTabs', { screen: 'UnitsTab', params: { screen: 'MyInstallments' } });
     }
   }
 
@@ -61,10 +61,6 @@ export function NotificationsListScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Notifications</Text>
-      </View>
-
       <View style={styles.tabs}>
         {(['ALL', 'OWNED'] as const).map((tab) => (
           <Pressable key={tab} onPress={() => setScope(tab)} style={[styles.tab, scope === tab && styles.tabActive]}>
@@ -145,19 +141,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.gray[50],
   },
-  header: {
-    padding: 16,
-    paddingBottom: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.gray[900],
-  },
   tabs: {
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 8,
   },
   tab: {

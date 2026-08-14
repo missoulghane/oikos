@@ -1,3 +1,13 @@
+// Hermes on iOS ships without Intl.PluralRules/Intl.RelativeTimeFormat (unlike Android),
+// so formatRelativeTime's `new Intl.RelativeTimeFormat(...)` throws at module load without
+// these polyfills. Must be imported before any code touches those APIs.
+import '@formatjs/intl-getcanonicallocales/polyfill.js';
+import '@formatjs/intl-locale/polyfill.js';
+import '@formatjs/intl-pluralrules/polyfill.js';
+import '@formatjs/intl-pluralrules/locale-data/fr.js';
+import '@formatjs/intl-relativetimeformat/polyfill.js';
+import '@formatjs/intl-relativetimeformat/locale-data/fr.js';
+
 import { registerRootComponent } from 'expo';
 
 import App from './App';

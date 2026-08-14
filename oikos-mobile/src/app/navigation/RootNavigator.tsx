@@ -42,21 +42,33 @@ const linking: LinkingOptions<AuthStackParamList & MainStackParamList> = {
           Done: 'done',
         },
       },
-      Home: 'home',
-      Profile: 'profile',
-      MyUnits: 'my-units',
-      MyInstallments: 'my-installments',
-      MyPayments: 'my-payments',
-      MyMembershipRequests: 'my-membership-requests',
-      // MyUnitDetail is deliberately not linkable: it takes the whole OwnedUnit
-      // object as a param (see MainNavigator.tsx), not just an id - there's no
-      // getUnit()-style fetch-by-id on mobile to resolve a bare id from a URL.
+      // Nested to mirror MainNavigator -> MainTabNavigator -> per-tab stacks.
+      // MyUnitDetail and Conversation are deliberately not linkable: they
+      // take a whole OwnedUnit/ConversationSummary object as a param, not
+      // just an id - there's no getUnit()/getConversation()-style
+      // fetch-by-id on mobile to resolve a bare id from a URL.
+      MainTabs: {
+        screens: {
+          HomeTab: { screens: { Home: 'home' } },
+          MessagingTab: {
+            screens: {
+              ConversationList: 'messages',
+              NewConversation: 'messages/new',
+              Drafts: 'messages/drafts',
+            },
+          },
+          UnitsTab: {
+            screens: {
+              MyUnits: 'my-units',
+              MyInstallments: 'my-installments',
+              MyPayments: 'my-payments',
+              MyMembershipRequests: 'my-membership-requests',
+            },
+          },
+          AccountTab: { screens: { Profile: 'profile' } },
+        },
+      },
       Notifications: 'notifications',
-      ConversationList: 'messages',
-      NewConversation: 'messages/new',
-      Drafts: 'messages/drafts',
-      // Conversation is deliberately not linkable, same reason as MyUnitDetail:
-      // it takes a whole ConversationSummary as a param, not just an id.
     },
   },
 };

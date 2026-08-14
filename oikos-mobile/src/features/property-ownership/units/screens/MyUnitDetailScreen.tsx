@@ -17,9 +17,9 @@ import {
 } from '@/features/property-ownership/installments/constants/installmentStatusLabels';
 import { PAYMENT_MODE_LABELS } from '@/features/property-ownership/payments/constants/paymentModeLabels';
 import { PARTY_TYPE_LABELS } from '@/features/property-ownership/units/types/unitOwnership.types';
-import type { MainStackParamList } from '@/app/navigation/MainNavigator';
+import type { UnitsStackParamList } from '@/app/navigation/UnitsStackNavigator';
 
-type Props = NativeStackScreenProps<MainStackParamList, 'MyUnitDetail'>;
+type Props = NativeStackScreenProps<UnitsStackParamList, 'MyUnitDetail'>;
 
 /**
  * oikos-web's MyUnitDetailPage reuses property-mngt's UnitOwnersSection /

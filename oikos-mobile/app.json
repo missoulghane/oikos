@@ -37,7 +37,8 @@
         {
           "photosPermission": "Oikos a besoin d'accéder à vos photos pour changer votre avatar."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

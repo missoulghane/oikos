@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCurrentUser, isBoardTierOnProperty, isManagerTierOnProperty, isOwnerOnProperty } from '@/features/identity/me';
@@ -13,15 +13,15 @@ import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { colors } from '@/shared/theme/colors';
-import type { MainStackParamList } from '@/app/navigation/MainNavigator';
+import type { MessagingStackParamList } from '@/app/navigation/MessagingStackNavigator';
 import type { Message } from '@/features/messaging/types/messaging.types';
 
-type Props = NativeStackScreenProps<MainStackParamList, 'Conversation'>;
+type Props = NativeStackScreenProps<MessagingStackParamList, 'Conversation'>;
 
 // The reading pane. Opening a received message is read-only until the user
 // explicitly taps "Répondre" - no reply-all/forward, a GROUP reply already
 // goes to every participant and forwarding isn't a feature this app has.
-export function ConversationScreen({ route, navigation }: Props) {
+export function ConversationScreen({ route }: Props) {
   const { conversation: summary } = route.params;
   const id = summary.id;
   const currentUser = useCurrentUser();
@@ -68,12 +68,6 @@ export function ConversationScreen({ route, navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} accessibilityLabel="Retour à la liste des messages" style={styles.backButton}>
-          <Text style={styles.backButtonText}>‹</Text>
-        </Pressable>
-      </View>
-
       <FlatList
         data={messages.data?.content ?? []}
         keyExtractor={(message) => message.id}
@@ -107,26 +101,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.gray[50],
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[100],
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.gray[200],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: colors.gray[500],
   },
   list: {
     padding: 16,

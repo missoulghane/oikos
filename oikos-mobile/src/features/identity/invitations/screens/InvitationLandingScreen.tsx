@@ -86,7 +86,7 @@ export function InvitationLandingScreen({ route, navigation }: Props) {
       // property-ownership screens don't exist on mobile yet (Phase 2) - land
       // on Home for now; only reachable while already authenticated (Main
       // stack), so this route name is always valid here.
-      navigation.navigate('Home');
+      navigation.navigate('MainTabs', { screen: 'HomeTab', params: { screen: 'Home' } });
     }
   }, [autoConfirmStatus, navigation]);
 

@@ -12,6 +12,8 @@ import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { getFirstName } from '@/shared/utils/getFirstName';
+import { getGreeting } from '@/shared/utils/getGreeting';
 
 function money(amount: number): string {
   return `${amount.toLocaleString('fr-FR')} MAD`;
@@ -258,9 +260,13 @@ export function DashboardPage() {
       <OwnerDashboard mandateIds={mandateIds} />
     );
 
+  const firstName = currentUser.data ? getFirstName(currentUser.data.fullName) : '';
+
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Tableau de bord</h1>
+      <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">
+        {getGreeting()} {firstName}
+      </h1>
       {content}
     </div>
   );
