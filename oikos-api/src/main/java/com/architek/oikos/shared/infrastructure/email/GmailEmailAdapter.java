@@ -7,6 +7,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,26 @@ public class GmailEmailAdapter implements EmailSenderPort {
     @Value("${oikos.mail.from}")
     private String fromAddress;
 
+    @Value("${spring.mail.host}")
+    private String smtpHost;
+
+    @Value("${spring.mail.port}")
+    private int smtpPort;
+
+    @Value("${spring.mail.username}")
+    private String smtpUsername;
+
+    /**
+     * Startup banner: which adapter won the @ConditionalOnProperty race, and against
+     * which relay. Without it, "no mail arrived" gives no way to tell a disabled
+     * mailer from a misconfigured one. The password is deliberately never logged.
+     */
+    @PostConstruct
+    void logConfiguration() {
+        log.info("Email sending ENABLED (GmailEmailAdapter) - relay {}:{}, authenticated as {}, From: {}",
+                smtpHost, smtpPort, smtpUsername, fromAddress);
+    }
+
     @Override
     public void send(EmailVO to, String subject, String htmlBody) {
         try {
@@ -41,6 +62,10 @@ public class GmailEmailAdapter implements EmailSenderPort {
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
             mailSender.send(message);
+            // Success was silent before: a caller could not tell "sent" from "never
+            // called". Only the recipient and subject - never the body, which carries
+            // the verification/reset token.
+            log.info("Email accepted by the SMTP relay - to: {}, subject: {}", to.value(), subject);
         } catch (MessagingException | MailException e) {
             log.error("Failed to send email to {}", to.value(), e);
             throw new EmailDeliveryException("Failed to send email", e);

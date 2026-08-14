@@ -5,12 +5,15 @@ import java.time.Duration;
 import java.time.Instant;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.user.application.command.ResendVerificationCommand;
 import com.architek.oikos.user.application.port.in.ResendVerificationUseCase;
+import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.model.VerificationToken;
 import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.user.domain.repository.VerificationTokenRepository;
@@ -22,6 +25,8 @@ import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
  */
 @Component
 public class ResendVerificationService implements ResendVerificationUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(ResendVerificationService.class);
 
     private final UserRepository userRepository;
     private final VerificationTokenRepository verificationTokenRepository;
@@ -50,20 +55,31 @@ public class ResendVerificationService implements ResendVerificationUseCase {
     @Override
     @Transactional
     public void resend(ResendVerificationCommand command) {
-        userRepository.findByEmail(command.email().value())
-                .filter(user -> !user.isVerified())
-                .ifPresent(user -> {
-                    verificationTokenRepository.deleteByUserId(user.getId());
-                    String rawToken = tokenGenerator.generate();
-                    Instant expiresAt = clock.instant().plus(verificationTokenTtl);
-                    VerificationToken verificationToken = VerificationToken.issue(user.getId(), rawToken, expiresAt);
-                    verificationTokenRepository.save(verificationToken);
-                    // No returnTo here: unlike RegisterUserService, this path has no request
-                    // context to carry one from, and no frontend "resend" UI exists yet to
-                    // supply one - a resend after an invitation-wizard registration drops
-                    // back to the generic post-verify page instead of resuming the wizard.
-                    // Accepted gap; revisit if/when a resend UI ships.
-                    emailSenderPort.send(command.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken, null));
-                });
+        // Split from the old single filter+ifPresent so the two silent causes can be
+        // told apart in the logs: an address nobody owns, versus an account that is
+        // already verified and therefore needs nothing resent.
+        var account = userRepository.findByEmail(command.email().value());
+        if (account.isEmpty()) {
+            log.info("Verification resend requested for an unknown address ({}) - no email sent",
+                    command.email().value());
+            return;
+        }
+        if (account.get().isVerified()) {
+            log.info("Verification resend requested for an already-verified account ({}) - no email sent",
+                    command.email().value());
+            return;
+        }
+        User user = account.get();
+        verificationTokenRepository.deleteByUserId(user.getId());
+        String rawToken = tokenGenerator.generate();
+        Instant expiresAt = clock.instant().plus(verificationTokenTtl);
+        VerificationToken verificationToken = VerificationToken.issue(user.getId(), rawToken, expiresAt);
+        verificationTokenRepository.save(verificationToken);
+        // No returnTo here: unlike RegisterUserService, this path has no request
+        // context to carry one from, and no frontend "resend" UI exists yet to
+        // supply one - a resend after an invitation-wizard registration drops
+        // back to the generic post-verify page instead of resuming the wizard.
+        // Accepted gap; revisit if/when a resend UI ships.
+        emailSenderPort.send(command.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken, null));
     }
 }
