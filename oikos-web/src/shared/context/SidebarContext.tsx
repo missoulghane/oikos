@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useState, useEffect, type ReactNode } from 'react';
 
 type SidebarContextType = {
   isExpanded: boolean;
@@ -6,6 +6,8 @@ type SidebarContextType = {
   isHovered: boolean;
   toggleSidebar: () => void;
   toggleMobileSidebar: () => void;
+  /** Distinct from the toggle: callers that must close it (navigating, tapping the backdrop) never want to re-open it. */
+  closeMobileSidebar: () => void;
   setIsHovered: (isHovered: boolean) => void;
 };
 
@@ -47,6 +49,11 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     setIsMobileOpen((prev) => !prev);
   }
 
+  // Stable identity on purpose: AppSidebar closes the drawer from an effect
+  // keyed on the route, and a new function each render would re-run that effect
+  // constantly - forcing the drawer shut the instant it was opened.
+  const closeMobileSidebar = useCallback(() => setIsMobileOpen(false), []);
+
   return (
     <SidebarContext.Provider
       value={{
@@ -55,6 +62,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
         isHovered,
         toggleSidebar,
         toggleMobileSidebar,
+        closeMobileSidebar,
         setIsHovered,
       }}
     >

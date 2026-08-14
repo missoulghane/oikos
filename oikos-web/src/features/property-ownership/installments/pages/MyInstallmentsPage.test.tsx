@@ -163,6 +163,48 @@ describe('MyInstallmentsPage', () => {
     expect(screen.getByRole('button', { name: /^Filtres/ })).toHaveTextContent('1');
   });
 
+  it('no longer offers sorting as filter fields', () => {
+    renderPage();
+
+    expect(screen.queryByLabelText('Trier par')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Ordre')).not.toBeInTheDocument();
+  });
+
+  it('marks the column the table is sorted on, and only that one', () => {
+    renderPage();
+
+    // Default sort: due date, most recent first
+    expect(screen.getByRole('columnheader', { name: /Échéance/ })).toHaveAttribute('aria-sort', 'descending');
+    expect(screen.getByRole('columnheader', { name: /Montant/ })).toHaveAttribute('aria-sort', 'none');
+  });
+
+  // Rows are identified by their date: amounts render with a narrow no-break
+  // space (U+202F) from toLocaleString('fr-FR'), which is a trap to assert on.
+  function firstRowText() {
+    const rowGroups = screen.getAllByRole('rowgroup');
+    return within(rowGroups[1]).getAllByRole('row')[0].textContent;
+  }
+
+  it('flips the direction when the active column is clicked again', async () => {
+    renderPage();
+    expect(firstRowText()).toContain('01/06/2026');
+
+    await userEvent.click(screen.getByRole('button', { name: /Échéance/ }));
+
+    expect(screen.getByRole('columnheader', { name: /Échéance/ })).toHaveAttribute('aria-sort', 'ascending');
+    expect(firstRowText()).toContain('15/01/2026');
+  });
+
+  it('starts a newly picked column at descending', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /Montant/ }));
+
+    expect(screen.getByRole('columnheader', { name: /Montant/ })).toHaveAttribute('aria-sort', 'descending');
+    expect(screen.getByRole('columnheader', { name: /Échéance/ })).toHaveAttribute('aria-sort', 'none');
+    // The 1000 MAD echeance, largest of the three, comes first
+    expect(firstRowText()).toContain('15/01/2026');
+  });
+
   it('opens the detail page when a row is clicked', async () => {
     renderPage();
     const rowGroups = screen.getAllByRole('rowgroup');

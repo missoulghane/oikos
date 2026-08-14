@@ -11,9 +11,9 @@ import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { colors } from '@/shared/theme/colors';
-import type { UnitsStackParamList } from '@/app/navigation/UnitsStackNavigator';
+import type { HomeStackParamList } from '@/app/navigation/HomeStackNavigator';
 
-type Props = NativeStackScreenProps<UnitsStackParamList, 'MyPaymentDetail'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'MyPaymentDetail'>;
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (

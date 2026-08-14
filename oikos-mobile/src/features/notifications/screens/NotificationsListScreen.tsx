@@ -53,7 +53,7 @@ export function NotificationsListScreen({ navigation }: Props) {
     // property-mngt-bound links (e.g. REQUEST_RECEIVED's board screen) have
     // nowhere to navigate to yet on mobile, so they just mark as read.
     if (notification.linkPath?.startsWith('/property-ownership/installments')) {
-      navigation.navigate('MainTabs', { screen: 'UnitsTab', params: { screen: 'MyInstallments' } });
+      navigation.navigate('MainTabs', { screen: 'HomeTab', params: { screen: 'MyInstallments' } });
     }
   }
 

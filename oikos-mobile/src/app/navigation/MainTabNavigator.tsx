@@ -3,14 +3,12 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { HomeStackNavigator, type HomeStackParamList } from '@/app/navigation/HomeStackNavigator';
 import { MessagingStackNavigator, type MessagingStackParamList } from '@/app/navigation/MessagingStackNavigator';
-import { UnitsStackNavigator, type UnitsStackParamList } from '@/app/navigation/UnitsStackNavigator';
 import { AccountStackNavigator, type AccountStackParamList } from '@/app/navigation/AccountStackNavigator';
 import { colors } from '@/shared/theme/colors';
 
 export type MainTabParamList = {
   HomeTab: NavigatorScreenParams<HomeStackParamList> | undefined;
   MessagingTab: NavigatorScreenParams<MessagingStackParamList> | undefined;
-  UnitsTab: NavigatorScreenParams<UnitsStackParamList> | undefined;
   AccountTab: NavigatorScreenParams<AccountStackParamList> | undefined;
 };
 
@@ -21,7 +19,6 @@ type IconName = keyof typeof Ionicons.glyphMap;
 const TAB_ICONS: Record<keyof MainTabParamList, { focused: IconName; unfocused: IconName }> = {
   HomeTab: { focused: 'home', unfocused: 'home-outline' },
   MessagingTab: { focused: 'chatbubbles', unfocused: 'chatbubbles-outline' },
-  UnitsTab: { focused: 'business', unfocused: 'business-outline' },
   AccountTab: { focused: 'person', unfocused: 'person-outline' },
 };
 
@@ -46,7 +43,6 @@ export function MainTabNavigator() {
     >
       <Tab.Screen name="HomeTab" component={HomeStackNavigator} options={{ title: 'Accueil' }} />
       <Tab.Screen name="MessagingTab" component={MessagingStackNavigator} options={{ title: 'Messagerie' }} />
-      <Tab.Screen name="UnitsTab" component={UnitsStackNavigator} options={{ title: 'Mes lots' }} />
       <Tab.Screen name="AccountTab" component={AccountStackNavigator} options={{ title: 'Mon compte' }} />
     </Tab.Navigator>
   );

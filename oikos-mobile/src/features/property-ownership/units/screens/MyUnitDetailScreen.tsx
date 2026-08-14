@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Card } from '@/shared/components/Card/Card';
@@ -17,9 +17,11 @@ import {
 } from '@/features/property-ownership/installments/constants/installmentStatusLabels';
 import { PAYMENT_MODE_LABELS } from '@/features/property-ownership/payments/constants/paymentModeLabels';
 import { PARTY_TYPE_LABELS } from '@/features/property-ownership/units/types/unitOwnership.types';
-import type { UnitsStackParamList } from '@/app/navigation/UnitsStackNavigator';
+import { getOutstandingColor, unitOutstanding } from '@/features/property-ownership/units/utils/unitBalance';
+import { isDue } from '@/features/property-ownership/installments/utils/installmentTotals';
+import type { HomeStackParamList } from '@/app/navigation/HomeStackNavigator';
 
-type Props = NativeStackScreenProps<UnitsStackParamList, 'MyUnitDetail'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'MyUnitDetail'>;
 
 /**
  * oikos-web's MyUnitDetailPage reuses property-mngt's UnitOwnersSection /
@@ -32,7 +34,18 @@ type Props = NativeStackScreenProps<UnitsStackParamList, 'MyUnitDetail'>;
  * only genuinely new dependency is the co-owners list (GET /units/{id}/owners,
  * see useUnitOwners), ported directly since it's small and self-contained.
  */
-export function MyUnitDetailScreen({ route }: Props) {
+const TOP_COUNT = 5;
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.infoRow}>
+      <Text style={styles.muted}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  );
+}
+
+export function MyUnitDetailScreen({ route, navigation }: Props) {
   const { unit } = route.params;
   const owners = useUnitOwners(unit.unitId);
   const installments = useMyInstallments();
@@ -45,6 +58,13 @@ export function MyUnitDetailScreen({ route }: Props) {
     .filter((payment) => payment.unitId === unit.unitId)
     .sort((a, b) => new Date(b.valueDate).getTime() - new Date(a.valueDate).getTime());
 
+  // Capped: the lot's whole history belongs on Mes échéances / Mes paiements.
+  const lastInstallments = unitInstallments.slice(0, TOP_COUNT);
+  const lastPayments = unitPayments.slice(0, TOP_COUNT);
+
+  const outstanding = unitOutstanding(installments.data ?? [], unit.unitId);
+  const dueCount = unitInstallments.filter(isDue).length;
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -53,11 +73,33 @@ export function MyUnitDetailScreen({ route }: Props) {
           <Text style={styles.subtitle}>
             {unit.propertyName} — {unit.buildingName}
           </Text>
-          <Text style={styles.subtitle}>{unit.ownershipShare}% des tantièmes</Text>
         </View>
 
+        {/* Above the two "dernières opérations" blocks: what the lot owes is the
+            figure this screen exists to answer. */}
         <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>Propriétaires</Text>
+          <Text style={styles.muted}>Solde à régler</Text>
+          {installments.isLoading ? (
+            <Loader label="Chargement du solde…" />
+          ) : (
+            <>
+              <Text style={[styles.balance, { color: getOutstandingColor(outstanding) }]}>
+                {outstanding.toLocaleString('fr-FR')} MAD
+              </Text>
+              <Text style={styles.muted}>
+                {dueCount === 0 ? 'Aucune échéance à régler' : `${dueCount} échéance${dueCount > 1 ? 's' : ''} à régler`}
+              </Text>
+            </>
+          )}
+        </Card>
+
+        <Card style={styles.section}>
+          <Text style={styles.sectionTitle}>Informations générales</Text>
+          <InfoRow label="Votre quote-part" value={`${unit.ownershipShare} %`} />
+          <InfoRow label="Bâtiment" value={unit.buildingName} />
+          <InfoRow label="Résidence" value={unit.propertyName} />
+
+          <Text style={[styles.muted, styles.ownersLabel]}>Propriétaires</Text>
           {owners.isLoading && <Loader label="Chargement des propriétaires…" />}
           {owners.isError && <Alert message={getErrorMessage(owners.error)} />}
           {owners.data && owners.data.length === 0 && <Text style={styles.muted}>Aucun propriétaire pour le moment.</Text>}
@@ -72,38 +114,48 @@ export function MyUnitDetailScreen({ route }: Props) {
         </Card>
 
         <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>Échéances</Text>
+          <Text style={styles.sectionTitle}>Dernières échéances</Text>
           {installments.isLoading && <Loader label="Chargement des échéances…" />}
           {installments.isError && <Alert message={getErrorMessage(installments.error)} />}
-          {installments.isSuccess && unitInstallments.length === 0 && <EmptyState title="Aucune échéance pour le moment" />}
-          {unitInstallments.map((installment) => (
-            <View key={installment.id} style={styles.listRow}>
+          {installments.isSuccess && lastInstallments.length === 0 && (
+            <EmptyState title="Aucune échéance pour le moment" />
+          )}
+          {lastInstallments.map((installment) => (
+            <Pressable
+              key={installment.id}
+              accessibilityRole="button"
+              onPress={() => navigation.navigate('MyInstallmentDetail', { installmentId: installment.id })}
+              style={styles.listRow}
+            >
               <Text style={styles.listRowText}>
                 Échéance du {new Date(installment.dueDate).toLocaleDateString('fr-FR')} —{' '}
                 {installment.amount.toLocaleString('fr-FR')} MAD
-                {installment.status === 'PARTIALLY_SETTLED' &&
-                  ` (reste ${installment.outstandingAmount.toLocaleString('fr-FR')} MAD)`}
               </Text>
               <Badge color={INSTALLMENT_STATUS_BADGE_COLORS[installment.status]}>
                 {INSTALLMENT_STATUS_LABELS[installment.status]}
               </Badge>
-            </View>
+            </Pressable>
           ))}
         </Card>
 
         <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>Paiements</Text>
+          <Text style={styles.sectionTitle}>Derniers paiements</Text>
           {payments.isLoading && <Loader label="Chargement des paiements…" />}
           {payments.isError && <Alert message={getErrorMessage(payments.error)} />}
-          {payments.isSuccess && unitPayments.length === 0 && <EmptyState title="Aucun paiement pour le moment" />}
-          {unitPayments.map((payment) => (
-            <View key={payment.id} style={styles.listRow}>
+          {payments.isSuccess && lastPayments.length === 0 && <EmptyState title="Aucun paiement pour le moment" />}
+          {lastPayments.map((payment) => (
+            <Pressable
+              key={payment.id}
+              accessibilityRole="button"
+              onPress={() => navigation.navigate('MyPaymentDetail', { paymentId: payment.id })}
+              style={styles.listRow}
+            >
               <Text style={styles.listRowText}>
-                Paiement du {new Date(payment.valueDate).toLocaleDateString('fr-FR')} — {payment.amount.toLocaleString('fr-FR')}{' '}
-                MAD
+                Paiement du {new Date(payment.valueDate).toLocaleDateString('fr-FR')} —{' '}
+                {payment.amount.toLocaleString('fr-FR')} MAD
               </Text>
               <Badge color="light">{PAYMENT_MODE_LABELS[payment.mode]}</Badge>
-            </View>
+            </Pressable>
           ))}
         </Card>
       </ScrollView>
@@ -136,6 +188,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.gray[900],
+  },
+  balance: {
+    fontSize: 24,
+    fontWeight: '600',
+  },
+  infoRow: {
+    gap: 2,
+  },
+  infoValue: {
+    fontSize: 15,
+    color: colors.gray[900],
+  },
+  ownersLabel: {
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[100],
+    paddingTop: 12,
   },
   muted: {
     fontSize: 14,

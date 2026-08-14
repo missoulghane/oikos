@@ -1,22 +1,39 @@
 import { Link, useParams } from 'react-router-dom';
 import { useUnit } from '@/features/property-mngt/properties/hooks/useUnit';
+import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
+import { useUnitInstallments } from '@/features/property-mngt/installments/hooks/useUnitInstallments';
 import { UnitOwnersSection } from '@/features/property-mngt/properties/components/UnitOwnersSection';
-import { UnitInstallmentsSection } from '@/features/property-mngt/installments/components/UnitInstallmentsSection';
-import { UnitPaymentsSection } from '@/features/property-mngt/installments/components/UnitPaymentsSection';
+import {
+  LastUnitInstallments,
+  LastUnitPayments,
+} from '@/features/property-ownership/units/components/LastUnitOperations';
+import { getOutstandingColorClass } from '@/features/property-ownership/units/utils/unitBalance';
+import { isDue, outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 
-const OWNERSHIP_STATUS_LABELS = {
-  AFFECTED: 'Affecté',
-  NOT_AFFECTED: 'Non affecté',
-} as const;
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-sm text-gray-500 dark:text-gray-400">{label}</dt>
+      <dd className="text-gray-900 dark:text-white/90">{value}</dd>
+    </div>
+  );
+}
 
 export function MyUnitDetailPage() {
   const { propertyId, unitId } = useParams<{ propertyId: string; unitId: string }>();
   const id = unitId ?? '';
   const unit = useUnit(id);
+  // Same query key as LastUnitInstallments below, so the summary costs no extra
+  // request - it reads the very rows that block lists, which is also why the
+  // two can never disagree.
+  const installments = useUnitInstallments(id);
+  // The lot payload has no building or résidence name (nor propertyId); those
+  // only exist on GET /users/me/units.
+  const myUnits = useMyUnits();
 
   if (unit.isLoading) {
     return <Loader label="Chargement du lot…" />;
@@ -30,37 +47,64 @@ export function MyUnitDetailPage() {
     return null;
   }
 
+  const ownedUnit = (myUnits.data ?? []).find((candidate) => candidate.unitId === id);
+  const outstanding = outstandingTotal(installments.data ?? []);
+  const dueCount = (installments.data ?? []).filter(isDue).length;
+
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link to="/property-ownership/units" className="text-sm text-gray-500 dark:text-gray-400 hover:underline">
+        <Link to="/dashboard" className="text-sm text-gray-500 dark:text-gray-400 hover:underline">
           ← Retour à mes lots
         </Link>
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">
-            Lot {unit.data.unitNumber} — {unit.data.unitTypeName}
-          </h1>
-          <span className="w-fit rounded-full bg-gray-100 dark:bg-white/[0.05] px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-            {OWNERSHIP_STATUS_LABELS[unit.data.ownershipStatus]}
-          </span>
-        </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{unit.data.shares} tantièmes</p>
+        {/* No "Affecté" pill: in the owner's own space the lot is affected to
+            them by definition, so the badge only ever states the obvious. */}
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">
+          Lot {unit.data.unitNumber} — {unit.data.unitTypeName}
+        </h1>
+        {ownedUnit && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {ownedUnit.propertyName} — {ownedUnit.buildingName}
+          </p>
+        )}
       </div>
 
-      <Card className="flex flex-col gap-2">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Propriétaires</h2>
+      {/* Above the two "dernières opérations" blocks: what the lot still owes is
+          the figure the page exists to answer. */}
+      <Card className="flex flex-col gap-1">
+        <span className="text-sm text-gray-500 dark:text-gray-400">Solde à régler</span>
+        {installments.isLoading ? (
+          <Loader label="Chargement du solde…" />
+        ) : (
+          <>
+            <span className={`text-2xl font-semibold ${getOutstandingColorClass(outstanding)}`}>
+              {outstanding.toLocaleString('fr-FR')} MAD
+            </span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {dueCount === 0
+                ? 'Aucune échéance à régler'
+                : `${dueCount} échéance${dueCount > 1 ? 's' : ''} à régler`}
+            </span>
+          </>
+        )}
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Informations générales</h2>
+        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <InfoRow label="Type de lot" value={unit.data.unitTypeName} />
+          <InfoRow label="Tantièmes" value={`${unit.data.shares}`} />
+          {ownedUnit && <InfoRow label="Votre quote-part" value={`${ownedUnit.ownershipShare} %`} />}
+          {ownedUnit && <InfoRow label="Bâtiment" value={ownedUnit.buildingName} />}
+          {ownedUnit && <InfoRow label="Résidence" value={ownedUnit.propertyName} />}
+        </dl>
         <UnitOwnersSection unitId={id} propertyId={propertyId ?? ''} canManage={false} />
       </Card>
 
-      <Card className="flex flex-col gap-2">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Échéances</h2>
-        <UnitInstallmentsSection propertyId={propertyId ?? ''} unitId={id} canManage={false} />
-      </Card>
-
-      <Card className="flex flex-col gap-2">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Paiements</h2>
-        <UnitPaymentsSection propertyId={propertyId ?? ''} unitId={id} canManage={false} />
-      </Card>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <LastUnitInstallments unitId={id} />
+        <LastUnitPayments unitId={id} />
+      </div>
     </div>
   );
 }

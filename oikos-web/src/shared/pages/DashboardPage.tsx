@@ -4,9 +4,7 @@ import { useEffectiveSpace } from '@/shared/hooks/useEffectiveSpace';
 import { useMandateProperties } from '@/shared/hooks/useMandateProperties';
 import { useProperty } from '@/features/property-mngt/properties/hooks/useProperty';
 import { useProperties } from '@/features/property-mngt/properties/hooks/useProperties';
-import { useMyUnits } from '@/features/property-ownership/units';
-import { useMyInstallments } from '@/features/property-ownership/installments/hooks/useMyInstallments';
-import { isDue, outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
+import { MyUnitsList } from '@/features/property-ownership/units/components/MyUnitsList';
 import { ResumeOnboardingBanner } from '@/features/identity/onboarding/components/ResumeOnboardingBanner';
 import { SpaceLinkCard } from '@/shared/components/SpaceLinkCard/SpaceLinkCard';
 import { Card } from '@/shared/components/Card/Card';
@@ -15,10 +13,6 @@ import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { getFirstName } from '@/shared/utils/getFirstName';
 import { getGreeting } from '@/shared/utils/getGreeting';
-
-function money(amount: number): string {
-  return `${amount.toLocaleString('fr-FR')} MAD`;
-}
 
 /**
  * Un mandat s'assume, il ne s'impose pas : quand plusieurs mandats existent,
@@ -144,82 +138,16 @@ function ManagerDashboard() {
   );
 }
 
+/**
+ * The owner's dashboard IS their lots - "Mes lots" was folded in here rather
+ * than living as a separate screen, so the landing page opens on something
+ * actionable instead of a summary of numbers found one click away anyway.
+ */
 function OwnerDashboard({ mandateIds }: { mandateIds: string[] }) {
-  const units = useMyUnits();
-  const installments = useMyInstallments();
-
-  if (units.isLoading) {
-    return <Loader label="Chargement de vos lots…" />;
-  }
-
-  if (units.isError) {
-    return <Alert message={getErrorMessage(units.error)} />;
-  }
-
-  const unitCount = units.data?.length ?? 0;
-  const propertyIds = new Set((units.data ?? []).map((unit) => unit.propertyId));
-  const isMultiProperty = propertyIds.size > 1;
-
-  const unpaid = (installments.data ?? []).filter(isDue);
-  const totalDue = outstandingTotal(installments.data ?? []);
-
-  const unitByUnitId = new Map((units.data ?? []).map((unit) => [unit.unitId, unit]));
-  const dueByProperty = new Map<string, { propertyName: string; total: number }>();
-  for (const installment of unpaid) {
-    const unit = unitByUnitId.get(installment.unitId);
-    if (!unit) continue;
-    const entry = dueByProperty.get(unit.propertyId) ?? { propertyName: unit.propertyName, total: 0 };
-    entry.total += installment.outstandingAmount;
-    dueByProperty.set(unit.propertyId, entry);
-  }
-
   return (
     <>
-      <Card className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">
-            Solde à régler{isMultiProperty ? ' · toutes résidences' : ''}
-          </h2>
-          <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white/90">{money(totalDue)}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {unitCount} lot{unitCount > 1 ? 's' : ''}
-            {isMultiProperty ? ` · ${propertyIds.size} résidences` : ''}
-            {unpaid.length > 0
-              ? ` · ${unpaid.length} échéance${unpaid.length > 1 ? 's' : ''} en attente`
-              : ' · à jour'}
-          </p>
-        </div>
-        {isMultiProperty && (
-          <div className="flex flex-wrap gap-3">
-            {[...dueByProperty.entries()].map(([propertyId, entry]) => (
-              <div
-                key={propertyId}
-                className="rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-white/[0.03]"
-              >
-                <span className="block text-gray-500 dark:text-gray-400">{entry.propertyName}</span>
-                <span className="font-semibold text-gray-900 dark:text-white/90">{money(entry.total)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="flex flex-wrap gap-3">
-          <Link
-            to="/property-ownership/units"
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-          >
-            Mes lots
-          </Link>
-          <Link
-            to="/property-ownership/installments"
-            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
-          >
-            Mes échéances
-          </Link>
-        </div>
-      </Card>
-      {mandateIds.length > 0 && (
-        <MandateCard mandateIds={mandateIds} />
-      )}
+      <MyUnitsList />
+      {mandateIds.length > 0 && <MandateCard mandateIds={mandateIds} />}
     </>
   );
 }

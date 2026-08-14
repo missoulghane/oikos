@@ -16,6 +16,7 @@ import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { Pagination } from '@/shared/components/Pagination/Pagination';
 import { FilterPanel } from '@/shared/components/FilterPanel/FilterPanel';
+import { nextSortDirection } from '@/shared/utils/sorting';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { countActiveFilters } from '@/shared/utils/countActiveFilters';
 
@@ -58,6 +59,14 @@ export function MyInstallmentsPage() {
   function handleFiltersChange(next: MyInstallmentFiltersValue) {
     setFilters(next);
     setPage(0);
+  }
+
+  function handleSort(field: MyInstallmentFiltersValue['sortBy']) {
+    handleFiltersChange({
+      ...filters,
+      sortBy: field,
+      sortDirection: nextSortDirection(field, filters.sortBy, filters.sortDirection),
+    });
   }
 
   const isDueFilterActive = filters.status === 'DUE';
@@ -107,7 +116,13 @@ export function MyInstallmentsPage() {
 
         {filtered.length > 0 && (
           <>
-            <MyInstallmentsTable installments={pageRows} unitsById={unitsById} />
+            <MyInstallmentsTable
+              installments={pageRows}
+              unitsById={unitsById}
+              sortBy={filters.sortBy}
+              sortDirection={filters.sortDirection}
+              onSort={handleSort}
+            />
             <Pagination pageNumber={page} totalPages={totalPages} onPageChange={setPage} />
           </>
         )}

@@ -111,9 +111,6 @@ const PartiesPage = lazy(() =>
 const PartyDetailPage = lazy(() =>
   import('@/features/property-mngt/parties').then((m) => ({ default: m.PartyDetailPage })),
 );
-const MyUnitsPage = lazy(() =>
-  import('@/features/property-ownership/units').then((m) => ({ default: m.MyUnitsPage })),
-);
 const MyUnitDetailPage = lazy(() =>
   import('@/features/property-ownership/units').then((m) => ({ default: m.MyUnitDetailPage })),
 );
@@ -568,12 +565,11 @@ export const privateRoutes: RouteObject[] = [
         element: <Outlet />,
         children: [
           {
+            // "Mes lots" is the owner dashboard now (see DashboardPage's
+            // OwnerDashboard) - this path is kept only so older links, and the
+            // lot detail's own back-link, still land somewhere sensible.
             path: 'units',
-            element: (
-              <Suspense fallback={<Loader />}>
-                <MyUnitsPage />
-              </Suspense>
-            ),
+            element: <Navigate to="/dashboard" replace />,
           },
           {
             path: 'units/:propertyId/:unitId',

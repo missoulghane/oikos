@@ -15,6 +15,7 @@ import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { Pagination } from '@/shared/components/Pagination/Pagination';
 import { FilterPanel } from '@/shared/components/FilterPanel/FilterPanel';
+import { nextSortDirection } from '@/shared/utils/sorting';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { countActiveFilters } from '@/shared/utils/countActiveFilters';
 
@@ -55,6 +56,14 @@ export function MyPaymentsPage() {
     setPage(0);
   }
 
+  function handleSort(field: MyPaymentFiltersValue['sortBy']) {
+    handleFiltersChange({
+      ...filters,
+      sortBy: field,
+      sortDirection: nextSortDirection(field, filters.sortBy, filters.sortDirection),
+    });
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Mes paiements</h1>
@@ -85,7 +94,13 @@ export function MyPaymentsPage() {
 
         {filtered.length > 0 && (
           <>
-            <MyPaymentsTable payments={pageRows} unitsById={unitsById} />
+            <MyPaymentsTable
+              payments={pageRows}
+              unitsById={unitsById}
+              sortBy={filters.sortBy}
+              sortDirection={filters.sortDirection}
+              onSort={handleSort}
+            />
             <Pagination pageNumber={page} totalPages={totalPages} onPageChange={setPage} />
           </>
         )}

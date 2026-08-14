@@ -22,10 +22,10 @@ import { FilterPanel } from '@/shared/components/FilterPanel/FilterPanel';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { countActiveFilters } from '@/shared/utils/countActiveFilters';
 import { colors } from '@/shared/theme/colors';
-import type { UnitsStackParamList } from '@/app/navigation/UnitsStackNavigator';
+import type { HomeStackParamList } from '@/app/navigation/HomeStackNavigator';
 import type { Payment } from '@/features/property-ownership/payments/types/payment.types';
 
-type Props = NativeStackScreenProps<UnitsStackParamList, 'MyPayments'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'MyPayments'>;
 
 // Sorting always holds a value, so it would inflate the "active filters" count
 // on an untouched list - it is still reset by "Effacer".

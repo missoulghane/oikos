@@ -5,24 +5,42 @@ import { formatUnitLabel } from '@/features/property-ownership/units/utils/forma
 import { paymentsTotal } from '@/features/property-ownership/payments/utils/filterPayments';
 import { PAYMENT_MODE_LABELS } from '@/features/property-mngt/installments/constants/paymentModeLabels';
 import { Badge } from '@/shared/components/Badge/Badge';
+import { SortableColumnHeader } from '@/shared/components/SortableColumnHeader/SortableColumnHeader';
+import type { MyPaymentFiltersValue } from '@/features/property-ownership/payments/utils/filterPayments';
 
 interface MyPaymentsTableProps {
   payments: readonly Payment[];
   unitsById: Map<string, OwnedUnit>;
+  sortBy: MyPaymentFiltersValue['sortBy'];
+  sortDirection: MyPaymentFiltersValue['sortDirection'];
+  onSort: (field: MyPaymentFiltersValue['sortBy']) => void;
 }
 
-export function MyPaymentsTable({ payments, unitsById }: MyPaymentsTableProps) {
+export function MyPaymentsTable({ payments, unitsById, sortBy, sortDirection, onSort }: MyPaymentsTableProps) {
   const navigate = useNavigate();
 
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
         <thead>
+          {/* Lot and Mode are not sortable: the sort runs on the raw payload,
+              which carries neither the lot label nor a rank for the mode. */}
           <tr className="text-left text-gray-500 dark:text-gray-400">
-            <th className="py-2 pr-4 font-medium">Date de valeur</th>
+            <SortableColumnHeader field="VALUE_DATE" activeField={sortBy} direction={sortDirection} onSort={onSort}>
+              Date de valeur
+            </SortableColumnHeader>
             <th className="py-2 pr-4 font-medium">Lot</th>
             <th className="py-2 pr-4 font-medium">Mode</th>
-            <th className="py-2 text-right font-medium">Montant</th>
+            <SortableColumnHeader
+              field="AMOUNT"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              align="right"
+              className=""
+            >
+              Montant
+            </SortableColumnHeader>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">

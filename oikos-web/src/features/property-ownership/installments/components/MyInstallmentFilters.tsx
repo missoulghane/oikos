@@ -12,16 +12,8 @@ const STATUS_LABELS: Record<'DUE' | 'SETTLED', string> = {
   SETTLED: 'Payée',
 };
 
-const SORT_FIELD_LABELS: Record<MyInstallmentFiltersValue['sortBy'], string> = {
-  DUE_DATE: "Date d'échéance",
-  AMOUNT: 'Montant',
-};
-
-const SORT_DIRECTION_LABELS: Record<MyInstallmentFiltersValue['sortDirection'], string> = {
-  ASC: 'Croissant',
-  DESC: 'Décroissant',
-};
-
+// Sorting is not offered here: it is driven by clicking the table's column
+// headers instead (see SortableColumnHeader).
 interface MyInstallmentFiltersProps {
   value: MyInstallmentFiltersValue;
   onChange: (value: MyInstallmentFiltersValue) => void;
@@ -31,7 +23,7 @@ export function MyInstallmentFilters({ value, onChange }: MyInstallmentFiltersPr
   const units = useMyUnits();
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <Select
         label="Statut"
         name="status"
@@ -69,34 +61,6 @@ export function MyInstallmentFilters({ value, onChange }: MyInstallmentFiltersPr
         value={value.dueDateTo}
         onChange={(e) => onChange({ ...value, dueDateTo: e.target.value })}
       />
-      <div className="grid grid-cols-2 gap-3">
-        <Select
-          label="Trier par"
-          name="sortBy"
-          value={value.sortBy}
-          onChange={(e) => onChange({ ...value, sortBy: e.target.value as MyInstallmentFiltersValue['sortBy'] })}
-        >
-          {(Object.keys(SORT_FIELD_LABELS) as MyInstallmentFiltersValue['sortBy'][]).map((field) => (
-            <option key={field} value={field}>
-              {SORT_FIELD_LABELS[field]}
-            </option>
-          ))}
-        </Select>
-        <Select
-          label="Ordre"
-          name="sortDirection"
-          value={value.sortDirection}
-          onChange={(e) =>
-            onChange({ ...value, sortDirection: e.target.value as MyInstallmentFiltersValue['sortDirection'] })
-          }
-        >
-          {(Object.keys(SORT_DIRECTION_LABELS) as MyInstallmentFiltersValue['sortDirection'][]).map((direction) => (
-            <option key={direction} value={direction}>
-              {SORT_DIRECTION_LABELS[direction]}
-            </option>
-          ))}
-        </Select>
-      </div>
     </div>
   );
 }

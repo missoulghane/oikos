@@ -49,17 +49,9 @@ const linking: LinkingOptions<AuthStackParamList & MainStackParamList> = {
       // fetch-by-id on mobile to resolve a bare id from a URL.
       MainTabs: {
         screens: {
-          HomeTab: { screens: { Home: 'home' } },
-          MessagingTab: {
+          HomeTab: {
             screens: {
-              ConversationList: 'messages',
-              NewConversation: 'messages/new',
-              Drafts: 'messages/drafts',
-            },
-          },
-          UnitsTab: {
-            screens: {
-              MyUnits: 'my-units',
+              Home: 'home',
               MyInstallments: 'my-installments',
               // Linkable (unlike MyUnitDetail/Conversation) because they take a
               // bare id that the screen can resolve on its own.
@@ -67,6 +59,13 @@ const linking: LinkingOptions<AuthStackParamList & MainStackParamList> = {
               MyPayments: 'my-payments',
               MyPaymentDetail: 'my-payments/:paymentId',
               MyMembershipRequests: 'my-membership-requests',
+            },
+          },
+          MessagingTab: {
+            screens: {
+              ConversationList: 'messages',
+              NewConversation: 'messages/new',
+              Drafts: 'messages/drafts',
             },
           },
           AccountTab: { screens: { Profile: 'profile' } },

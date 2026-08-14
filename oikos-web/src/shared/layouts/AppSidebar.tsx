@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSidebar } from '@/shared/context/SidebarContext';
 import { useCurrentUser, boardPropertyIds, canManageProperties, isManagerTier } from '@/features/identity/me';
@@ -170,8 +170,17 @@ function propertyContextGroups(propertyId: string): NavGroup[] {
 }
 
 export function AppSidebar() {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { isExpanded, isMobileOpen, isHovered, setIsHovered, closeMobileSidebar } = useSidebar();
   const location = useLocation();
+
+  // On mobile the sidebar is an overlay covering most of the screen, so leaving
+  // it open after a navigation hides the page the user just asked for. Closing
+  // on the route change (rather than only on the links below) also covers
+  // navigation started from the header, which stays clickable above the
+  // backdrop while the drawer is open.
+  useEffect(() => {
+    closeMobileSidebar();
+  }, [location.pathname, location.search, closeMobileSidebar]);
   const currentUser = useCurrentUser();
   // Always mounted regardless of role - drives the unread badge shown next to
   // "Messagerie" below, kept in sync with the header bell (same query/cache).
@@ -250,7 +259,8 @@ export function AppSidebar() {
     // gating on canManage alone hid these entirely for that mixed case;
     // gating on account type alone (hasCopro) showed them even while
     // browsing a board mandate, which is the regression this guards against.
-    ...(isOwnerSpace ? [{ name: 'Mes lots', path: '/property-ownership/units', icon: <BoxIconLine /> }] : []),
+    // No "Mes lots" entry: the owner dashboard *is* the lot list now, so a
+    // second entry would just be a duplicate of "Mon tableau de bord".
     ...(isOwnerSpace
       ? [{ name: 'Mes échéances', path: '/property-ownership/installments', icon: <TimeIcon /> }]
       : []),
@@ -299,8 +309,11 @@ export function AppSidebar() {
   function renderNavItem(item: NavItem) {
     return (
       <li key={item.path}>
+        {/* Also closed here, not just by the route effect above: tapping the
+            entry for the page already open changes no route at all. */}
         <Link
           to={item.path}
+          onClick={closeMobileSidebar}
           className={`menu-item group ${isActive(item.path) ? 'menu-item-active' : 'menu-item-inactive'} ${
             !showExpanded ? 'lg:justify-center' : ''
           }`}
@@ -330,7 +343,7 @@ export function AppSidebar() {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className={`flex py-8 ${!showExpanded ? 'lg:justify-center' : 'justify-start'}`}>
-        <Link to="/" className="text-xl font-semibold text-gray-900 dark:text-white/90">
+        <Link to="/" onClick={closeMobileSidebar} className="text-xl font-semibold text-gray-900 dark:text-white/90">
           {showExpanded ? 'Oikos' : 'O'}
         </Link>
       </div>
@@ -390,6 +403,7 @@ export function AppSidebar() {
                           <li key={child.path}>
                             <Link
                               to={child.path}
+                              onClick={closeMobileSidebar}
                               className={`menu-dropdown-item ${
                                 childActive ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'
                               }`}

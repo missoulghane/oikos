@@ -8,7 +8,7 @@ import type { MainStackParamList } from '@/app/navigation/MainNavigator';
 
 /**
  * Wired via `headerRight` on each tab's root screen only (not on pushed
- * screens) - see MainStackParamList/UnitsStackNavigator etc. `navigate`
+ * screens) - see MainStackParamList/HomeStackNavigator etc. `navigate`
  * targets the root-level `Notifications` screen; React Navigation resolves
  * it through the tab/stack ancestors automatically since the name is unique
  * across the whole tree, so no `getParent()` is needed here.

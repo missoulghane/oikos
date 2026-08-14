@@ -8,23 +8,46 @@ import {
   INSTALLMENT_STATUS_LABELS,
 } from '@/features/property-mngt/installments/constants/installmentStatusLabels';
 import { Badge } from '@/shared/components/Badge/Badge';
+import { SortableColumnHeader } from '@/shared/components/SortableColumnHeader/SortableColumnHeader';
+import type { MyInstallmentFiltersValue } from '@/features/property-ownership/installments/utils/filterInstallments';
 
 interface MyInstallmentsTableProps {
   installments: readonly OwnedInstallment[];
   unitsById: Map<string, OwnedUnit>;
+  sortBy: MyInstallmentFiltersValue['sortBy'];
+  sortDirection: MyInstallmentFiltersValue['sortDirection'];
+  onSort: (field: MyInstallmentFiltersValue['sortBy']) => void;
 }
 
-export function MyInstallmentsTable({ installments, unitsById }: MyInstallmentsTableProps) {
+export function MyInstallmentsTable({
+  installments,
+  unitsById,
+  sortBy,
+  sortDirection,
+  onSort,
+}: MyInstallmentsTableProps) {
   const navigate = useNavigate();
 
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
         <thead>
+          {/* Lot and Statut are not sortable: the sort runs on the raw payload,
+              which carries neither the lot label nor a rank for the status. */}
           <tr className="text-left text-gray-500 dark:text-gray-400">
-            <th className="py-2 pr-4 font-medium">Échéance</th>
+            <SortableColumnHeader field="DUE_DATE" activeField={sortBy} direction={sortDirection} onSort={onSort}>
+              Échéance
+            </SortableColumnHeader>
             <th className="py-2 pr-4 font-medium">Lot</th>
-            <th className="py-2 pr-4 text-right font-medium">Montant</th>
+            <SortableColumnHeader
+              field="AMOUNT"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              align="right"
+            >
+              Montant
+            </SortableColumnHeader>
             <th className="py-2 pr-4 text-right font-medium">Reste à payer</th>
             <th className="py-2 font-medium">Statut</th>
           </tr>

@@ -5,16 +5,8 @@ import { PAYMENT_MODE_LABELS } from '@/features/property-mngt/installments/const
 import type { PaymentMode } from '@/features/property-mngt/installments/types/payment.types';
 import type { MyPaymentFiltersValue } from '@/features/property-ownership/payments/utils/filterPayments';
 
-const SORT_FIELD_LABELS: Record<MyPaymentFiltersValue['sortBy'], string> = {
-  VALUE_DATE: 'Date de valeur',
-  AMOUNT: 'Montant',
-};
-
-const SORT_DIRECTION_LABELS: Record<MyPaymentFiltersValue['sortDirection'], string> = {
-  ASC: 'Croissant',
-  DESC: 'Décroissant',
-};
-
+// Sorting is not offered here: it is driven by clicking the table's column
+// headers instead (see SortableColumnHeader).
 interface MyPaymentFiltersProps {
   value: MyPaymentFiltersValue;
   onChange: (value: MyPaymentFiltersValue) => void;
@@ -24,7 +16,7 @@ export function MyPaymentFilters({ value, onChange }: MyPaymentFiltersProps) {
   const units = useMyUnits();
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <Select
         label="Lot"
         name="unitId"
@@ -65,34 +57,6 @@ export function MyPaymentFilters({ value, onChange }: MyPaymentFiltersProps) {
         value={value.valueDateTo}
         onChange={(e) => onChange({ ...value, valueDateTo: e.target.value })}
       />
-      <div className="grid grid-cols-2 gap-3">
-        <Select
-          label="Trier par"
-          name="sortBy"
-          value={value.sortBy}
-          onChange={(e) => onChange({ ...value, sortBy: e.target.value as MyPaymentFiltersValue['sortBy'] })}
-        >
-          {(Object.keys(SORT_FIELD_LABELS) as MyPaymentFiltersValue['sortBy'][]).map((field) => (
-            <option key={field} value={field}>
-              {SORT_FIELD_LABELS[field]}
-            </option>
-          ))}
-        </Select>
-        <Select
-          label="Ordre"
-          name="sortDirection"
-          value={value.sortDirection}
-          onChange={(e) =>
-            onChange({ ...value, sortDirection: e.target.value as MyPaymentFiltersValue['sortDirection'] })
-          }
-        >
-          {(Object.keys(SORT_DIRECTION_LABELS) as MyPaymentFiltersValue['sortDirection'][]).map((direction) => (
-            <option key={direction} value={direction}>
-              {SORT_DIRECTION_LABELS[direction]}
-            </option>
-          ))}
-        </Select>
-      </div>
     </div>
   );
 }
