@@ -18,6 +18,9 @@ export const queryKeys = {
   units: {
     owners: (unitId: string) => ['units', unitId, 'owners'] as const,
   },
+  installments: {
+    detail: (installmentId: string) => ['installments', 'detail', installmentId] as const,
+  },
   notifications: {
     list: (page: number, size: number) => ['notifications', 'list', page, size] as const,
     unreadCount: () => ['notifications', 'unread-count'] as const,

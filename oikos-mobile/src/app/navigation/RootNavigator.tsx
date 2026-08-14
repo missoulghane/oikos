@@ -61,7 +61,11 @@ const linking: LinkingOptions<AuthStackParamList & MainStackParamList> = {
             screens: {
               MyUnits: 'my-units',
               MyInstallments: 'my-installments',
+              // Linkable (unlike MyUnitDetail/Conversation) because they take a
+              // bare id that the screen can resolve on its own.
+              MyInstallmentDetail: 'my-installments/:installmentId',
               MyPayments: 'my-payments',
+              MyPaymentDetail: 'my-payments/:paymentId',
               MyMembershipRequests: 'my-membership-requests',
             },
           },

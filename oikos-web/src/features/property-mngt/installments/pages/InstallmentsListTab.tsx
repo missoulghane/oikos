@@ -14,9 +14,15 @@ import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { Pagination } from '@/shared/components/Pagination/Pagination';
+import { FilterPanel } from '@/shared/components/FilterPanel/FilterPanel';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { countActiveFilters } from '@/shared/utils/countActiveFilters';
 import type { InstallmentListFilters } from '@/features/property-mngt/installments/types/installment.types';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
+
+// Sorting always holds a value, so it would inflate the "active filters" count
+// on an untouched list - it is still reset by "Effacer les filtres".
+const SORT_KEYS = ['sortBy', 'sortDirection'] as const;
 
 const DEFAULT_FILTERS: InstallmentFiltersValue = {
   status: '',
@@ -93,7 +99,12 @@ function InstallmentsListTabContent({ installmentCallIdFromUrl }: { installmentC
         </div>
       )}
 
-      <InstallmentFilters propertyId={property.id} value={filters} onChange={handleFiltersChange} />
+      <FilterPanel
+        activeCount={countActiveFilters(filters, DEFAULT_FILTERS, SORT_KEYS)}
+        onClear={() => handleFiltersChange(DEFAULT_FILTERS)}
+      >
+        <InstallmentFilters propertyId={property.id} value={filters} onChange={handleFiltersChange} />
+      </FilterPanel>
 
       {installments.isLoading && <Loader label="Chargement des échéances…" />}
       {installments.isError && <Alert message={getErrorMessage(installments.error)} />}

@@ -32,9 +32,8 @@ export function MyUnitsScreen({ navigation }: Props) {
             <Button variant="secondary" onPress={() => navigation.navigate('MyPayments')}>
               Mes paiements
             </Button>
-            <Button variant="secondary" onPress={() => navigation.navigate('MyMembershipRequests')}>
-              Mes invitations
-            </Button>
+            {/* No "Mes invitations" entry: the screen stays routed (and deep-linkable
+                as oikos://my-membership-requests) but is deliberately not surfaced here. */}
           </Card>
         }
         renderItem={({ item }: { item: OwnedUnit }) => (

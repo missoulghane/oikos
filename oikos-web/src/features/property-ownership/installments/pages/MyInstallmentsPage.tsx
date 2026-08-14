@@ -1,68 +1,115 @@
-import { Link } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import { useMyInstallments } from '@/features/property-ownership/installments/hooks/useMyInstallments';
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
+import { formatUnitLabel } from '@/features/property-ownership/units/utils/formatUnitLabel';
+import { MyInstallmentFilters } from '@/features/property-ownership/installments/components/MyInstallmentFilters';
+import { MyInstallmentsTable } from '@/features/property-ownership/installments/components/MyInstallmentsTable';
+import { outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
 import {
-  INSTALLMENT_STATUS_BADGE_COLORS,
-  INSTALLMENT_STATUS_LABELS,
-} from '@/features/property-mngt/installments/constants/installmentStatusLabels';
+  DEFAULT_MY_INSTALLMENT_FILTERS,
+  filterInstallments,
+  type MyInstallmentFiltersValue,
+} from '@/features/property-ownership/installments/utils/filterInstallments';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
-import { Badge } from '@/shared/components/Badge/Badge';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
+import { Pagination } from '@/shared/components/Pagination/Pagination';
+import { FilterPanel } from '@/shared/components/FilterPanel/FilterPanel';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { countActiveFilters } from '@/shared/utils/countActiveFilters';
+
+const PAGE_SIZE = 10;
+
+// Sorting is always set to something, so it would inflate the "active filters"
+// count on an untouched list - it is still reset by "Effacer les filtres".
+const SORT_KEYS = ['sortBy', 'sortDirection'] as const;
 
 export function MyInstallmentsPage() {
   const installments = useMyInstallments();
   const units = useMyUnits();
+  const [filters, setFilters] = useState<MyInstallmentFiltersValue>(DEFAULT_MY_INSTALLMENT_FILTERS);
+  const [page, setPage] = useState(0);
 
   const isLoading = installments.isLoading || units.isLoading;
   const error = installments.error ?? units.error;
 
-  const unitsById = new Map((units.data ?? []).map((unit) => [unit.unitId, unit]));
+  const unitsById = useMemo(
+    () => new Map((units.data ?? []).map((unit) => [unit.unitId, unit])),
+    [units.data],
+  );
+  const unitLabelById = useMemo(
+    () => new Map((units.data ?? []).map((unit) => [unit.unitId, formatUnitLabel(unit)])),
+    [units.data],
+  );
+
+  // Computed over the whole dataset, never over the filtered rows: the badge
+  // states what is owed in total, and clicking it is what narrows the table.
+  const totalDue = outstandingTotal(installments.data ?? []);
+
+  const filtered = useMemo(
+    () => filterInstallments(installments.data ?? [], filters, unitLabelById),
+    [installments.data, filters, unitLabelById],
+  );
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageRows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  function handleFiltersChange(next: MyInstallmentFiltersValue) {
+    setFilters(next);
+    setPage(0);
+  }
+
+  const isDueFilterActive = filters.status === 'DUE';
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Mes échéances</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Mes échéances</h1>
+        <button
+          type="button"
+          aria-pressed={isDueFilterActive}
+          onClick={() => handleFiltersChange({ ...filters, status: isDueFilterActive ? '' : 'DUE' })}
+          className={`flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
+            isDueFilterActive
+              ? 'bg-brand-500 text-white'
+              : 'bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-500/[0.12] dark:text-brand-400'
+          }`}
+        >
+          Total à régler
+          <span className="font-semibold">{totalDue.toLocaleString('fr-FR')} MAD</span>
+        </button>
+      </div>
 
-      <Card className="flex flex-col gap-2">
+      <Card className="flex flex-col gap-4">
+        <FilterPanel
+          activeCount={countActiveFilters(filters, DEFAULT_MY_INSTALLMENT_FILTERS, SORT_KEYS)}
+          onClear={() => handleFiltersChange(DEFAULT_MY_INSTALLMENT_FILTERS)}
+          search={{
+            value: filters.search,
+            onChange: (search) => handleFiltersChange({ ...filters, search }),
+            placeholder: 'Rechercher un lot, un montant, une date…',
+          }}
+        >
+          <MyInstallmentFilters value={filters} onChange={handleFiltersChange} />
+        </FilterPanel>
+
         {isLoading && <Loader label="Chargement de vos échéances…" />}
         {error && <Alert message={getErrorMessage(error)} />}
-        {installments.data && installments.data.length === 0 && (
-          <EmptyState title="Aucune échéance">Vous n'avez aucune échéance pour le moment.</EmptyState>
+
+        {!isLoading && !error && filtered.length === 0 && (
+          <EmptyState title="Aucune échéance">
+            {(installments.data ?? []).length === 0
+              ? "Vous n'avez aucune échéance pour le moment."
+              : 'Aucune échéance ne correspond à ces filtres.'}
+          </EmptyState>
         )}
-        {installments.data && installments.data.length > 0 && (
-          <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
-            {installments.data
-              .slice()
-              .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime())
-              .map((installment) => {
-                const unit = unitsById.get(installment.unitId);
-                return (
-                  <li key={installment.id} className="flex items-center justify-between py-2 text-sm">
-                    <div>
-                      {unit && (
-                        <Link
-                          to={`/property-ownership/units/${unit.propertyId}/${unit.unitId}`}
-                          className="text-gray-500 dark:text-gray-400 hover:underline"
-                        >
-                          {unit.propertyName} — {unit.buildingName} — Lot {unit.unitNumber}
-                        </Link>
-                      )}
-                      <p className="text-gray-700 dark:text-gray-300">
-                        Échéance du {new Date(installment.dueDate).toLocaleDateString('fr-FR')} —{' '}
-                        {installment.amount.toLocaleString('fr-FR')} MAD
-                        {installment.status === 'PARTIALLY_SETTLED' &&
-                          ` (reste ${installment.outstandingAmount.toLocaleString('fr-FR')} MAD)`}
-                      </p>
-                    </div>
-                    <Badge color={INSTALLMENT_STATUS_BADGE_COLORS[installment.status]}>
-                      {INSTALLMENT_STATUS_LABELS[installment.status]}
-                    </Badge>
-                  </li>
-                );
-              })}
-          </ul>
+
+        {filtered.length > 0 && (
+          <>
+            <MyInstallmentsTable installments={pageRows} unitsById={unitsById} />
+            <Pagination pageNumber={page} totalPages={totalPages} onPageChange={setPage} />
+          </>
         )}
       </Card>
     </div>

@@ -1,0 +1,74 @@
+import { useNavigate } from 'react-router-dom';
+import type { OwnedInstallment } from '@/features/property-ownership/installments/types/ownedInstallment.types';
+import type { OwnedUnit } from '@/features/property-ownership/units/types/unit.types';
+import { formatUnitLabel } from '@/features/property-ownership/units/utils/formatUnitLabel';
+import { outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
+import {
+  INSTALLMENT_STATUS_BADGE_COLORS,
+  INSTALLMENT_STATUS_LABELS,
+} from '@/features/property-mngt/installments/constants/installmentStatusLabels';
+import { Badge } from '@/shared/components/Badge/Badge';
+
+interface MyInstallmentsTableProps {
+  installments: readonly OwnedInstallment[];
+  unitsById: Map<string, OwnedUnit>;
+}
+
+export function MyInstallmentsTable({ installments, unitsById }: MyInstallmentsTableProps) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
+        <thead>
+          <tr className="text-left text-gray-500 dark:text-gray-400">
+            <th className="py-2 pr-4 font-medium">Échéance</th>
+            <th className="py-2 pr-4 font-medium">Lot</th>
+            <th className="py-2 pr-4 text-right font-medium">Montant</th>
+            <th className="py-2 pr-4 text-right font-medium">Reste à payer</th>
+            <th className="py-2 font-medium">Statut</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+          {installments.map((installment) => {
+            const unit = unitsById.get(installment.unitId);
+            return (
+              <tr
+                key={installment.id}
+                onClick={() => navigate(`/property-ownership/installments/${installment.id}`)}
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+              >
+                <td className="py-2 pr-4 text-gray-700 dark:text-gray-300">
+                  {new Date(installment.dueDate).toLocaleDateString('fr-FR')}
+                </td>
+                <td className="py-2 pr-4 text-gray-500 dark:text-gray-400">{unit ? formatUnitLabel(unit) : '—'}</td>
+                <td className="py-2 pr-4 text-right text-gray-700 dark:text-gray-300">
+                  {installment.amount.toLocaleString('fr-FR')} MAD
+                </td>
+                <td className="py-2 pr-4 text-right text-gray-700 dark:text-gray-300">
+                  {installment.outstandingAmount.toLocaleString('fr-FR')} MAD
+                </td>
+                <td className="py-2">
+                  <Badge color={INSTALLMENT_STATUS_BADGE_COLORS[installment.status]}>
+                    {INSTALLMENT_STATUS_LABELS[installment.status]}
+                  </Badge>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+        <tfoot>
+          {/* Total of what the *filtered* rows still owe - so narrowing to one lot
+              answers "combien je dois sur ce lot ?" without extra arithmetic. */}
+          <tr className="border-t border-gray-200 dark:border-gray-800 font-medium text-gray-900 dark:text-white/90">
+            <td className="py-2 pr-4" colSpan={3}>
+              Total à régler
+            </td>
+            <td className="py-2 pr-4 text-right">{outstandingTotal(installments).toLocaleString('fr-FR')} MAD</td>
+            <td />
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}

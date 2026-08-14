@@ -1,7 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MyUnitsScreen, MyUnitDetailScreen } from '@/features/property-ownership/units';
-import { MyInstallmentsScreen } from '@/features/property-ownership/installments';
-import { MyPaymentsScreen } from '@/features/property-ownership/payments';
+import { MyInstallmentsScreen, MyInstallmentDetailScreen } from '@/features/property-ownership/installments';
+import { MyPaymentsScreen, MyPaymentDetailScreen } from '@/features/property-ownership/payments';
 import { MyMembershipRequestsScreen } from '@/features/property-ownership/membership-requests';
 import { NotificationBell } from '@/shared/components/NotificationBell/NotificationBell';
 import type { OwnedUnit } from '@/features/property-ownership/units/types/unit.types';
@@ -13,7 +13,11 @@ export type UnitsStackParamList = {
   // isn't ported here - see MyUnitDetailScreen's module doc for why.
   MyUnitDetail: { unit: OwnedUnit };
   MyInstallments: undefined;
+  // Only the id here, unlike MyUnitDetail: the echeance detail refetches from
+  // GET /installments/{id}, which is the only source of `period`.
+  MyInstallmentDetail: { installmentId: string };
   MyPayments: undefined;
+  MyPaymentDetail: { paymentId: string };
   MyMembershipRequests: undefined;
 };
 
@@ -29,7 +33,17 @@ export function UnitsStackNavigator() {
         options={({ route }) => ({ title: `Lot ${route.params.unit.unitNumber}` })}
       />
       <Stack.Screen name="MyInstallments" component={MyInstallmentsScreen} options={{ title: 'Mes échéances' }} />
+      <Stack.Screen
+        name="MyInstallmentDetail"
+        component={MyInstallmentDetailScreen}
+        options={{ title: 'Détail de l’échéance' }}
+      />
       <Stack.Screen name="MyPayments" component={MyPaymentsScreen} options={{ title: 'Mes paiements' }} />
+      <Stack.Screen
+        name="MyPaymentDetail"
+        component={MyPaymentDetailScreen}
+        options={{ title: 'Détail du paiement' }}
+      />
       <Stack.Screen name="MyMembershipRequests" component={MyMembershipRequestsScreen} options={{ title: 'Mes invitations' }} />
     </Stack.Navigator>
   );

@@ -6,6 +6,7 @@ import { useProperty } from '@/features/property-mngt/properties/hooks/useProper
 import { useProperties } from '@/features/property-mngt/properties/hooks/useProperties';
 import { useMyUnits } from '@/features/property-ownership/units';
 import { useMyInstallments } from '@/features/property-ownership/installments/hooks/useMyInstallments';
+import { isDue, outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
 import { ResumeOnboardingBanner } from '@/features/identity/onboarding/components/ResumeOnboardingBanner';
 import { SpaceLinkCard } from '@/shared/components/SpaceLinkCard/SpaceLinkCard';
 import { Card } from '@/shared/components/Card/Card';
@@ -159,8 +160,8 @@ function OwnerDashboard({ mandateIds }: { mandateIds: string[] }) {
   const propertyIds = new Set((units.data ?? []).map((unit) => unit.propertyId));
   const isMultiProperty = propertyIds.size > 1;
 
-  const unpaid = (installments.data ?? []).filter((installment) => installment.status !== 'SETTLED');
-  const totalDue = unpaid.reduce((sum, installment) => sum + installment.outstandingAmount, 0);
+  const unpaid = (installments.data ?? []).filter(isDue);
+  const totalDue = outstandingTotal(installments.data ?? []);
 
   const unitByUnitId = new Map((units.data ?? []).map((unit) => [unit.unitId, unit]));
   const dueByProperty = new Map<string, { propertyName: string; total: number }>();

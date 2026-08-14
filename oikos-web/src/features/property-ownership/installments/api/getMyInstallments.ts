@@ -1,7 +1,7 @@
 import { httpClient } from '@/shared/api/httpClient';
-import type { Installment } from '@/features/property-mngt/installments/types/installment.types';
+import type { OwnedInstallment } from '@/features/property-ownership/installments/types/ownedInstallment.types';
 
-export async function getMyInstallments(): Promise<Installment[]> {
-  const { data } = await httpClient.get<Installment[]>('/users/me/installments');
+export async function getMyInstallments(): Promise<OwnedInstallment[]> {
+  const { data } = await httpClient.get<OwnedInstallment[]>('/users/me/installments');
   return data;
 }

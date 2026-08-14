@@ -1,61 +1,93 @@
-import { Link } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import { useMyPayments } from '@/features/property-ownership/payments/hooks/useMyPayments';
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
-import { PAYMENT_MODE_LABELS } from '@/features/property-mngt/installments/constants/paymentModeLabels';
+import { formatUnitLabel } from '@/features/property-ownership/units/utils/formatUnitLabel';
+import { MyPaymentFilters } from '@/features/property-ownership/payments/components/MyPaymentFilters';
+import { MyPaymentsTable } from '@/features/property-ownership/payments/components/MyPaymentsTable';
+import {
+  DEFAULT_MY_PAYMENT_FILTERS,
+  filterPayments,
+  type MyPaymentFiltersValue,
+} from '@/features/property-ownership/payments/utils/filterPayments';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
-import { Badge } from '@/shared/components/Badge/Badge';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
+import { Pagination } from '@/shared/components/Pagination/Pagination';
+import { FilterPanel } from '@/shared/components/FilterPanel/FilterPanel';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { countActiveFilters } from '@/shared/utils/countActiveFilters';
+
+const PAGE_SIZE = 10;
+
+// Sorting is always set to something, so it would inflate the "active filters"
+// count on an untouched list - it is still reset by "Effacer les filtres".
+const SORT_KEYS = ['sortBy', 'sortDirection'] as const;
 
 export function MyPaymentsPage() {
   const payments = useMyPayments();
   const units = useMyUnits();
+  const [filters, setFilters] = useState<MyPaymentFiltersValue>(DEFAULT_MY_PAYMENT_FILTERS);
+  const [page, setPage] = useState(0);
 
   const isLoading = payments.isLoading || units.isLoading;
   const error = payments.error ?? units.error;
 
-  const unitsById = new Map((units.data ?? []).map((unit) => [unit.unitId, unit]));
+  const unitsById = useMemo(
+    () => new Map((units.data ?? []).map((unit) => [unit.unitId, unit])),
+    [units.data],
+  );
+  const unitLabelById = useMemo(
+    () => new Map((units.data ?? []).map((unit) => [unit.unitId, formatUnitLabel(unit)])),
+    [units.data],
+  );
+
+  const filtered = useMemo(
+    () => filterPayments(payments.data ?? [], filters, unitLabelById),
+    [payments.data, filters, unitLabelById],
+  );
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageRows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  function handleFiltersChange(next: MyPaymentFiltersValue) {
+    setFilters(next);
+    setPage(0);
+  }
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Mes paiements</h1>
 
-      <Card className="flex flex-col gap-2">
+      <Card className="flex flex-col gap-4">
+        <FilterPanel
+          activeCount={countActiveFilters(filters, DEFAULT_MY_PAYMENT_FILTERS, SORT_KEYS)}
+          onClear={() => handleFiltersChange(DEFAULT_MY_PAYMENT_FILTERS)}
+          search={{
+            value: filters.search,
+            onChange: (search) => handleFiltersChange({ ...filters, search }),
+            placeholder: 'Rechercher un lot, un montant, une date…',
+          }}
+        >
+          <MyPaymentFilters value={filters} onChange={handleFiltersChange} />
+        </FilterPanel>
+
         {isLoading && <Loader label="Chargement de vos paiements…" />}
         {error && <Alert message={getErrorMessage(error)} />}
-        {payments.data && payments.data.length === 0 && (
-          <EmptyState title="Aucun paiement">Vous n'avez aucun paiement pour le moment.</EmptyState>
+
+        {!isLoading && !error && filtered.length === 0 && (
+          <EmptyState title="Aucun paiement">
+            {(payments.data ?? []).length === 0
+              ? "Vous n'avez aucun paiement pour le moment."
+              : 'Aucun paiement ne correspond à ces filtres.'}
+          </EmptyState>
         )}
-        {payments.data && payments.data.length > 0 && (
-          <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
-            {payments.data
-              .slice()
-              .sort((a, b) => new Date(b.valueDate).getTime() - new Date(a.valueDate).getTime())
-              .map((payment) => {
-                const unit = unitsById.get(payment.unitId);
-                return (
-                  <li key={payment.id} className="flex items-center justify-between py-2 text-sm">
-                    <div>
-                      {unit && (
-                        <Link
-                          to={`/property-ownership/units/${unit.propertyId}/${unit.unitId}`}
-                          className="text-gray-500 dark:text-gray-400 hover:underline"
-                        >
-                          {unit.propertyName} — {unit.buildingName} — Lot {unit.unitNumber}
-                        </Link>
-                      )}
-                      <p className="text-gray-700 dark:text-gray-300">
-                        Paiement du {new Date(payment.valueDate).toLocaleDateString('fr-FR')} —{' '}
-                        {payment.amount.toLocaleString('fr-FR')} MAD
-                      </p>
-                    </div>
-                    <Badge color="light">{PAYMENT_MODE_LABELS[payment.mode]}</Badge>
-                  </li>
-                );
-              })}
-          </ul>
+
+        {filtered.length > 0 && (
+          <>
+            <MyPaymentsTable payments={pageRows} unitsById={unitsById} />
+            <Pagination pageNumber={page} totalPages={totalPages} onPageChange={setPage} />
+          </>
         )}
       </Card>
     </div>

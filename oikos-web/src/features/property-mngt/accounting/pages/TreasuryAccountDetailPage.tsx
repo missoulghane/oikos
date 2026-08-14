@@ -10,7 +10,9 @@ import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { Pagination } from '@/shared/components/Pagination/Pagination';
+import { FilterPanel } from '@/shared/components/FilterPanel/FilterPanel';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { countActiveFilters } from '@/shared/utils/countActiveFilters';
 import { ACCOUNT_ROLE_LABELS, getTreasuryBalanceColorClass } from '@/features/property-mngt/accounting/constants/accountingLabels';
 import type { JournalEntryListFilters } from '@/features/property-mngt/accounting/types/accounting.types';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
@@ -104,7 +106,13 @@ export function TreasuryAccountDetailPage() {
           )}
         </div>
 
-        <JournalEntryFilters value={filters} onChange={handleFiltersChange} />
+        {/* No sort keys to exclude here: every field of this bar is a real filter. */}
+        <FilterPanel
+          activeCount={countActiveFilters(filters, DEFAULT_FILTERS)}
+          onClear={() => handleFiltersChange(DEFAULT_FILTERS)}
+        >
+          <JournalEntryFilters value={filters} onChange={handleFiltersChange} />
+        </FilterPanel>
 
         {entries.isLoading && <Loader label="Chargement des opérations…" />}
         {entries.isError && <Alert message={getErrorMessage(entries.error)} />}

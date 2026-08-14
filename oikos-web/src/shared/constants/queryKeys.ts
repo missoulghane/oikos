@@ -101,6 +101,9 @@ export const queryKeys = {
     installments: (unitId: string) => ['units', unitId, 'installments'] as const,
     payments: (unitId: string) => ['units', unitId, 'payments'] as const,
   },
+  installments: {
+    detail: (installmentId: string) => ['installments', 'detail', installmentId] as const,
+  },
   parties: {
     list: (propertyId: string | undefined, page: number, size: number, search: string | undefined) =>
       ['parties', 'list', propertyId, page, size, search] as const,

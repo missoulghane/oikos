@@ -121,8 +121,14 @@ const ProfilePage = lazy(() => import('@/features/identity/me').then((m) => ({ d
 const MyInstallmentsPage = lazy(() =>
   import('@/features/property-ownership/installments').then((m) => ({ default: m.MyInstallmentsPage })),
 );
+const MyInstallmentDetailPage = lazy(() =>
+  import('@/features/property-ownership/installments').then((m) => ({ default: m.MyInstallmentDetailPage })),
+);
 const MyPaymentsPage = lazy(() =>
   import('@/features/property-ownership/payments').then((m) => ({ default: m.MyPaymentsPage })),
+);
+const MyPaymentDetailPage = lazy(() =>
+  import('@/features/property-ownership/payments').then((m) => ({ default: m.MyPaymentDetailPage })),
 );
 const MyMembershipRequestsPage = lazy(() =>
   import('@/features/property-ownership/membership-requests').then((m) => ({
@@ -586,10 +592,26 @@ export const privateRoutes: RouteObject[] = [
             ),
           },
           {
+            path: 'installments/:installmentId',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <MyInstallmentDetailPage />
+              </Suspense>
+            ),
+          },
+          {
             path: 'payments',
             element: (
               <Suspense fallback={<Loader />}>
                 <MyPaymentsPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'payments/:paymentId',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <MyPaymentDetailPage />
               </Suspense>
             ),
           },

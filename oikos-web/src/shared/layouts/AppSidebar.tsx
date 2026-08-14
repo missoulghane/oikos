@@ -4,7 +4,6 @@ import { useSidebar } from '@/shared/context/SidebarContext';
 import { useCurrentUser, boardPropertyIds, canManageProperties, isManagerTier } from '@/features/identity/me';
 import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
 import { useUnreadSummary } from '@/features/messaging';
-import { useUnreadNotificationCount } from '@/features/notifications';
 import {
   GridIcon,
   PieChartIcon,
@@ -27,7 +26,6 @@ import {
   EnvelopeIcon,
   PencilIcon,
   LockIcon,
-  BellIcon,
 } from '@/shared/icons';
 import { Badge } from '@/shared/components/Badge/Badge';
 import { SidebarWidget } from './SidebarWidget';
@@ -179,9 +177,6 @@ export function AppSidebar() {
   // "Messagerie" below, kept in sync with the header bell (same query/cache).
   const unreadSummary = useUnreadSummary();
   const messagingUnreadCount = unreadSummary.data?.totalUnreadMessageCount ?? 0;
-  // Same rationale: always mounted, drives the badge next to "Notifications"
-  // below, kept in sync with the header bell (same query/cache).
-  const notificationsUnreadCount = useUnreadNotificationCount();
 
   const user = currentUser.data;
   const effectiveSpace = useEffectiveSpace();
@@ -233,18 +228,10 @@ export function AppSidebar() {
   // personal-space menu items while browsing a résidence it manages.
   const isOwnerSpace = effectiveSpace.kind === 'owner';
 
-  // Always shown regardless of role, rendered after the groups below (see
-  // the trailing renderNavItem call) so it sits right under "Messagerie" -
-  // same rationale as messagingGroup for always being present (target UX
-  // rule 6: notifications are always global, never scoped to the active
-  // space or to a particular account type).
-  const notificationsNavItem: NavItem = {
-    name: 'Notifications',
-    path: `/notifications${spaceSuffix}`,
-    icon: <BellIcon />,
-    badge: notificationsUnreadCount.data?.unreadCount ?? 0,
-  };
-
+  // Notifications deliberately have no sidebar entry: the header bell
+  // (NotificationsBell, see AppHeader) is their single entry point, in the
+  // owner space and the board/manager space alike. /notifications itself
+  // stays routed and reachable from that bell.
   const navItems: NavItem[] = [
     // Carries the resolved space along (see spaceSuffix above) - without it,
     // clicking this from the board space lands on the param-less /dashboard,
@@ -269,9 +256,6 @@ export function AppSidebar() {
       : []),
     ...(isOwnerSpace
       ? [{ name: 'Mes paiements', path: '/property-ownership/payments', icon: <DollarLineIcon /> }]
-      : []),
-    ...(isOwnerSpace
-      ? [{ name: 'Mes invitations', path: '/property-ownership/membership-requests', icon: <MailIcon /> }]
       : []),
   ];
 
@@ -433,7 +417,6 @@ export function AppSidebar() {
               </li>
             );
           })}
-          {renderNavItem(notificationsNavItem)}
         </ul>
       </nav>
       {showExpanded && <SidebarWidget />}
