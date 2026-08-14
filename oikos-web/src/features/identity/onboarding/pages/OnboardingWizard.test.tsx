@@ -56,6 +56,12 @@ async function fillPropertyStep(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('Adresse'), '12 rue Exemple');
   await user.type(screen.getByLabelText('Ville'), 'Casablanca');
   await user.click(screen.getByRole('button', { name: 'Continuer' }));
+  // Waits for step 3 before returning, and not out of politeness: this step
+  // navigates from the register mutation's onSuccess (see PropertyStepPage), so
+  // the click resolves before the wizard has moved. Callers that then look for
+  // "Continuer" would otherwise match step 2's button, still mounted, re-submit
+  // it, and end up asserting against step 3 believing they were on step 4.
+  await screen.findByText('Comment souhaitez-vous gérer vos charges ?');
 }
 
 describe('OnboardingWizardPage', () => {
@@ -195,8 +201,13 @@ describe('OnboardingWizardPage', () => {
     renderWizard();
     await fillAccountStep(user);
     await fillPropertyStep(user);
+    // Each click waits for the step it lands on before the next one looks for
+    // "Continuer" again - otherwise a slow render lets it match the button of
+    // the step we just left (the failure mode fillPropertyStep guards against).
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
+    await screen.findByText('Quels types de lots gérez-vous ?');
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
+    await screen.findByText('Structure de votre copropriété');
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
     await user.click(await screen.findByRole('button', { name: 'Passer cette étape' }));
 
