@@ -31,6 +31,7 @@ import com.architek.oikos.property.domain.repository.PropertyRepository;
 import com.architek.oikos.property.domain.repository.UnitOwnershipRepository;
 import com.architek.oikos.property.domain.repository.UnitRepository;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
+import com.architek.oikos.property.domain.valueobject.ContactSortField;
 import com.architek.oikos.property.domain.valueobject.OwnershipShare;
 import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.Shares;
@@ -39,6 +40,7 @@ import com.architek.oikos.property.domain.valueobject.UnitOwnershipId;
 import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.pagination.SortDirection;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
@@ -231,5 +233,67 @@ class ListContactsByPropertyServiceTest {
 
         assertThat(withAccount.content()).extracting(PropertyContactView::partyFullName).containsExactly("Jane Doe");
         assertThat(withAccount.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void sorting_by_name_descending_reverses_the_default_order() {
+        PropertyId propertyId = PropertyId.newId();
+        SortFixture fixture = seedTwoContacts(propertyId);
+
+        var page = newService().listContacts(new ListContactsByPropertyQuery(propertyId, PageRequest.of(0, 20),
+                null, null, ContactSortField.FULL_NAME, SortDirection.DESC));
+
+        assertThat(page.content()).extracting(PropertyContactView::partyFullName)
+                .containsExactly("John Smith", "Jane Doe");
+        assertThat(fixture.linkedPartyId()).isNotNull();
+    }
+
+    @Test
+    void sorting_by_account_status_puts_the_contacts_still_to_invite_first() {
+        PropertyId propertyId = PropertyId.newId();
+        seedTwoContacts(propertyId);
+
+        var page = newService().listContacts(new ListContactsByPropertyQuery(propertyId, PageRequest.of(0, 20),
+                null, null, ContactSortField.ACCOUNT_STATUS, SortDirection.ASC));
+
+        // John Smith has no account yet; Jane Doe has one.
+        assertThat(page.content()).extracting(PropertyContactView::partyFullName)
+                .containsExactly("John Smith", "Jane Doe");
+    }
+
+    private record SortFixture(EntityId linkedPartyId, EntityId unlinkedPartyId) {
+    }
+
+    /** Jane Doe (account linked) and John Smith (no account), one lot each. */
+    private SortFixture seedTwoContacts(PropertyId propertyId) {
+        when(propertyRepository.findById(propertyId)).thenReturn(
+                Optional.of(Property.create(propertyId, "Copro Test", "1 rue de la Paix")));
+
+        BuildingId buildingId = BuildingId.newId();
+        when(buildingRepository.findAllByPropertyId(propertyId, PageRequest.of(0, 100)))
+                .thenReturn(Page.of(List.of(Building.create(buildingId, propertyId, "Bâtiment A", 3)), 0, 100, 1));
+
+        UnitId unitId1 = UnitId.newId();
+        UnitId unitId2 = UnitId.newId();
+        when(unitRepository.findAllByBuildingId(buildingId, PageRequest.of(0, 100))).thenReturn(Page.of(List.of(
+                Unit.create(unitId1, buildingId, propertyId, "A12", UnitTypeDefinitionId.newId(),
+                        Shares.of(new BigDecimal("150"))),
+                Unit.create(unitId2, buildingId, propertyId, "A13", UnitTypeDefinitionId.newId(),
+                        Shares.of(new BigDecimal("100")))), 0, 100, 2));
+
+        EntityId linkedPartyId = EntityId.newId();
+        EntityId unlinkedPartyId = EntityId.newId();
+        when(unitOwnershipRepository.findAllByUnitIds(anyList())).thenReturn(List.of(
+                UnitOwnership.create(UnitOwnershipId.newId(), unitId1, linkedPartyId, propertyId,
+                        OwnershipShare.of(new BigDecimal("50"))),
+                UnitOwnership.create(UnitOwnershipId.newId(), unitId2, unlinkedPartyId, propertyId,
+                        OwnershipShare.of(new BigDecimal("50")))));
+        when(partyDirectoryPort.getPartyById(linkedPartyId)).thenReturn(
+                new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"), null));
+        when(partyDirectoryPort.getPartyById(unlinkedPartyId)).thenReturn(
+                new PartyDetails("John Smith", PartyType.INDIVIDUAL, EmailVO.of("john.smith@example.com"), null));
+        when(accountLinkingPort.findLinkedPartyIds(anyList())).thenReturn(Set.of(linkedPartyId));
+
+        return new SortFixture(linkedPartyId, unlinkedPartyId);
     }
 }

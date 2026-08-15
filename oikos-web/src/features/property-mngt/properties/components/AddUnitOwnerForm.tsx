@@ -40,7 +40,7 @@ export function AddUnitOwnerForm({ unitId, propertyId, onSuccess, onCancel }: Ad
     return () => clearTimeout(timeout);
   }, [emailInput]);
 
-  const parties = useParties(propertyId, 0, debouncedEmail || undefined);
+  const parties = useParties(propertyId, 0, { search: debouncedEmail || undefined });
   const existingParty = parties.data?.content.find(
     (party) => party.email.toLowerCase() === debouncedEmail.toLowerCase(),
   );

@@ -18,7 +18,7 @@ import {
 import { PAYMENT_MODE_LABELS } from '@/features/property-ownership/payments/constants/paymentModeLabels';
 import { PARTY_TYPE_LABELS } from '@/features/property-ownership/units/types/unitOwnership.types';
 import { getOutstandingColor, unitOutstanding } from '@/features/property-ownership/units/utils/unitBalance';
-import { isDue } from '@/features/property-ownership/installments/utils/installmentTotals';
+import { isDueBy, isNotYetDue } from '@/features/property-ownership/installments/utils/installmentTotals';
 import type { HomeStackParamList } from '@/app/navigation/HomeStackNavigator';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'MyUnitDetail'>;
@@ -59,11 +59,18 @@ export function MyUnitDetailScreen({ route, navigation }: Props) {
     .sort((a, b) => new Date(b.valueDate).getTime() - new Date(a.valueDate).getTime());
 
   // Capped: the lot's whole history belongs on Mes échéances / Mes paiements.
-  const lastInstallments = unitInstallments.slice(0, TOP_COUNT);
+  // Echeances not yet fallen due are left out, as on Mes échéances: sorted by
+  // date descending they would monopolise the five slots with lines the owner
+  // does not owe yet, pushing the ones actually to pay out of sight.
+  const lastInstallments = unitInstallments
+    .filter((installment) => !isNotYetDue(installment))
+    .slice(0, TOP_COUNT);
   const lastPayments = unitPayments.slice(0, TOP_COUNT);
 
   const outstanding = unitOutstanding(installments.data ?? [], unit.unitId);
-  const dueCount = unitInstallments.filter(isDue).length;
+  // isDueBy, not isUnsettled: the count sits next to the amount owed, and the
+  // two must be made of the same echeances.
+  const dueCount = unitInstallments.filter((installment) => isDueBy(installment)).length;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -77,21 +84,30 @@ export function MyUnitDetailScreen({ route, navigation }: Props) {
 
         {/* Above the two "dernières opérations" blocks: what the lot owes is the
             figure this screen exists to answer. */}
-        <Card style={styles.section}>
-          <Text style={styles.muted}>Solde à régler</Text>
-          {installments.isLoading ? (
+        {installments.isLoading ? (
+          <Card style={styles.section}>
             <Loader label="Chargement du solde…" />
-          ) : (
-            <>
+          </Card>
+        ) : (
+          // Opens the echeance list already narrowed to this lot's unpaid rows -
+          // filtering on the status alone would list other lots' echeances beside
+          // a figure that does not include them.
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.navigate('MyInstallments', { status: 'DUE', unitId: unit.unitId })}
+          >
+            <Card style={styles.section}>
+              <Text style={styles.muted}>Solde à régler</Text>
               <Text style={[styles.balance, { color: getOutstandingColor(outstanding) }]}>
-                {outstanding.toLocaleString('fr-FR')} MAD
+                {/* Signed like an account statement, as on the lot cards. */}
+                {outstanding > 0 ? `-${outstanding.toLocaleString('fr-FR')}` : '0'} MAD
               </Text>
               <Text style={styles.muted}>
                 {dueCount === 0 ? 'Aucune échéance à régler' : `${dueCount} échéance${dueCount > 1 ? 's' : ''} à régler`}
               </Text>
-            </>
-          )}
-        </Card>
+            </Card>
+          </Pressable>
+        )}
 
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Informations générales</Text>

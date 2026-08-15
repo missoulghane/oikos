@@ -19,14 +19,14 @@ export function MyUnitCard({ unit, onPress, outstanding }: MyUnitCardProps) {
           <Text style={styles.propertyName}>{unit.propertyName}</Text>
           {outstanding !== undefined && (
             <Text style={[styles.balance, { color: getOutstandingColor(outstanding) }]}>
-              {outstanding > 0 ? `${outstanding.toLocaleString('fr-FR')} MAD` : 'À jour'}
+              {/* Signed like an account statement, as on oikos-web. */}
+              {outstanding > 0 ? `Solde : -${outstanding.toLocaleString('fr-FR')} MAD` : 'À jour'}
             </Text>
           )}
         </View>
         <Text style={styles.detail}>
           {unit.buildingName} — Lot {unit.unitNumber}
         </Text>
-        <Text style={styles.detail}>{unit.ownershipShare}% des tantièmes</Text>
       </Card>
     </Pressable>
   );

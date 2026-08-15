@@ -17,14 +17,16 @@ export function MyUnitCard({ unit, outstanding }: MyUnitCardProps) {
           <h2 className="font-medium text-gray-900 dark:text-white/90">{unit.propertyName}</h2>
           {outstanding !== undefined && (
             <span className={`shrink-0 text-sm font-semibold ${getOutstandingColorClass(outstanding)}`}>
-              {outstanding > 0 ? `${outstanding.toLocaleString('fr-FR')} MAD` : 'À jour'}
+              {/* Signed like an account statement: what the lot owes shows as a
+                  negative balance, so the figure reads the same way as the minus
+                  sign a copropriétaire expects on a debit. */}
+              {outstanding > 0 ? `Solde : -${outstanding.toLocaleString('fr-FR')} MAD` : 'À jour'}
             </span>
           )}
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {unit.buildingName} — Lot {unit.unitNumber}
         </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{unit.ownershipShare}% des tantièmes</p>
       </Card>
     </Link>
   );

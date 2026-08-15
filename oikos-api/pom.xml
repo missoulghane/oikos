@@ -33,6 +33,8 @@
 		<jjwt.version>0.12.6</jjwt.version>
 		<springdoc.version>2.8.9</springdoc.version>
 		<archunit.version>1.4.2</archunit.version>
+		<openhtmltopdf.version>1.1.37</openhtmltopdf.version>
+		<license-maven-plugin.version>2.7.1</license-maven-plugin.version>
 	</properties>
 
 	<dependencies>
@@ -56,6 +58,21 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+		<!-- Payment receipts: Thymeleaf renders the HTML template, openhtmltopdf
+		     turns it into the PDF. Thymeleaf rather than hand-rolled placeholder
+		     substitution because it escapes by default - a party name carrying
+		     '&' or '<' would otherwise produce malformed XHTML for the renderer.
+		     openhtmltopdf is LGPL 2.1: used as an unmodified Maven dependency it
+		     carries no disclosure obligation, unlike iText 7 (AGPL). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.github.openhtmltopdf</groupId>
+			<artifactId>openhtmltopdf-pdfbox</artifactId>
+			<version>${openhtmltopdf.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -177,6 +194,28 @@
 
 	<build>
 		<plugins>
+			<!-- Third-party notices. openhtmltopdf is LGPL 2.1, whose obligations
+			     trigger on distribution: THIRD-PARTY-NOTICES.md carries the
+			     mention and the pre-production checklist. Deliberately NOT bound
+			     to the lifecycle - the Dockerfile builds offline after
+			     dependency:go-offline, and this goal resolves licence metadata
+			     over the network. Regenerate with: ./mvnw license:add-third-party -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>license-maven-plugin</artifactId>
+				<version>${license-maven-plugin.version}</version>
+				<configuration>
+					<outputDirectory>${project.basedir}</outputDirectory>
+					<thirdPartyFilename>THIRD-PARTY-NOTICES.md</thirdPartyFilename>
+					<fileTemplate>${project.basedir}/src/license/third-party-notices.ftl</fileTemplate>
+					<excludedScopes>test,provided</excludedScopes>
+					<sortArtifactByName>true</sortArtifactByName>
+					<!-- Without this the goal only rewrites when the dependency set
+					     changes, so editing the template alone would silently
+					     produce nothing. -->
+					<force>true</force>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>

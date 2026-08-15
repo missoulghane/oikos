@@ -190,12 +190,13 @@ export function DashboardPage() {
     );
 
   const firstName = currentUser.data ? getFirstName(currentUser.data.fullName) : '';
+  // The owner dashboard is the lot list, so it is titled after what it shows.
+  // The board/manager dashboards are still summaries, and keep the greeting.
+  const title = effectiveSpace.kind === 'owner' ? 'Mes lots' : `${getGreeting()} ${firstName}`;
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">
-        {getGreeting()} {firstName}
-      </h1>
+      <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">{title}</h1>
       {content}
     </div>
   );

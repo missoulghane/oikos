@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import type { OwnedInstallment } from '@/features/property-ownership/installments/types/ownedInstallment.types';
 import type { OwnedUnit } from '@/features/property-ownership/units/types/unit.types';
 import { formatUnitLabel } from '@/features/property-ownership/units/utils/formatUnitLabel';
-import { outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
+import { isNotYetDue, outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
 import {
   INSTALLMENT_STATUS_BADGE_COLORS,
   INSTALLMENT_STATUS_LABELS,
@@ -63,6 +63,13 @@ export function MyInstallmentsTable({
               >
                 <td className="py-2 pr-4 text-gray-700 dark:text-gray-300">
                   {new Date(installment.dueDate).toLocaleDateString('fr-FR')}
+                  {/* Only ever reached with the "Échéances à échoir" toggle on,
+                      since the list hides these rows by default. Still marked:
+                      the footer total ignores them, so without this the visible
+                      lines add up to more than the total. */}
+                  {isNotYetDue(installment) && (
+                    <span className="ml-2 text-xs text-warning-600 dark:text-warning-400">à échoir</span>
+                  )}
                 </td>
                 <td className="py-2 pr-4 text-gray-500 dark:text-gray-400">{unit ? formatUnitLabel(unit) : '—'}</td>
                 <td className="py-2 pr-4 text-right text-gray-700 dark:text-gray-300">
@@ -86,6 +93,9 @@ export function MyInstallmentsTable({
           <tr className="border-t border-gray-200 dark:border-gray-800 font-medium text-gray-900 dark:text-white/90">
             <td className="py-2 pr-4" colSpan={3}>
               Total à régler
+              <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">
+                échéances déjà exigibles
+              </span>
             </td>
             <td className="py-2 pr-4 text-right">{outstandingTotal(installments).toLocaleString('fr-FR')} MAD</td>
             <td />

@@ -20,10 +20,12 @@ export async function getLedgerAccountEntries({
   pieceDateTo,
   search,
   status,
+  sortBy,
+  sortDirection,
 }: GetLedgerAccountEntriesParams): Promise<PagedJournalEntries> {
   const { data } = await httpClient.get<PagedJournalEntries>(
     `/properties/${propertyId}/accounting/ledger-accounts/${accountId}/entries`,
-    { params: { page, size, pieceDateFrom, pieceDateTo, search, status } },
+    { params: { page, size, pieceDateFrom, pieceDateTo, search, status, sortBy, sortDirection } },
   );
   return data;
 }

@@ -2,16 +2,18 @@ import { outstandingTotal } from '@/features/property-ownership/installments/uti
 import type { InstallmentStatus } from '@/features/property-ownership/installments/types/installment.types';
 import { colors } from '@/shared/theme/colors';
 
-type BalanceInput = { unitId: string; status: InstallmentStatus; outstandingAmount: number };
+type BalanceInput = { unitId: string; status: InstallmentStatus; dueDate: string; outstandingAmount: number };
 
 /**
  * What a lot still owes, derived from its own echeances. Mirrors oikos-web's
  * units/utils/unitBalance.ts - see it for why this is a debt (never negative,
  * so it cannot express an avance) rather than a true accounting "solde", and
  * why payments must not be netted against it.
+ *
+ * Only counts what has fallen due at the reference date - see isDueBy.
  */
-export function unitOutstanding(installments: readonly BalanceInput[], unitId: string): number {
-  return outstandingTotal(installments.filter((installment) => installment.unitId === unitId));
+export function unitOutstanding(installments: readonly BalanceInput[], unitId: string, asOf?: string): number {
+  return outstandingTotal(installments.filter((installment) => installment.unitId === unitId), asOf);
 }
 
 /**

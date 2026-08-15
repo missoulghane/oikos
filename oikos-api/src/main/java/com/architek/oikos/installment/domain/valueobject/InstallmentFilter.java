@@ -11,10 +11,16 @@ import com.architek.oikos.shared.domain.pagination.SortDirection;
  * callers never need a null check. Filtering by status still happens at the
  * repository/SQL level despite status being computed, never stored (RG011) -
  * see InstallmentRepository#findPageByUnitIds.
+ *
+ * hideNotYetDueAsOf, when set, drops the installments that are not settled and
+ * fall due after that date: money that will be owed, and is not yet. A date
+ * rather than a boolean, so the repository holds no notion of "now" - the
+ * caller decides what today means. Distinct from dueDateTo, which would also
+ * hide an installment already settled in advance.
  */
 public record InstallmentFilter(Set<InstallmentStatus> statuses, LocalDate dueDateFrom, LocalDate dueDateTo,
                                     InstallmentSortField sortField, SortDirection sortDirection,
-                                    InstallmentCallId installmentCallId) {
+                                    InstallmentCallId installmentCallId, LocalDate hideNotYetDueAsOf) {
 
     public InstallmentFilter {
         statuses = statuses == null ? Set.of() : Set.copyOf(statuses);
@@ -27,10 +33,16 @@ public record InstallmentFilter(Set<InstallmentStatus> statuses, LocalDate dueDa
 
     public InstallmentFilter(Set<InstallmentStatus> statuses, LocalDate dueDateFrom, LocalDate dueDateTo,
                               InstallmentSortField sortField, SortDirection sortDirection) {
-        this(statuses, dueDateFrom, dueDateTo, sortField, sortDirection, null);
+        this(statuses, dueDateFrom, dueDateTo, sortField, sortDirection, null, null);
+    }
+
+    public InstallmentFilter(Set<InstallmentStatus> statuses, LocalDate dueDateFrom, LocalDate dueDateTo,
+                              InstallmentSortField sortField, SortDirection sortDirection,
+                              InstallmentCallId installmentCallId) {
+        this(statuses, dueDateFrom, dueDateTo, sortField, sortDirection, installmentCallId, null);
     }
 
     public static InstallmentFilter defaultFilter() {
-        return new InstallmentFilter(Set.of(), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC, null);
+        return new InstallmentFilter(Set.of(), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC, null, null);
     }
 }

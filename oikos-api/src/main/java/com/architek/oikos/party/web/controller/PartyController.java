@@ -33,6 +33,7 @@ import com.architek.oikos.party.application.query.GetPartyQuery;
 import com.architek.oikos.party.application.query.ListPartiesQuery;
 import com.architek.oikos.party.domain.valueobject.PartyId;
 import com.architek.oikos.party.domain.valueobject.PartySearchCriteria;
+import com.architek.oikos.party.domain.valueobject.PartySortField;
 import com.architek.oikos.party.web.request.CreatePartyRequest;
 import com.architek.oikos.party.web.request.UpdatePartyPhoneRequest;
 import com.architek.oikos.party.web.request.UpdatePartyRequest;
@@ -40,6 +41,7 @@ import com.architek.oikos.party.web.response.InvitePartyResponse;
 import com.architek.oikos.party.web.response.PartyResponse;
 import com.architek.oikos.party.web.response.PagedPartyResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.pagination.SortDirection;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.user.application.command.InvitePartyCommand;
@@ -86,9 +88,11 @@ public class PartyController {
     public PagedPartyResponse list(@RequestParam String propertyId,
                                       @RequestParam(defaultValue = "0") int page,
                                       @RequestParam(defaultValue = "20") int size,
-                                      @RequestParam(required = false) String search) {
+                                      @RequestParam(required = false) String search,
+                                      @RequestParam(required = false) PartySortField sortBy,
+                                      @RequestParam(required = false) SortDirection sortDirection) {
         ListPartiesQuery query = new ListPartiesQuery(PageRequest.of(page, size),
-                new PartySearchCriteria(EntityId.of(propertyId), search));
+                new PartySearchCriteria(EntityId.of(propertyId), search, sortBy, sortDirection));
         return PagedPartyResponse.from(listPartiesUseCase.listParties(query));
     }
 

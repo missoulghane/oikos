@@ -60,11 +60,18 @@ public class InstallmentController {
                                                      @RequestParam(required = false) Set<InstallmentStatus> status,
                                                      @RequestParam(required = false) LocalDate dueDateFrom,
                                                      @RequestParam(required = false) LocalDate dueDateTo,
-                                                     @RequestParam(required = false) String installmentCallId) {
+                                                     @RequestParam(required = false) String installmentCallId,
+                                                     @RequestParam(defaultValue = "false") boolean excludeNotYetDue,
+                                                     @RequestParam(required = false) String search) {
+        // "Today" is resolved here rather than in the repository: it is a
+        // request-time notion, and keeping it out of the query leaves that layer
+        // testable against a fixed date.
         InstallmentFilter filter = new InstallmentFilter(status, dueDateFrom, dueDateTo, sortBy, sortDirection,
-                installmentCallId != null ? InstallmentCallId.of(installmentCallId) : null);
+                installmentCallId != null ? InstallmentCallId.of(installmentCallId) : null,
+                excludeNotYetDue ? LocalDate.now() : null);
         return PagedInstallmentResponse.from(listInstallmentsByPropertyUseCase.listInstallments(
-                new ListInstallmentsByPropertyQuery(EntityId.of(propertyId), filter, PageRequest.of(page, size))));
+                new ListInstallmentsByPropertyQuery(EntityId.of(propertyId), filter, PageRequest.of(page, size),
+                        search)));
     }
 
     @PreAuthorize("@propertyAccess.managesInstallment(authentication, #id)")

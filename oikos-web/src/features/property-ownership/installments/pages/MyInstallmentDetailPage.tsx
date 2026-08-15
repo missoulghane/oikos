@@ -3,7 +3,6 @@ import { useInstallment } from '@/features/property-ownership/installments/hooks
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import { formatUnitLabel } from '@/features/property-ownership/units/utils/formatUnitLabel';
 import { formatPeriod } from '@/features/property-mngt/installments/utils/formatPeriod';
-import { UnitPaymentsSection } from '@/features/property-mngt/installments/components/UnitPaymentsSection';
 import {
   INSTALLMENT_STATUS_BADGE_COLORS,
   INSTALLMENT_STATUS_LABELS,
@@ -89,19 +88,6 @@ export function MyInstallmentDetailPage() {
           )}
         </dl>
       </Card>
-
-      {unit && (
-        <Card className="flex flex-col gap-2">
-          {/* Deliberately the payments of the *lot*, not of this echeance: there is
-              no endpoint exposing which payments were allocated to a given
-              echeance (allocations are only returned when a payment is created). */}
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Paiements du lot</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Tous les paiements enregistrés sur ce lot, toutes échéances confondues.
-          </p>
-          <UnitPaymentsSection propertyId={unit.propertyId} unitId={unit.unitId} canManage={false} />
-        </Card>
-      )}
     </div>
   );
 }

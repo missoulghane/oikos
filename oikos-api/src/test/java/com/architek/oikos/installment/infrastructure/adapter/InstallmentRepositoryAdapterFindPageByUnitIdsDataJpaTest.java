@@ -114,6 +114,50 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
     }
 
     @Test
+    void hides_the_installments_not_yet_due_when_a_cutoff_date_is_given() {
+        seed();
+
+        Page<Installment> page = installmentAdapter.findPageByUnitIds(List.of(unitA, unitB),
+                new InstallmentFilter(Set.of(), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC, null, TODAY),
+                PageRequest.of(0, 10));
+
+        // notSettled (TODAY+10) and otherNotSettled (TODAY+20) are owed later, not now
+        assertThat(page.content()).extracting(Installment::getId)
+                .containsExactly(settled.getId(), partiallySettled.getId());
+        // The count follows the filter: a paginated list whose total still counted
+        // the hidden rows would show a last page short of its size.
+        assertThat(page.totalElements()).isEqualTo(2);
+    }
+
+    @Test
+    void keeps_an_installment_settled_in_advance_which_a_dueDateTo_would_have_hidden() {
+        seed();
+        Installment paidAhead = Installment.create(InstallmentId.newId(), unitA, TODAY.plusDays(30),
+                        Amount.of(new BigDecimal("400")))
+                .withOutstandingAmount(BigDecimal.ZERO);
+        installmentAdapter.save(paidAhead);
+
+        Page<Installment> page = installmentAdapter.findPageByUnitIds(List.of(unitA, unitB),
+                new InstallmentFilter(Set.of(), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC, null, TODAY),
+                PageRequest.of(0, 10));
+
+        // The cutoff drops what is *owed* later, not everything dated later - this
+        // is what separates it from dueDateTo.
+        assertThat(page.content()).extracting(Installment::getId).contains(paidAhead.getId());
+    }
+
+    @Test
+    void returns_everything_when_no_cutoff_date_is_given() {
+        seed();
+
+        Page<Installment> page = installmentAdapter.findPageByUnitIds(List.of(unitA, unitB),
+                new InstallmentFilter(Set.of(), null, null, InstallmentSortField.DUE_DATE, SortDirection.ASC, null, null),
+                PageRequest.of(0, 10));
+
+        assertThat(page.totalElements()).isEqualTo(4);
+    }
+
+    @Test
     void filters_by_installment_call_id() {
         seed();
         InstallmentCallId callId = InstallmentCallId.newId();

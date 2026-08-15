@@ -19,6 +19,8 @@ import com.architek.oikos.property.application.port.out.AccountLinkingPort;
 import com.architek.oikos.property.application.port.out.PartyDetails;
 import com.architek.oikos.property.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.property.application.query.ListContactsByPropertyQuery;
+import com.architek.oikos.property.domain.valueobject.ContactSortField;
+import com.architek.oikos.shared.domain.pagination.SortDirection;
 import com.architek.oikos.property.domain.exception.PropertyNotFoundException;
 import com.architek.oikos.property.domain.model.Building;
 import com.architek.oikos.property.domain.model.Unit;
@@ -100,7 +102,7 @@ public class ListContactsByPropertyService implements ListContactsByPropertyUseC
         List<EntityId> matchingPartyIds = partyDetailsById.entrySet().stream()
                 .filter(entry -> matchesAccountFilter(linkedPartyIds.contains(entry.getKey()), query.hasLinkedAccount()))
                 .filter(entry -> matchesSearch(entry.getValue(), query.search()))
-                .sorted(Comparator.comparing(entry -> entry.getValue().fullName(), String.CASE_INSENSITIVE_ORDER))
+                .sorted(comparator(query, linkedPartyIds))
                 .map(Map.Entry::getKey)
                 .toList();
 
@@ -119,6 +121,23 @@ public class ListContactsByPropertyService implements ListContactsByPropertyUseC
                 .toList();
 
         return Page.of(content, query.pageRequest().pageNumber(), pageSize, matchingPartyIds.size());
+    }
+
+    /**
+     * Name is the tie-breaker whatever the column: ordering on the account flag
+     * alone would reshuffle each block on every request, nothing else deciding
+     * between two contacts that share it.
+     */
+    private static Comparator<Map.Entry<EntityId, PartyDetails>> comparator(ListContactsByPropertyQuery query,
+                                                                             Set<EntityId> linkedPartyIds) {
+        Comparator<Map.Entry<EntityId, PartyDetails>> byName =
+                Comparator.comparing(entry -> entry.getValue().fullName(), String.CASE_INSENSITIVE_ORDER);
+        if (query.sortField() != ContactSortField.ACCOUNT_STATUS) {
+            return query.sortDirection() == SortDirection.DESC ? byName.reversed() : byName;
+        }
+        Comparator<Map.Entry<EntityId, PartyDetails>> byAccount =
+                Comparator.comparing(entry -> linkedPartyIds.contains(entry.getKey()));
+        return (query.sortDirection() == SortDirection.DESC ? byAccount.reversed() : byAccount).thenComparing(byName);
     }
 
     /**

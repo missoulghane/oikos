@@ -1,16 +1,17 @@
+import { isDueBy } from '@/features/property-mngt/installments/utils/installmentDueness';
+import { todayIsoDate } from '@/shared/utils/todayIsoDate';
 import type { InstallmentStatus } from '@/features/property-mngt/installments/types/installment.types';
 
-/**
- * "À régler" is everything not fully settled - a partially settled echeance
- * still owes its outstanding part, so it counts as due. Kept as one predicate
- * because the badge total, the "À régler" filter and the dashboard's "Solde à
- * régler" must never disagree on what counts as owed.
- */
-export function isDue(installment: { status: InstallmentStatus }): boolean {
-  return installment.status !== 'SETTLED';
-}
+// The predicates are shared with the syndic space, which applies the same rule -
+// see property-mngt/installments/utils/installmentDueness. Re-exported here so
+// the owner-side callers keep one import for "what is owed".
+export { isDueBy, isNotYetDue, isUnsettled } from '@/features/property-mngt/installments/utils/installmentDueness';
 
-/** Sum of what is still owed across the given echeances (settled ones contribute 0). */
-export function outstandingTotal(installments: readonly { status: InstallmentStatus; outstandingAmount: number }[]): number {
-  return installments.filter(isDue).reduce((sum, installment) => sum + installment.outstandingAmount, 0);
+type Owed = { status: InstallmentStatus; dueDate: string; outstandingAmount: number };
+
+/** What is owed at the reference date: settled lines and not-yet-due ones contribute 0. */
+export function outstandingTotal(installments: readonly Owed[], asOf: string = todayIsoDate()): number {
+  return installments
+    .filter((installment) => isDueBy(installment, asOf))
+    .reduce((sum, installment) => sum + installment.outstandingAmount, 0);
 }

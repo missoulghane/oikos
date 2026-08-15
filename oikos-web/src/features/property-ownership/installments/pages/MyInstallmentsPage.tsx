@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMyInstallments } from '@/features/property-ownership/installments/hooks/useMyInstallments';
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import { formatUnitLabel } from '@/features/property-ownership/units/utils/formatUnitLabel';
@@ -8,6 +9,7 @@ import { outstandingTotal } from '@/features/property-ownership/installments/uti
 import {
   DEFAULT_MY_INSTALLMENT_FILTERS,
   filterInstallments,
+  notYetDueHiddenCount,
   type MyInstallmentFiltersValue,
 } from '@/features/property-ownership/installments/utils/filterInstallments';
 import { Card } from '@/shared/components/Card/Card';
@@ -23,13 +25,24 @@ import { countActiveFilters } from '@/shared/utils/countActiveFilters';
 const PAGE_SIZE = 10;
 
 // Sorting is always set to something, so it would inflate the "active filters"
-// count on an untouched list - it is still reset by "Effacer les filtres".
+// count on an untouched list - it is still reset by "Réinitialiser".
+// includeNotYetDue is *not* excluded: it lives in the panel like any other
+// field, and turning it on has to be visible while the panel is folded.
 const SORT_KEYS = ['sortBy', 'sortDirection'] as const;
 
 export function MyInstallmentsPage() {
   const installments = useMyInstallments();
   const units = useMyUnits();
-  const [filters, setFilters] = useState<MyInstallmentFiltersValue>(DEFAULT_MY_INSTALLMENT_FILTERS);
+  const [searchParams] = useSearchParams();
+  // Seeded once from the URL rather than kept in sync with it: callers link here
+  // to *open* the list on a given selection (the lot balance badge does), and the
+  // filters stay the user's to change from there. Reading it as initial state
+  // only, so editing a filter never fights the query string.
+  const [filters, setFilters] = useState<MyInstallmentFiltersValue>(() => ({
+    ...DEFAULT_MY_INSTALLMENT_FILTERS,
+    status: searchParams.get('status') === 'DUE' ? 'DUE' : DEFAULT_MY_INSTALLMENT_FILTERS.status,
+    unitId: searchParams.get('unitId') ?? DEFAULT_MY_INSTALLMENT_FILTERS.unitId,
+  }));
   const [page, setPage] = useState(0);
 
   const isLoading = installments.isLoading || units.isLoading;
@@ -50,6 +63,10 @@ export function MyInstallmentsPage() {
 
   const filtered = useMemo(
     () => filterInstallments(installments.data ?? [], filters, unitLabelById),
+    [installments.data, filters, unitLabelById],
+  );
+  const hiddenNotYetDue = useMemo(
+    () => notYetDueHiddenCount(installments.data ?? [], filters, unitLabelById),
     [installments.data, filters, unitLabelById],
   );
 
@@ -100,7 +117,11 @@ export function MyInstallmentsPage() {
             placeholder: 'Rechercher un lot, un montant, une date…',
           }}
         >
-          <MyInstallmentFilters value={filters} onChange={handleFiltersChange} />
+          <MyInstallmentFilters
+            value={filters}
+            onChange={handleFiltersChange}
+            hiddenNotYetDue={hiddenNotYetDue}
+          />
         </FilterPanel>
 
         {isLoading && <Loader label="Chargement de vos échéances…" />}
@@ -110,7 +131,9 @@ export function MyInstallmentsPage() {
           <EmptyState title="Aucune échéance">
             {(installments.data ?? []).length === 0
               ? "Vous n'avez aucune échéance pour le moment."
-              : 'Aucune échéance ne correspond à ces filtres.'}
+              : hiddenNotYetDue > 0
+                ? `Aucune échéance exigible ne correspond à ces filtres. ${hiddenNotYetDue} échéance${hiddenNotYetDue > 1 ? 's' : ''} à échoir ${hiddenNotYetDue > 1 ? 'sont masquées' : 'est masquée'}.`
+                : 'Aucune échéance ne correspond à ces filtres.'}
           </EmptyState>
         )}
 

@@ -131,11 +131,20 @@ export interface AddBankAccountPayload {
   bankAccountNumber?: string;
 }
 
+export const JOURNAL_ENTRY_SORT_FIELDS = ['PIECE_DATE', 'PIECE_NUMBER'] as const;
+export type JournalEntrySortField = (typeof JOURNAL_ENTRY_SORT_FIELDS)[number];
+
 export interface JournalEntryListFilters {
   pieceDateFrom?: string;
   pieceDateTo?: string;
   search?: string;
   status?: JournalEntryStatus;
+  /**
+   * The displayed amount is absent from the sortable fields on purpose: it is
+   * summed from the entry's debit lines, so the database cannot order on it.
+   */
+  sortBy?: JournalEntrySortField;
+  sortDirection?: 'ASC' | 'DESC';
 }
 
 export interface RecordTreasuryTransferPayload {

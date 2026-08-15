@@ -18,7 +18,7 @@ interface UnitPickerProps {
 export function UnitPicker({ propertyId, unitId, onChange }: UnitPickerProps) {
   const [buildingId, setBuildingId] = useState('');
   const buildings = useBuildings(propertyId, 0, PICKER_PAGE_SIZE);
-  const units = useUnits(buildingId, 0, undefined, undefined, PICKER_PAGE_SIZE);
+  const units = useUnits(buildingId, 0, {}, PICKER_PAGE_SIZE);
 
   return (
     <>

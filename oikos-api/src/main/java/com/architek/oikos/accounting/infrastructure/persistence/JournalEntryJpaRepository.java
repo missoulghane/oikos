@@ -47,7 +47,6 @@ public interface JournalEntryJpaRepository extends JpaRepository<JournalEntryEnt
               and (cast(:search as String) is null
                    or lower(j.externalReference) like lower(concat('%', cast(:search as String), '%')))
               and (cast(:status as String) is null or j.status = :status)
-            order by j.pieceDate desc
             """)
     Page<JournalEntryEntity> searchByTreasuryAccount(@Param("propertyId") UUID propertyId,
                                                        @Param("treasuryAccountId") UUID treasuryAccountId,

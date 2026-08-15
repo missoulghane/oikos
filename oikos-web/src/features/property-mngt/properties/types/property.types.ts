@@ -43,6 +43,28 @@ export interface UnitTypeDefinition {
   name: string;
 }
 
+export const UNIT_SORT_FIELDS = ['UNIT_NUMBER', 'SHARES'] as const;
+export type UnitSortField = (typeof UNIT_SORT_FIELDS)[number];
+
+/** Criteria of a lots listing, passed whole to the query key - see queryKeys. */
+export interface UnitListFilters {
+  search?: string;
+  ownershipStatus?: OwnershipStatus;
+  sortBy?: UnitSortField;
+  sortDirection?: 'ASC' | 'DESC';
+}
+
+export const CONTACT_SORT_FIELDS = ['FULL_NAME', 'ACCOUNT_STATUS'] as const;
+export type ContactSortField = (typeof CONTACT_SORT_FIELDS)[number];
+
+/** Criteria of a contacts listing, passed whole to the query key - see queryKeys. */
+export interface ContactListFilters {
+  search?: string;
+  hasLinkedAccount?: boolean;
+  sortBy?: ContactSortField;
+  sortDirection?: 'ASC' | 'DESC';
+}
+
 export type OwnershipStatus = 'AFFECTED' | 'NOT_AFFECTED';
 
 export interface Unit {

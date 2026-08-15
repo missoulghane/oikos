@@ -31,7 +31,7 @@ export function AddExistingUnitOwnerForm({ unitId, propertyId, onSuccess, onCanc
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
-  const parties = useParties(propertyId, 0, search || undefined);
+  const parties = useParties(propertyId, 0, { search: search || undefined });
   const {
     register,
     handleSubmit,

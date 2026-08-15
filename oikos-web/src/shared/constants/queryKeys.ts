@@ -12,41 +12,21 @@ export const queryKeys = {
     detail: (id: string) => ['properties', 'detail', id] as const,
     buildings: (propertyId: string, page: number, size: number) =>
       ['properties', propertyId, 'buildings', page, size] as const,
-    installments: (
-      propertyId: string,
-      page: number,
-      size: number,
-      status: string[] | undefined,
-      dueDateFrom: string | undefined,
-      dueDateTo: string | undefined,
-      installmentCallId: string | undefined,
-      sortBy: string,
-      sortDirection: string,
-    ) =>
-      [
-        'properties',
-        propertyId,
-        'installments',
-        page,
-        size,
-        status,
-        dueDateFrom,
-        dueDateTo,
-        installmentCallId,
-        sortBy,
-        sortDirection,
-      ] as const,
+    /**
+     * Takes the filter object whole rather than one parameter per criterion.
+     * React Query hashes it deterministically, and a new filter can no longer
+     * be added to the query without reaching the key: leaving one out served
+     * stale rows until something else - a page change - moved the key.
+     */
+    installments: (propertyId: string, page: number, size: number, filters: object) =>
+      ['properties', propertyId, 'installments', page, size, filters] as const,
     unitTypePrices: (propertyId: string) => ['properties', propertyId, 'unit-type-prices'] as const,
     unitTypes: (propertyId: string) => ['properties', propertyId, 'unit-types'] as const,
     installmentCalls: (propertyId: string, page: number, size: number) =>
       ['properties', propertyId, 'installment-calls', page, size] as const,
-    contacts: (
-      propertyId: string,
-      page: number,
-      size: number,
-      search: string | undefined,
-      hasLinkedAccount: boolean | undefined,
-    ) => ['properties', propertyId, 'contacts', page, size, search, hasLinkedAccount] as const,
+    /** Filters passed whole, for the reason given on `installments` below. */
+    contacts: (propertyId: string, page: number, size: number, filters: object) =>
+      ['properties', propertyId, 'contacts', page, size, filters] as const,
     accountingOpenExercise: (propertyId: string) =>
       ['properties', propertyId, 'accounting', 'open-exercise'] as const,
     accountingLedgerAccounts: (propertyId: string) =>
@@ -58,15 +38,13 @@ export const queryKeys = {
     accountingExpenses: (propertyId: string) => ['properties', propertyId, 'accounting', 'expenses'] as const,
     latestPayments: (propertyId: string, size: number) =>
       ['properties', propertyId, 'payments', 'latest', size] as const,
+    /** Filters passed whole, for the reason given on `installments` above. */
     ledgerAccountEntries: (
       propertyId: string,
       accountId: string,
       page: number,
       size: number,
-      pieceDateFrom: string | undefined,
-      pieceDateTo: string | undefined,
-      search: string | undefined,
-      status: string | undefined,
+      filters: object,
     ) =>
       [
         'properties',
@@ -77,23 +55,16 @@ export const queryKeys = {
         'entries',
         page,
         size,
-        pieceDateFrom,
-        pieceDateTo,
-        search,
-        status,
+        filters,
       ] as const,
   },
   installmentCalls: {
     detail: (id: string) => ['installment-calls', id, 'detail'] as const,
   },
   buildings: {
-    units: (
-      buildingId: string,
-      page: number,
-      size: number,
-      search: string | undefined,
-      ownershipStatus: string | undefined,
-    ) => ['buildings', buildingId, 'units', page, size, search, ownershipStatus] as const,
+    /** Filters passed whole, for the reason given on `properties.installments`. */
+    units: (buildingId: string, page: number, size: number, filters: object) =>
+      ['buildings', buildingId, 'units', page, size, filters] as const,
   },
   units: {
     detail: (unitId: string) => ['units', unitId, 'detail'] as const,
@@ -105,8 +76,9 @@ export const queryKeys = {
     detail: (installmentId: string) => ['installments', 'detail', installmentId] as const,
   },
   parties: {
-    list: (propertyId: string | undefined, page: number, size: number, search: string | undefined) =>
-      ['parties', 'list', propertyId, page, size, search] as const,
+    /** Filters passed whole, for the reason given on `properties.installments`. */
+    list: (propertyId: string | undefined, page: number, size: number, filters: object) =>
+      ['parties', 'list', propertyId, page, size, filters] as const,
     detail: (id: string) => ['parties', 'detail', id] as const,
     lots: (id: string) => ['parties', id, 'lots'] as const,
   },

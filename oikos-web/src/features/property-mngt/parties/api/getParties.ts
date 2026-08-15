@@ -1,14 +1,22 @@
 import { httpClient } from '@/shared/api/httpClient';
-import type { PagedParties } from '@/features/property-mngt/parties/types/party.types';
+import type { PagedParties, PartyListFilters } from '@/features/property-mngt/parties/types/party.types';
 
-export interface GetPartiesParams {
+export interface GetPartiesParams extends PartyListFilters {
   propertyId: string;
   page: number;
   size: number;
-  search?: string;
 }
 
-export async function getParties({ propertyId, page, size, search }: GetPartiesParams): Promise<PagedParties> {
-  const { data } = await httpClient.get<PagedParties>('/parties', { params: { propertyId, page, size, search } });
+export async function getParties({
+  propertyId,
+  page,
+  size,
+  search,
+  sortBy,
+  sortDirection,
+}: GetPartiesParams): Promise<PagedParties> {
+  const { data } = await httpClient.get<PagedParties>('/parties', {
+    params: { propertyId, page, size, search, sortBy, sortDirection },
+  });
   return data;
 }

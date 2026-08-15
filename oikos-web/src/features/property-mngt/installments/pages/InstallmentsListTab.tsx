@@ -17,6 +17,7 @@ import { Pagination } from '@/shared/components/Pagination/Pagination';
 import { FilterPanel } from '@/shared/components/FilterPanel/FilterPanel';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { countActiveFilters } from '@/shared/utils/countActiveFilters';
+import { nextSortDirection } from '@/shared/utils/sorting';
 import type { InstallmentListFilters } from '@/features/property-mngt/installments/types/installment.types';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
 
@@ -26,11 +27,15 @@ const SORT_KEYS = ['sortBy', 'sortDirection'] as const;
 
 const DEFAULT_FILTERS: InstallmentFiltersValue = {
   status: '',
+  search: '',
+  includeNotYetDue: false,
   dueDateFrom: '',
   dueDateTo: '',
   installmentCallId: '',
+  // Most recent first, like the owner space: the echeances a syndic acts on are
+  // the latest ones, and an ascending list opens on the oldest history instead.
   sortBy: 'DUE_DATE',
-  sortDirection: 'ASC',
+  sortDirection: 'DESC',
 };
 
 export function InstallmentsListTab() {
@@ -61,11 +66,22 @@ function InstallmentsListTabContent({ installmentCallIdFromUrl }: { installmentC
     setPage(0);
   }
 
+  function handleSort(field: InstallmentFiltersValue['sortBy']) {
+    handleFiltersChange({
+      ...filters,
+      sortBy: field,
+      sortDirection: nextSortDirection(field, filters.sortBy, filters.sortDirection),
+    });
+  }
+
   const queryFilters: InstallmentListFilters = {
     status: filters.status ? [filters.status] : undefined,
     dueDateFrom: filters.dueDateFrom || undefined,
     dueDateTo: filters.dueDateTo || undefined,
     installmentCallId: filters.installmentCallId || undefined,
+    search: filters.search || undefined,
+    // Sent explicitly: the API defaults to returning everything.
+    excludeNotYetDue: filters.includeNotYetDue ? undefined : true,
     sortBy: filters.sortBy,
     sortDirection: filters.sortDirection,
   };
@@ -102,6 +118,11 @@ function InstallmentsListTabContent({ installmentCallIdFromUrl }: { installmentC
       <FilterPanel
         activeCount={countActiveFilters(filters, DEFAULT_FILTERS, SORT_KEYS)}
         onClear={() => handleFiltersChange(DEFAULT_FILTERS)}
+        search={{
+          value: filters.search,
+          onChange: (search) => handleFiltersChange({ ...filters, search }),
+          placeholder: 'Rechercher un lot, un propriétaire…',
+        }}
       >
         <InstallmentFilters propertyId={property.id} value={filters} onChange={handleFiltersChange} />
       </FilterPanel>
@@ -113,7 +134,12 @@ function InstallmentsListTabContent({ installmentCallIdFromUrl }: { installmentC
       )}
       {installments.data && installments.data.content.length > 0 && (
         <div className="flex flex-col gap-3">
-          <InstallmentList installments={installments.data.content} />
+          <InstallmentList
+            installments={installments.data.content}
+            sortBy={filters.sortBy}
+            sortDirection={filters.sortDirection}
+            onSort={handleSort}
+          />
           <Pagination
             pageNumber={installments.data.pageNumber}
             totalPages={installments.data.totalPages}

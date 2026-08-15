@@ -37,3 +37,13 @@ export interface CreatePartyPayload {
 export interface CreatePartyResult {
   id: string;
 }
+
+export const PARTY_SORT_FIELDS = ['FULL_NAME', 'EMAIL'] as const;
+export type PartySortField = (typeof PARTY_SORT_FIELDS)[number];
+
+/** Criteria of a parties listing, passed whole to the query key - see queryKeys. */
+export interface PartyListFilters {
+  search?: string;
+  sortBy?: PartySortField;
+  sortDirection?: 'ASC' | 'DESC';
+}

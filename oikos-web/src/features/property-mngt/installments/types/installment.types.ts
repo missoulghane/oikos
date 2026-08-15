@@ -25,6 +25,18 @@ export interface InstallmentListFilters {
   dueDateFrom?: string;
   dueDateTo?: string;
   installmentCallId?: string;
+  /**
+   * Drops the installments not settled and falling due after today. Applied
+   * server-side because the list is paginated: filtering the page client-side
+   * would leave a page of 20 showing 14 rows and a wrong total.
+   */
+  excludeNotYetDue?: boolean;
+  /**
+   * Free text matched against the lot number, and the owner's name or phone -
+   * the property module resolves it, so it means exactly what it means on the
+   * lots list.
+   */
+  search?: string;
   sortBy: InstallmentSortField;
   sortDirection: SortDirection;
 }

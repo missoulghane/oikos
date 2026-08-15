@@ -17,6 +17,7 @@ import com.architek.oikos.auth.infrastructure.security.RestAuthenticationEntryPo
 import com.architek.oikos.auth.infrastructure.security.SecurityConfiguration;
 import com.architek.oikos.document.application.port.in.GetDocumentUseCase;
 import com.architek.oikos.installment.application.port.in.GetInstallmentCallUseCase;
+import com.architek.oikos.installment.application.port.in.GetPaymentUseCase;
 import com.architek.oikos.installment.application.port.in.GetInstallmentUseCase;
 import com.architek.oikos.invitation.application.port.in.GetInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.GetMembershipRequestUseCase;
@@ -78,6 +79,7 @@ public class WebSecuritySliceTestConfiguration {
                                             ObjectProvider<GetBuildingUseCase> getBuildingUseCase,
                                             ObjectProvider<GetInstallmentUseCase> getInstallmentUseCase,
                                             ObjectProvider<GetInstallmentCallUseCase> getInstallmentCallUseCase,
+                                            ObjectProvider<GetPaymentUseCase> getPaymentUseCase,
                                             ObjectProvider<ListUnitOwnershipsByUnitUseCase> listUnitOwnershipsByUnitUseCase,
                                             ObjectProvider<GetPartyUseCase> getPartyUseCase,
                                             ObjectProvider<GetInvitationUseCase> getInvitationUseCase,
@@ -91,6 +93,7 @@ public class WebSecuritySliceTestConfiguration {
                 getBuildingUseCase.getIfAvailable(() -> Mockito.mock(GetBuildingUseCase.class)),
                 getInstallmentUseCase.getIfAvailable(() -> Mockito.mock(GetInstallmentUseCase.class)),
                 getInstallmentCallUseCase.getIfAvailable(() -> Mockito.mock(GetInstallmentCallUseCase.class)),
+                getPaymentUseCase.getIfAvailable(() -> Mockito.mock(GetPaymentUseCase.class)),
                 listUnitOwnershipsByUnitUseCase.getIfAvailable(() -> Mockito.mock(ListUnitOwnershipsByUnitUseCase.class)),
                 getPartyUseCase.getIfAvailable(() -> Mockito.mock(GetPartyUseCase.class)),
                 getInvitationUseCase.getIfAvailable(() -> Mockito.mock(GetInvitationUseCase.class)),

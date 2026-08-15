@@ -5,6 +5,10 @@ import org.springframework.stereotype.Component;
 import com.architek.oikos.document.application.port.out.DocumentOwnerExistencePort;
 import com.architek.oikos.document.domain.valueobject.DocumentOwnerType;
 import com.architek.oikos.property.application.port.in.GetPropertyUseCase;
+import com.architek.oikos.installment.application.port.in.GetPaymentUseCase;
+import com.architek.oikos.installment.application.query.GetPaymentQuery;
+import com.architek.oikos.installment.domain.exception.PaymentNotFoundException;
+import com.architek.oikos.installment.domain.valueobject.PaymentId;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
 import com.architek.oikos.property.application.query.GetPropertyQuery;
 import com.architek.oikos.property.application.query.GetUnitQuery;
@@ -25,10 +29,13 @@ public class DocumentOwnerExistenceAdapter implements DocumentOwnerExistencePort
 
     private final GetPropertyUseCase getPropertyUseCase;
     private final GetUnitUseCase getUnitUseCase;
+    private final GetPaymentUseCase getPaymentUseCase;
 
-    public DocumentOwnerExistenceAdapter(GetPropertyUseCase getPropertyUseCase, GetUnitUseCase getUnitUseCase) {
+    public DocumentOwnerExistenceAdapter(GetPropertyUseCase getPropertyUseCase, GetUnitUseCase getUnitUseCase,
+                                          GetPaymentUseCase getPaymentUseCase) {
         this.getPropertyUseCase = getPropertyUseCase;
         this.getUnitUseCase = getUnitUseCase;
+        this.getPaymentUseCase = getPaymentUseCase;
     }
 
     @Override
@@ -36,7 +43,17 @@ public class DocumentOwnerExistenceAdapter implements DocumentOwnerExistencePort
         return switch (ownerType) {
             case PROPERTY -> propertyExists(ownerId);
             case UNIT -> unitExists(ownerId);
+            case PAYMENT -> paymentExists(ownerId);
         };
+    }
+
+    private boolean paymentExists(EntityId ownerId) {
+        try {
+            getPaymentUseCase.getPayment(new GetPaymentQuery(PaymentId.of(ownerId.value())));
+            return true;
+        } catch (PaymentNotFoundException e) {
+            return false;
+        }
     }
 
     private boolean propertyExists(EntityId ownerId) {

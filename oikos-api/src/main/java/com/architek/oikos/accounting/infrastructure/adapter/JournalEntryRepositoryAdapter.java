@@ -13,7 +13,10 @@ import com.architek.oikos.accounting.domain.model.JournalEntry;
 import com.architek.oikos.accounting.domain.repository.JournalEntryRepository;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
 import com.architek.oikos.accounting.domain.valueobject.JournalCode;
+import org.springframework.data.domain.Sort;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryFilter;
+import com.architek.oikos.accounting.domain.valueobject.JournalEntrySortField;
+import com.architek.oikos.shared.domain.pagination.SortDirection;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
 import com.architek.oikos.accounting.domain.valueobject.PeriodId;
@@ -100,12 +103,29 @@ public class JournalEntryRepositoryAdapter implements JournalEntryRepository {
     public Page<JournalEntry> findPageByTreasuryAccount(EntityId propertyId, LedgerAccountId treasuryAccountId,
                                                           JournalEntryFilter filter, PageRequest pageRequest) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest
-                .of(pageRequest.pageNumber(), pageRequest.pageSize());
+                .of(pageRequest.pageNumber(), pageRequest.pageSize(), toSort(filter));
         org.springframework.data.domain.Page<JournalEntryEntity> page = jpaRepository.searchByTreasuryAccount(
                 propertyId.value(), treasuryAccountId.asUuid(), filter.pieceDateFrom(), filter.pieceDateTo(),
                 filter.search(), filter.status() == null ? null : filter.status().name(), pageable);
         return Page.of(page.getContent().stream().map(mapper::toDomain).toList(), page.getNumber(), page.getSize(),
                 page.getTotalElements());
+    }
+
+    /**
+     * The query itself carries no `order by` any more: it is set here, so the
+     * default (most recent piece date first) and a column the user clicked go
+     * through the same path - and so that sorting happens before pagination
+     * rather than over the rows of one page.
+     */
+    private static Sort toSort(JournalEntryFilter filter) {
+        Sort.Direction direction = filter.sortDirection() == SortDirection.ASC
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        if (filter.sortField() == JournalEntrySortField.PIECE_NUMBER) {
+            return Sort.by(direction, "pieceNumber");
+        }
+        // No sort asked for: the default the query used to carry itself.
+        return Sort.by(filter.sortField() == null ? Sort.Direction.DESC : direction, "pieceDate");
     }
 
     @Override

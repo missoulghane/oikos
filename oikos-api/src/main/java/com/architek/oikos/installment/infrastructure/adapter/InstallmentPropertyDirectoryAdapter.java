@@ -75,6 +75,11 @@ public class InstallmentPropertyDirectoryAdapter implements PropertyUnitDirector
     }
 
     @Override
+    public String getName(EntityId propertyId) {
+        return getPropertyUseCase.getProperty(new GetPropertyQuery(PropertyId.of(propertyId.value()))).name();
+    }
+
+    @Override
     public PropertyDuesConfigurationView getDuesConfiguration(EntityId propertyId) {
         PropertyView property = getPropertyUseCase.getProperty(new GetPropertyQuery(new PropertyId(propertyId)));
         DuesCalculationMode mode = DuesCalculationMode.valueOf(property.duesCalculationMode().name());
@@ -82,10 +87,10 @@ public class InstallmentPropertyDirectoryAdapter implements PropertyUnitDirector
     }
 
     @Override
-    public List<EntityId> listUnitIds(EntityId propertyId) {
+    public List<EntityId> listUnitIds(EntityId propertyId, String search) {
         List<EntityId> unitIds = new ArrayList<>();
         for (BuildingView building : listAllBuildings(new PropertyId(propertyId))) {
-            for (UnitView unit : listAllUnits(building.id())) {
+            for (UnitView unit : listAllUnits(building.id(), search)) {
                 unitIds.add(unit.id().value());
             }
         }
@@ -134,12 +139,16 @@ public class InstallmentPropertyDirectoryAdapter implements PropertyUnitDirector
     }
 
     private List<UnitView> listAllUnits(BuildingId buildingId) {
+        return listAllUnits(buildingId, null);
+    }
+
+    private List<UnitView> listAllUnits(BuildingId buildingId, String search) {
         List<UnitView> units = new ArrayList<>();
         int pageNumber = 0;
         Page<UnitView> page;
         do {
             page = listUnitsByBuildingUseCase.listUnits(
-                    new ListUnitsByBuildingQuery(buildingId, PageRequest.of(pageNumber, PAGE_SIZE), null));
+                    new ListUnitsByBuildingQuery(buildingId, PageRequest.of(pageNumber, PAGE_SIZE), search));
             units.addAll(page.content());
             pageNumber++;
         } while (page.hasNext());

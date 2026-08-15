@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_MY_INSTALLMENT_FILTERS,
   filterInstallments,
+  notYetDueHiddenCount,
 } from '@/features/property-ownership/installments/utils/filterInstallments';
 import type { OwnedInstallment } from '@/features/property-ownership/installments/types/ownedInstallment.types';
 
@@ -10,6 +11,17 @@ const installments: OwnedInstallment[] = [
   { id: 'b', unitId: 'unit-2', dueDate: '2026-03-10', amount: 500, outstandingAmount: 200, status: 'PARTIALLY_SETTLED' },
   { id: 'c', unitId: 'unit-1', dueDate: '2026-06-01', amount: 800, outstandingAmount: 0, status: 'SETTLED' },
 ];
+
+// Relative to today: a literal future date would quietly stop being one.
+function isoInAYear(): string {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + 1);
+  return date.toLocaleDateString('sv-SE');
+}
+const notYetDue: OwnedInstallment = {
+  id: 'd', unitId: 'unit-1', dueDate: isoInAYear(), amount: 600, outstandingAmount: 600, status: 'NOT_SETTLED',
+};
+const withNotYetDue = [...installments, notYetDue];
 
 const ids = (result: OwnedInstallment[]) => result.map((installment) => installment.id);
 
@@ -107,5 +119,48 @@ describe('filterInstallments', () => {
     filterInstallments(installments, { ...DEFAULT_MY_INSTALLMENT_FILTERS, sortDirection: 'ASC' });
 
     expect(installments).toEqual(original);
+  });
+});
+
+describe('filterInstallments / echeances not yet fallen due', () => {
+  it('leaves them out by default', () => {
+    expect(ids(filterInstallments(withNotYetDue, DEFAULT_MY_INSTALLMENT_FILTERS))).toEqual(['c', 'b', 'a']);
+  });
+
+  it('brings them back when includeNotYetDue is set', () => {
+    const result = filterInstallments(withNotYetDue, {
+      ...DEFAULT_MY_INSTALLMENT_FILTERS,
+      includeNotYetDue: true,
+    });
+
+    expect(ids(result)).toEqual(['d', 'c', 'b', 'a']);
+  });
+
+  // The "À régler" filter is status-only, so it selects 'd' - and the default
+  // exclusion still applies on top of it.
+  it('still applies under the "À régler" status', () => {
+    const result = filterInstallments(withNotYetDue, { ...DEFAULT_MY_INSTALLMENT_FILTERS, status: 'DUE' });
+
+    expect(ids(result).sort()).toEqual(['a', 'b']);
+  });
+});
+
+describe('notYetDueHiddenCount', () => {
+  it('counts what the toggle is withholding', () => {
+    expect(notYetDueHiddenCount(withNotYetDue, DEFAULT_MY_INSTALLMENT_FILTERS)).toBe(1);
+  });
+
+  it('is 0 once they are shown, since nothing is withheld any more', () => {
+    const filters = { ...DEFAULT_MY_INSTALLMENT_FILTERS, includeNotYetDue: true };
+
+    expect(notYetDueHiddenCount(withNotYetDue, filters)).toBe(0);
+  });
+
+  // Counted under the other filters in force, so the number always matches what
+  // pressing the toggle would actually add to the list.
+  it('ignores rows excluded by another filter anyway', () => {
+    const filters = { ...DEFAULT_MY_INSTALLMENT_FILTERS, unitId: 'unit-2' };
+
+    expect(notYetDueHiddenCount(withNotYetDue, filters)).toBe(0);
   });
 });

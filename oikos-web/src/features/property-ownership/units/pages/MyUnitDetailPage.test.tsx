@@ -10,6 +10,15 @@ const myUnits: OwnedUnit[] = [
   { unitId: 'unit-2', unitNumber: 'B2', buildingId: 'b2', buildingName: 'Bât B', propertyId: 'p1', propertyName: 'Nour', ownershipShare: 40 },
 ];
 
+// Relative to today: a hard-coded future date would quietly stop being in the
+// future and turn the "not yet due" assertions vacuous.
+function isoInAYear(): string {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + 1);
+  return date.toLocaleDateString('sv-SE');
+}
+const NOT_YET_DUE = isoInAYear();
+
 // Only this lot's rows; the other lot's would be a bug if they showed up.
 const installmentsByUnit: Record<string, unknown[]> = {
   // Seven rows so the top-5 cap is actually exercised; only i1 and i2 are still
@@ -23,6 +32,8 @@ const installmentsByUnit: Record<string, unknown[]> = {
     // the two oldest - cut off by the top-5
     { id: 'i6', unitId: THIS_LOT, dueDate: '2026-01-10', amount: 800, outstandingAmount: 0, status: 'SETTLED', period: null },
     { id: 'i7', unitId: THIS_LOT, dueDate: '2026-01-05', amount: 800, outstandingAmount: 0, status: 'SETTLED', period: null },
+    // Latest date of all, so it would head the top-5 if it were not excluded.
+    { id: 'i8', unitId: THIS_LOT, dueDate: NOT_YET_DUE, amount: 9500, outstandingAmount: 9500, status: 'NOT_SETTLED', period: null },
   ],
   'unit-2': [
     { id: 'other', unitId: 'unit-2', dueDate: '2026-02-02', amount: 4242, outstandingAmount: 4242, status: 'NOT_SETTLED', period: null },
@@ -109,18 +120,29 @@ function renderPage() {
 }
 
 describe('MyUnitDetailPage', () => {
-  it('shows what the lot owes, and how many echeances that covers', () => {
+  it('shows what the lot owes as a signed balance, and how many echeances that covers', () => {
     renderPage();
 
     // 1000 + 200; the settled one contributes nothing
-    expect(screen.getByText('1 200 MAD')).toBeInTheDocument();
+    expect(screen.getByText('-1 200 MAD')).toBeInTheDocument();
     expect(screen.getByText('2 échéances à régler')).toBeInTheDocument();
   });
 
   it('colours an amount owed as a debt, not as a healthy balance', () => {
     renderPage();
 
-    expect(screen.getByText('1 200 MAD').className).toMatch(/error/);
+    expect(screen.getByText('-1 200 MAD').className).toMatch(/error/);
+  });
+
+  // A balance should lead to what makes it up - and to this lot's share of it,
+  // not to every lot's echeances beside a figure that excludes them.
+  it('opens the unpaid echeances of this lot from the balance', () => {
+    renderPage();
+
+    expect(screen.getByRole('link', { name: /Solde à régler/ })).toHaveAttribute(
+      'href',
+      `/property-ownership/installments?status=DUE&unitId=${THIS_LOT}`,
+    );
   });
 
   it('replaces the owners block with "Informations générales", keeping the owner listed', () => {
@@ -156,6 +178,17 @@ describe('MyUnitDetailPage', () => {
     expect(screen.getByText(/Échéance du 15\/01\/2026/)).toBeInTheDocument();
     // 4 242 MAD belongs to unit-2
     expect(screen.queryByText(/4 242/)).not.toBeInTheDocument();
+  });
+
+  it('keeps the echeances not yet fallen due out of "Dernières échéances"', () => {
+    renderPage();
+
+    // Sorted by date descending, i8 would take the first of the five slots and
+    // push out an echeance actually to pay - and it is not owed yet anyway,
+    // which the balance above already reflects by ignoring its 9 500 MAD.
+    expect(screen.queryByText(/9 500/)).not.toBeInTheDocument();
+    expect(screen.getByText('-1 200 MAD')).toBeInTheDocument();
+    expect(screen.getByText('2 échéances à régler')).toBeInTheDocument();
   });
 
   it('shows both recent-operation blocks at once, no tabs to switch', () => {

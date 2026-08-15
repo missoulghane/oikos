@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import com.architek.oikos.accounting.infrastructure.persistence.JournalEntryJpaRepository;
 
@@ -36,5 +37,14 @@ class JournalEntrySearchPostgresIntegrationTest extends PostgresIntegrationTestB
     void searchByTreasuryAccount_executes_when_every_optional_filter_is_set() {
         assertThat(repository.searchByTreasuryAccount(UUID.randomUUID(), UUID.randomUUID(), LocalDate.of(2026, 1, 1),
                 LocalDate.of(2026, 12, 31), "VIR-2026", "POSTED", PageRequest.of(0, 20))).isEmpty();
+    }
+
+    @Test
+    void searchByTreasuryAccount_executes_when_the_order_by_comes_from_the_pageable() {
+        // The query carries no `order by` of its own any more: Spring appends one
+        // from the Pageable. On PostgreSQL a SELECT DISTINCT may only be ordered
+        // by expressions of its select list, which is what this checks.
+        assertThat(repository.searchByTreasuryAccount(UUID.randomUUID(), UUID.randomUUID(), null, null, null, null,
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "pieceNumber")))).isEmpty();
     }
 }

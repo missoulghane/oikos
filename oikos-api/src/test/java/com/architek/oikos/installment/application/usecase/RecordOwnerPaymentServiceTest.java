@@ -3,6 +3,7 @@ package com.architek.oikos.installment.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -29,8 +30,10 @@ import com.architek.oikos.installment.domain.model.Installment;
 import com.architek.oikos.installment.domain.model.Payment;
 import com.architek.oikos.installment.domain.repository.InstallmentRepository;
 import com.architek.oikos.installment.domain.repository.PaymentRepository;
+import com.architek.oikos.installment.domain.repository.ReceiptNumberSequenceRepository;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
 import com.architek.oikos.installment.domain.valueobject.PaymentMode;
+import com.architek.oikos.installment.domain.valueobject.ReceiptNumber;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -52,14 +55,21 @@ class RecordOwnerPaymentServiceTest {
     @Mock
     private OwnerPaymentJournalEntryPort ownerPaymentJournalEntryPort;
 
+    @Mock
+    private ReceiptNumberSequenceRepository receiptNumberSequenceRepository;
+
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
     private RecordOwnerPaymentService newService() {
         return new RecordOwnerPaymentService(propertyDirectoryPort, unitDirectoryPort, installmentRepository,
-                paymentRepository, ownerPaymentJournalEntryPort);
+                paymentRepository, ownerPaymentJournalEntryPort, receiptNumberSequenceRepository, eventPublisher);
     }
 
     private void stubDirectories(EntityId propertyId, EntityId unitId) {
         when(propertyDirectoryPort.exists(propertyId)).thenReturn(true);
         when(unitDirectoryPort.exists(unitId)).thenReturn(true);
+        when(receiptNumberSequenceRepository.allocate(any(), anyInt())).thenReturn(new ReceiptNumber(2026, 1));
     }
 
     @Test

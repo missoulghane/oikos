@@ -20,12 +20,15 @@ import com.architek.oikos.property.domain.repository.UnitTypeDefinitionRepositor
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.OwnershipStatus;
 import com.architek.oikos.property.domain.valueobject.UnitId;
+import com.architek.oikos.property.domain.valueobject.UnitSortField;
 import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.pagination.SortDirection;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -63,7 +66,7 @@ public class ListUnitsByBuildingService implements ListUnitsByBuildingUseCase {
                 .collect(Collectors.toMap(UnitTypeDefinition::getId, UnitTypeDefinition::getName));
 
         boolean searches = query.search() != null && !query.search().isBlank();
-        if (!searches && query.ownershipStatus() == null) {
+        if (!searches && query.ownershipStatus() == null && query.sortField() == null) {
             Map<EntityId, PartyDetails> partyDetailsCache = new HashMap<>();
             return unitRepository.findAllByBuildingId(query.buildingId(), query.pageRequest())
                     .map(unit -> toView(unit, unitOwnershipRepository.findAllByUnitId(unit.getId()),
@@ -78,7 +81,9 @@ public class ListUnitsByBuildingService implements ListUnitsByBuildingUseCase {
      * name/phone lives behind PartyDirectoryPort (never joined directly, rule
      * 6) and the ownership status is derived from UnitOwnership - so matching
      * happens in memory over every unit of the building, same
-     * in-memory-filter assumption as ListContactsByPropertyService.
+     * in-memory-filter assumption as ListContactsByPropertyService. Sorting
+     * joins them for a different reason: ordering the rows of the current page
+     * only would order nothing at all.
      */
     private Page<UnitView> filterInMemory(ListUnitsByBuildingQuery query, Map<UnitTypeDefinitionId, String> namesByUnitTypeId) {
         String pattern = query.search() == null || query.search().isBlank()
@@ -93,6 +98,7 @@ public class ListUnitsByBuildingService implements ListUnitsByBuildingUseCase {
         List<Unit> matchingUnits = allUnits.stream()
                 .filter(unit -> matchesStatus(ownershipsByUnitId.get(unit.getId()), query.ownershipStatus()))
                 .filter(unit -> matchesSearch(unit, ownershipsByUnitId.get(unit.getId()), pattern, partyDetailsCache))
+                .sorted(comparator(query))
                 .toList();
 
         int pageSize = query.pageRequest().pageSize();
@@ -104,6 +110,64 @@ public class ListUnitsByBuildingService implements ListUnitsByBuildingUseCase {
                 .toList();
 
         return Page.of(content, query.pageRequest().pageNumber(), pageSize, matchingUnits.size());
+    }
+
+    /** Repository order preserved when no sort is asked for. */
+    private static Comparator<Unit> comparator(ListUnitsByBuildingQuery query) {
+        if (query.sortField() == null) {
+            return (left, right) -> 0;
+        }
+        Comparator<Unit> comparator = query.sortField() == UnitSortField.SHARES
+                ? Comparator.comparing(unit -> unit.getShares().value())
+                : Comparator.comparing(Unit::getUnitNumber, ListUnitsByBuildingService::compareNaturally);
+        return query.sortDirection() == SortDirection.DESC ? comparator.reversed() : comparator;
+    }
+
+    /**
+     * Digit runs compared as numbers, so lot A2 comes before A10. Plain
+     * lexicographic order would put A10 in between A1 and A2, which reads as a
+     * broken sort on the very column a syndic scans most.
+     */
+    private static int compareNaturally(String left, String right) {
+        if (left == null || right == null) {
+            return left == null ? (right == null ? 0 : -1) : 1;
+        }
+        int i = 0;
+        int j = 0;
+        while (i < left.length() && j < right.length()) {
+            char leftChar = left.charAt(i);
+            char rightChar = right.charAt(j);
+            if (Character.isDigit(leftChar) && Character.isDigit(rightChar)) {
+                int startI = i;
+                int startJ = j;
+                while (i < left.length() && Character.isDigit(left.charAt(i))) {
+                    i++;
+                }
+                while (j < right.length() && Character.isDigit(right.charAt(j))) {
+                    j++;
+                }
+                // Compared as text once the leading zeroes are gone: a lot number
+                // can be longer than an int.
+                String leftDigits = left.substring(startI, i).replaceFirst("^0+(?=.)", "");
+                String rightDigits = right.substring(startJ, j).replaceFirst("^0+(?=.)", "");
+                int byLength = Integer.compare(leftDigits.length(), rightDigits.length());
+                if (byLength != 0) {
+                    return byLength;
+                }
+                int byValue = leftDigits.compareTo(rightDigits);
+                if (byValue != 0) {
+                    return byValue;
+                }
+            } else {
+                int byChar = Character.compare(Character.toLowerCase(leftChar), Character.toLowerCase(rightChar));
+                if (byChar != 0) {
+                    return byChar;
+                }
+                i++;
+                j++;
+            }
+        }
+        return Integer.compare(left.length() - i, right.length() - j);
     }
 
     private UnitView toView(Unit unit, List<UnitOwnership> ownerships, Map<UnitTypeDefinitionId, String> namesByUnitTypeId,

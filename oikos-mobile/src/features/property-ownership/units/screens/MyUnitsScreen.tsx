@@ -1,7 +1,6 @@
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useCurrentUser } from '@/features/identity/me/hooks/useCurrentUser';
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import { useMyInstallments } from '@/features/property-ownership/installments/hooks/useMyInstallments';
 import { MyUnitCard } from '@/features/property-ownership/units/components/MyUnitCard';
@@ -12,8 +11,6 @@ import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
-import { getFirstName } from '@/shared/utils/getFirstName';
-import { getGreeting } from '@/shared/utils/getGreeting';
 import { colors } from '@/shared/theme/colors';
 import type { HomeStackParamList } from '@/app/navigation/HomeStackNavigator';
 import type { OwnedUnit } from '@/features/property-ownership/units/types/unit.types';
@@ -21,8 +18,6 @@ import type { OwnedUnit } from '@/features/property-ownership/units/types/unit.t
 type Props = NativeStackScreenProps<HomeStackParamList, 'Home'>;
 
 export function MyUnitsScreen({ navigation }: Props) {
-  const currentUser = useCurrentUser();
-  const firstName = currentUser.data ? getFirstName(currentUser.data.fullName) : '';
   const units = useMyUnits();
   // One request for every lot's echeances rather than one per card - the owner
   // endpoint already returns them all, and the per-lot figure is a filter away.
@@ -36,11 +31,8 @@ export function MyUnitsScreen({ navigation }: Props) {
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <View style={styles.header}>
-            {/* This screen is the Accueil tab now, so it carries the greeting
-                that used to live on a separate placeholder home screen. */}
-            <Text style={styles.greeting}>
-              {getGreeting()} {firstName}
-            </Text>
+            {/* Titled after what it shows, like oikos-web's owner dashboard. */}
+            <Text style={styles.greeting}>Mes lots</Text>
             <Card style={styles.linksCard}>
               <Button variant="secondary" onPress={() => navigation.navigate('MyInstallments')}>
                 Mes échéances

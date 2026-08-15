@@ -6,10 +6,11 @@ import { useMyInstallments } from '@/features/property-ownership/installments/ho
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import { formatUnitLabel } from '@/features/property-ownership/units/utils/formatUnitLabel';
 import { MyInstallmentFilters } from '@/features/property-ownership/installments/components/MyInstallmentFilters';
-import { outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
+import { isNotYetDue, outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
 import {
   DEFAULT_MY_INSTALLMENT_FILTERS,
   filterInstallments,
+  notYetDueHiddenCount,
   type MyInstallmentFiltersValue,
 } from '@/features/property-ownership/installments/utils/filterInstallments';
 import {
@@ -31,13 +32,21 @@ import type { OwnedInstallment } from '@/features/property-ownership/installment
 type Props = NativeStackScreenProps<HomeStackParamList, 'MyInstallments'>;
 
 // Sorting always holds a value, so it would inflate the "active filters" count
-// on an untouched list - it is still reset by "Effacer".
+// on an untouched list - it is still reset by "Réinitialiser". includeNotYetDue
+// is *not* excluded: it lives in the panel like any other field, and turning it
+// on has to leave a trace while the panel is folded.
 const SORT_KEYS = ['sortBy', 'sortDirection'] as const;
 
-export function MyInstallmentsScreen({ navigation }: Props) {
+export function MyInstallmentsScreen({ navigation, route }: Props) {
   const installments = useMyInstallments();
   const units = useMyUnits();
-  const [filters, setFilters] = useState<MyInstallmentFiltersValue>(DEFAULT_MY_INSTALLMENT_FILTERS);
+  // Seeded once from the route params rather than kept in sync with them: they
+  // only say what to *open* on, the filters stay the user's to change from there.
+  const [filters, setFilters] = useState<MyInstallmentFiltersValue>(() => ({
+    ...DEFAULT_MY_INSTALLMENT_FILTERS,
+    status: route.params?.status === 'DUE' ? 'DUE' : DEFAULT_MY_INSTALLMENT_FILTERS.status,
+    unitId: route.params?.unitId ?? DEFAULT_MY_INSTALLMENT_FILTERS.unitId,
+  }));
 
   const isLoading = installments.isLoading || units.isLoading;
   const error = installments.error ?? units.error;
@@ -60,6 +69,10 @@ export function MyInstallmentsScreen({ navigation }: Props) {
     () => filterInstallments(installments.data ?? [], filters, unitLabelById),
     [installments.data, filters, unitLabelById],
   );
+  const hiddenNotYetDue = useMemo(
+    () => notYetDueHiddenCount(installments.data ?? [], filters, unitLabelById),
+    [installments.data, filters, unitLabelById],
+  );
 
   const isDueFilterActive = filters.status === 'DUE';
 
@@ -77,7 +90,16 @@ export function MyInstallmentsScreen({ navigation }: Props) {
               onPress={() => setFilters({ ...filters, status: isDueFilterActive ? '' : 'DUE' })}
               style={[styles.totalBadge, isDueFilterActive && styles.totalBadgeActive]}
             >
-              <Text style={[styles.totalLabel, isDueFilterActive && styles.totalTextActive]}>Total à régler</Text>
+              {/* Label and its qualifier stacked, so the badge keeps its
+                  label-left / amount-right layout. */}
+              <View style={styles.totalLabelBlock}>
+                <Text style={[styles.totalLabel, isDueFilterActive && styles.totalTextActive]}>
+                  Total à régler
+                </Text>
+                <Text style={[styles.totalHint, isDueFilterActive && styles.totalTextActive]}>
+                  échéances déjà exigibles
+                </Text>
+              </View>
               <Text style={[styles.totalAmount, isDueFilterActive && styles.totalTextActive]}>
                 {totalDue.toLocaleString('fr-FR')} MAD
               </Text>
@@ -92,7 +114,11 @@ export function MyInstallmentsScreen({ navigation }: Props) {
                   placeholder: 'Rechercher un lot, un montant…',
                 }}
               >
-                <MyInstallmentFilters value={filters} onChange={setFilters} />
+                <MyInstallmentFilters
+                  value={filters}
+                  onChange={setFilters}
+                  hiddenNotYetDue={hiddenNotYetDue}
+                />
               </FilterPanel>
             </Card>
           </View>
@@ -112,6 +138,13 @@ export function MyInstallmentsScreen({ navigation }: Props) {
                 </Text>
                 <Text style={styles.rowOutstanding}>
                   Reste à payer : {item.outstandingAmount.toLocaleString('fr-FR')} MAD
+                  {/* Marked because the badge total ignores it: otherwise the
+                      listed rows add up to more than the total and the gap
+                      looks like a bug. */}
+                  {/* Only ever reached with the toggle on, since these rows are
+                      hidden by default. Still marked: the badge total ignores
+                      them, so the listed rows would otherwise add up to more. */}
+                  {isNotYetDue(item) && <Text style={styles.notYetDue}> · à échoir</Text>}
                 </Text>
               </View>
               <Badge color={INSTALLMENT_STATUS_BADGE_COLORS[item.status]}>
@@ -129,7 +162,9 @@ export function MyInstallmentsScreen({ navigation }: Props) {
               <EmptyState title="Aucune échéance">
                 {(installments.data ?? []).length === 0
                   ? "Vous n'avez aucune échéance pour le moment."
-                  : 'Aucune échéance ne correspond à ces filtres.'}
+                  : hiddenNotYetDue > 0
+                    ? `Aucune échéance exigible ne correspond à ces filtres. ${hiddenNotYetDue} échéance${hiddenNotYetDue > 1 ? 's' : ''} à échoir ${hiddenNotYetDue > 1 ? 'sont masquées' : 'est masquée'}.`
+                    : 'Aucune échéance ne correspond à ces filtres.'}
               </EmptyState>
             )}
           </>
@@ -164,6 +199,13 @@ const styles = StyleSheet.create({
   },
   totalBadgeActive: {
     backgroundColor: colors.brand[500],
+  },
+  totalLabelBlock: {
+    gap: 2,
+  },
+  totalHint: {
+    fontSize: 11,
+    color: colors.gray[500],
   },
   totalLabel: {
     fontSize: 14,
@@ -200,6 +242,9 @@ const styles = StyleSheet.create({
   rowOutstanding: {
     fontSize: 13,
     color: colors.gray[500],
+  },
+  notYetDue: {
+    color: colors.warning[500],
   },
   separator: {
     height: 1,

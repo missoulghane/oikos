@@ -4,6 +4,7 @@ import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits
 import { formatUnitLabel } from '@/features/property-ownership/units/utils/formatUnitLabel';
 import { DATE_RANGE_PRESET_LABELS, type DateRangePreset } from '@/shared/utils/datePresets';
 import type { MyInstallmentFiltersValue } from '@/features/property-ownership/installments/utils/filterInstallments';
+import { NotYetDueToggle } from '@/features/property-ownership/installments/components/NotYetDueToggle';
 
 const STATUS_OPTIONS: SelectOption[] = [
   { value: '', label: 'Tous' },
@@ -25,9 +26,11 @@ const PERIOD_OPTIONS: SelectOption[] = (
 interface MyInstallmentFiltersProps {
   value: MyInstallmentFiltersValue;
   onChange: (value: MyInstallmentFiltersValue) => void;
+  /** Rows the "à échoir" toggle is currently withholding. */
+  hiddenNotYetDue: number;
 }
 
-export function MyInstallmentFilters({ value, onChange }: MyInstallmentFiltersProps) {
+export function MyInstallmentFilters({ value, onChange, hiddenNotYetDue }: MyInstallmentFiltersProps) {
   const units = useMyUnits();
 
   const unitOptions: SelectOption[] = [
@@ -69,6 +72,11 @@ export function MyInstallmentFilters({ value, onChange }: MyInstallmentFiltersPr
             sortDirection: sortDirection as MyInstallmentFiltersValue['sortDirection'],
           });
         }}
+      />
+      <NotYetDueToggle
+        checked={value.includeNotYetDue}
+        hiddenCount={hiddenNotYetDue}
+        onChange={(includeNotYetDue) => onChange({ ...value, includeNotYetDue })}
       />
     </View>
   );

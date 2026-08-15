@@ -14,10 +14,13 @@ import com.architek.oikos.document.domain.valueobject.DocumentId;
 import com.architek.oikos.document.domain.valueobject.DocumentOwnerType;
 import com.architek.oikos.installment.application.port.in.GetInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.GetInstallmentUseCase;
+import com.architek.oikos.installment.application.port.in.GetPaymentUseCase;
 import com.architek.oikos.installment.application.query.GetInstallmentCallQuery;
 import com.architek.oikos.installment.application.query.GetInstallmentQuery;
+import com.architek.oikos.installment.application.query.GetPaymentQuery;
 import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
+import com.architek.oikos.installment.domain.valueobject.PaymentId;
 import com.architek.oikos.invitation.application.port.in.GetInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.GetMembershipRequestUseCase;
 import com.architek.oikos.invitation.application.query.GetInvitationQuery;
@@ -72,6 +75,7 @@ public class PropertyAccessEvaluator {
     private final GetBuildingUseCase getBuildingUseCase;
     private final GetInstallmentUseCase getInstallmentUseCase;
     private final GetInstallmentCallUseCase getInstallmentCallUseCase;
+    private final GetPaymentUseCase getPaymentUseCase;
     private final ListUnitOwnershipsByUnitUseCase listUnitOwnershipsByUnitUseCase;
     private final GetPartyUseCase getPartyUseCase;
     private final GetInvitationUseCase getInvitationUseCase;
@@ -86,6 +90,7 @@ public class PropertyAccessEvaluator {
                                     GetBuildingUseCase getBuildingUseCase,
                                     GetInstallmentUseCase getInstallmentUseCase,
                                     GetInstallmentCallUseCase getInstallmentCallUseCase,
+                                    GetPaymentUseCase getPaymentUseCase,
                                     ListUnitOwnershipsByUnitUseCase listUnitOwnershipsByUnitUseCase,
                                     GetPartyUseCase getPartyUseCase,
                                     GetInvitationUseCase getInvitationUseCase,
@@ -99,6 +104,7 @@ public class PropertyAccessEvaluator {
         this.getBuildingUseCase = getBuildingUseCase;
         this.getInstallmentUseCase = getInstallmentUseCase;
         this.getInstallmentCallUseCase = getInstallmentCallUseCase;
+        this.getPaymentUseCase = getPaymentUseCase;
         this.listUnitOwnershipsByUnitUseCase = listUnitOwnershipsByUnitUseCase;
         this.getPartyUseCase = getPartyUseCase;
         this.getInvitationUseCase = getInvitationUseCase;
@@ -357,7 +363,28 @@ public class PropertyAccessEvaluator {
             return true;
         }
         DocumentView document = getDocumentUseCase.getDocument(new GetDocumentQuery(DocumentId.of(documentId)));
+        // A payment receipt is not a copropriété-wide document: it names one
+        // owner and states what they paid. The permission path below is
+        // property-scoped (DOCUMENT_READ on the property), and every
+        // copropriétaire holds DOCUMENT_READ - it would let any of them read
+        // any other's receipt. Narrowed here to the lot's own owner (or staff).
+        if (document.ownerType() == DocumentOwnerType.PAYMENT) {
+            return managesPayment(authentication, document.ownerId().toString());
+        }
         return canReadDocument(authentication, document.ownerType().name(), document.ownerId().toString());
+    }
+
+    /**
+     * Read access to a single payment and its receipt: staff of the property, or
+     * the owner of the lot it was paid on. Same shape as managesInstallment.
+     */
+    public boolean managesPayment(Authentication authentication, String paymentId) {
+        if (isAdminAuthority(authentication)) {
+            return true;
+        }
+        String unitId = getPaymentUseCase.getPayment(new GetPaymentQuery(PaymentId.of(paymentId)))
+                .unitId().toString();
+        return managesUnit(authentication, unitId) || ownsUnit(authentication, unitId);
     }
 
     /** Gates DELETE /documents/{id}. */
@@ -373,6 +400,8 @@ public class PropertyAccessEvaluator {
         return switch (DocumentOwnerType.valueOf(ownerType.toUpperCase())) {
             case PROPERTY -> ownerId;
             case UNIT -> getUnitUseCase.getUnit(new GetUnitQuery(UnitId.of(ownerId))).propertyId().toString();
+            case PAYMENT -> getPaymentUseCase.getPayment(new GetPaymentQuery(PaymentId.of(ownerId)))
+                    .propertyId().toString();
         };
     }
 

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'Reçu ' + ${receiptNumber}">Reçu</title>
+    <!--
+      Self-contained on purpose: openhtmltopdf resolves relative URLs against a
+      base URI that does not exist here, so every rule is inline and no font,
+      image or stylesheet is fetched. @page fixes the A4 geometry, which the
+      renderer needs explicitly - there is no browser default to inherit.
+    -->
+    <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11pt; color: #101828; }
+        .header { border-bottom: 2px solid #465fff; padding-bottom: 12px; margin-bottom: 24px; }
+        .brand { font-size: 20pt; font-weight: bold; color: #465fff; }
+        .doc-title { font-size: 14pt; margin-top: 4px; }
+        .meta { color: #667085; font-size: 10pt; margin-top: 2px; }
+        table.fields { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        table.fields td { padding: 6px 0; vertical-align: top; }
+        td.label { color: #667085; width: 45%; }
+        td.value { font-weight: bold; }
+        .amount-box { border: 1px solid #e4e7ec; background: #f9fafb; padding: 16px; margin-bottom: 24px; }
+        .amount-label { color: #667085; font-size: 10pt; }
+        .amount { font-size: 20pt; font-weight: bold; }
+        table.breakdown { width: 100%; border-collapse: collapse; font-size: 10pt; }
+        table.breakdown th { text-align: left; color: #667085; border-bottom: 1px solid #e4e7ec; padding: 6px 0; font-weight: normal; }
+        table.breakdown td { padding: 6px 0; border-bottom: 1px solid #f2f4f7; }
+        td.right, th.right { text-align: right; }
+        .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e4e7ec; color: #667085; font-size: 9pt; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div class="brand">OIKOS</div>
+    <div class="doc-title">Reçu de paiement</div>
+    <div class="meta">N° <span th:text="${receiptNumber}">—</span> · émis le <span th:text="${issuedOn}">—</span></div>
+</div>
+
+<table class="fields">
+    <tr>
+        <td class="label">Copropriété</td>
+        <td class="value" th:text="${propertyName}">—</td>
+    </tr>
+    <tr>
+        <td class="label">Lot</td>
+        <td class="value" th:text="${unitLabel}">—</td>
+    </tr>
+    <tr th:if="${payerName != null}">
+        <td class="label">Copropriétaire</td>
+        <td class="value" th:text="${payerName}">—</td>
+    </tr>
+    <tr>
+        <td class="label">Date de valeur</td>
+        <td class="value" th:text="${valueDate}">—</td>
+    </tr>
+    <tr>
+        <td class="label">Mode de règlement</td>
+        <td class="value" th:text="${paymentMode}">—</td>
+    </tr>
+</table>
+
+<div class="amount-box">
+    <div class="amount-label">Montant reçu</div>
+    <div class="amount" th:text="${amount}">—</div>
+</div>
+
+<!-- Imputation breakdown: what settled echeances, and what stayed as an advance.
+     Hidden entirely when the payment settled nothing (a pure advance). -->
+<table class="breakdown" th:if="${hasBreakdown}">
+    <thead>
+    <tr>
+        <th>Affectation</th>
+        <th class="right">Montant</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:if="${imputedAmount != null}">
+        <td th:text="'Imputé sur ' + ${allocationCount} + ' échéance(s)'">—</td>
+        <td class="right" th:text="${imputedAmount}">—</td>
+    </tr>
+    <tr th:if="${advanceAmount != null}">
+        <td>Conservé en avance</td>
+        <td class="right" th:text="${advanceAmount}">—</td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    Ce reçu atteste de l'encaissement du montant ci-dessus par la copropriété.
+    Document généré automatiquement par OIKOS, il ne nécessite pas de signature.
+</div>
+</body>
+</html>

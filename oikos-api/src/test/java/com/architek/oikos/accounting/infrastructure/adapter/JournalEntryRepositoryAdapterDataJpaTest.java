@@ -18,13 +18,16 @@ import com.architek.oikos.accounting.domain.model.JournalEntryLine;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
 import com.architek.oikos.accounting.domain.valueobject.EntryDirection;
 import com.architek.oikos.accounting.domain.valueobject.JournalCode;
+import com.architek.oikos.accounting.domain.valueobject.JournalEntryFilter;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
+import com.architek.oikos.accounting.domain.valueobject.JournalEntrySortField;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryLineId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryStatus;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
 import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.accounting.infrastructure.mapper.JournalEntryPersistenceMapperImpl;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.pagination.SortDirection;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.infrastructure.configuration.JpaAuditingConfiguration;
@@ -139,5 +142,62 @@ class JournalEntryRepositoryAdapterDataJpaTest {
         assertThat(grouped).hasSize(1);
         assertThat(grouped.get(0).unitId()).isEqualTo(unitId);
         assertThat(grouped.get(0).amount()).isEqualByComparingTo("300.00");
+    }
+
+    /** Two entries on one treasury account, dated a month apart. */
+    private LedgerAccountId seedTwoTreasuryEntries(EntityId propertyId) {
+        LedgerAccountId treasuryAccountId = LedgerAccountId.newId();
+        adapter.save(treasuryEntry(propertyId, treasuryAccountId, LocalDate.of(2026, 7, 1)));
+        adapter.save(treasuryEntry(propertyId, treasuryAccountId, LocalDate.of(2026, 8, 1)));
+        return treasuryAccountId;
+    }
+
+    private JournalEntry treasuryEntry(EntityId propertyId, LedgerAccountId treasuryAccountId, LocalDate pieceDate) {
+        return JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(), PeriodId.newId(),
+                JournalCode.OD, null, pieceDate, null, EntityId.newId(),
+                List.of(JournalEntryLine.of(JournalEntryLineId.newId(), treasuryAccountId, null, null,
+                                EntryDirection.DEBIT, Amount.of(new BigDecimal("50.00")), "Debit"),
+                        JournalEntryLine.of(JournalEntryLineId.newId(), LedgerAccountId.newId(), null, null,
+                                EntryDirection.CREDIT, Amount.of(new BigDecimal("50.00")), "Credit")));
+    }
+
+    @Test
+    void treasury_operations_come_back_most_recent_first_when_no_sort_is_asked_for() {
+        EntityId propertyId = EntityId.newId();
+        LedgerAccountId treasuryAccountId = seedTwoTreasuryEntries(propertyId);
+
+        var page = adapter.findPageByTreasuryAccount(propertyId, treasuryAccountId,
+                JournalEntryFilter.defaultFilter(), PageRequest.of(0, 20));
+
+        // The order the JPQL used to carry itself, now set through the Pageable.
+        assertThat(page.content()).extracting(JournalEntry::getPieceDate)
+                .containsExactly(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 7, 1));
+    }
+
+    @Test
+    void treasury_operations_can_be_ordered_by_piece_date_ascending() {
+        EntityId propertyId = EntityId.newId();
+        LedgerAccountId treasuryAccountId = seedTwoTreasuryEntries(propertyId);
+
+        var page = adapter.findPageByTreasuryAccount(propertyId, treasuryAccountId,
+                new JournalEntryFilter(null, null, null, null, JournalEntrySortField.PIECE_DATE, SortDirection.ASC),
+                PageRequest.of(0, 20));
+
+        assertThat(page.content()).extracting(JournalEntry::getPieceDate)
+                .containsExactly(LocalDate.of(2026, 7, 1), LocalDate.of(2026, 8, 1));
+    }
+
+    @Test
+    void treasury_operations_are_ordered_before_being_paginated() {
+        EntityId propertyId = EntityId.newId();
+        LedgerAccountId treasuryAccountId = seedTwoTreasuryEntries(propertyId);
+
+        // Page 1 of size 1: only a sort applied before paginating puts August here.
+        var page = adapter.findPageByTreasuryAccount(propertyId, treasuryAccountId,
+                new JournalEntryFilter(null, null, null, null, JournalEntrySortField.PIECE_DATE, SortDirection.ASC),
+                PageRequest.of(1, 1));
+
+        assertThat(page.content()).extracting(JournalEntry::getPieceDate).containsExactly(LocalDate.of(2026, 8, 1));
+        assertThat(page.totalElements()).isEqualTo(2);
     }
 }

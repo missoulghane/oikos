@@ -44,92 +44,25 @@
 -- =========================================================================
 
 -- =========================================================================
--- 0. RBAC: role -> permission bundles. Flyway is disabled for the dev
--- profile (ddl-auto: create-drop, schema regenerated from JPA entities), so
--- this mirrors V2__rbac_permissions.sql's role_permission seed - kept in
--- sync manually, same as the admin account below duplicating V1's seed row.
--- No JPA entity maps the `permission` table itself (nothing in the app
--- reads it directly, only role_permission is queried), so under
--- Hibernate-generated schema (unlike the real V2 Flyway migration) that
--- table - and its FK from role_permission - simply doesn't exist here;
--- role_permission.permission_key is seeded as a plain string below.
+-- 0. RBAC: the role -> permission bundles are NOT declared here any more.
+-- They used to be, "kept in sync manually" with the Flyway seed - and that
+-- manual sync silently drifted three times. There is now a single source,
+-- db/migration/V2__seed_role_permission.sql, which the dev profile loads
+-- directly through spring.sql.init (see application-dev.yml) even though
+-- Flyway itself is disabled here. RolePermissionSeedTest fails the build if
+-- that file, the `permission` catalog in V1 and the Permission enum ever
+-- disagree.
+--
+-- The docker profile does NOT load it from here: its schema comes from the
+-- standalone Flyway service, which applies V2 itself - loading it twice
+-- would be a duplicate-key error on every start.
 -- =========================================================================
 
-INSERT INTO role_permission (role_name, permission_key) VALUES
-    ('ROLE_ADMIN', 'property:read'),
-    ('ROLE_ADMIN', 'property:create'),
-    ('ROLE_ADMIN', 'property:update'),
-    ('ROLE_ADMIN', 'property:board:manage'),
-    ('ROLE_ADMIN', 'property:member:invite'),
-    ('ROLE_ADMIN', 'unit:read'),
-    ('ROLE_ADMIN', 'unit:write'),
-    ('ROLE_ADMIN', 'unit:ownership:write'),
-    ('ROLE_ADMIN', 'party:read'),
-    ('ROLE_ADMIN', 'party:write'),
-    ('ROLE_ADMIN', 'party:invite'),
-    ('ROLE_ADMIN', 'installment:read'),
-    ('ROLE_ADMIN', 'installment:call:write'),
-    ('ROLE_ADMIN', 'property:accounting:read'),
-    ('ROLE_ADMIN', 'property:accounting:write'),
-    ('ROLE_ADMIN', 'user:admin'),
-    ('ROLE_ADMIN', 'invitation:manage'),
-    ('ROLE_ADMIN', 'document:read'),
-    ('ROLE_ADMIN', 'document:write'),
-    ('ROLE_ADMIN', 'messaging:broadcast');
 
-INSERT INTO role_permission (role_name, permission_key) VALUES
-    ('PROPERTY_BOARD_ADMIN', 'property:read'),
-    ('PROPERTY_BOARD_ADMIN', 'property:create'),
-    ('PROPERTY_BOARD_ADMIN', 'property:update'),
-    ('PROPERTY_BOARD_ADMIN', 'property:board:manage'),
-    ('PROPERTY_BOARD_ADMIN', 'property:member:invite'),
-    ('PROPERTY_BOARD_ADMIN', 'unit:read'),
-    ('PROPERTY_BOARD_ADMIN', 'unit:write'),
-    ('PROPERTY_BOARD_ADMIN', 'unit:ownership:write'),
-    ('PROPERTY_BOARD_ADMIN', 'party:read'),
-    ('PROPERTY_BOARD_ADMIN', 'party:write'),
-    ('PROPERTY_BOARD_ADMIN', 'party:invite'),
-    ('PROPERTY_BOARD_ADMIN', 'installment:read'),
-    ('PROPERTY_BOARD_ADMIN', 'installment:call:write'),
-    ('PROPERTY_BOARD_ADMIN', 'property:accounting:read'),
-    ('PROPERTY_BOARD_ADMIN', 'property:accounting:write'),
-    ('PROPERTY_BOARD_ADMIN', 'invitation:manage'),
-    ('PROPERTY_BOARD_ADMIN', 'document:read'),
-    ('PROPERTY_BOARD_ADMIN', 'document:write'),
-    ('PROPERTY_BOARD_ADMIN', 'messaging:broadcast');
 
-INSERT INTO role_permission (role_name, permission_key) VALUES
-    ('PROPERTY_BOARD_MEMBER', 'property:read'),
-    ('PROPERTY_BOARD_MEMBER', 'property:create'),
-    ('PROPERTY_BOARD_MEMBER', 'property:update'),
-    ('PROPERTY_BOARD_MEMBER', 'property:board:manage'),
-    ('PROPERTY_BOARD_MEMBER', 'property:member:invite'),
-    ('PROPERTY_BOARD_MEMBER', 'unit:read'),
-    ('PROPERTY_BOARD_MEMBER', 'unit:write'),
-    ('PROPERTY_BOARD_MEMBER', 'unit:ownership:write'),
-    ('PROPERTY_BOARD_MEMBER', 'party:read'),
-    ('PROPERTY_BOARD_MEMBER', 'party:write'),
-    ('PROPERTY_BOARD_MEMBER', 'party:invite'),
-    ('PROPERTY_BOARD_MEMBER', 'installment:read'),
-    ('PROPERTY_BOARD_MEMBER', 'installment:call:write'),
-    ('PROPERTY_BOARD_MEMBER', 'property:accounting:read'),
-    ('PROPERTY_BOARD_MEMBER', 'property:accounting:write'),
-    ('PROPERTY_BOARD_MEMBER', 'invitation:manage'),
-    ('PROPERTY_BOARD_MEMBER', 'document:read'),
-    ('PROPERTY_BOARD_MEMBER', 'document:write'),
-    ('PROPERTY_BOARD_MEMBER', 'messaging:broadcast');
 
-INSERT INTO role_permission (role_name, permission_key)
-SELECT 'PROPERTY_MANAGER_ADMIN', permission_key FROM role_permission WHERE role_name = 'PROPERTY_BOARD_ADMIN';
 
-INSERT INTO role_permission (role_name, permission_key)
-SELECT 'PROPERTY_MANAGER_MEMBER', permission_key FROM role_permission WHERE role_name = 'PROPERTY_BOARD_MEMBER';
 
-INSERT INTO role_permission (role_name, permission_key) VALUES
-    ('PROPERTY_OWNER', 'party:read'),
-    ('PROPERTY_OWNER', 'unit:read'),
-    ('PROPERTY_OWNER', 'installment:read'),
-    ('PROPERTY_OWNER', 'document:read');
 
 -- =========================================================================
 -- 1. ADMIN: platform-wide master account, not tied to any property, so no

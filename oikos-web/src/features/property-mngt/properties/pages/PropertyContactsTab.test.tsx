@@ -100,4 +100,21 @@ describe('PropertyContactsTab', () => {
       expect(mockedGetPropertyContacts).toHaveBeenCalledWith(expect.objectContaining({ hasLinkedAccount: true })),
     );
   });
+
+  it('sorts the contacts on a column header, asking the server for the new order', async () => {
+    const user = userEvent.setup();
+    renderTab();
+    await screen.findByText(/Jean Dupont/);
+
+    await user.click(screen.getByRole('button', { name: /^Compte$/ }));
+
+    // Paginated server-side: the order has to come from the API, reordering the
+    // rows on screen would only reorder the current page. A newly clicked column
+    // starts descending - see nextSortDirection.
+    await waitFor(() =>
+      expect(mockedGetPropertyContacts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortBy: 'ACCOUNT_STATUS', sortDirection: 'DESC' }),
+      ),
+    );
+  });
 });

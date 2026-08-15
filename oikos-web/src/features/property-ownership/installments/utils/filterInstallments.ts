@@ -1,12 +1,23 @@
 import type { OwnedInstallment } from '@/features/property-ownership/installments/types/ownedInstallment.types';
-import { isDue } from '@/features/property-ownership/installments/utils/installmentTotals';
+import { isNotYetDue, isUnsettled } from '@/features/property-ownership/installments/utils/installmentTotals';
 import { INSTALLMENT_STATUS_LABELS } from '@/features/property-mngt/installments/constants/installmentStatusLabels';
 import { matchesSearch } from '@/shared/utils/normalizeForSearch';
 
 /** '' means "no filter" for every field, matching the InstallmentFilters convention. */
 export interface MyInstallmentFiltersValue {
-  /** 'DUE' groups NOT_SETTLED + PARTIALLY_SETTLED - see isDue. */
+  /**
+   * 'DUE' groups NOT_SETTLED + PARTIALLY_SETTLED - see isUnsettled. Deliberately
+   * status-only, unlike the balance: someone filtering "À régler" wants every
+   * line still to be paid, including the ones not yet fallen due.
+   */
   status: 'DUE' | 'SETTLED' | '';
+  /**
+   * Unsettled echeances dated in the future are hidden by default. They are not
+   * owed yet, so they inflate a list read as "what do I have to pay" and, since
+   * the totals exclude them, they make the visible rows add up to more than the
+   * total. Opt back in through the toggle above the list, never silently.
+   */
+  includeNotYetDue: boolean;
   unitId: string;
   dueDateFrom: string;
   dueDateTo: string;
@@ -17,6 +28,7 @@ export interface MyInstallmentFiltersValue {
 
 export const DEFAULT_MY_INSTALLMENT_FILTERS: MyInstallmentFiltersValue = {
   status: '',
+  includeNotYetDue: false,
   unitId: '',
   dueDateFrom: '',
   dueDateTo: '',
@@ -55,10 +67,13 @@ export function filterInstallments(
     if (filters.search && !matchesSearch(searchHaystack(installment, unitLabelById.get(installment.unitId) ?? ''), filters.search)) {
       return false;
     }
-    if (filters.status === 'DUE' && !isDue(installment)) {
+    if (filters.status === 'DUE' && !isUnsettled(installment)) {
       return false;
     }
-    if (filters.status === 'SETTLED' && isDue(installment)) {
+    if (filters.status === 'SETTLED' && isUnsettled(installment)) {
+      return false;
+    }
+    if (!filters.includeNotYetDue && isNotYetDue(installment)) {
       return false;
     }
     if (filters.unitId && installment.unitId !== filters.unitId) {
@@ -82,4 +97,22 @@ export function filterInstallments(
     }
     return a.dueDate.localeCompare(b.dueDate) * direction;
   });
+}
+
+/**
+ * How many rows the "à échoir" toggle is currently hiding, under the *other*
+ * filters in force - so the count always matches what turning it on would add.
+ * Surfaced on the toggle itself: hiding rows by default is only acceptable if
+ * the list says so.
+ */
+export function notYetDueHiddenCount(
+  installments: readonly OwnedInstallment[],
+  filters: MyInstallmentFiltersValue,
+  unitLabelById: ReadonlyMap<string, string> = new Map(),
+): number {
+  if (filters.includeNotYetDue) {
+    return 0;
+  }
+  const withThem = filterInstallments(installments, { ...filters, includeNotYetDue: true }, unitLabelById);
+  return withThem.filter((installment) => isNotYetDue(installment)).length;
 }

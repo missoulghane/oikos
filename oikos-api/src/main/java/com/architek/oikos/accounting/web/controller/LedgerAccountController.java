@@ -15,10 +15,12 @@ import com.architek.oikos.accounting.application.port.in.ListJournalEntriesByTre
 import com.architek.oikos.accounting.application.query.ListJournalEntriesByTreasuryAccountQuery;
 import com.architek.oikos.accounting.application.query.ListLedgerAccountsByPropertyQuery;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryFilter;
+import com.architek.oikos.accounting.domain.valueobject.JournalEntrySortField;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryStatus;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
 import com.architek.oikos.accounting.web.response.LedgerAccountResponse;
 import com.architek.oikos.accounting.web.response.PagedJournalEntryResponse;
+import com.architek.oikos.shared.domain.pagination.SortDirection;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -53,8 +55,11 @@ public class LedgerAccountController {
                                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate pieceDateFrom,
                                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate pieceDateTo,
                                                   @RequestParam(required = false) String search,
-                                                  @RequestParam(required = false) JournalEntryStatus status) {
-        JournalEntryFilter filter = new JournalEntryFilter(pieceDateFrom, pieceDateTo, search, status);
+                                                  @RequestParam(required = false) JournalEntryStatus status,
+                                                  @RequestParam(required = false) JournalEntrySortField sortBy,
+                                                  @RequestParam(required = false) SortDirection sortDirection) {
+        JournalEntryFilter filter = new JournalEntryFilter(pieceDateFrom, pieceDateTo, search, status, sortBy,
+                sortDirection);
         return PagedJournalEntryResponse.from(listJournalEntriesByTreasuryAccountUseCase.list(
                 new ListJournalEntriesByTreasuryAccountQuery(EntityId.of(propertyId), LedgerAccountId.of(accountId),
                         filter, PageRequest.of(page, size))));

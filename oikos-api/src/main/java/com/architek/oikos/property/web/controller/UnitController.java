@@ -23,6 +23,7 @@ import com.architek.oikos.property.application.query.GetUnitQuery;
 import com.architek.oikos.property.application.query.ListUnitsByBuildingQuery;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.OwnershipStatus;
+import com.architek.oikos.property.domain.valueobject.UnitSortField;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.property.web.request.AddUnitRequest;
@@ -30,6 +31,7 @@ import com.architek.oikos.property.web.request.UpdateUnitSharesRequest;
 import com.architek.oikos.property.web.response.UnitResponse;
 import com.architek.oikos.property.web.response.PagedUnitResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.pagination.SortDirection;
 import org.springframework.web.bind.annotation.PutMapping;
 
 @RestController
@@ -56,9 +58,11 @@ public class UnitController {
                                   @RequestParam(defaultValue = "0") int page,
                                   @RequestParam(defaultValue = "20") int size,
                                   @RequestParam(required = false) String search,
-                                  @RequestParam(required = false) OwnershipStatus ownershipStatus) {
+                                  @RequestParam(required = false) OwnershipStatus ownershipStatus,
+                                  @RequestParam(required = false) UnitSortField sortBy,
+                                  @RequestParam(required = false) SortDirection sortDirection) {
         ListUnitsByBuildingQuery query = new ListUnitsByBuildingQuery(
-                BuildingId.of(buildingId), PageRequest.of(page, size), search, ownershipStatus);
+                BuildingId.of(buildingId), PageRequest.of(page, size), search, ownershipStatus, sortBy, sortDirection);
         return PagedUnitResponse.from(listUnitsByBuildingUseCase.listUnits(query));
     }
 

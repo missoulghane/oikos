@@ -1,17 +1,20 @@
 import { Select } from '@/shared/components/Select/Select';
+import { NotYetDueToggle } from '@/features/property-mngt/installments/components/NotYetDueToggle';
 import { Input } from '@/shared/components/Input/Input';
 import { INSTALLMENT_STATUS_LABELS } from '@/features/property-mngt/installments/constants/installmentStatusLabels';
 import { useInstallmentCallsByProperty } from '@/features/property-mngt/installments/hooks/useInstallmentCallsByProperty';
 import { formatPeriod } from '@/features/property-mngt/installments/utils/formatPeriod';
-import {
-  INSTALLMENT_SORT_FIELDS,
-  type InstallmentSortField,
-  type InstallmentStatus,
-  type SortDirection,
+import type {
+  InstallmentSortField,
+  InstallmentStatus,
+  SortDirection,
 } from '@/features/property-mngt/installments/types/installment.types';
 
 export interface InstallmentFiltersValue {
   status: InstallmentStatus | '';
+  search: string;
+  /** Same default as the owner space: what is not owed yet stays out of sight. */
+  includeNotYetDue: boolean;
   dueDateFrom: string;
   dueDateTo: string;
   installmentCallId: string;
@@ -24,16 +27,6 @@ export interface InstallmentFiltersValue {
 // page (no pagination UI needed here) is simpler than a searchable picker.
 const INSTALLMENT_CALLS_PAGE_SIZE = 100;
 
-const SORT_FIELD_LABELS: Record<InstallmentSortField, string> = {
-  DUE_DATE: "Date d'échéance",
-  AMOUNT: 'Montant',
-};
-
-const SORT_DIRECTION_LABELS: Record<SortDirection, string> = {
-  ASC: 'Croissant',
-  DESC: 'Décroissant',
-};
-
 interface InstallmentFiltersProps {
   propertyId: string;
   value: InstallmentFiltersValue;
@@ -44,7 +37,9 @@ export function InstallmentFilters({ propertyId, value, onChange }: InstallmentF
   const installmentCalls = useInstallmentCallsByProperty(propertyId, 0, INSTALLMENT_CALLS_PAGE_SIZE);
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+    // Five columns from lg: with sorting moved onto the table headers, the
+    // whole set fits one row without squeezing the date inputs.
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <Select
         label="Statut"
         name="status"
@@ -85,30 +80,10 @@ export function InstallmentFilters({ propertyId, value, onChange }: InstallmentF
         value={value.dueDateTo}
         onChange={(e) => onChange({ ...value, dueDateTo: e.target.value })}
       />
-      <Select
-        label="Trier par"
-        name="sortBy"
-        value={value.sortBy}
-        onChange={(e) => onChange({ ...value, sortBy: e.target.value as InstallmentSortField })}
-      >
-        {INSTALLMENT_SORT_FIELDS.map((field) => (
-          <option key={field} value={field}>
-            {SORT_FIELD_LABELS[field]}
-          </option>
-        ))}
-      </Select>
-      <Select
-        label="Ordre"
-        name="sortDirection"
-        value={value.sortDirection}
-        onChange={(e) => onChange({ ...value, sortDirection: e.target.value as SortDirection })}
-      >
-        {(Object.keys(SORT_DIRECTION_LABELS) as SortDirection[]).map((direction) => (
-          <option key={direction} value={direction}>
-            {SORT_DIRECTION_LABELS[direction]}
-          </option>
-        ))}
-      </Select>
+      <NotYetDueToggle
+        checked={value.includeNotYetDue}
+        onChange={(includeNotYetDue) => onChange({ ...value, includeNotYetDue })}
+      />
     </div>
   );
 }

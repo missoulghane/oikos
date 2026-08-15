@@ -1,12 +1,13 @@
 import { httpClient } from '@/shared/api/httpClient';
-import type { PagedPropertyContacts } from '@/features/property-mngt/properties/types/property.types';
+import type {
+  ContactListFilters,
+  PagedPropertyContacts,
+} from '@/features/property-mngt/properties/types/property.types';
 
-export interface GetPropertyContactsParams {
+export interface GetPropertyContactsParams extends ContactListFilters {
   propertyId: string;
   page: number;
   size: number;
-  search?: string;
-  hasLinkedAccount?: boolean;
 }
 
 export async function getPropertyContacts({
@@ -15,9 +16,11 @@ export async function getPropertyContacts({
   size,
   search,
   hasLinkedAccount,
+  sortBy,
+  sortDirection,
 }: GetPropertyContactsParams): Promise<PagedPropertyContacts> {
   const { data } = await httpClient.get<PagedPropertyContacts>(`/properties/${propertyId}/contacts`, {
-    params: { page, size, search, hasLinkedAccount },
+    params: { page, size, search, hasLinkedAccount, sortBy, sortDirection },
   });
   return data;
 }

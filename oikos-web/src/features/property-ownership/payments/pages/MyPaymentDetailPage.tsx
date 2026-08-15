@@ -3,11 +3,14 @@ import { useMyPayments } from '@/features/property-ownership/payments/hooks/useM
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import { formatUnitLabel } from '@/features/property-ownership/units/utils/formatUnitLabel';
 import { PAYMENT_MODE_LABELS } from '@/features/property-mngt/installments/constants/paymentModeLabels';
+import { useDownloadPaymentReceipt } from '@/features/property-mngt/installments/hooks/useDownloadPaymentReceipt';
+import { Button } from '@/shared/components/Button/Button';
 import { Card } from '@/shared/components/Card/Card';
 import { Badge } from '@/shared/components/Badge/Badge';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { isNotFound } from '@/shared/utils/isNotFound';
 
 /**
  * Resolved from the owner's payment list rather than fetched by id: there is no
@@ -20,6 +23,7 @@ export function MyPaymentDetailPage() {
   const { paymentId } = useParams<{ paymentId: string }>();
   const payments = useMyPayments();
   const units = useMyUnits();
+  const downloadReceipt = useDownloadPaymentReceipt();
 
   if (payments.isLoading || units.isLoading) {
     return <Loader label="Chargement du paiement…" />;
@@ -84,6 +88,36 @@ export function MyPaymentDetailPage() {
             <dd className="font-mono text-xs text-gray-700 dark:text-gray-300">{payment.id}</dd>
           </div>
         </dl>
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Reçu</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Le justificatif de ce versement, au format PDF.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          className="self-start"
+          isLoading={downloadReceipt.isPending}
+          onClick={() => downloadReceipt.mutate({ paymentId: payment.id, fileName: `recu-${payment.id}.pdf` })}
+        >
+          Télécharger le reçu
+        </Button>
+        {/* A payment recorded before receipts existed, or whose generation failed,
+            has none - the endpoint answers 404 and this says so plainly rather
+            than leaving a button that silently does nothing. */}
+        {downloadReceipt.isError && (
+          <Alert
+            message={
+              isNotFound(downloadReceipt.error)
+                ? "Aucun reçu n'est disponible pour ce paiement. Rapprochez-vous de votre syndic."
+                : getErrorMessage(downloadReceipt.error)
+            }
+          />
+        )}
       </Card>
     </div>
   );

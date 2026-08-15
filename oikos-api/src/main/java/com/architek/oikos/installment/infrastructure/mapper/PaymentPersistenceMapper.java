@@ -5,6 +5,7 @@ import org.mapstruct.Mapper;
 import com.architek.oikos.installment.domain.model.Payment;
 import com.architek.oikos.installment.domain.valueobject.PaymentId;
 import com.architek.oikos.installment.domain.valueobject.PaymentMode;
+import com.architek.oikos.installment.domain.valueobject.ReceiptNumber;
 import com.architek.oikos.installment.infrastructure.persistence.PaymentEntity;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -24,12 +25,14 @@ public interface PaymentPersistenceMapper {
         entity.setValueDate(payment.getValueDate());
         entity.setAmount(payment.getAmount().value());
         entity.setJournalEntryId(payment.getJournalEntryId().value());
+        entity.setReceiptNumber(payment.getReceiptNumber().map(ReceiptNumber::format).orElse(null));
         return entity;
     }
 
     default Payment toDomain(PaymentEntity entity) {
         return Payment.reconstruct(PaymentId.of(entity.getId()), EntityId.of(entity.getPropertyId()),
                 EntityId.of(entity.getUnitId()), PaymentMode.valueOf(entity.getMode()), entity.getValueDate(),
-                Amount.of(entity.getAmount()), EntityId.of(entity.getJournalEntryId()));
+                Amount.of(entity.getAmount()), EntityId.of(entity.getJournalEntryId()),
+                entity.getReceiptNumber() == null ? null : ReceiptNumber.parse(entity.getReceiptNumber()));
     }
 }

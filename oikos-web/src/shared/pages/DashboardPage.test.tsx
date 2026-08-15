@@ -105,10 +105,25 @@ describe('DashboardPage (owner space)', () => {
     expect(screen.queryByRole('link', { name: /Mes échéances · total à régler/ })).not.toBeInTheDocument();
   });
 
-  it('still greets the owner by first name', () => {
+  // The owner dashboard is the lot list, so it is titled after its content; the
+  // greeting is kept for the board/manager dashboards, which are still summaries.
+  it('is titled "Mes lots" rather than greeting the owner', () => {
     renderDashboard();
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Rachid');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Mes lots');
+    expect(screen.getByRole('heading', { level: 1 })).not.toHaveTextContent('Rachid');
+  });
+
+  it('no longer repeats the ownership share on each lot card', () => {
+    renderDashboard();
+
+    expect(screen.queryByText(/des tantièmes/)).not.toBeInTheDocument();
+  });
+
+  it('shows a debtor lot as a signed balance', () => {
+    renderDashboard();
+
+    expect(screen.getByRole('link', { name: /Al Amal/ })).toHaveTextContent('Solde : -1 000 MAD');
   });
 
   // Explicitly kept while the rest of the dashboard was stripped: it is the

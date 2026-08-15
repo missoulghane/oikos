@@ -12,7 +12,12 @@ spring:
   sql:
     init:
       mode: always
-      data-locations: classpath:db/dev/dev.sql
+      # The RBAC bundles come from the Flyway migration itself, even though
+      # Flyway is disabled here: it is the single source (see its header), and
+      # loading it as a plain script is what keeps the dev profile from needing
+      # its own drifting copy. Ordered first - dev.sql assigns roles to accounts
+      # and reads better after the roles' permissions exist.
+      data-locations: classpath:db/migration/V2__seed_role_permission.sql,classpath:db/dev/dev.sql
   flyway:
     enabled: false
   h2:

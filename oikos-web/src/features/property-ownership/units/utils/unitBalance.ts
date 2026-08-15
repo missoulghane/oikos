@@ -1,7 +1,7 @@
 import { outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
 import type { InstallmentStatus } from '@/features/property-mngt/installments/types/installment.types';
 
-type BalanceInput = { unitId: string; status: InstallmentStatus; outstandingAmount: number };
+type BalanceInput = { unitId: string; status: InstallmentStatus; dueDate: string; outstandingAmount: number };
 
 /**
  * What a lot still owes, derived from its own echeances.
@@ -12,9 +12,11 @@ type BalanceInput = { unitId: string; status: InstallmentStatus; outstandingAmou
  * goes negative, so it cannot express an avance/credit. Payments must not be
  * subtracted here: a payment already reduces `outstandingAmount` through its
  * allocation, so netting them again would double-count.
+ *
+ * Only counts what has fallen due at the reference date - see isDueBy.
  */
-export function unitOutstanding(installments: readonly BalanceInput[], unitId: string): number {
-  return outstandingTotal(installments.filter((installment) => installment.unitId === unitId));
+export function unitOutstanding(installments: readonly BalanceInput[], unitId: string, asOf?: string): number {
+  return outstandingTotal(installments.filter((installment) => installment.unitId === unitId), asOf);
 }
 
 /**

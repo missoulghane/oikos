@@ -12,17 +12,7 @@ export function usePropertyInstallments(
   size: number = DEFAULT_PAGE_SIZE,
 ) {
   return useQuery({
-    queryKey: queryKeys.properties.installments(
-      propertyId,
-      page,
-      size,
-      filters.status,
-      filters.dueDateFrom,
-      filters.dueDateTo,
-      filters.installmentCallId,
-      filters.sortBy,
-      filters.sortDirection,
-    ),
+    queryKey: queryKeys.properties.installments(propertyId, page, size, filters),
     queryFn: () => getPropertyInstallments({ propertyId, page, size, ...filters }),
     placeholderData: (previousData) => previousData,
   });

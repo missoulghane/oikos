@@ -14,4 +14,7 @@ public interface PropertyDirectoryPort {
     boolean exists(EntityId propertyId);
 
     PropertyDuesConfigurationView getDuesConfiguration(EntityId propertyId);
+
+    /** Display name of the copropriété, for documents addressed to an owner (payment receipts). */
+    String getName(EntityId propertyId);
 }

@@ -74,6 +74,7 @@ public class InstallmentRepositoryAdapter implements InstallmentRepository {
                 filter.statuses().contains(InstallmentStatus.PARTIALLY_SETTLED),
                 filter.statuses().contains(InstallmentStatus.SETTLED),
                 filter.installmentCallId() != null ? filter.installmentCallId().asUuid() : null,
+                filter.hideNotYetDueAsOf(),
                 pageable);
 
         List<Installment> content = page.getContent().stream().map(mapper::toDomain).toList();

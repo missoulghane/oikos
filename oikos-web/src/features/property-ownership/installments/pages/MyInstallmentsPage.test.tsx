@@ -10,10 +10,20 @@ const units: OwnedUnit[] = [
   { unitId: 'unit-2', unitNumber: 'B2', buildingId: 'b2', buildingName: 'Bat B', propertyId: 'p1', propertyName: 'Al Amal', ownershipShare: 50 },
 ];
 
+// Relative to today rather than a literal date: a hard-coded future date would
+// quietly stop being in the future and turn these assertions vacuous.
+function isoInAYear(): string {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + 1);
+  return date.toLocaleDateString('sv-SE');
+}
+const NOT_YET_DUE = isoInAYear();
+
 const installments: OwnedInstallment[] = [
   { id: 'a', unitId: 'unit-1', dueDate: '2026-01-15', amount: 1000, outstandingAmount: 1000, status: 'NOT_SETTLED' },
   { id: 'b', unitId: 'unit-2', dueDate: '2026-03-10', amount: 500, outstandingAmount: 200, status: 'PARTIALLY_SETTLED' },
   { id: 'c', unitId: 'unit-1', dueDate: '2026-06-01', amount: 800, outstandingAmount: 0, status: 'SETTLED' },
+  { id: 'd', unitId: 'unit-1', dueDate: NOT_YET_DUE, amount: 600, outstandingAmount: 600, status: 'NOT_SETTLED' },
 ];
 
 vi.mock('@/features/property-ownership/installments/hooks/useMyInstallments', () => ({
@@ -25,9 +35,9 @@ vi.mock('@/features/property-ownership/units/hooks/useMyUnits', () => ({
 
 const { MyInstallmentsPage } = await import('@/features/property-ownership/installments/pages/MyInstallmentsPage');
 
-function renderPage() {
+function renderPage(entry = '/property-ownership/installments') {
   return render(
-    <MemoryRouter initialEntries={['/property-ownership/installments']}>
+    <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/property-ownership/installments" element={<MyInstallmentsPage />} />
         <Route path="/property-ownership/installments/:installmentId" element={<h1>Détail échéance</h1>} />
@@ -50,10 +60,58 @@ describe('MyInstallmentsPage', () => {
     expect(screen.getByRole('button', { name: /Total à régler/ })).toHaveTextContent('1 200 MAD');
   });
 
-  it('lists every echeance by default', () => {
+  it('hides the echeances not yet fallen due by default', () => {
     renderPage();
 
+    // 'd' is unsettled but not owed yet, so it stays out of a list read as
+    // "what do I have to pay" - and out of the 1 200 MAD total above.
     expect(bodyRowCount()).toBe(3);
+    expect(screen.queryByText('à échoir')).not.toBeInTheDocument();
+  });
+
+  it('announces on the toggle how many echeances it is hiding', () => {
+    renderPage();
+
+    const toggle = screen.getByRole('button', { name: /Échéances à échoir/ });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(toggle).toHaveTextContent('1');
+  });
+
+  it('brings the not-yet-due echeances back, marked, when the toggle is pressed', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /Échéances à échoir/ }));
+
+    expect(bodyRowCount()).toBe(4);
+    expect(screen.getByText('à échoir')).toBeInTheDocument();
+    // The total keeps ignoring it: showing a row is not owing it.
+    expect(screen.getByRole('button', { name: /Total à régler/ })).toHaveTextContent('1 200 MAD');
+  });
+
+  it('hides them again when the toggle is pressed a second time', async () => {
+    renderPage();
+    const toggle = screen.getByRole('button', { name: /Échéances à échoir/ });
+    await userEvent.click(toggle);
+    await userEvent.click(toggle);
+
+    expect(bodyRowCount()).toBe(3);
+  });
+
+  it('counts the not-yet-due toggle among the active filters', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /Échéances à échoir/ }));
+
+    // It sits inside the panel, which is folded by default: without the badge,
+    // showing them would leave no trace on screen.
+    expect(screen.getByRole('button', { name: 'Filtres' })).toHaveTextContent('1');
+  });
+
+  it('puts the not-yet-due echeances back out of sight on "Réinitialiser"', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /Échéances à échoir/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Réinitialiser/ }));
+
+    expect(bodyRowCount()).toBe(3);
+    expect(screen.getByRole('button', { name: /Échéances à échoir/ })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('narrows the table to what is still owed when the total badge is clicked', async () => {
@@ -163,6 +221,32 @@ describe('MyInstallmentsPage', () => {
     expect(screen.getByRole('button', { name: /^Filtres/ })).toHaveTextContent('1');
   });
 
+  // The lot balance badge links here with these params; without seeding, the
+  // reader would land on the full unfiltered list.
+  it('opens pre-filtered when the URL asks for a lot and the unpaid status', () => {
+    renderPage('/property-ownership/installments?status=DUE&unitId=unit-1');
+
+    // unit-1 has one unsettled echeance ('a') and one settled ('c')
+    expect(bodyRowCount()).toBe(1);
+    expect(screen.getByLabelText('Lot')).toHaveValue('unit-1');
+    expect(screen.getByLabelText('Statut')).toHaveValue('DUE');
+    expect(screen.getByRole('button', { name: /^Filtres/ })).toHaveTextContent('2');
+  });
+
+  it('ignores an unknown status in the URL rather than filtering on nonsense', () => {
+    renderPage('/property-ownership/installments?status=BOGUS');
+
+    expect(bodyRowCount()).toBe(3);
+    expect(screen.getByLabelText('Statut')).toHaveValue('');
+  });
+
+  it('lets the reader clear a filter that came from the URL', async () => {
+    renderPage('/property-ownership/installments?status=DUE&unitId=unit-1');
+    await userEvent.click(screen.getByRole('button', { name: /Réinitialiser/ }));
+
+    expect(bodyRowCount()).toBe(3);
+  });
+
   it('no longer offers sorting as filter fields', () => {
     renderPage();
 
@@ -189,7 +273,7 @@ describe('MyInstallmentsPage', () => {
     renderPage();
     expect(firstRowText()).toContain('01/06/2026');
 
-    await userEvent.click(screen.getByRole('button', { name: /Échéance/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Échéance$/ }));
 
     expect(screen.getByRole('columnheader', { name: /Échéance/ })).toHaveAttribute('aria-sort', 'ascending');
     expect(firstRowText()).toContain('15/01/2026');

@@ -40,4 +40,8 @@ public class PaymentEntity extends AuditableEntity {
 
     @Column(name = "journal_entry_id", nullable = false)
     private UUID journalEntryId;
+
+    /** Nullable: payments recorded before receipt numbering existed have none (see V3). */
+    @Column(name = "receipt_number", length = 20)
+    private String receiptNumber;
 }

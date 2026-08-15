@@ -11,16 +11,7 @@ export function useLedgerAccountEntries(
   size: number = 20,
 ) {
   return useQuery({
-    queryKey: queryKeys.properties.ledgerAccountEntries(
-      propertyId,
-      accountId,
-      page,
-      size,
-      filters.pieceDateFrom,
-      filters.pieceDateTo,
-      filters.search,
-      filters.status,
-    ),
+    queryKey: queryKeys.properties.ledgerAccountEntries(propertyId, accountId, page, size, filters),
     queryFn: () =>
       getLedgerAccountEntries({
         propertyId,

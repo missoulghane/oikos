@@ -11,9 +11,11 @@ import org.springframework.context.annotation.Import;
 import com.architek.oikos.party.domain.model.Party;
 import com.architek.oikos.party.domain.valueobject.PartyId;
 import com.architek.oikos.party.domain.valueobject.PartySearchCriteria;
+import com.architek.oikos.party.domain.valueobject.PartySortField;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
 import com.architek.oikos.party.infrastructure.mapper.PartyPersistenceMapperImpl;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.pagination.SortDirection;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.infrastructure.configuration.JpaAuditingConfiguration;
@@ -119,6 +121,51 @@ class PartyRepositoryAdapterDataJpaTest {
         var page = adapter.findAll(PageRequest.of(0, 20), new PartySearchCriteria(propertyId, "alice"));
 
         assertThat(page.content()).extracting(Party::getFullName).containsExactly("Alice Martin");
+    }
+
+    @Test
+    void findAll_sorts_by_name_ignoring_case() {
+        adapter.save(Party.create(PartyId.newId(), propertyId, "zoe Martin", PartyType.INDIVIDUAL,
+                EmailVO.of("zoe@oikos.com"), null));
+        adapter.save(Party.create(PartyId.newId(), propertyId, "Alice Durand", PartyType.INDIVIDUAL,
+                EmailVO.of("alice@oikos.com"), null));
+
+        var page = adapter.findAll(PageRequest.of(0, 20),
+                new PartySearchCriteria(propertyId, null, PartySortField.FULL_NAME, SortDirection.ASC));
+
+        // A raw column sort would put "zoe" first on the databases that order
+        // uppercase before lowercase.
+        assertThat(page.content()).extracting(Party::getFullName).containsExactly("Alice Durand", "zoe Martin");
+    }
+
+    @Test
+    void findAll_sorts_across_the_whole_result_set_not_only_the_requested_page() {
+        adapter.save(Party.create(PartyId.newId(), propertyId, "Carla", PartyType.INDIVIDUAL,
+                EmailVO.of("carla@oikos.com"), null));
+        adapter.save(Party.create(PartyId.newId(), propertyId, "Alice", PartyType.INDIVIDUAL,
+                EmailVO.of("alice@oikos.com"), null));
+        adapter.save(Party.create(PartyId.newId(), propertyId, "Bob", PartyType.INDIVIDUAL,
+                EmailVO.of("bob@oikos.com"), null));
+
+        // Page 1 of size 1: only a sort applied before paginating can put Bob here.
+        var page = adapter.findAll(PageRequest.of(1, 1),
+                new PartySearchCriteria(propertyId, null, PartySortField.FULL_NAME, SortDirection.ASC));
+
+        assertThat(page.content()).extracting(Party::getFullName).containsExactly("Bob");
+        assertThat(page.totalElements()).isEqualTo(3);
+    }
+
+    @Test
+    void findAll_sorts_by_email_descending() {
+        adapter.save(Party.create(PartyId.newId(), propertyId, "Alice", PartyType.INDIVIDUAL,
+                EmailVO.of("alice@oikos.com"), null));
+        adapter.save(Party.create(PartyId.newId(), propertyId, "Bob", PartyType.INDIVIDUAL,
+                EmailVO.of("bob@oikos.com"), null));
+
+        var page = adapter.findAll(PageRequest.of(0, 20),
+                new PartySearchCriteria(propertyId, null, PartySortField.EMAIL, SortDirection.DESC));
+
+        assertThat(page.content()).extracting(Party::getFullName).containsExactly("Bob", "Alice");
     }
 
     @Test

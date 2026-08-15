@@ -52,7 +52,7 @@ class ListInstallmentsByPropertyServiceTest {
     @Test
     void returns_an_empty_page_without_querying_installments_when_the_property_has_no_unit() {
         EntityId propertyId = EntityId.newId();
-        when(propertyUnitDirectoryPort.listUnitIds(propertyId)).thenReturn(List.of());
+        when(propertyUnitDirectoryPort.listUnitIds(propertyId, null)).thenReturn(List.of());
 
         Page<InstallmentView> page = newService().listInstallments(
                 new ListInstallmentsByPropertyQuery(propertyId, InstallmentFilter.defaultFilter(), PageRequest.of(0, 20)));
@@ -63,11 +63,28 @@ class ListInstallmentsByPropertyServiceTest {
     }
 
     @Test
+    void hands_the_search_term_to_the_property_module_rather_than_to_the_repository() {
+        EntityId propertyId = EntityId.newId();
+        EntityId unitId = EntityId.newId();
+        when(propertyUnitDirectoryPort.listUnitIds(propertyId, "A12")).thenReturn(List.of(unitId));
+        when(installmentRepository.findPageByUnitIds(any(), any(), any()))
+                .thenReturn(Page.of(List.of(), 0, 20, 0));
+
+        newService().listInstallments(new ListInstallmentsByPropertyQuery(propertyId,
+                InstallmentFilter.defaultFilter(), PageRequest.of(0, 20), "A12"));
+
+        // A lot number, an owner name or a phone: none of them is visible to the
+        // installment repository, so the search narrows the units instead.
+        verify(propertyUnitDirectoryPort).listUnitIds(propertyId, "A12");
+        verify(installmentRepository).findPageByUnitIds(eq(List.of(unitId)), any(), any());
+    }
+
+    @Test
     void resolves_unit_ids_of_the_property_then_lists_their_installments() {
         EntityId propertyId = EntityId.newId();
         EntityId unitId = EntityId.newId();
         List<EntityId> unitIds = List.of(unitId);
-        when(propertyUnitDirectoryPort.listUnitIds(propertyId)).thenReturn(unitIds);
+        when(propertyUnitDirectoryPort.listUnitIds(propertyId, null)).thenReturn(unitIds);
 
         Installment installment = Installment.create(InstallmentId.newId(), unitId,
                 LocalDate.of(2026, 8, 1), Amount.of(new BigDecimal("150")));
@@ -90,7 +107,7 @@ class ListInstallmentsByPropertyServiceTest {
         EntityId propertyId = EntityId.newId();
         EntityId unitId = EntityId.newId();
         List<EntityId> unitIds = List.of(unitId);
-        when(propertyUnitDirectoryPort.listUnitIds(propertyId)).thenReturn(unitIds);
+        when(propertyUnitDirectoryPort.listUnitIds(propertyId, null)).thenReturn(unitIds);
 
         InstallmentCallId callId = InstallmentCallId.newId();
         Installment installment = Installment.create(InstallmentId.newId(), unitId,
@@ -113,7 +130,7 @@ class ListInstallmentsByPropertyServiceTest {
         EntityId propertyId = EntityId.newId();
         EntityId unitId = EntityId.newId();
         List<EntityId> unitIds = List.of(unitId);
-        when(propertyUnitDirectoryPort.listUnitIds(propertyId)).thenReturn(unitIds);
+        when(propertyUnitDirectoryPort.listUnitIds(propertyId, null)).thenReturn(unitIds);
 
         InstallmentCallId callId = InstallmentCallId.newId();
         InstallmentFilter filter = new InstallmentFilter(null, null, null, null, null, callId);

@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom';
 import { useCurrentUser, canWriteAccounting } from '@/features/identity/me';
 import { useUnitPayments } from '@/features/property-mngt/installments/hooks/useUnitPayments';
 import { PAYMENT_MODE_LABELS } from '@/features/property-mngt/installments/constants/paymentModeLabels';
+import { useDownloadPaymentReceipt } from '@/features/property-mngt/installments/hooks/useDownloadPaymentReceipt';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { Badge } from '@/shared/components/Badge/Badge';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { isNotFound } from '@/shared/utils/isNotFound';
 
 interface UnitPaymentsSectionProps {
   propertyId: string;
@@ -18,6 +20,7 @@ interface UnitPaymentsSectionProps {
 export function UnitPaymentsSection({ propertyId, unitId, canManage = true }: UnitPaymentsSectionProps) {
   const currentUser = useCurrentUser();
   const payments = useUnitPayments(unitId);
+  const downloadReceipt = useDownloadPaymentReceipt();
   const canWrite = canManage && currentUser.data ? canWriteAccounting(currentUser.data, propertyId) : false;
 
   return (
@@ -25,15 +28,37 @@ export function UnitPaymentsSection({ propertyId, unitId, canManage = true }: Un
       {payments.isLoading && <Loader label="Chargement des paiements…" />}
       {payments.isError && <Alert message={getErrorMessage(payments.error)} />}
       {payments.data && payments.data.length === 0 && <EmptyState title="Aucun paiement pour le moment" />}
+      {/* A payment recorded before receipts existed, or whose generation failed,
+          has none - say so rather than leave the link failing silently. */}
+      {downloadReceipt.isError && (
+        <Alert
+          message={
+            isNotFound(downloadReceipt.error)
+              ? "Aucun reçu n'est disponible pour ce paiement. Régénérez-le depuis l'API si besoin."
+              : getErrorMessage(downloadReceipt.error)
+          }
+        />
+      )}
       {payments.data && payments.data.length > 0 && (
         <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
           {payments.data.map((payment) => (
-            <li key={payment.id} className="flex items-center justify-between py-2 text-sm">
+            <li key={payment.id} className="flex flex-col gap-1 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
               <p className="text-gray-700 dark:text-gray-300">
                 Paiement du {new Date(payment.valueDate).toLocaleDateString('fr-FR')} —{' '}
                 {payment.amount.toLocaleString('fr-FR')} MAD
               </p>
-              <Badge color="light">{PAYMENT_MODE_LABELS[payment.mode]}</Badge>
+              <span className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadReceipt.mutate({ paymentId: payment.id, fileName: `recu-${payment.id}.pdf` })
+                  }
+                  className="text-sm font-medium text-brand-500 hover:underline dark:text-brand-400"
+                >
+                  Reçu
+                </button>
+                <Badge color="light">{PAYMENT_MODE_LABELS[payment.mode]}</Badge>
+              </span>
             </li>
           ))}
         </ul>

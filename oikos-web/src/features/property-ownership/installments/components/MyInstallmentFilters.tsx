@@ -2,6 +2,7 @@ import { Select } from '@/shared/components/Select/Select';
 import { Input } from '@/shared/components/Input/Input';
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import type { MyInstallmentFiltersValue } from '@/features/property-ownership/installments/utils/filterInstallments';
+import { NotYetDueToggle } from '@/features/property-mngt/installments/components/NotYetDueToggle';
 
 // Owner-facing wording: the three raw statuses collapse into the two states an
 // owner actually cares about ("est-ce que je dois encore quelque chose ?"), so
@@ -17,13 +18,17 @@ const STATUS_LABELS: Record<'DUE' | 'SETTLED', string> = {
 interface MyInstallmentFiltersProps {
   value: MyInstallmentFiltersValue;
   onChange: (value: MyInstallmentFiltersValue) => void;
+  /** Rows the "à échoir" toggle is currently withholding. */
+  hiddenNotYetDue: number;
 }
 
-export function MyInstallmentFilters({ value, onChange }: MyInstallmentFiltersProps) {
+export function MyInstallmentFilters({ value, onChange, hiddenNotYetDue }: MyInstallmentFiltersProps) {
   const units = useMyUnits();
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    // Five columns from lg so the whole set stays on one row; below that it
+    // wraps rather than squeezing date inputs to unusable widths.
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <Select
         label="Statut"
         name="status"
@@ -60,6 +65,11 @@ export function MyInstallmentFilters({ value, onChange }: MyInstallmentFiltersPr
         name="dueDateTo"
         value={value.dueDateTo}
         onChange={(e) => onChange({ ...value, dueDateTo: e.target.value })}
+      />
+      <NotYetDueToggle
+        checked={value.includeNotYetDue}
+        hiddenCount={hiddenNotYetDue}
+        onChange={(includeNotYetDue) => onChange({ ...value, includeNotYetDue })}
       />
     </div>
   );

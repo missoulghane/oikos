@@ -18,11 +18,24 @@ export async function getPropertyInstallments({
   dueDateFrom,
   dueDateTo,
   installmentCallId,
+  excludeNotYetDue,
+  search,
   sortBy,
   sortDirection,
 }: GetPropertyInstallmentsParams): Promise<PagedInstallments> {
   const { data } = await httpClient.get<PagedInstallments>(`/properties/${propertyId}/installments`, {
-    params: { page, size, status, dueDateFrom, dueDateTo, installmentCallId, sortBy, sortDirection },
+    params: {
+      page,
+      size,
+      status,
+      dueDateFrom,
+      dueDateTo,
+      installmentCallId,
+      excludeNotYetDue,
+      search,
+      sortBy,
+      sortDirection,
+    },
     // Spring binds repeated `status=A&status=B`, not axios's default `status[]=A&status[]=B`.
     paramsSerializer: { indexes: null },
   });

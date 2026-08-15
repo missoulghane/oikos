@@ -16,7 +16,9 @@ export type HomeStackParamList = {
   // Passing the whole unit rather than just its id: the list already has it in
   // memory (from useMyUnits), and there is no getUnit() ported on mobile.
   MyUnitDetail: { unit: OwnedUnit };
-  MyInstallments: undefined;
+  // Optional seed for the filters, used by a lot's balance badge to open the
+  // list already narrowed to that lot's unpaid echeances.
+  MyInstallments: { status?: 'DUE'; unitId?: string } | undefined;
   MyInstallmentDetail: { installmentId: string };
   MyPayments: undefined;
   MyPaymentDetail: { paymentId: string };

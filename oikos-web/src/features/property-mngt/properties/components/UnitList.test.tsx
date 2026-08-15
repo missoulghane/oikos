@@ -70,8 +70,24 @@ describe('UnitList', () => {
     renderList();
     await screen.findByText('Lot A12 — Appartement');
 
-    await user.type(screen.getByLabelText("Rechercher un lot (numéro d'appartement, propriétaire : nom, téléphone)"), 'A12');
+    await user.type(screen.getByRole('searchbox', { name: 'Rechercher' }), 'A12');
 
     await waitFor(() => expect(mockedGetUnits).toHaveBeenCalledWith(expect.objectContaining({ search: 'A12' })));
+  });
+
+  it('sorts the lots on a column header, asking the server for the new order', async () => {
+    const user = userEvent.setup();
+    renderList();
+    await screen.findByText(/Lot A12/);
+
+    await user.click(screen.getByRole('button', { name: /^Lot$/ }));
+
+    // The list is paginated server-side, so the order has to come from the API -
+    // reordering the rows on screen would only reorder the current page.
+    await waitFor(() =>
+      expect(mockedGetUnits).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortBy: 'UNIT_NUMBER', sortDirection: 'DESC' }),
+      ),
+    );
   });
 });

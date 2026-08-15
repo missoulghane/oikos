@@ -14,5 +14,14 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  */
 public interface PropertyUnitDirectoryPort {
 
-    List<EntityId> listUnitIds(EntityId propertyId);
+    default List<EntityId> listUnitIds(EntityId propertyId) {
+        return listUnitIds(propertyId, null);
+    }
+
+    /**
+     * search is handed to the property module untouched, so it matches exactly
+     * what the lots list matches: unit number, owner name or phone. null lists
+     * every unit of the property.
+     */
+    List<EntityId> listUnitIds(EntityId propertyId, String search);
 }

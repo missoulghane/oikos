@@ -27,12 +27,14 @@ import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.OwnershipShare;
 import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
+import com.architek.oikos.property.domain.valueobject.UnitSortField;
 import com.architek.oikos.property.domain.valueobject.OwnershipStatus;
 import com.architek.oikos.property.domain.valueobject.Shares;
 import com.architek.oikos.property.domain.valueobject.UnitOwnershipId;
 import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.pagination.SortDirection;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
@@ -168,6 +170,71 @@ class ListUnitsByBuildingServiceTest {
 
         assertThat(page.content()).extracting(view -> view.unitNumber()).containsExactly("A12");
         assertThat(page.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void sorting_by_unit_number_orders_the_digits_as_numbers_not_as_text() {
+        PropertyId propertyId = PropertyId.newId();
+        BuildingId buildingId = BuildingId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        Unit a10 = Unit.create(UnitId.newId(), buildingId, propertyId, "A10", unitTypeId, Shares.of(new BigDecimal("100")));
+        Unit a2 = Unit.create(UnitId.newId(), buildingId, propertyId, "A2", unitTypeId, Shares.of(new BigDecimal("300")));
+        Unit a1 = Unit.create(UnitId.newId(), buildingId, propertyId, "A1", unitTypeId, Shares.of(new BigDecimal("200")));
+        seedBuilding(propertyId, buildingId, unitTypeId, List.of(a10, a2, a1));
+
+        var query = new ListUnitsByBuildingQuery(buildingId, PageRequest.of(0, 20), null, null,
+                UnitSortField.UNIT_NUMBER, SortDirection.ASC);
+        var page = newService().listUnits(query);
+
+        // Plain text order would read A1, A10, A2 - the sort a syndic reads as broken.
+        assertThat(page.content()).extracting(view -> view.unitNumber()).containsExactly("A1", "A2", "A10");
+    }
+
+    @Test
+    void sorting_by_shares_descending_puts_the_largest_lot_first() {
+        PropertyId propertyId = PropertyId.newId();
+        BuildingId buildingId = BuildingId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        Unit small = Unit.create(UnitId.newId(), buildingId, propertyId, "A1", unitTypeId, Shares.of(new BigDecimal("100")));
+        Unit big = Unit.create(UnitId.newId(), buildingId, propertyId, "A2", unitTypeId, Shares.of(new BigDecimal("300")));
+        seedBuilding(propertyId, buildingId, unitTypeId, List.of(small, big));
+
+        var query = new ListUnitsByBuildingQuery(buildingId, PageRequest.of(0, 20), null, null,
+                UnitSortField.SHARES, SortDirection.DESC);
+        var page = newService().listUnits(query);
+
+        assertThat(page.content()).extracting(view -> view.unitNumber()).containsExactly("A2", "A1");
+    }
+
+    @Test
+    void sorting_orders_every_lot_of_the_building_not_only_the_requested_page() {
+        PropertyId propertyId = PropertyId.newId();
+        BuildingId buildingId = BuildingId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        Unit a3 = Unit.create(UnitId.newId(), buildingId, propertyId, "A3", unitTypeId, Shares.of(new BigDecimal("100")));
+        Unit a1 = Unit.create(UnitId.newId(), buildingId, propertyId, "A1", unitTypeId, Shares.of(new BigDecimal("100")));
+        Unit a2 = Unit.create(UnitId.newId(), buildingId, propertyId, "A2", unitTypeId, Shares.of(new BigDecimal("100")));
+        seedBuilding(propertyId, buildingId, unitTypeId, List.of(a3, a1, a2));
+
+        // Page 1 of size 1: only a sort applied before paginating can put A2 here.
+        var query = new ListUnitsByBuildingQuery(buildingId, PageRequest.of(1, 1), null, null,
+                UnitSortField.UNIT_NUMBER, SortDirection.ASC);
+        var page = newService().listUnits(query);
+
+        assertThat(page.content()).extracting(view -> view.unitNumber()).containsExactly("A2");
+        assertThat(page.totalElements()).isEqualTo(3);
+    }
+
+    /** Building, unit types and ownership-free units - the shape every sort test needs. */
+    private void seedBuilding(PropertyId propertyId, BuildingId buildingId, UnitTypeDefinitionId unitTypeId,
+                               List<Unit> units) {
+        when(buildingRepository.findById(buildingId))
+                .thenReturn(Optional.of(Building.create(buildingId, propertyId, "Batiment A", 5)));
+        when(unitTypeDefinitionRepository.findAllByPropertyId(propertyId))
+                .thenReturn(List.of(UnitTypeDefinition.create(unitTypeId, propertyId, "Appartement")));
+        when(unitRepository.findAllByBuildingId(buildingId, PageRequest.of(0, 100)))
+                .thenReturn(Page.of(units, 0, 100, units.size()));
+        units.forEach(unit -> when(unitOwnershipRepository.findAllByUnitId(unit.getId())).thenReturn(List.of()));
     }
 
     @Test

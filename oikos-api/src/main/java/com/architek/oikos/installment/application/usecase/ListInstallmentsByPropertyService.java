@@ -39,7 +39,7 @@ public class ListInstallmentsByPropertyService implements ListInstallmentsByProp
     @Override
     @Transactional(readOnly = true)
     public Page<InstallmentView> listInstallments(ListInstallmentsByPropertyQuery query) {
-        List<EntityId> unitIds = propertyUnitDirectoryPort.listUnitIds(query.propertyId());
+        List<EntityId> unitIds = propertyUnitDirectoryPort.listUnitIds(query.propertyId(), query.search());
         if (unitIds.isEmpty()) {
             return Page.of(List.of(), query.pageRequest().pageNumber(), query.pageRequest().pageSize(), 0);
         }

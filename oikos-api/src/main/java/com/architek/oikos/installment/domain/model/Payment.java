@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.Objects;
 
 import com.architek.oikos.installment.domain.valueobject.PaymentId;
+import com.architek.oikos.installment.domain.valueobject.ReceiptNumber;
 import com.architek.oikos.installment.domain.valueobject.PaymentMode;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -30,9 +31,10 @@ public final class Payment {
     private final LocalDate valueDate;
     private final Amount amount;
     private final EntityId journalEntryId;
+    private final ReceiptNumber receiptNumber;
 
     private Payment(PaymentId id, EntityId propertyId, EntityId unitId, PaymentMode mode, LocalDate valueDate,
-                     Amount amount, EntityId journalEntryId) {
+                     Amount amount, EntityId journalEntryId, ReceiptNumber receiptNumber) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.propertyId = Objects.requireNonNull(propertyId, "propertyId must not be null");
         this.unitId = Objects.requireNonNull(unitId, "unitId must not be null");
@@ -40,16 +42,33 @@ public final class Payment {
         this.valueDate = Objects.requireNonNull(valueDate, "valueDate must not be null");
         this.amount = Objects.requireNonNull(amount, "amount must not be null");
         this.journalEntryId = Objects.requireNonNull(journalEntryId, "journalEntryId must not be null");
+        // Nullable: payments recorded before receipt numbering existed have none,
+        // and one is allocated for them the first time a receipt is generated.
+        this.receiptNumber = receiptNumber;
     }
 
     public static Payment create(PaymentId id, EntityId propertyId, EntityId unitId, PaymentMode mode,
-                                  LocalDate valueDate, Amount amount, EntityId journalEntryId) {
-        return new Payment(id, propertyId, unitId, mode, valueDate, amount, journalEntryId);
+                                  LocalDate valueDate, Amount amount, EntityId journalEntryId,
+                                  ReceiptNumber receiptNumber) {
+        return new Payment(id, propertyId, unitId, mode, valueDate, amount, journalEntryId, receiptNumber);
     }
 
     public static Payment reconstruct(PaymentId id, EntityId propertyId, EntityId unitId, PaymentMode mode,
-                                       LocalDate valueDate, Amount amount, EntityId journalEntryId) {
-        return new Payment(id, propertyId, unitId, mode, valueDate, amount, journalEntryId);
+                                       LocalDate valueDate, Amount amount, EntityId journalEntryId,
+                                       ReceiptNumber receiptNumber) {
+        return new Payment(id, propertyId, unitId, mode, valueDate, amount, journalEntryId, receiptNumber);
+    }
+
+    /** Assigns the reference of a payment that predates receipt numbering; never renumbers one that has it. */
+    public Payment withReceiptNumber(ReceiptNumber allocated) {
+        if (this.receiptNumber != null) {
+            return this;
+        }
+        return new Payment(id, propertyId, unitId, mode, valueDate, amount, journalEntryId, allocated);
+    }
+
+    public java.util.Optional<ReceiptNumber> getReceiptNumber() {
+        return java.util.Optional.ofNullable(receiptNumber);
     }
 
     public PaymentId getId() {

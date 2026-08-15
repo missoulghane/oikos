@@ -3,6 +3,7 @@ package com.architek.oikos.installment.application.usecase;
 import java.math.BigDecimal;
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,6 +11,7 @@ import com.architek.oikos.installment.application.command.RecordOwnerPaymentComm
 import com.architek.oikos.installment.application.dto.InstallmentAllocationView;
 import com.architek.oikos.installment.application.dto.PaymentView;
 import com.architek.oikos.installment.application.dto.RecordOwnerPaymentResult;
+import com.architek.oikos.installment.application.event.PaymentRecordedEvent;
 import com.architek.oikos.installment.application.port.in.RecordOwnerPaymentUseCase;
 import com.architek.oikos.installment.application.port.out.OwnerPaymentJournalEntryPort;
 import com.architek.oikos.installment.application.port.out.PropertyDirectoryPort;
@@ -21,7 +23,9 @@ import com.architek.oikos.installment.domain.model.Payment;
 import com.architek.oikos.installment.domain.model.PaymentAllocationCalculator;
 import com.architek.oikos.installment.domain.repository.InstallmentRepository;
 import com.architek.oikos.installment.domain.repository.PaymentRepository;
+import com.architek.oikos.installment.domain.repository.ReceiptNumberSequenceRepository;
 import com.architek.oikos.installment.domain.valueobject.PaymentId;
+import com.architek.oikos.installment.domain.valueobject.ReceiptNumber;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -48,15 +52,21 @@ public class RecordOwnerPaymentService implements RecordOwnerPaymentUseCase {
     private final InstallmentRepository installmentRepository;
     private final PaymentRepository paymentRepository;
     private final OwnerPaymentJournalEntryPort ownerPaymentJournalEntryPort;
+    private final ReceiptNumberSequenceRepository receiptNumberSequenceRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public RecordOwnerPaymentService(PropertyDirectoryPort propertyDirectoryPort, UnitDirectoryPort unitDirectoryPort,
                                       InstallmentRepository installmentRepository, PaymentRepository paymentRepository,
-                                      OwnerPaymentJournalEntryPort ownerPaymentJournalEntryPort) {
+                                      OwnerPaymentJournalEntryPort ownerPaymentJournalEntryPort,
+                                      ReceiptNumberSequenceRepository receiptNumberSequenceRepository,
+                                      ApplicationEventPublisher eventPublisher) {
         this.propertyDirectoryPort = propertyDirectoryPort;
         this.unitDirectoryPort = unitDirectoryPort;
         this.installmentRepository = installmentRepository;
         this.paymentRepository = paymentRepository;
         this.ownerPaymentJournalEntryPort = ownerPaymentJournalEntryPort;
+        this.receiptNumberSequenceRepository = receiptNumberSequenceRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -96,9 +106,22 @@ public class RecordOwnerPaymentService implements RecordOwnerPaymentUseCase {
             installmentRepository.save(installment.withOutstandingAmount(newOutstanding));
         }
 
+        // Allocated inside this transaction, unlike the PDF itself which is
+        // produced after commit: the reference is business data of the payment,
+        // and it must be reserved atomically with it - two concurrent payments
+        // taking the same number would be a real accounting defect, whereas a
+        // late or missing PDF is only an inconvenience.
+        // Numbered on the value date's year, not today's: a payment backdated to
+        // December belongs to that year's series.
+        ReceiptNumber receiptNumber = receiptNumberSequenceRepository.allocate(command.propertyId(),
+                command.valueDate().getYear());
         Payment payment = Payment.create(PaymentId.newId(), command.propertyId(), command.unitId(), command.mode(),
-                command.valueDate(), Amount.of(command.amount()), journalEntryId);
+                command.valueDate(), Amount.of(command.amount()), journalEntryId, receiptNumber);
         Payment savedPayment = paymentRepository.save(payment);
+
+        // After-commit: see PaymentReceiptGenerationListener for why the receipt
+        // must not ride inside this transaction.
+        eventPublisher.publishEvent(new PaymentRecordedEvent(savedPayment.getId()));
 
         List<InstallmentAllocationView> allocationViews = allocationResult.allocations().stream()
                 .map(allocation -> new InstallmentAllocationView(allocation.installmentId(), allocation.amount()))

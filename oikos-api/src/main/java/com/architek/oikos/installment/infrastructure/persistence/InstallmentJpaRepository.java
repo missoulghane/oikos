@@ -35,6 +35,9 @@ public interface InstallmentJpaRepository extends JpaRepository<InstallmentEntit
                  or (:wantSettled = true and i.outstandingAmount <= 0)
               ))
               and (:installmentCallId is null or i.installmentCallId = :installmentCallId)
+              and (:hideNotYetDueAsOf is null
+                   or i.dueDate <= :hideNotYetDueAsOf
+                   or i.outstandingAmount <= 0)
             """)
     Page<InstallmentEntity> search(@Param("unitIds") List<UUID> unitIds,
                                     @Param("dueDateFrom") LocalDate dueDateFrom,
@@ -44,5 +47,6 @@ public interface InstallmentJpaRepository extends JpaRepository<InstallmentEntit
                                     @Param("wantPartiallySettled") boolean wantPartiallySettled,
                                     @Param("wantSettled") boolean wantSettled,
                                     @Param("installmentCallId") UUID installmentCallId,
+                                    @Param("hideNotYetDueAsOf") LocalDate hideNotYetDueAsOf,
                                     Pageable pageable);
 }

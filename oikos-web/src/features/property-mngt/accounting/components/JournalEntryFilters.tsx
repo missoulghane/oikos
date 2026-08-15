@@ -17,13 +17,9 @@ interface JournalEntryFiltersProps {
 
 export function JournalEntryFilters({ value, onChange }: JournalEntryFiltersProps) {
   return (
+    // Free-text search is not here: it sits permanently on the FilterPanel
+    // toolbar, like every other list.
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <Input
-        label="Recherche"
-        placeholder="Référence…"
-        value={value.search}
-        onChange={(e) => onChange({ ...value, search: e.target.value })}
-      />
       <Input
         type="date"
         label="Du"

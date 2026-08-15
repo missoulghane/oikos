@@ -8,7 +8,7 @@ import {
   LastUnitPayments,
 } from '@/features/property-ownership/units/components/LastUnitOperations';
 import { getOutstandingColorClass } from '@/features/property-ownership/units/utils/unitBalance';
-import { isDue, outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
+import { isDueBy, outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
@@ -49,7 +49,9 @@ export function MyUnitDetailPage() {
 
   const ownedUnit = (myUnits.data ?? []).find((candidate) => candidate.unitId === id);
   const outstanding = outstandingTotal(installments.data ?? []);
-  const dueCount = (installments.data ?? []).filter(isDue).length;
+  // Counted on the same rule as the amount above, or the two would disagree:
+  // "3 échéances à régler" beside a balance that ignores two of them.
+  const dueCount = (installments.data ?? []).filter((installment) => isDueBy(installment)).length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -71,23 +73,31 @@ export function MyUnitDetailPage() {
 
       {/* Above the two "dernières opérations" blocks: what the lot still owes is
           the figure the page exists to answer. */}
-      <Card className="flex flex-col gap-1">
-        <span className="text-sm text-gray-500 dark:text-gray-400">Solde à régler</span>
-        {installments.isLoading ? (
+      {installments.isLoading ? (
+        <Card>
           <Loader label="Chargement du solde…" />
-        ) : (
-          <>
-            <span className={`text-2xl font-semibold ${getOutstandingColorClass(outstanding)}`}>
-              {outstanding.toLocaleString('fr-FR')} MAD
-            </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {dueCount === 0
-                ? 'Aucune échéance à régler'
-                : `${dueCount} échéance${dueCount > 1 ? 's' : ''} à régler`}
-            </span>
-          </>
-        )}
-      </Card>
+        </Card>
+      ) : (
+        // Opens the echeance list already narrowed to this lot's unpaid rows -
+        // the point of a balance is to lead to what makes it up, and filtering on
+        // the status alone would show other lots' echeances beside a figure that
+        // does not include them.
+        <Link
+          to={`/property-ownership/installments?status=DUE&unitId=${id}`}
+          className="flex flex-col gap-1 rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs transition hover:border-brand-500 hover:shadow-theme-md sm:p-6 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-brand-500"
+        >
+          <span className="text-sm text-gray-500 dark:text-gray-400">Solde à régler</span>
+          <span className={`text-2xl font-semibold ${getOutstandingColorClass(outstanding)}`}>
+            {/* Signed like an account statement, as on the lot cards. */}
+            {outstanding > 0 ? `-${outstanding.toLocaleString('fr-FR')}` : '0'} MAD
+          </span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {dueCount === 0
+              ? 'Aucune échéance à régler'
+              : `${dueCount} échéance${dueCount > 1 ? 's' : ''} à régler`}
+          </span>
+        </Link>
+      )}
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Informations générales</h2>
