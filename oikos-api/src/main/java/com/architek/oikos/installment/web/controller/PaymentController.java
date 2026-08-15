@@ -111,8 +111,8 @@ public class PaymentController {
     @PreAuthorize("@propertyAccess.managesPayment(authentication, #paymentId)")
     @PostMapping("/payments/{paymentId}/receipt")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void regenerateReceipt(@PathVariable String paymentId) {
-        generatePaymentReceiptUseCase.generate(PaymentId.of(paymentId));
+    public void regenerateReceipt(@PathVariable String paymentId, Authentication authentication) {
+        generatePaymentReceiptUseCase.generate(PaymentId.of(paymentId), EntityId.of(authentication.getName()));
     }
 
     private java.util.Optional<DocumentView> receiptDocumentOf(String paymentId) {

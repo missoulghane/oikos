@@ -16,6 +16,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.architek.oikos.document.application.dto.DocumentView;
 import com.architek.oikos.document.application.port.in.ListDocumentsByOwnerUseCase;
 import com.architek.oikos.document.application.query.ListDocumentsByOwnerQuery;
 import com.architek.oikos.document.domain.valueobject.DocumentOwnerType;
@@ -90,6 +91,14 @@ class PaymentReceiptGenerationIntegrationTest {
         when(listUnitOwnershipsByUnitUseCase.listUnitOwnerships(any())).thenReturn(List.of());
     }
 
+    /**
+     * Stands for the syndic who records the payment. It matters that this is a
+     * user id and nothing else: it lands in document.uploaded_by, a foreign key
+     * onto app_user on Postgres - which the H2 schema built from the entities
+     * does not carry, so only the assertion below guards it.
+     */
+    private static final EntityId RECORDING_USER = EntityId.newId();
+
     private PaymentId givenAPayment() {
         Payment payment = Payment.create(PaymentId.newId(), EntityId.newId(), EntityId.newId(), PaymentMode.CHECK,
                 LocalDate.of(2026, 3, 15), Amount.of(new BigDecimal("2500.00")), EntityId.newId(),
@@ -97,18 +106,34 @@ class PaymentReceiptGenerationIntegrationTest {
         return paymentRepository.save(payment).getId();
     }
 
-    private long receiptsOf(PaymentId paymentId) {
+    private List<DocumentView> receiptsOf(PaymentId paymentId) {
         return listDocumentsByOwnerUseCase.list(new ListDocumentsByOwnerQuery(DocumentOwnerType.PAYMENT,
-                EntityId.of(paymentId.asUuid()), PageRequest.of(0, 10))).totalElements();
+                EntityId.of(paymentId.asUuid()), PageRequest.of(0, 10))).content();
     }
 
     @Test
     void generating_a_receipt_attaches_it_to_the_payment() {
         PaymentId paymentId = givenAPayment();
 
-        generatePaymentReceiptUseCase.generate(paymentId);
+        generatePaymentReceiptUseCase.generate(paymentId, RECORDING_USER);
 
-        assertThat(receiptsOf(paymentId)).isEqualTo(1);
+        assertThat(receiptsOf(paymentId)).hasSize(1);
+    }
+
+    /**
+     * The receipt was attributed to the payment's property instead of to a user,
+     * and document.uploaded_by references app_user: every generation failed on
+     * Postgres with a foreign key violation, while passing here.
+     */
+    @Test
+    void the_receipt_is_attributed_to_the_user_who_generated_it() {
+        PaymentId paymentId = givenAPayment();
+
+        generatePaymentReceiptUseCase.generate(paymentId, RECORDING_USER);
+
+        assertThat(receiptsOf(paymentId).getFirst().uploadedBy())
+                .as("uploaded_by is a foreign key onto app_user - a property id violates it")
+                .isEqualTo(RECORDING_USER);
     }
 
     /**
@@ -119,22 +144,22 @@ class PaymentReceiptGenerationIntegrationTest {
     void a_receipt_published_after_commit_is_actually_persisted() {
         PaymentId paymentId = transactionTemplate.execute(status -> {
             PaymentId id = givenAPayment();
-            eventPublisher.publishEvent(new PaymentRecordedEvent(id));
+            eventPublisher.publishEvent(new PaymentRecordedEvent(id, RECORDING_USER));
             return id;
         });
 
         assertThat(receiptsOf(paymentId))
                 .as("the receipt written from the AFTER_COMMIT listener must be committed, not silently dropped")
-                .isEqualTo(1);
+                .hasSize(1);
     }
 
     @Test
     void regenerating_replaces_the_receipt_rather_than_adding_a_second() {
         PaymentId paymentId = givenAPayment();
 
-        generatePaymentReceiptUseCase.generate(paymentId);
-        generatePaymentReceiptUseCase.generate(paymentId);
+        generatePaymentReceiptUseCase.generate(paymentId, RECORDING_USER);
+        generatePaymentReceiptUseCase.generate(paymentId, RECORDING_USER);
 
-        assertThat(receiptsOf(paymentId)).isEqualTo(1);
+        assertThat(receiptsOf(paymentId)).hasSize(1);
     }
 }

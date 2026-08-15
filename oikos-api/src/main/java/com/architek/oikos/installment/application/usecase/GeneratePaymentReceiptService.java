@@ -31,6 +31,7 @@ import com.architek.oikos.installment.domain.repository.ReceiptNumberSequenceRep
 import com.architek.oikos.installment.domain.valueobject.PaymentId;
 import com.architek.oikos.installment.domain.valueobject.ReceiptNumber;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
  * Builds the receipt of a payment and stores it as a Document owned by that
@@ -86,7 +87,7 @@ public class GeneratePaymentReceiptService implements GeneratePaymentReceiptUseC
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void generate(PaymentId paymentId) {
+    public void generate(PaymentId paymentId, EntityId generatedByUserId) {
         PaymentView payment = getPaymentUseCase.getPayment(new GetPaymentQuery(paymentId));
         ReceiptNumber receiptNumber = resolveReceiptNumber(payment);
 
@@ -102,10 +103,13 @@ public class GeneratePaymentReceiptService implements GeneratePaymentReceiptUseC
         // regeneration that changed nothing would otherwise fail as a duplicate.
         deleteExistingReceipts(paymentId);
 
+        // Last argument is uploadedBy, not the property: document.uploaded_by is a
+        // foreign key onto app_user, so anything else violates it at flush time -
+        // invisible in the H2 test schema, fatal on Postgres.
         uploadDocumentUseCase.upload(new UploadDocumentCommand(DocumentOwnerType.PAYMENT,
-                com.architek.oikos.shared.domain.valueobject.EntityId.of(paymentId.asUuid()),
+                EntityId.of(paymentId.asUuid()),
                 "recu-" + receiptNumber.format() + ".pdf", "application/pdf", rendererPort.render(receipt),
-                payment.propertyId()));
+                generatedByUserId));
         log.info("Receipt {} generated for payment {}", receiptNumber.format(), paymentId);
     }
 
@@ -126,8 +130,7 @@ public class GeneratePaymentReceiptService implements GeneratePaymentReceiptUseC
 
     private void deleteExistingReceipts(PaymentId paymentId) {
         List<DocumentView> existing = listDocumentsByOwnerUseCase.list(
-                new ListDocumentsByOwnerQuery(DocumentOwnerType.PAYMENT,
-                        com.architek.oikos.shared.domain.valueobject.EntityId.of(paymentId.asUuid()),
+                new ListDocumentsByOwnerQuery(DocumentOwnerType.PAYMENT, EntityId.of(paymentId.asUuid()),
                         PageRequest.of(0, EXISTING_RECEIPTS_PAGE_SIZE))).content();
         for (DocumentView document : existing) {
             deleteDocumentUseCase.delete(new DeleteDocumentCommand(document.id()));

@@ -34,7 +34,7 @@ public class PaymentReceiptGenerationListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPaymentRecorded(PaymentRecordedEvent event) {
         try {
-            generatePaymentReceiptUseCase.generate(event.paymentId());
+            generatePaymentReceiptUseCase.generate(event.paymentId(), event.recordedByUserId());
         } catch (RuntimeException e) {
             log.error("Receipt generation failed for payment {} - the payment itself stands, "
                     + "regenerate with POST /payments/{}/receipt", event.paymentId(), event.paymentId(), e);

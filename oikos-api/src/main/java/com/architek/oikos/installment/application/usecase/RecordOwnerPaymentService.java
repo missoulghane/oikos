@@ -121,7 +121,7 @@ public class RecordOwnerPaymentService implements RecordOwnerPaymentUseCase {
 
         // After-commit: see PaymentReceiptGenerationListener for why the receipt
         // must not ride inside this transaction.
-        eventPublisher.publishEvent(new PaymentRecordedEvent(savedPayment.getId()));
+        eventPublisher.publishEvent(new PaymentRecordedEvent(savedPayment.getId(), command.createdByUserId()));
 
         List<InstallmentAllocationView> allocationViews = allocationResult.allocations().stream()
                 .map(allocation -> new InstallmentAllocationView(allocation.installmentId(), allocation.amount()))
