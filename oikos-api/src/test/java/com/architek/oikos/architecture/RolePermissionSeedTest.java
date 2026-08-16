@@ -6,10 +6,13 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -31,9 +34,15 @@ import com.architek.oikos.user.domain.model.Permission;
 class RolePermissionSeedTest {
 
     private static final Path RESOURCES = resolveModuleRoot().resolve("src/main/resources");
-    private static final Path BASELINE = RESOURCES.resolve("db/migration/V1__baseline.sql");
-    private static final Path BUNDLES = RESOURCES.resolve("db/migration/V2__seed_role_permission.sql");
+    private static final Path MIGRATIONS = RESOURCES.resolve("db/migration");
     private static final Path DEV_SEED = RESOURCES.resolve("db/dev/dev.sql");
+    private static final Path DEV_PROFILE = RESOURCES.resolve("application-dev.yml");
+
+    /** The catalog started in V1 but is no longer confined to it: a new module ships its own
+     * keys in its own migration (V4 for `meeting`), so every assertion below reads the whole
+     * migration folder rather than two hard-coded files. */
+    private static final String CATALOG_INSERT = "INSERT INTO permission (key, description) VALUES";
+    private static final String BUNDLE_INSERT = "INSERT INTO role_permission (role_name, permission_key)";
 
     @Test
     void permission_catalog_matches_the_Permission_enum_exactly() throws IOException {
@@ -81,12 +90,7 @@ class RolePermissionSeedTest {
     }
 
     private static Set<String> keysGrantedTo(String roleName) throws IOException {
-        Set<String> keys = new LinkedHashSet<>();
-        Matcher matcher = Pattern.compile("\\('" + roleName + "',\\s*'([^']+)'\\)").matcher(Files.readString(BUNDLES));
-        while (matcher.find()) {
-            keys.add(matcher.group(1));
-        }
-        return keys;
+        return matchesIn(bundleStatements(), "\\('" + roleName + "',\\s*'([^']+)'\\)");
     }
 
     /**
@@ -98,37 +102,81 @@ class RolePermissionSeedTest {
     @Test
     void dev_seed_does_not_declare_its_own_bundles() throws IOException {
         assertThat(Files.readString(DEV_SEED))
-                .as("db/dev/dev.sql must not seed role_permission - V2 is the single source")
+                .as("db/dev/dev.sql must not seed role_permission - the migrations are the single source")
                 .doesNotContain("INSERT INTO role_permission");
     }
 
+    /**
+     * The dev profile runs on H2 with Flyway disabled: it never applies a migration, it loads the
+     * bundle migrations as plain scripts through spring.sql.init. A module shipping its own bundles
+     * in a new migration (V5 for `meeting`) and forgetting this list authorizes nothing in dev
+     * while working in prod - the exact shape of the incident this class was written after, one
+     * file further along.
+     */
+    @Test
+    void every_migration_seeding_bundles_is_loaded_by_the_dev_profile() throws IOException {
+        String devProfile = Files.readString(DEV_PROFILE);
+        for (Path migration : migrationFiles()) {
+            if (!Files.readString(migration).contains(BUNDLE_INSERT)) {
+                continue;
+            }
+            assertThat(devProfile)
+                    .as("%s seeds role_permission, so application-dev.yml must list it in "
+                            + "spring.sql.init.data-locations - otherwise its grants exist in prod only",
+                            migration.getFileName())
+                    .contains(migration.getFileName().toString());
+        }
+    }
+
     private static Set<String> catalogKeys() throws IOException {
-        return keysOf(statementAfter(Files.readString(BASELINE), "INSERT INTO permission (key, description) VALUES"));
+        return matchesIn(statementsWithPrefix(CATALOG_INSERT), "\\('([^']+)',");
     }
 
     private static Set<String> bundledKeys() throws IOException {
-        Set<String> keys = new LinkedHashSet<>();
-        Matcher matcher = Pattern.compile("\\('[A-Z_]+',\\s*'([^']+)'\\)").matcher(Files.readString(BUNDLES));
-        while (matcher.find()) {
-            keys.add(matcher.group(1));
-        }
-        return keys;
+        return matchesIn(bundleStatements(), "\\('[A-Z_]+',\\s*'([^']+)'\\)");
     }
 
-    /** The single SQL statement introduced by the given prefix, up to its terminating semicolon. */
-    private static String statementAfter(String sql, String prefix) {
-        int start = sql.indexOf(prefix);
-        if (start < 0) {
-            throw new IllegalStateException("Statement not found in SQL source: " + prefix);
-        }
-        return sql.substring(start, sql.indexOf(';', start));
+    private static List<String> bundleStatements() throws IOException {
+        return statementsWithPrefix(BUNDLE_INSERT);
     }
 
-    private static Set<String> keysOf(String valuesClause) {
+    /**
+     * Every SQL statement introduced by the given prefix, across every migration, each cut at
+     * its terminating semicolon. Scoping the tuple regexes to these statements - rather than
+     * running them over whole files - is what keeps an unrelated multi-column INSERT elsewhere
+     * in a migration (the `journal` reference table, say) from being read as RBAC seed data.
+     */
+    private static List<String> statementsWithPrefix(String prefix) throws IOException {
+        List<String> statements = new ArrayList<>();
+        for (Path migration : migrationFiles()) {
+            String sql = Files.readString(migration);
+            int start = sql.indexOf(prefix);
+            while (start >= 0) {
+                int end = sql.indexOf(';', start);
+                statements.add(end < 0 ? sql.substring(start) : sql.substring(start, end));
+                start = sql.indexOf(prefix, start + prefix.length());
+            }
+        }
+        if (statements.isEmpty()) {
+            throw new IllegalStateException("No migration carries a statement starting with: " + prefix);
+        }
+        return statements;
+    }
+
+    private static List<Path> migrationFiles() throws IOException {
+        try (Stream<Path> files = Files.list(MIGRATIONS)) {
+            return files.filter(path -> path.getFileName().toString().endsWith(".sql")).sorted().toList();
+        }
+    }
+
+    private static Set<String> matchesIn(List<String> statements, String regex) {
         Set<String> keys = new LinkedHashSet<>();
-        Matcher matcher = Pattern.compile("\\('([^']+)',").matcher(valuesClause);
-        while (matcher.find()) {
-            keys.add(matcher.group(1));
+        Pattern pattern = Pattern.compile(regex);
+        for (String statement : statements) {
+            Matcher matcher = pattern.matcher(statement);
+            while (matcher.find()) {
+                keys.add(matcher.group(1));
+            }
         }
         return keys;
     }

@@ -1,0 +1,167 @@
+import { useSearchParams } from 'react-router-dom';
+import { AuthLayout } from '@/shared/layouts/AuthLayout';
+import { Alert } from '@/shared/components/Alert/Alert';
+import { Button } from '@/shared/components/Button/Button';
+import { Card } from '@/shared/components/Card/Card';
+import { Loader } from '@/shared/components/Loader/Loader';
+import {
+  useConfirmConvocation,
+  useConvocationConfirmation,
+} from '@/features/property-ownership/general-meetings/hooks/useConvocationConfirmation';
+import {
+  ATTENDANCE_REPLY_LABELS,
+  MEETING_TYPE_LABELS,
+} from '@/features/property-mngt/general-meetings/constants/generalMeetingLabels';
+import type { MeetingType } from '@/features/property-mngt/general-meetings/types/generalMeeting.types';
+import { formatLotLabel } from '@/features/property-mngt/general-meetings/utils/formatMeeting';
+import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+
+const DATE_TIME = new Intl.DateTimeFormat('fr-FR', {
+  dateStyle: 'full',
+  timeStyle: 'short',
+  timeZone: 'Africa/Casablanca',
+});
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+      <span className="text-sm text-gray-500 dark:text-gray-400 sm:w-32 sm:shrink-0">{label}</span>
+      <span className="text-gray-900 dark:text-white/90">{value}</span>
+    </div>
+  );
+}
+
+/**
+ * The page behind the confirmation link printed on every convocation.
+ *
+ * <p>Public, and it has to stay that way: it exists for the copropriétaires who
+ * have no account and never will. Before it, they received a convocation and
+ * could only answer by telephoning the syndic - which is why every reply in the
+ * system was recorded as taken at the office.
+ *
+ * <p>No login, no account creation, no invitation to make one. The whole page is
+ * one question and two buttons; anything else on it would be a step between a
+ * copropriétaire and the only thing they came to do.
+ */
+export function ConvocationConfirmationPage() {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
+  const confirmation = useConvocationConfirmation(token);
+  const confirm = useConfirmConvocation(token);
+
+  if (!token) {
+    return (
+      <AuthLayout>
+        <Card>
+          <Alert message="Ce lien est incomplet. Utilisez le lien reçu avec votre convocation, tel quel." />
+        </Card>
+      </AuthLayout>
+    );
+  }
+
+  if (confirmation.isPending) {
+    return (
+      <AuthLayout>
+        <Loader label="Chargement de votre convocation…" />
+      </AuthLayout>
+    );
+  }
+
+  if (confirmation.isError || !confirmation.data) {
+    return (
+      <AuthLayout>
+        <Card className="flex flex-col gap-3">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Lien non valide</h1>
+          <Alert message="Ce lien de confirmation n'est pas valide. Vérifiez que vous l'avez recopié en entier, ou contactez votre syndic." />
+        </Card>
+      </AuthLayout>
+    );
+  }
+
+  const data = confirmation.data;
+  const lotLabel = formatLotLabel(data.unitNumber, data.buildingName);
+  const meetingTypeLabel = MEETING_TYPE_LABELS[data.meetingType as MeetingType] ?? data.meetingType;
+  const hasAnswered = data.attendanceReply !== 'NO_REPLY';
+
+  return (
+    <AuthLayout>
+      <Card className="flex flex-col gap-6">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Confirmation de présence</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Indiquez si votre lot sera représenté à cette assemblée générale. Aucun compte n'est nécessaire.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+          <Row label="Copropriété" value={data.propertyName} />
+          <Row label="Assemblée" value={`${data.meetingTitle} (${meetingTypeLabel.toLowerCase()})`} />
+          <Row label="Votre lot" value={lotLabel} />
+          <Row
+            label="Date"
+            value={data.scheduledAt ? DATE_TIME.format(new Date(data.scheduledAt)) : 'à préciser'}
+          />
+          <Row
+            label="Lieu"
+            value={
+              data.venueType === 'VIDEOCONFERENCE'
+                ? `Visioconférence : ${data.venueLink ?? 'lien à venir'}`
+                : (data.venueAddress ?? 'à préciser')
+            }
+          />
+        </div>
+
+        {/* One lot, one voice, whoever holds it - the same rule the letter states, repeated
+            here because it is what makes a single answer per link correct. */}
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Une seule réponse est enregistrée pour ce lot, quel que soit le nombre de copropriétaires qui le
+          détiennent.
+        </p>
+
+        {hasAnswered && (
+          <Alert
+            variant="success"
+            message={`Réponse enregistrée : ${ATTENDANCE_REPLY_LABELS[data.attendanceReply].toLowerCase()}${
+              data.repliedAt ? ` le ${DATE_TIME.format(new Date(data.repliedAt))}` : ''
+            }.${data.stillOpen ? ' Vous pouvez encore la modifier ci-dessous.' : ''}`}
+          />
+        )}
+
+        {confirm.isError && <Alert message={getErrorMessage(confirm.error)} />}
+
+        {data.stillOpen ? (
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button
+              className="sm:flex-1"
+              isLoading={confirm.isPending}
+              variant={data.attendanceReply === 'ATTENDING' ? 'primary' : 'secondary'}
+              onClick={() => confirm.mutate('ATTENDING')}
+            >
+              Je serai présent(e)
+            </Button>
+            <Button
+              className="sm:flex-1"
+              isLoading={confirm.isPending}
+              variant={data.attendanceReply === 'NOT_ATTENDING' ? 'primary' : 'secondary'}
+              onClick={() => confirm.mutate('NOT_ATTENDING')}
+            >
+              Je serai absent(e)
+            </Button>
+          </div>
+        ) : (
+          // Not an error, and not a dead end either: the visitor followed a link they were
+          // given, and deserves to be told what happened rather than shown a refusal.
+          <Alert
+            variant="warning"
+            message="Cette assemblée générale a déjà commencé : les confirmations sont closes. La présence est désormais constatée par l'émargement en séance."
+          />
+        )}
+
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          Ce lien vaut pour le lot indiqué ci-dessus. Ne le transmettez qu'aux personnes autorisées à répondre
+          pour lui.
+        </p>
+      </Card>
+    </AuthLayout>
+  );
+}

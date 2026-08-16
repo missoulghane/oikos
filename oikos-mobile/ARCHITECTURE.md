@@ -34,11 +34,18 @@ src/
 │   │   └── me/              # Profil, avatar, changement de mot de passe
 │   │
 │   ├── property-ownership/  # "Mes lots", mes échéances, mes paiements,
-│   │   │                    # mes demandes d'adhésion — même périmètre que
-│   │   │                    # property-ownership côté oikos-web
+│   │   │                    # mes assemblées, mes demandes d'adhésion — même
+│   │   │                    # périmètre que property-ownership côté oikos-web
 │   │   ├── units/
 │   │   ├── installments/
 │   │   ├── payments/
+│   │   ├── general-meetings/ # Convocations reçues (une par lot possédé),
+│   │   │                     # réponse présent/absent, ordre du jour,
+│   │   │                     # résultats des scrutins clos et PV publié.
+│   │   │                     # Le PV arrive en HTML : `utils/htmlToBlocks.ts`
+│   │   │                     # le convertit en blocs Text plutôt que
+│   │   │                     # d'embarquer une WebView pour un écran en
+│   │   │                     # lecture seule (voir §2).
 │   │   └── membership-requests/
 │   │
 │   ├── messaging/           # Conversations, BOARD_PRIVATE
@@ -72,6 +79,13 @@ Chaque feature suit la même subdivision que côté web (`api/`, `components/`,
   Router. `RootNavigator` bascule entre `AuthNavigator` et `MainNavigator`
   selon `useAuthStore().isAuthenticated` ; les deux arbres sont mutuellement
   exclusifs (jamais montés simultanément).
+- **Rendu HTML** — React Native n'a pas d'`innerHTML`. Le seul contenu HTML
+  du produit est le procès-verbal d'AG, produit par le `MinutesComposer` de
+  `oikos-api` (titres, paragraphes, listes) : il est converti en blocs
+  natifs par `htmlToBlocks`, une passe structurelle sur ces balises-là, et
+  non un analyseur HTML général — le contenu n'est pas arbitraire, il vient
+  de notre propre générateur. Une WebView ou une bibliothèque de rendu HTML
+  serait une dépendance pour un écran en lecture seule.
 - **Deep linking** — les liens d'email (vérification, activation,
   acceptation d'invitation, reset password) sont déclarés dans le `linking`
   config de `RootNavigator`, avec le schéma `oikos://` en plus du préfixe

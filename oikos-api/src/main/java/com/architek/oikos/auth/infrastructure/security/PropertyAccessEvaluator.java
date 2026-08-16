@@ -27,6 +27,18 @@ import com.architek.oikos.invitation.application.query.GetInvitationQuery;
 import com.architek.oikos.invitation.application.query.GetMembershipRequestQuery;
 import com.architek.oikos.invitation.domain.valueobject.InvitationId;
 import com.architek.oikos.invitation.domain.valueobject.MembershipRequestId;
+import com.architek.oikos.meeting.application.dto.AgendaItemView;
+import com.architek.oikos.meeting.application.dto.ConvocationView;
+import com.architek.oikos.meeting.application.dto.GeneralMeetingView;
+import com.architek.oikos.meeting.application.port.in.GetAgendaItemUseCase;
+import com.architek.oikos.meeting.application.port.in.GetConvocationUseCase;
+import com.architek.oikos.meeting.application.port.in.GetGeneralMeetingUseCase;
+import com.architek.oikos.meeting.application.query.GetAgendaItemQuery;
+import com.architek.oikos.meeting.application.query.GetConvocationQuery;
+import com.architek.oikos.meeting.application.query.GetGeneralMeetingQuery;
+import com.architek.oikos.meeting.domain.valueobject.AgendaItemId;
+import com.architek.oikos.meeting.domain.valueobject.ConvocationId;
+import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
 import com.architek.oikos.messaging.application.dto.ConversationView;
 import com.architek.oikos.messaging.application.dto.MessageDraftView;
 import com.architek.oikos.messaging.application.port.in.GetConversationUseCase;
@@ -84,6 +96,9 @@ public class PropertyAccessEvaluator {
     private final GetMessageDraftUseCase getMessageDraftUseCase;
     private final GetDocumentUseCase getDocumentUseCase;
     private final GetNotificationUseCase getNotificationUseCase;
+    private final GetGeneralMeetingUseCase getGeneralMeetingUseCase;
+    private final GetAgendaItemUseCase getAgendaItemUseCase;
+    private final GetConvocationUseCase getConvocationUseCase;
 
     public PropertyAccessEvaluator(GetUserAccessUseCase getUserAccessUseCase,
                                     GetUnitUseCase getUnitUseCase,
@@ -98,7 +113,10 @@ public class PropertyAccessEvaluator {
                                     GetConversationUseCase getConversationUseCase,
                                     GetMessageDraftUseCase getMessageDraftUseCase,
                                     GetDocumentUseCase getDocumentUseCase,
-                                    GetNotificationUseCase getNotificationUseCase) {
+                                    GetNotificationUseCase getNotificationUseCase,
+                                    GetGeneralMeetingUseCase getGeneralMeetingUseCase,
+                                    GetAgendaItemUseCase getAgendaItemUseCase,
+                                    GetConvocationUseCase getConvocationUseCase) {
         this.getUserAccessUseCase = getUserAccessUseCase;
         this.getUnitUseCase = getUnitUseCase;
         this.getBuildingUseCase = getBuildingUseCase;
@@ -113,6 +131,9 @@ public class PropertyAccessEvaluator {
         this.getMessageDraftUseCase = getMessageDraftUseCase;
         this.getDocumentUseCase = getDocumentUseCase;
         this.getNotificationUseCase = getNotificationUseCase;
+        this.getGeneralMeetingUseCase = getGeneralMeetingUseCase;
+        this.getAgendaItemUseCase = getAgendaItemUseCase;
+        this.getConvocationUseCase = getConvocationUseCase;
     }
 
     /** ADMIN is a global, JWT-embedded authority (same trust boundary as the existing
@@ -247,6 +268,83 @@ public class PropertyAccessEvaluator {
      * transfers/payments/regularizations). */
     public boolean canWriteAccounting(Authentication authentication, String propertyId) {
         return hasPermission(authentication, propertyId, Permission.ACCOUNTING_WRITE);
+    }
+
+    /** Gates read access to a property's general meetings (agenda, convocations, published
+     * minutes) - the only meeting permission PROPERTY_OWNER holds. */
+    public boolean canReadMeetings(Authentication authentication, String propertyId) {
+        return hasPermission(authentication, propertyId, Permission.MEETING_READ);
+    }
+
+    /** Gates every write on a property's general meetings: creating one, editing its agenda,
+     * generating/sending convocations, opening and closing the session, recording votes. */
+    public boolean canManageMeetings(Authentication authentication, String propertyId) {
+        return hasPermission(authentication, propertyId, Permission.MEETING_MANAGE);
+    }
+
+    /** Gates validating and publishing a general meeting's minutes. Deliberately separate from
+     * canManageMeetings: publication is irreversible and broadcast to every owner, so a role may
+     * legitimately run a meeting without being allowed to publish its record of it. */
+    public boolean canPublishMeetingMinutes(Authentication authentication, String propertyId) {
+        return hasPermission(authentication, propertyId, Permission.MEETING_MINUTES_PUBLISH);
+    }
+
+    /** Same rule as canReadMeetings, for the endpoints addressed by meeting id: the meeting's
+     * property is resolved through its port-in use case, never a repository (rule 6). */
+    public boolean canReadMeeting(Authentication authentication, String meetingId) {
+        return canReadMeetings(authentication, propertyIdOfMeeting(meetingId));
+    }
+
+    /** Same rule as canManageMeetings, for the endpoints addressed by meeting id. */
+    public boolean canManageMeeting(Authentication authentication, String meetingId) {
+        return canManageMeetings(authentication, propertyIdOfMeeting(meetingId));
+    }
+
+    /** An agenda item inherits its meeting's property; two hops, both through port-in use cases. */
+    public boolean canManageAgendaItem(Authentication authentication, String agendaItemId) {
+        return canManageMeeting(authentication, meetingIdOfAgendaItem(agendaItemId));
+    }
+
+    /** Same rule as canPublishMeetingMinutes, for the endpoints addressed by meeting id. */
+    public boolean canPublishMinutesOfMeeting(Authentication authentication, String meetingId) {
+        return canPublishMeetingMinutes(authentication, propertyIdOfMeeting(meetingId));
+    }
+
+    /** Reading one agenda item and its result - open to every member, a vote result is not a secret. */
+    public boolean canReadAgendaItem(Authentication authentication, String agendaItemId) {
+        return canReadMeeting(authentication, meetingIdOfAgendaItem(agendaItemId));
+    }
+
+    private String meetingIdOfAgendaItem(String agendaItemId) {
+        AgendaItemView item = getAgendaItemUseCase.getAgendaItem(new GetAgendaItemQuery(AgendaItemId.of(agendaItemId)));
+        return item.generalMeetingId().toString();
+    }
+
+    /** Managing one lot's convocation: staff of the meeting's property, same rule as the meeting itself. */
+    public boolean canManageConvocation(Authentication authentication, String convocationId) {
+        return canManageMeeting(authentication, convocation(convocationId).generalMeetingId().toString());
+    }
+
+    /**
+     * Answering a convocation: the syndic for any lot, or the copropriétaire for their own.
+     * Deliberately wider than canManageConvocation - self-service is the whole point of the
+     * reply endpoint - and deliberately narrower than "any member of the property": a
+     * neighbour must not be able to answer on someone else's behalf.
+     */
+    public boolean canReplyToConvocation(Authentication authentication, String convocationId) {
+        ConvocationView convocation = convocation(convocationId);
+        return canManageMeeting(authentication, convocation.generalMeetingId().toString())
+                || ownsUnit(authentication, convocation.unitId().toString());
+    }
+
+    private ConvocationView convocation(String convocationId) {
+        return getConvocationUseCase.getConvocation(new GetConvocationQuery(ConvocationId.of(convocationId)));
+    }
+
+    private String propertyIdOfMeeting(String meetingId) {
+        GeneralMeetingView meeting = getGeneralMeetingUseCase.getGeneralMeeting(
+                new GetGeneralMeetingQuery(GeneralMeetingId.of(meetingId)));
+        return meeting.propertyId().toString();
     }
 
     /** True for ADMIN, or if the caller holds any role (staff or plain owner) on this property -
@@ -402,6 +500,11 @@ public class PropertyAccessEvaluator {
             case UNIT -> getUnitUseCase.getUnit(new GetUnitQuery(UnitId.of(ownerId))).propertyId().toString();
             case PAYMENT -> getPaymentUseCase.getPayment(new GetPaymentQuery(PaymentId.of(ownerId)))
                     .propertyId().toString();
+            case AGENDA_ITEM -> propertyIdOfMeeting(getAgendaItemUseCase
+                    .getAgendaItem(new GetAgendaItemQuery(AgendaItemId.of(ownerId))).generalMeetingId().toString());
+            case GENERAL_MEETING -> propertyIdOfMeeting(ownerId);
+            case CONVOCATION -> propertyIdOfMeeting(convocation(ownerId).generalMeetingId().toString());
+            case MEETING_MINUTES -> propertyIdOfMeeting(ownerId);
         };
     }
 

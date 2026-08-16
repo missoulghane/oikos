@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'Procès-verbal - ' + ${meetingTitle}">Procès-verbal</title>
+    <!--
+      Self-contained, like the other generated documents: openhtmltopdf resolves
+      relative URLs against a base URI that does not exist here.
+      The body comes from the database as HTML written in a rich-text editor, so
+      the styles below cover the tags that editor produces rather than a layout
+      of this template's own.
+    -->
+    <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11pt; color: #101828; }
+        .header { border-bottom: 2px solid #465fff; padding-bottom: 12px; margin-bottom: 24px; }
+        .brand { font-size: 20pt; font-weight: bold; color: #465fff; }
+        .doc-title { font-size: 14pt; margin-top: 4px; }
+        .meta { color: #667085; font-size: 10pt; margin-top: 2px; }
+        .content h1 { font-size: 15pt; margin: 0 0 12px 0; }
+        .content h2 { font-size: 12pt; margin: 20px 0 8px 0; border-bottom: 1px solid #e4e7ec; padding-bottom: 4px; }
+        .content h3 { font-size: 11pt; margin: 14px 0 6px 0; }
+        .content p { margin: 6px 0; }
+        .content ul, .content ol { margin: 6px 0; padding-left: 20px; }
+        .content li { padding: 2px 0; }
+        .content em { color: #667085; }
+        .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e4e7ec; color: #667085; font-size: 9pt; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div class="brand">OIKOS</div>
+    <div class="doc-title">Procès-verbal d'assemblée générale</div>
+    <div class="meta"><span th:text="${propertyName}">—</span> · édité le <span th:text="${issuedOn}">—</span></div>
+</div>
+
+<div class="content" th:utext="${content}">—</div>
+
+<div class="footer">
+    Procès-verbal publié via OIKOS. Le contenu de ce document a été arrêté à sa validation.
+</div>
+</body>
+</html>

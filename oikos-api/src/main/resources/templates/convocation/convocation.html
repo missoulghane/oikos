@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'Convocation - ' + ${meetingTitle}">Convocation</title>
+    <!--
+      Self-contained on purpose, exactly like the payment receipt: openhtmltopdf
+      resolves relative URLs against a base URI that does not exist here, so every
+      rule is inline and no font, image or stylesheet is fetched. @page fixes the
+      A4 geometry, which the renderer needs explicitly.
+    -->
+    <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11pt; color: #101828; }
+        .header { border-bottom: 2px solid #465fff; padding-bottom: 12px; margin-bottom: 24px; }
+        .brand { font-size: 20pt; font-weight: bold; color: #465fff; }
+        .doc-title { font-size: 14pt; margin-top: 4px; }
+        .meta { color: #667085; font-size: 10pt; margin-top: 2px; }
+        table.fields { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        table.fields td { padding: 6px 0; vertical-align: top; }
+        td.label { color: #667085; width: 35%; }
+        td.value { font-weight: bold; }
+        .session-box { border: 1px solid #e4e7ec; background: #f9fafb; padding: 16px; margin-bottom: 24px; }
+        .session-label { color: #667085; font-size: 10pt; }
+        .session-date { font-size: 15pt; font-weight: bold; }
+        .session-venue { margin-top: 6px; }
+        h2 { font-size: 12pt; margin: 0 0 8px 0; }
+        ol.agenda { margin: 0; padding-left: 18px; }
+        ol.agenda li { padding: 4px 0; }
+        .empty { color: #667085; font-style: italic; }
+        .notice { margin-top: 24px; font-size: 10pt; color: #344054; }
+        .confirm-link { font-family: monospace; font-size: 10pt; word-wrap: break-word; padding: 8px;
+                        background: #f9fafb; border: 1px solid #e4e7ec; }
+        .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e4e7ec; color: #667085; font-size: 9pt; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div class="brand">OIKOS</div>
+    <div class="doc-title">Convocation à l'assemblée générale</div>
+    <div class="meta" th:text="${meetingType}">—</div>
+</div>
+
+<table class="fields">
+    <tr>
+        <td class="label">Copropriété</td>
+        <td class="value" th:text="${propertyName}">—</td>
+    </tr>
+    <tr>
+        <td class="label">Objet</td>
+        <td class="value" th:text="${meetingTitle}">—</td>
+    </tr>
+    <tr>
+        <td class="label">Lot concerné</td>
+        <td class="value" th:text="${unitLabel}">—</td>
+    </tr>
+    <tr th:if="${ownerNames != null}">
+        <td class="label">Copropriétaire(s)</td>
+        <td class="value" th:text="${ownerNames}">—</td>
+    </tr>
+</table>
+
+<div class="session-box">
+    <div class="session-label">Date et heure de la séance</div>
+    <div class="session-date" th:text="${scheduledAt}">—</div>
+    <div class="session-venue"><span class="session-label">Lieu : </span><span th:text="${venue}">—</span></div>
+</div>
+
+<!--
+  Le commentaire du syndic, en texte brut : le rendu PDF exige du XML bien formé
+  et un éditeur riche n'en produit pas (voir RichTextToParagraphs). th:text
+  échappe, donc rien de ce qui a été saisi ne peut devenir du balisage ici.
+-->
+<div th:if="${!#lists.isEmpty(commentParagraphs)}">
+    <h2>Note du syndic</h2>
+    <p th:each="paragraph : ${commentParagraphs}" th:text="${paragraph}">—</p>
+</div>
+
+<h2>Ordre du jour</h2>
+<ol class="agenda" th:if="${!#lists.isEmpty(agendaLabels)}">
+    <li th:each="label : ${agendaLabels}" th:text="${label}">—</li>
+</ol>
+<p class="empty" th:if="${#lists.isEmpty(agendaLabels)}">Aucun point inscrit à l'ordre du jour.</p>
+
+<div class="notice">
+    <p>Seul le lot mentionné ci-dessus dispose d'une voix : une seule réponse et un seul émargement
+        sont enregistrés pour ce lot, quel que soit le nombre de copropriétaires qui le détiennent.</p>
+    <p th:if="${quorumPercentage != '0.00'}">
+        Le quorum requis pour la tenue de cette assemblée est de
+        <span th:text="${quorumPercentage}">—</span> % des voix.
+    </p>
+    <!--
+      Le lien figure sur la lettre imprimée et pas seulement dans l'email : la voie
+      postale est précisément celle dont les destinataires n'ont pas de compte. Écrit
+      en toutes lettres parce qu'un PDF posté se recopie à la main - d'où aussi le
+      corps un peu plus grand et la coupure autorisée au milieu de la chaîne.
+    -->
+    <p th:if="${confirmationLink != null}">Vous pouvez confirmer votre présence ou votre absence,
+        sans avoir besoin d'un compte, à l'adresse suivante :</p>
+    <p class="confirm-link" th:if="${confirmationLink != null}" th:text="${confirmationLink}">—</p>
+    <p th:if="${confirmationLink != null}">Cette adresse vaut pour le lot indiqué ci-dessus : ne la
+        communiquez qu'aux personnes autorisées à répondre pour lui.</p>
+    <p th:if="${confirmationLink == null}">Merci d'indiquer votre présence ou votre absence depuis
+        votre espace copropriétaire.</p>
+</div>
+
+<div class="footer">
+    Document généré par OIKOS. Cette convocation est adressée au lot indiqué ci-dessus.
+</div>
+</body>
+</html>

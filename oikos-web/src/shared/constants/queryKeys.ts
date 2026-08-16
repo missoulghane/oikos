@@ -108,6 +108,25 @@ export const queryKeys = {
       ['messaging', 'drafts', page, size, search] as const,
     draft: (draftId: string) => ['messaging', 'drafts', draftId] as const,
   },
+  generalMeetings: {
+    /** Filters passed whole, for the reason given on `properties.installments`. */
+    list: (propertyId: string, page: number, size: number, filters: object) =>
+      ['general-meetings', propertyId, 'list', page, size, filters] as const,
+    detail: (meetingId: string) => ['general-meetings', meetingId, 'detail'] as const,
+    agendaItems: (meetingId: string) => ['general-meetings', meetingId, 'agenda-items'] as const,
+    convocations: (meetingId: string) => ['general-meetings', meetingId, 'convocations'] as const,
+    /** Not scoped by meeting or property: the channel catalog is the product's, global. */
+    convocationChannels: () => ['convocation-channels'] as const,
+    /** Keyed by the token itself: the anonymous page has no other identifier to key on. */
+    convocationConfirmation: (token: string) => ['convocations', 'by-token', token] as const,
+    attendanceSummary: (meetingId: string) => ['general-meetings', meetingId, 'attendance-summary'] as const,
+    minutes: (meetingId: string) => ['general-meetings', meetingId, 'minutes'] as const,
+    quorumSettings: (propertyId: string) => ['general-meetings', propertyId, 'quorum-settings'] as const,
+    /** Keyed by agenda item, not by meeting: each ballot is read and refreshed on its own. */
+    result: (agendaItemId: string) => ['agenda-items', agendaItemId, 'result'] as const,
+    votes: (agendaItemId: string) => ['agenda-items', agendaItemId, 'votes'] as const,
+    myConvocations: () => ['me', 'convocations'] as const,
+  },
   notifications: {
     list: (page: number, size: number) => ['notifications', 'list', page, size] as const,
     unreadCount: () => ['notifications', 'unread-count'] as const,

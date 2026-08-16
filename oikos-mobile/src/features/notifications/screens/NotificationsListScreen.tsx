@@ -54,6 +54,18 @@ export function NotificationsListScreen({ navigation }: Props) {
     // nowhere to navigate to yet on mobile, so they just mark as read.
     if (notification.linkPath?.startsWith('/property-ownership/installments')) {
       navigation.navigate('MainTabs', { screen: 'HomeTab', params: { screen: 'MyInstallments' } });
+      return;
+    }
+    // GENERAL_MEETING_CALLED and the published-minutes notice both land on the
+    // meeting itself - the id is the last path segment.
+    if (notification.linkPath?.startsWith('/property-ownership/general-meetings/')) {
+      const meetingId = notification.linkPath.split('/').filter(Boolean).pop();
+      if (meetingId) {
+        navigation.navigate('MainTabs', {
+          screen: 'HomeTab',
+          params: { screen: 'MyGeneralMeetingDetail', params: { meetingId } },
+        });
+      }
     }
   }
 

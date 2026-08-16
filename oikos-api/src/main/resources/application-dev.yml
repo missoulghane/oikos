@@ -17,7 +17,10 @@ spring:
       # loading it as a plain script is what keeps the dev profile from needing
       # its own drifting copy. Ordered first - dev.sql assigns roles to accounts
       # and reads better after the roles' permissions exist.
-      data-locations: classpath:db/migration/V2__seed_role_permission.sql,classpath:db/dev/dev.sql
+      # Every seed-only migration must be listed here, V5 included: a bundle
+      # that ships in a migration but not in this list is a 403 in dev only -
+      # the exact incident RolePermissionSeedTest was written after.
+      data-locations: classpath:db/migration/V2__seed_role_permission.sql,classpath:db/migration/V5__seed_meeting_permission.sql,classpath:db/migration/V7__seed_convocation_channel.sql,classpath:db/dev/dev.sql
   flyway:
     enabled: false
   h2:

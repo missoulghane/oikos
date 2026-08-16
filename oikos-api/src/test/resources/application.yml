@@ -39,6 +39,7 @@ oikos:
     party-invitation-token-ttl-hours: 168
     invitation-base-url: http://localhost:5173/invitations
     invitation-token-ttl-days: 30
+    convocation-confirmation-base-url: http://localhost:5173/convocations/confirmation
   storage:
     type: local
     local:

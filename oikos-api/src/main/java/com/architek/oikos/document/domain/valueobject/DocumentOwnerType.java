@@ -11,5 +11,13 @@ public enum DocumentOwnerType {
     PROPERTY,
     UNIT,
     /** A generated payment receipt, attached to the payment it attests to. */
-    PAYMENT
+    PAYMENT,
+    /** Supporting documents of one point of a general meeting's agenda. */
+    AGENDA_ITEM,
+    /** Supporting documents of the assembly as a whole - budget, report - rather than of one point. */
+    GENERAL_MEETING,
+    /** The generated convocation letter of one lot, and its signed attendance sheet. */
+    CONVOCATION,
+    /** The final PDF of a general meeting's minutes. */
+    MEETING_MINUTES
 }

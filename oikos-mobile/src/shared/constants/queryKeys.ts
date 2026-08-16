@@ -10,6 +10,14 @@ export const queryKeys = {
     installments: () => ['me', 'installments'] as const,
     payments: () => ['me', 'payments'] as const,
     membershipRequests: () => ['me', 'membership-requests'] as const,
+    convocations: () => ['me', 'convocations'] as const,
+  },
+  generalMeetings: {
+    detail: (meetingId: string) => ['general-meetings', meetingId, 'detail'] as const,
+    agendaItems: (meetingId: string) => ['general-meetings', meetingId, 'agenda-items'] as const,
+    minutes: (meetingId: string) => ['general-meetings', meetingId, 'minutes'] as const,
+    /** Keyed by agenda item: each ballot's result is read on its own. */
+    result: (agendaItemId: string) => ['agenda-items', agendaItemId, 'result'] as const,
   },
   invitations: {
     preview: (token: string) => ['invitations', 'preview', token] as const,

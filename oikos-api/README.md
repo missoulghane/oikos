@@ -97,6 +97,76 @@ Contextes métier existants sous `src/main/java/com/architek/oikos/` :
   isConversationParticipant}` (`Permission.MESSAGING_BROADCAST` pour la
   diffusion ; une conversation `GROUP` n'est gérée que par appartenance à
   la property, pas par permission fine).
+- `meeting` — assemblées générales. **Implémenté à ce stade** : l'AG
+  (`GeneralMeeting`, cycle de vie en six statuts porté par l'agrégat, de
+  `DRAFT` à `CLOSED`), son ordre du jour (`AgendaItem`, règle de majorité
+  choisie point par point, réordonnancement), le paramétrage du quorum par
+  nature d'AG (`MeetingQuorumSetting`) et les `Convocation` : génération pour
+  **tous** les lots de la copropriété, envoi email + PDF (Thymeleaf/openhtmltopdf,
+  stocké par le module `document`), relance des non-répondants, réponse
+  présent/absent, émargement, tableau de suivi et calcul du quorum
+  (`AttendanceTally`, recalculé à la lecture). Chaque point de l'ordre du jour porte ses **pièces
+  jointes** (`DocumentOwnerType.AGENDA_ITEM`), l'AG les siennes
+  (`GENERAL_MEETING`) plus un **commentaire global en texte riche**
+  (`PUT /general-meetings/{id}/comment`) lu par les copropriétaires et repris
+  dans la convocation — en texte brut dans le PDF, dont le moteur de rendu exige
+  du XML bien formé (ADR 0002 §12). L'ordre du jour, la date et le lieu
+  restent **modifiables à tout statut** : le produit ne veut pas de règle de
+  gestion bloquante à ce stade (ADR 0002 §8, qui liste ce qui reste contraint
+  et comment réintroduire le gel). **Générer et envoyer sont deux actions
+  distinctes** : générer crée une convocation par lot et convoque l'AG sans
+  rien expédier, envoyer expédie ensuite ce qui est encore en attente
+  (`POST /general-meetings/{id}/convocations` puis
+  `.../convocations/send`). Chaque envoi tourne dans sa propre transaction
+  (`REQUIRES_NEW`) : un lot injoignable est marqué en échec et les autres
+  partent quand même. Une convocation porte **plusieurs envois**
+  (`ConvocationDelivery`, 1—N) : email puis recommandé pour le lot resté muet,
+  chaque tentative conservée, aucun statut d'envoi stocké — il est dérivé de
+  ces lignes. Les canaux sont un **catalogue en base**
+  (`GET /convocation-channels`), pas un enum : en ajouter un est un `INSERT`,
+  mais un canal marqué `automated` exige en plus un émetteur dans le code.
+  Ceux que l'application ne sait pas effectuer ne sont jamais « envoyés » par
+  elle, leur remise est saisie à la main
+  (`PUT /convocations/{id}/delivery-status`). La confirmation de présence
+  enregistre **comment** elle a été obtenue (`ReplySource`), déduite de
+  l'appelant côté serveur et jamais envoyée par le client (ADR 0002 §9).
+  Chaque convocation porte enfin un **lien de confirmation personnel**
+  (`GET`/`PUT /convocations/by-token/{token}`, les deux seuls points d'entrée
+  anonymes du module, écriture comprise) : les copropriétaires sans compte —
+  et il y en a beaucoup — pouvaient jusqu'ici recevoir une convocation sans
+  avoir aucun moyen d'y répondre. Le lien figure dans l'email **et** sur le PDF
+  imprimé, cesse d'accepter une réponse à l'ouverture de la séance, et n'expose
+  qu'une convocation : ni identifiant, ni autre lot, ni nom (ADR 0002 §10). Enfin les
+  `Vote` : ouverture et clôture de scrutin par point, saisie nominative ou à
+  main levée (un choix pour la salle, avec des exceptions nommées), et
+  dépouillement (`VoteTally` + `MajorityRuleEvaluator`). Un lot ne vote que
+  s'il a émargé — c'est le fait sur lequel le quorum a été calculé — et son
+  poids est celui figé sur sa convocation, jamais relu. Le résultat porte les
+  **trois** dénominateurs (voix exprimées, présentes, totales) pour que la
+  règle de majorité reste une comparaison pure : la majorité `ABSOLUTE` se
+  mesure sur l'ensemble de la copropriété, présents ou non. Rien n'est
+  stocké : le dépouillement est recalculé à chaque lecture. Enfin le
+  procès-verbal (`MeetingMinutes`) : généré depuis la séance close
+  (`MinutesComposer`), complété par le syndic, validé — ce qui **gèle le
+  texte** — puis publié (PDF classé par le module `document`, AG en
+  `MINUTES_PUBLISHED`, notification aux copropriétaires). Le PV est le seul
+  endroit du module où le calculé cesse de l'être : partout ailleurs les
+  chiffres sont dérivés à la lecture pour ne jamais contredire leurs lignes,
+  mais un procès-verbal doit dire ce qui a été décidé le jour même, pas ce
+  que les données actuelles concluraient. Le PDF publié est rendu depuis le
+  contenu figé, jamais recalculé. Les trois permissions RBAC sont `meeting:read`, `meeting:manage` et
+  `meeting:minutes:publish` ; seule la première est accordée à
+  `PROPERTY_OWNER`, qui peut répondre à la convocation de ses propres lots
+  (`canReplyToConvocation`). Deux partis pris structurent tout le reste et
+  sont détaillés dans
+  [docs/adr/0002-assemblee-generale-cadrage.md](docs/adr/0002-assemblee-generale-cadrage.md) :
+  **c'est le lot qui est convoqué et qui vote** (jamais le copropriétaire —
+  une convocation par `Unit`, une voix par `Unit`, y compris pour un lot en
+  indivision), et **rien de dérivable n'est stocké** (dépouillement, statut
+  de convocation et quorum sont recalculés à la lecture, figés une seule
+  fois dans le contenu du procès-verbal). Le poids d'une voix suit la
+  configuration de la copropriété (`dues_calculation_mode` : forfait → une
+  voix par lot, tantièmes → au prorata) et est snapshoté sur la convocation.
 - `shared` — briques transverses : pagination, gestion des exceptions,
   audit, envoi d'email, configuration, ainsi que les VO génériques utilisées
   au-delà d'un seul module (`EntityId`, `Amount` — montant strictement

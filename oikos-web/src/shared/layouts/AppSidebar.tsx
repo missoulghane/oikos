@@ -26,6 +26,7 @@ import {
   EnvelopeIcon,
   PencilIcon,
   LockIcon,
+  CalenderIcon,
 } from '@/shared/icons';
 import { Badge } from '@/shared/components/Badge/Badge';
 import { SidebarWidget } from './SidebarWidget';
@@ -58,6 +59,14 @@ const INSTALLMENT_TABS = [
   { name: 'Appels de fonds', path: '/calls', icon: <PaperPlaneIcon /> },
   { name: 'Échéances', path: '', icon: <TimeIcon /> },
   { name: 'Autres', path: '/other', icon: <MoreDotIcon /> },
+];
+
+// Paths are relative to /property-mngt/properties/:id, like the other groups.
+// "Paramètres" (the quorum thresholds) is a sibling route of the AG list rather
+// than one of its tabs: it configures the copropriété, not one assembly.
+const GENERAL_MEETING_TABS = [
+  { name: 'Assemblées', path: '/general-meetings', icon: <GroupIcon /> },
+  { name: 'Paramètres', path: '/meeting-settings', icon: <PlugInIcon /> },
 ];
 
 // Matches the routes actually registered under accounting/ in
@@ -166,6 +175,15 @@ function propertyContextGroups(propertyId: string): NavGroup[] {
         icon: tab.icon,
       })),
     },
+    {
+      name: 'Assemblées générales',
+      icon: <CalenderIcon />,
+      children: GENERAL_MEETING_TABS.map((tab) => ({
+        name: tab.name,
+        path: `/property-mngt/properties/${propertyId}${tab.path}`,
+        icon: tab.icon,
+      })),
+    },
   ];
 }
 
@@ -266,6 +284,10 @@ export function AppSidebar() {
       : []),
     ...(isOwnerSpace
       ? [{ name: 'Mes paiements', path: '/property-ownership/payments', icon: <DollarLineIcon /> }]
+      : []),
+    // Convocations, answers and published minutes - the owner's whole AG surface.
+    ...(isOwnerSpace
+      ? [{ name: 'Mes assemblées', path: '/property-ownership/general-meetings', icon: <CalenderIcon /> }]
       : []),
   ];
 

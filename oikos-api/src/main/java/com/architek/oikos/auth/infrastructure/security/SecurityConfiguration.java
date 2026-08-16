@@ -107,6 +107,14 @@ public class SecurityConfiguration {
                         // triggers the frontend's silent-refresh-and-retry) instead of reaching
                         // the controller's @PreAuthorize check (403, no retry).
                         .requestMatchers(HttpMethod.GET, "/api/v1/invitations/by-token/**").permitAll()
+                        // The convocation confirmation link, and the one place where the WRITE is
+                        // anonymous too - deliberately, unlike the invitation flow above. It exists
+                        // for the copropriétaires who have no account and never will; requiring one
+                        // would leave exactly that population with the telephone. The token is the
+                        // whole credential, and ConvocationByTokenService is what keeps it narrow:
+                        // one lot's convocation, no identifiers returned, no answer once the
+                        // session has opened.
+                        .requestMatchers("/api/v1/convocations/by-token/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()

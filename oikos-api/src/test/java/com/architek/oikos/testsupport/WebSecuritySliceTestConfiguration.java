@@ -21,6 +21,9 @@ import com.architek.oikos.installment.application.port.in.GetPaymentUseCase;
 import com.architek.oikos.installment.application.port.in.GetInstallmentUseCase;
 import com.architek.oikos.invitation.application.port.in.GetInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.GetMembershipRequestUseCase;
+import com.architek.oikos.meeting.application.port.in.GetAgendaItemUseCase;
+import com.architek.oikos.meeting.application.port.in.GetConvocationUseCase;
+import com.architek.oikos.meeting.application.port.in.GetGeneralMeetingUseCase;
 import com.architek.oikos.messaging.application.port.in.GetConversationUseCase;
 import com.architek.oikos.messaging.application.port.in.GetMessageDraftUseCase;
 import com.architek.oikos.notification.application.port.in.GetNotificationUseCase;
@@ -87,7 +90,10 @@ public class WebSecuritySliceTestConfiguration {
                                             ObjectProvider<GetConversationUseCase> getConversationUseCase,
                                             ObjectProvider<GetMessageDraftUseCase> getMessageDraftUseCase,
                                             ObjectProvider<GetDocumentUseCase> getDocumentUseCase,
-                                            ObjectProvider<GetNotificationUseCase> getNotificationUseCase) {
+                                            ObjectProvider<GetNotificationUseCase> getNotificationUseCase,
+                                            ObjectProvider<GetGeneralMeetingUseCase> getGeneralMeetingUseCase,
+                                            ObjectProvider<GetAgendaItemUseCase> getAgendaItemUseCase,
+                                            ObjectProvider<GetConvocationUseCase> getConvocationUseCase) {
         return new PropertyAccessEvaluator(getUserAccessUseCase,
                 getUnitUseCase.getIfAvailable(() -> Mockito.mock(GetUnitUseCase.class)),
                 getBuildingUseCase.getIfAvailable(() -> Mockito.mock(GetBuildingUseCase.class)),
@@ -101,6 +107,9 @@ public class WebSecuritySliceTestConfiguration {
                 getConversationUseCase.getIfAvailable(() -> Mockito.mock(GetConversationUseCase.class)),
                 getMessageDraftUseCase.getIfAvailable(() -> Mockito.mock(GetMessageDraftUseCase.class)),
                 getDocumentUseCase.getIfAvailable(() -> Mockito.mock(GetDocumentUseCase.class)),
-                getNotificationUseCase.getIfAvailable(() -> Mockito.mock(GetNotificationUseCase.class)));
+                getNotificationUseCase.getIfAvailable(() -> Mockito.mock(GetNotificationUseCase.class)),
+                getGeneralMeetingUseCase.getIfAvailable(() -> Mockito.mock(GetGeneralMeetingUseCase.class)),
+                getAgendaItemUseCase.getIfAvailable(() -> Mockito.mock(GetAgendaItemUseCase.class)),
+                getConvocationUseCase.getIfAvailable(() -> Mockito.mock(GetConvocationUseCase.class)));
     }
 }

@@ -20,6 +20,9 @@ const AcceptInvitationPage = lazy(() =>
 const InvitationLandingPage = lazy(() =>
   import('@/features/identity/invitations').then((m) => ({ default: m.InvitationLandingPage })),
 );
+const ConvocationConfirmationPage = lazy(() =>
+  import('@/features/property-ownership/general-meetings').then((m) => ({ default: m.ConvocationConfirmationPage })),
+);
 
 export const publicRoutes: RouteObject[] = [
   {
@@ -84,6 +87,18 @@ export const publicRoutes: RouteObject[] = [
     element: (
       <Suspense fallback={<Loader />}>
         <InvitationLandingPage />
+      </Suspense>
+    ),
+  },
+  {
+    // Public, et destinée à le rester : elle existe pour les copropriétaires qui
+    // n'ont pas de compte et n'en auront pas. La déplacer derrière une
+    // authentification rendrait la confirmation impossible à exactement ceux
+    // pour qui elle a été faite (adr/0002 §10).
+    path: '/convocations/confirmation',
+    element: (
+      <Suspense fallback={<Loader />}>
+        <ConvocationConfirmationPage />
       </Suspense>
     ),
   },

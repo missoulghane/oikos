@@ -42,6 +42,45 @@ const PropertyDocumentsTab = lazy(() =>
 const UnitDetailPage = lazy(() =>
   import('@/features/property-mngt/properties').then((m) => ({ default: m.UnitDetailPage })),
 );
+const GeneralMeetingsSectionLayout = lazy(() =>
+  import('@/features/property-mngt/general-meetings').then((m) => ({ default: m.GeneralMeetingsSectionLayout })),
+);
+const GeneralMeetingsListTab = lazy(() =>
+  import('@/features/property-mngt/general-meetings').then((m) => ({ default: m.GeneralMeetingsListTab })),
+);
+const CreateGeneralMeetingPage = lazy(() =>
+  import('@/features/property-mngt/general-meetings').then((m) => ({ default: m.CreateGeneralMeetingPage })),
+);
+const GeneralMeetingDetailLayout = lazy(() =>
+  import('@/features/property-mngt/general-meetings').then((m) => ({ default: m.GeneralMeetingDetailLayout })),
+);
+const MeetingInformationTab = lazy(() =>
+  import('@/features/property-mngt/general-meetings').then((m) => ({ default: m.MeetingInformationTab })),
+);
+const AgendaTab = lazy(() =>
+  import('@/features/property-mngt/general-meetings').then((m) => ({ default: m.AgendaTab })),
+);
+const ConvocationsTab = lazy(() =>
+  import('@/features/property-mngt/general-meetings').then((m) => ({ default: m.ConvocationsTab })),
+);
+const ConvocationDetailPage = lazy(() =>
+  import('@/features/property-mngt/general-meetings').then((m) => ({ default: m.ConvocationDetailPage })),
+);
+const SessionTab = lazy(() =>
+  import('@/features/property-mngt/general-meetings').then((m) => ({ default: m.SessionTab })),
+);
+const MinutesTab = lazy(() =>
+  import('@/features/property-mngt/general-meetings').then((m) => ({ default: m.MinutesTab })),
+);
+const MeetingQuorumSettingsTab = lazy(() =>
+  import('@/features/property-mngt/general-meetings').then((m) => ({ default: m.MeetingQuorumSettingsTab })),
+);
+const MyGeneralMeetingsPage = lazy(() =>
+  import('@/features/property-ownership/general-meetings').then((m) => ({ default: m.MyGeneralMeetingsPage })),
+);
+const MyGeneralMeetingDetailPage = lazy(() =>
+  import('@/features/property-ownership/general-meetings').then((m) => ({ default: m.MyGeneralMeetingDetailPage })),
+);
 const InstallmentsSectionLayout = lazy(() =>
   import('@/features/property-mngt/installments').then((m) => ({ default: m.InstallmentsSectionLayout })),
 );
@@ -365,6 +404,101 @@ export const privateRoutes: RouteObject[] = [
                 ],
               },
               {
+                path: 'general-meetings',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <GeneralMeetingsSectionLayout />
+                  </Suspense>
+                ),
+                children: [
+                  {
+                    index: true,
+                    element: (
+                      <Suspense fallback={<Loader />}>
+                        <GeneralMeetingsListTab />
+                      </Suspense>
+                    ),
+                  },
+                  {
+                    // Declared before ':meetingId' so "new" is not swallowed as an id.
+                    path: 'new',
+                    element: (
+                      <Suspense fallback={<Loader />}>
+                        <CreateGeneralMeetingPage />
+                      </Suspense>
+                    ),
+                  },
+                  {
+                    path: ':meetingId',
+                    element: (
+                      <Suspense fallback={<Loader />}>
+                        <GeneralMeetingDetailLayout />
+                      </Suspense>
+                    ),
+                    children: [
+                      {
+                        // L'onglet d'accueil : ce qui décrit l'AG entière. L'ordre du jour
+                        // a sa propre URL depuis qu'il n'est plus le premier onglet.
+                        index: true,
+                        element: (
+                          <Suspense fallback={<Loader />}>
+                            <MeetingInformationTab />
+                          </Suspense>
+                        ),
+                      },
+                      {
+                        path: 'agenda',
+                        element: (
+                          <Suspense fallback={<Loader />}>
+                            <AgendaTab />
+                          </Suspense>
+                        ),
+                      },
+                      {
+                        path: 'convocations',
+                        element: (
+                          <Suspense fallback={<Loader />}>
+                            <ConvocationsTab />
+                          </Suspense>
+                        ),
+                      },
+                      {
+                        path: 'convocations/:convocationId',
+                        element: (
+                          <Suspense fallback={<Loader />}>
+                            <ConvocationDetailPage />
+                          </Suspense>
+                        ),
+                      },
+                      {
+                        path: 'session',
+                        element: (
+                          <Suspense fallback={<Loader />}>
+                            <SessionTab />
+                          </Suspense>
+                        ),
+                      },
+                      {
+                        path: 'minutes',
+                        element: (
+                          <Suspense fallback={<Loader />}>
+                            <MinutesTab />
+                          </Suspense>
+                        ),
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                path: 'meeting-settings',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <MeetingQuorumSettingsTab />
+                  </Suspense>
+                ),
+              },
+              {
                 path: 'installments',
                 element: (
                   <Suspense fallback={<Loader />}>
@@ -608,6 +742,22 @@ export const privateRoutes: RouteObject[] = [
             element: (
               <Suspense fallback={<Loader />}>
                 <MyPaymentDetailPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'general-meetings',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <MyGeneralMeetingsPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'general-meetings/:meetingId',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <MyGeneralMeetingDetailPage />
               </Suspense>
             ),
           },

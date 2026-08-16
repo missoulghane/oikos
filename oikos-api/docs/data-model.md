@@ -32,6 +32,15 @@ erDiagram
 
     INSTALLMENT_CALL ||--o{ INSTALLMENT : "génère"
 
+    PROPERTY ||--o{ GENERAL_MEETING : "assemblées générales"
+    PROPERTY ||--o{ MEETING_QUORUM_SETTING : "quorum par nature d'AG"
+    GENERAL_MEETING ||--o{ AGENDA_ITEM : "ordre du jour"
+    GENERAL_MEETING ||--o{ CONVOCATION : "convoque"
+    GENERAL_MEETING ||--o| MEETING_MINUTES : "procès-verbal"
+    UNIT ||--o{ CONVOCATION : "convoqué"
+    AGENDA_ITEM ||--o{ VOTE : "votes"
+    UNIT ||--o{ VOTE : "vote"
+
     PROPERTY ||--o{ CONVERSATION : "messagerie"
     APP_USER ||--o{ CONVERSATION : "démarre"
     CONVERSATION ||--o{ MESSAGE : "contient"
@@ -197,9 +206,119 @@ Curseur de lecture par utilisateur et par conversation, créé paresseusement (u
 
 Clé primaire composite `(conversation_id, user_id)`.
 
+### GeneralMeeting — `general_meeting`
+Assemblée générale d'une `Property`. Cycle de vie en six statuts porté par l'agrégat ; les colonnes `quorum_percentage` et `voting_weight_mode` sont des **snapshots** figés à la création (voir [ADR 0002](adr/0002-assemblee-generale-cadrage.md)).
+
+| Colonne | Type | Description |
+|---|---|---|
+| property_id | UUID (FK) | → `property.id` |
+| meeting_type | ENUM | `ORDINARY`, `EXTRAORDINARY` |
+| status | ENUM | `DRAFT`, `SCHEDULED`, `CONVENED`, `IN_PROGRESS`, `CLOSED`, `MINUTES_PUBLISHED` |
+| title | VARCHAR(200) | Intitulé de la séance |
+| scheduled_at | TIMESTAMPTZ (nullable) | Date et heure ; obligatoire dès la sortie de `DRAFT` |
+| venue_type | ENUM (nullable) | `PHYSICAL`, `VIDEOCONFERENCE`, `HYBRID` |
+| venue_address / venue_link | VARCHAR | Adresse et/ou lien, selon `venue_type` |
+| quorum_percentage | NUMERIC(5,2) | Snapshot de `meeting_quorum_setting` |
+| comment | TEXT (nullable) | Commentaire global de l'AG, HTML d'éditeur riche. Lu par les copropriétaires (espace, mobile, PDF de convocation) — jamais réinjecté brut : assaini côté clients, aplati en texte pour le PDF (ADR 0002 §12) |
+| voting_weight_mode | ENUM | `PER_UNIT`, `SHARES` — snapshot de `property.dues_calculation_mode` |
+| opened_without_quorum | BOOLEAN | Séance ouverte malgré un quorum non atteint (acte tracé) |
+
+### MeetingQuorumSetting — `meeting_quorum_setting`
+Seuil de quorum réglable par copropriété et par nature d'AG. Absence de ligne = aucun quorum exigé.
+
+| Colonne | Type | Description |
+|---|---|---|
+| property_id | UUID (FK) | → `property.id` |
+| meeting_type | ENUM | `ORDINARY`, `EXTRAORDINARY` |
+| quorum_percentage | NUMERIC(5,2) | 0 à 100 |
+
+Contrainte unique `(property_id, meeting_type)`.
+
+### AgendaItem — `agenda_item`
+Point de l'ordre du jour. Aucune colonne de résultat : le dépouillement est recalculé depuis `vote` à la lecture, et figé une seule fois dans le contenu du PV.
+
+| Colonne | Type | Description |
+|---|---|---|
+| general_meeting_id | UUID (FK) | → `general_meeting.id` |
+| label / description | VARCHAR(200) / TEXT | |
+| position | INTEGER | Unique par AG, contrainte `DEFERRABLE` (un réordonnancement permute les positions) |
+| majority_rule | ENUM | `SIMPLE`, `ABSOLUTE`, `UNANIMITY` — choisie point par point |
+| vote_session_status | ENUM | `NOT_OPENED`, `OPEN`, `CLOSED` |
+
+### Convocation — `convocation`
+Parcours complet d'un **lot** pour une AG : envoi, confirmation, émargement (objet unique, comme dans la SFD). Le sujet est le lot et non le copropriétaire — un lot en indivision reçoit une seule convocation et n'a qu'une voix. Les destinataires effectifs ne sont pas stockés : ils sont résolus à l'envoi depuis les `unit_ownership` courants.
+
+| Colonne | Type | Description |
+|---|---|---|
+| general_meeting_id | UUID (FK) | → `general_meeting.id` |
+| unit_id | UUID (FK) | → `unit.id` |
+| voting_weight | NUMERIC(12,2) | Snapshot : `1` en mode `PER_UNIT`, tantièmes du lot en mode `SHARES` |
+| attendance_reply / replied_at | ENUM / TIMESTAMPTZ | `ATTENDING`, `NOT_ATTENDING`, `NO_REPLY` (défaut, pas `NULL`) |
+| reply_source | ENUM (nullable) | `OWNER_APP`, `OWNER_LINK`, `SYNDIC_OFFICE` — **comment** la confirmation a été obtenue. Déduite de l'appelant côté serveur, jamais envoyée par le client |
+| replied_by_party_id | UUID (FK, nullable) | → `party.id` — qui a répondu, quand c'est connu |
+| reply_note | VARCHAR(500) (nullable) | Par quel biais la réponse est parvenue au bureau (« appelée mardi ») |
+| confirmation_token | VARCHAR(64), **unique**, NOT NULL | Jeton du lien de confirmation (32 octets `SecureRandom`, Base64-url). Créé à la génération, pas à l'envoi : le lien s'imprime sur la lettre postée. Unique par construction — c'est la seule chose que présente un visiteur anonyme, donc la seule chose qui désigne la convocation. N'apparaît dans aucune réponse JSON du back-office (ADR 0002 §10) |
+| checked_in / checked_in_at | BOOLEAN / TIMESTAMPTZ | Émargement ; condition nécessaire au vote du lot |
+| attendance_mode | ENUM (nullable) | `ON_SITE`, `REMOTE` |
+| checked_in_party_id | UUID (FK, nullable) | → `party.id` — qui représentait le lot (pas un mandat) |
+
+Contrainte unique `(general_meeting_id, unit_id)`. Contrainte `CHECK` : une réponse enregistrée porte forcément sa source, une absence de réponse n'en a aucune.
+
+**Pas de colonne `channel`, `sent_at` ni `delivery_status`** (retirées en `V6`) : l'envoi est une liste de `convocation_delivery`, et les deux valeurs de synthèse dont les écrans ont besoin sont dérivées à la lecture (aucune ligne → `TO_SEND` ; au moins une `SENT` → `SENT` ; que des `FAILED` → `FAILED` ; `sentAt` = date du **premier** envoi abouti, celle dont court le délai de convocation).
+
+### Canal de convocation — `convocation_channel`
+Table de **référence** (comme `journal`), globale et non scopée par `property` : les canaux sont ceux du produit. Ajouter un canal doit être un `INSERT`, pas un déploiement — même bascule que `UnitType` (enum figé) → `unit_type_definition`.
+
+| Colonne | Type | Description |
+|---|---|---|
+| code | VARCHAR(30) (PK) | `EMAIL`, `APP`, `POSTAL_MAIL`, `REGISTERED_MAIL`, `MANUAL` |
+| label | VARCHAR(100) | Libellé affiché — le serveur le résout, aucun client n'en garde de copie |
+| automated | BOOLEAN | L'application sait envoyer elle-même. Un canal manuel s'ajoute par un `INSERT` seul ; un canal `automated` exige **en plus** un émetteur dans le code, faute de quoi `SendConvocationUseCase` le refuse |
+| position / active | INTEGER / BOOLEAN | Ordre d'affichage ; une ligne désactivée reste référencée par les envois passés |
+
+Semé deux fois : par `V6` (prod/docker) et par `V7` sous forme rejouable, chargé par le profil dev via `spring.sql.init` — H2 n'applique jamais les migrations. `ConvocationChannelSeedTest` interdit la dérive entre les deux.
+
+### Envoi de convocation — `convocation_delivery`
+Une ligne par tentative d'envoi, aboutie ou non. **1—N** avec `convocation` : la même convocation part légitimement par plusieurs canaux (email, puis recommandé pour le lot resté muet), et l'ancienne forme — un seul triplet porté par la convocation — écrasait la précédente à chaque fois. Un échec est conservé : « on a essayé par email, il n'y avait pas d'adresse » est ce qui dit au syndic de poster une lettre, et devient indiscernable de « personne n'a essayé » si on le jette.
+
+| Colonne | Type | Description |
+|---|---|---|
+| convocation_id | UUID (FK) | → `convocation.id`, `ON DELETE CASCADE` |
+| channel_code | VARCHAR(30) (FK) | → `convocation_channel.code` |
+| status | VARCHAR(20) | `SENT` ou `FAILED` seulement — `TO_SEND` est l'absence de ligne, jamais une ligne |
+| sent_at | TIMESTAMPTZ (nullable) | `CHECK` : renseignée si et seulement si `SENT` |
+| reference | VARCHAR(100) (nullable) | N° de suivi d'un recommandé — le seul canal qui en produit un |
+| recorded_by_user_id | UUID (nullable) | Qui a envoyé, ou qui a constaté la remise |
+
+**Pas d'unicité sur `(convocation, canal)`** : renvoyer par le même canal après un échec est une seconde tentative, et les deux méritent d'être lisibles.
+
+### Vote — `vote`
+Vote d'un **lot** sur un point de l'ordre du jour. `cast_by_user_id` ne trace que la saisie, jamais la détention de la voix.
+
+| Colonne | Type | Description |
+|---|---|---|
+| agenda_item_id | UUID (FK) | → `agenda_item.id` |
+| unit_id | UUID (FK) | → `unit.id` |
+| choice | ENUM | `FOR`, `AGAINST`, `ABSTENTION` |
+| cast_at | TIMESTAMPTZ | |
+| cast_by_user_id | UUID (FK, nullable) | → `app_user.id` |
+
+Contrainte unique `(agenda_item_id, unit_id)`.
+
+### MeetingMinutes — `meeting_minutes`
+Procès-verbal, relation 1—1 avec l'AG. Le PDF final n'est pas une colonne : il est stocké par le module `document` (`DocumentOwnerType.MEETING_MINUTES`), comme le reçu de paiement.
+
+| Colonne | Type | Description |
+|---|---|---|
+| general_meeting_id | UUID (FK, unique) | → `general_meeting.id` |
+| content | TEXT | Présents, résultats de vote, décisions — c'est ici que le dépouillement est figé |
+| status | ENUM | `DRAFT`, `UNDER_REVIEW`, `PUBLISHED` |
+| published_at | TIMESTAMPTZ (nullable) | Obligatoire dès `PUBLISHED` |
+
 ## Relations clés à retenir
 
 - **Party est le socle d'identité** : `AppUser`, `UnitOwnership` et `BoardMember` référencent tous `Party`, jamais l'inverse — un `Party` peut exister sans compte applicatif (ex. copropriétaire sans accès à la plateforme).
 - **Un lot (`Unit`) peut avoir plusieurs propriétaires** via `UnitOwnership`, chacun avec sa quote-part.
 - **Le tarif est optionnel et par type de lot**, pas par lot individuel : `UnitTypePricing` est unique par `unit_type_id`.
 - **Les appels de fonds sont mensuels et uniques par propriété** (`installment_call.property_id + period`), et chaque appel démultiplie une `Installment` par lot tarifé.
+- **En assemblée générale, c'est le lot qui est convoqué et qui vote**, jamais le `Party` : `convocation` et `vote` référencent `unit`, avec un poids de voix snapshoté à la génération des convocations. Un lot sans `unit_ownership` est convoqué quand même — il compte dans le total des voix (quorum, majorité absolue) sans pouvoir répondre ni émarger.

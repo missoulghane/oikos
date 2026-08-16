@@ -7,7 +7,7 @@ import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { useSendMessage } from '@/features/messaging/hooks/useSendMessage';
 import { sendMessageSchema, type SendMessageFormValues } from '@/features/messaging/schemas/sendMessageSchema';
 import { MessageBodyEditor } from '@/features/messaging/components/MessageBodyEditor';
-import type { QuillEditorHandle } from '@/features/messaging/components/QuillEditor';
+import type { QuillEditorHandle } from '@/shared/components/RichText/QuillEditor';
 import type { SenderIdentity } from '@/features/messaging/types/messaging.types';
 
 interface MessageComposerProps {

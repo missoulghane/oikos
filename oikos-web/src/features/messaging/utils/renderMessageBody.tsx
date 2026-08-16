@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import DOMPurify from 'dompurify';
-import '@/features/messaging/components/messageBodyContent.css';
+import { sanitizeRichText } from '@/shared/components/RichText/sanitizeRichText';
+import '@/shared/components/RichText/richTextContent.css';
 
 // Body is HTML on this client (Quill's own output, see QuillEditor/
 // MessageBodyEditor) since this feature moved off the plain-text
@@ -15,37 +16,10 @@ function looksLikeHtml(body: string): boolean {
   return HTML_TAG_PATTERN.test(body);
 }
 
-// SECURITY: the backend does zero HTML validation on MessageBody - it's just
-// a capped-length string (see oikos-api's MessageBody value object) - and
-// Quill's own HTML export isn't guaranteed safe either (CVE-2025-15056,
-// unpatched as of quill@2.0.3). This sanitize call is the actual XSS
-// boundary: it runs on every body before it ever reaches
-// dangerouslySetInnerHTML, regardless of which client (or a direct API call)
-// produced the string. The allow-list matches exactly what QuillEditor's
-// toolbar can produce - nothing else has a legitimate reason to be here.
-const SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'blockquote', 'ol', 'ul', 'li', 'a'],
-  ALLOWED_ATTR: ['href'],
-};
-
-let linkHookInstalled = false;
-function ensureSafeLinkHook() {
-  if (linkHookInstalled) {
-    return;
-  }
-  linkHookInstalled = true;
-  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-    if (node.tagName === 'A') {
-      node.setAttribute('target', '_blank');
-      node.setAttribute('rel', 'noopener noreferrer');
-    }
-  });
-}
-
-function sanitizeBodyHtml(body: string): string {
-  ensureSafeLinkHook();
-  return DOMPurify.sanitize(body, SANITIZE_CONFIG);
-}
+// The sanitize pass moved to shared/components/RichText/sanitizeRichText once a
+// second feature started writing rich text (a general meeting's comment). It is
+// the same allow-list and the same link hook - and keeping one copy is the point:
+// the XSS boundary is not something to maintain twice.
 
 // Legacy/mobile plain-text renderer: "**bold**" spans and "- " bullet lines,
 // rendered as React elements (never dangerouslySetInnerHTML) - kept in sync
@@ -115,7 +89,7 @@ function renderPlainTextBody(body: string): ReactNode {
 
 export function renderMessageBody(body: string): ReactNode {
   if (looksLikeHtml(body)) {
-    return <div className="ql-content" dangerouslySetInnerHTML={{ __html: sanitizeBodyHtml(body) }} />;
+    return <div className="ql-content" dangerouslySetInnerHTML={{ __html: sanitizeRichText(body) }} />;
   }
   return renderPlainTextBody(body);
 }

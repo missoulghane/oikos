@@ -24,7 +24,7 @@ import {
   type StartConversationFormValues,
 } from '@/features/messaging/schemas/startConversationSchema';
 import { MessageBodyEditor } from '@/features/messaging/components/MessageBodyEditor';
-import type { QuillEditorHandle } from '@/features/messaging/components/QuillEditor';
+import type { QuillEditorHandle } from '@/shared/components/RichText/QuillEditor';
 import { BOX_PATH } from '@/features/messaging/utils/boxPath';
 import type {
   RecipientCandidate,

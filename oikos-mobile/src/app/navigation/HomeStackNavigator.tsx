@@ -3,6 +3,10 @@ import { MyUnitsScreen, MyUnitDetailScreen } from '@/features/property-ownership
 import { MyInstallmentsScreen, MyInstallmentDetailScreen } from '@/features/property-ownership/installments';
 import { MyPaymentsScreen, MyPaymentDetailScreen } from '@/features/property-ownership/payments';
 import { MyMembershipRequestsScreen } from '@/features/property-ownership/membership-requests';
+import {
+  MyGeneralMeetingsScreen,
+  MyGeneralMeetingDetailScreen,
+} from '@/features/property-ownership/general-meetings';
 import { NotificationBell } from '@/shared/components/NotificationBell/NotificationBell';
 import type { OwnedUnit } from '@/features/property-ownership/units/types/unit.types';
 
@@ -23,6 +27,10 @@ export type HomeStackParamList = {
   MyPayments: undefined;
   MyPaymentDetail: { paymentId: string };
   MyMembershipRequests: undefined;
+  MyGeneralMeetings: undefined;
+  // title is carried along so the header reads right before the meeting has
+  // loaded - the list already has it, and there is no placeholder worth showing.
+  MyGeneralMeetingDetail: { meetingId: string; title?: string };
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -51,6 +59,12 @@ export function HomeStackNavigator() {
         name="MyPaymentDetail"
         component={MyPaymentDetailScreen}
         options={{ title: 'Détail du paiement' }}
+      />
+      <Stack.Screen name="MyGeneralMeetings" component={MyGeneralMeetingsScreen} options={{ title: 'Mes assemblées' }} />
+      <Stack.Screen
+        name="MyGeneralMeetingDetail"
+        component={MyGeneralMeetingDetailScreen}
+        options={({ route }) => ({ title: route.params.title ?? 'Assemblée générale' })}
       />
       <Stack.Screen
         name="MyMembershipRequests"

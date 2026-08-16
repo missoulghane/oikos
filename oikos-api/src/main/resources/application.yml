@@ -57,6 +57,10 @@ oikos:
     party-invitation-token-ttl-hours: 168
     invitation-base-url: ${APP_INVITATION_BASE_URL:http://localhost:5173/invitations}
     invitation-token-ttl-days: 30
+    # Lien de confirmation de présence joint à chaque convocation. Pas de TTL :
+    # il cesse d'accepter une réponse à l'ouverture de la séance, ce que le
+    # statut de l'AG dit déjà (ADR 0002 §10).
+    convocation-confirmation-base-url: ${APP_CONVOCATION_CONFIRMATION_BASE_URL:http://localhost:5173/convocations/confirmation}
   storage:
     type: ${STORAGE_TYPE:local}
     local:

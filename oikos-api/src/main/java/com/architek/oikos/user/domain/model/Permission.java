@@ -29,7 +29,11 @@ public enum Permission {
     INVITATION_MANAGE("invitation:manage"),
     MESSAGING_BROADCAST("messaging:broadcast"),
     DOCUMENT_READ("document:read"),
-    DOCUMENT_WRITE("document:write");
+    DOCUMENT_WRITE("document:write"),
+    MEETING_READ("meeting:read"),
+    MEETING_MANAGE("meeting:manage"),
+    /** Split from MEETING_MANAGE: publishing minutes is irreversible and broadcast to every owner. */
+    MEETING_MINUTES_PUBLISH("meeting:minutes:publish");
 
     private final String key;
 

@@ -66,17 +66,24 @@ class DependencyRulesArchTest {
      * of User/PropertyRoleGrant/Role.
      */
     /**
-     * document reads property data only through its public port-in use cases
-     * (GetPropertyUseCase/GetUnitUseCase, see DocumentOwnerExistenceAdapter) -
-     * never property's domain model, repository or infrastructure internals
-     * directly (rule 4/6), same convention as accounting.
+     * document reads property and meeting data only through their public port-in
+     * use cases (GetPropertyUseCase/GetUnitUseCase, and the three
+     * GetAgendaItem/GetConvocation/GetGeneralMeeting added for the attachable
+     * types of the AG module - see DocumentOwnerExistenceAdapter) - never their
+     * domain model, repository or infrastructure internals directly (rule 4/6),
+     * same convention as accounting.
+     * meeting.domain.valueobject and meeting.domain.exception stay reachable, as
+     * property's already are: an owner-type branch has to name the id it looks up
+     * and catch the not-found it may get back.
      */
     @ArchTest
     static final ArchRule document_must_not_depend_on_other_modules_internals = noClasses()
             .that().resideInAPackage("com.architek.oikos.document..")
             .should().dependOnClassesThat().resideInAnyPackage(
                     "com.architek.oikos.property.domain.model..", "com.architek.oikos.property.domain.repository..",
-                    "com.architek.oikos.property.infrastructure..")
+                    "com.architek.oikos.property.infrastructure..",
+                    "com.architek.oikos.meeting.domain.model..", "com.architek.oikos.meeting.domain.repository..",
+                    "com.architek.oikos.meeting.infrastructure..")
             .because("cross-feature access must go through a port-in use case, never another module's domain model/repository/infrastructure directly (rule 4/6)");
 
     private static final DescribedPredicate<JavaClass> OTHER_MODULES_INTERNALS_EXCEPT_PERMISSION_CATALOG =
@@ -102,6 +109,20 @@ class DependencyRulesArchTest {
     @ArchTest
     static final ArchRule messaging_must_not_depend_on_other_modules_internals = noClasses()
             .that().resideInAPackage("com.architek.oikos.messaging..")
+            .should().dependOnClassesThat(OTHER_MODULES_INTERNALS_EXCEPT_PERMISSION_CATALOG)
+            .because("cross-feature access must go through a port-in use case, never another module's domain model/repository/infrastructure directly (rule 4/6) - Permission is the shared RBAC catalog, exempted");
+
+    /**
+     * meeting (assemblée générale) reads property/party/user data only through their public
+     * port-in use cases, DTOs, id value objects and exceptions - never their domain aggregates,
+     * repository or infrastructure internals directly (rule 4/6). Same predicate as messaging,
+     * including the Permission exemption, and the same reason: the module resolves a property's
+     * units, tantièmes and dues calculation mode through its own PropertyDirectoryPort, not by
+     * reaching into property (see MeetingPropertyDirectoryAdapter).
+     */
+    @ArchTest
+    static final ArchRule meeting_must_not_depend_on_other_modules_internals = noClasses()
+            .that().resideInAPackage("com.architek.oikos.meeting..")
             .should().dependOnClassesThat(OTHER_MODULES_INTERNALS_EXCEPT_PERMISSION_CATALOG)
             .because("cross-feature access must go through a port-in use case, never another module's domain model/repository/infrastructure directly (rule 4/6) - Permission is the shared RBAC catalog, exempted");
 

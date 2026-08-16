@@ -1,6 +1,6 @@
 import type { Ref } from 'react';
 import { Controller, type Control, type FieldValues, type Path } from 'react-hook-form';
-import { QuillEditor, type QuillEditorHandle } from '@/features/messaging/components/QuillEditor';
+import { QuillEditor, type QuillEditorHandle } from '@/shared/components/RichText/QuillEditor';
 
 interface MessageBodyEditorProps<TFieldValues extends FieldValues> {
   ref?: Ref<QuillEditorHandle>;

@@ -68,6 +68,17 @@ src/
 │   │   ├── parties/        # Contacts (copropriétaires, tiers) rattachés à une property
 │   │   │   ├── api/ / components/ / hooks/ / pages/ / schemas/ / types/
 │   │   │   └── index.ts
+│   │   ├── general-meetings/ # Assemblées générales (vue gérant/syndic) : liste et
+│   │   │                     # création d'AG, ordre du jour, convocations et suivi,
+│   │   │                     # tenue de séance (émargement, scrutins), procès-verbal,
+│   │   │                     # paramétrage du quorum par nature d'AG. Ordre du jour,
+│   │   │                     # date et lieu restent modifiables à tout statut
+│   │   │                     # (oikos-api/docs/adr/0002 §8) : pas de règle
+│   │   │                     # bloquante à ce stade. Les canaux d'envoi sont
+│   │   │                     # lus depuis l'API (GET /convocation-channels),
+│   │   │                     # jamais codés en dur ici : le catalogue est en
+│   │   │                     # base pour qu'un nouveau canal ne demande pas
+│   │   │                     # de release du front (adr/0002 §9).
 │   │   ├── installments/   # Échéances, appels de fonds (vue gérant, par lot/property)
 │   │   ├── pricing/        # Paramétrage des prix par type de lot
 │   │   └── accounting/     # Gestion financière (comptes, mouvements, lettrage)
@@ -83,6 +94,17 @@ src/
 │       │   ├── pages/      # MyUnitsPage (/my/units), MyUnitDetailPage
 │       │   ├── types/      # OwnedUnit
 │       │   └── index.ts
+│       ├── general-meetings/ # "Mes assemblées" : une carte par lot possédé et par AG
+│       │                     # + ConvocationConfirmationPage, page PUBLIQUE
+│       │                     # (/convocations/confirmation?token=…) pour les
+│       │                     # copropriétaires sans compte : ni login, ni
+│       │                     # création de compte (adr/0002 §10).
+│       │                     # à laquelle il est convoqué, réponse présent/absent,
+│       │                     # ordre du jour, résultats et PV publié. Réutilise les
+│       │                     # hooks et libellés de `property-mngt/general-meetings`
+│       │                     # plutôt que de dupliquer une projection propriétaire :
+│       │                     # l'API expose les mêmes endpoints, gardés par
+│       │                     # `meeting:read` et `ownsUnit`.
 │       └── installments/   # "Mes échéances" : vue consolidée tous lots (agrégée côté
 │           │                # API par `GET /users/me/installments`, jointe côté front
 │           │                # à `useMyUnits()` pour l'étiquette property/lot).
@@ -94,7 +116,13 @@ src/
 ├── shared/
 │   ├── api/httpClient.ts       # Instance Axios + intercepteurs JWT/refresh
 │   ├── components/             # Button, Input, Card, Loader, EmptyState,
-│   │                           # Alert, Pagination, ErrorBoundary
+│   │                           # Alert, Pagination, ErrorBoundary,
+│   │                           # RichText/ (QuillEditor + sanitizeRichText +
+│   │                           # RichTextContent) : l'éditeur riche et LA
+│   │                           # frontière XSS du produit. Tout affichage de
+│   │                           # HTML saisi passe par RichTextContent —
+│   │                           # dangerouslySetInnerHTML n'a pas d'autre point
+│   │                           # d'appel légitime.
 │   ├── constants/queryKeys.ts  # Clés TanStack Query centralisées
 │   ├── context/                # SidebarContext, ThemeContext (clair/sombre)
 │   ├── layouts/                # AppLayout (zone privée), AuthLayout
