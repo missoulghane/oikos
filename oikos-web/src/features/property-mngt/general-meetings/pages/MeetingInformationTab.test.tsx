@@ -10,6 +10,13 @@ import { useCurrentUser } from '@/features/identity/me';
 import type { GeneralMeeting } from '@/features/property-mngt/general-meetings/types/generalMeeting.types';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
 
+// Only the api modules this test asserts on are mocked. The rest of the tree -
+// useMeetingMutations pulls in every convocation/agenda/minutes module,
+// AttachmentsPanel the upload/delete/download ones - simply loads, which is safe
+// now that .env.test supplies VITE_API_URL to config/env under Vitest. It did
+// not before, and this file is the one that found out: it failed on CI, where
+// the gitignored .env is absent, and nowhere else.
+//
 // Factory form (not bare automock): a bare `vi.mock(path)` still loads the
 // real module to derive its shape, which would drag in httpClient -> env.ts
 // (VITE_API_URL) with no .env available under Vitest.
