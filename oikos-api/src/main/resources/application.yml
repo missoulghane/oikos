@@ -48,19 +48,34 @@ oikos:
     # (see GmailEmailAdapter / LoggingEmailAdapter). Overridden to false in dev.
     enabled: ${MAIL_ENABLED:true}
     from: ${MAIL_FROM:no-reply@oikos.ma}
-    verification-base-url: ${APP_VERIFICATION_BASE_URL:http://localhost:5173/verify-email}
+    # ORIGINE PUBLIQUE D'oikos-web pour cet environnement. C'est LA variable à
+    # définir hors du poste de développement : toutes les URL ci-dessous en
+    # dérivent, et chaque lien envoyé à un copropriétaire (email, PDF de
+    # convocation, QR code) est construit à partir d'elle.
+    #
+    # Elle existe parce que l'oubli est silencieux. Ces six URL étaient six
+    # variables indépendantes retombant chacune sur localhost : en oublier une
+    # ne casse rien au démarrage, ne casse rien aux tests, et se voit seulement
+    # quand un destinataire reçoit un lien vers sa propre machine. C'est
+    # exactement ce qui est arrivé au lien de confirmation en recette. Une seule
+    # variable à poser, et un nouveau type de lien hérite d'office.
+    #
+    # Les surcharges individuelles restent possibles (un lien hébergé ailleurs),
+    # elles sont simplement devenues l'exception plutôt que le passage obligé.
+    public-base-url: ${APP_PUBLIC_BASE_URL:http://localhost:5173}
+    verification-base-url: ${APP_VERIFICATION_BASE_URL:${oikos.mail.public-base-url}/verify-email}
     verification-token-ttl-hours: 24
-    account-activation-base-url: ${APP_ACCOUNT_ACTIVATION_BASE_URL:http://localhost:5173/activate-account}
-    password-reset-base-url: ${APP_PASSWORD_RESET_BASE_URL:http://localhost:5173/reset-password}
+    account-activation-base-url: ${APP_ACCOUNT_ACTIVATION_BASE_URL:${oikos.mail.public-base-url}/activate-account}
+    password-reset-base-url: ${APP_PASSWORD_RESET_BASE_URL:${oikos.mail.public-base-url}/reset-password}
     password-reset-token-ttl-hours: 1
-    party-invitation-base-url: ${APP_PARTY_INVITATION_BASE_URL:http://localhost:5173/accept-invitation}
+    party-invitation-base-url: ${APP_PARTY_INVITATION_BASE_URL:${oikos.mail.public-base-url}/accept-invitation}
     party-invitation-token-ttl-hours: 168
-    invitation-base-url: ${APP_INVITATION_BASE_URL:http://localhost:5173/invitations}
+    invitation-base-url: ${APP_INVITATION_BASE_URL:${oikos.mail.public-base-url}/invitations}
     invitation-token-ttl-days: 30
-    # Lien de confirmation de présence joint à chaque convocation. Pas de TTL :
-    # il cesse d'accepter une réponse à l'ouverture de la séance, ce que le
-    # statut de l'AG dit déjà (ADR 0002 §10).
-    convocation-confirmation-base-url: ${APP_CONVOCATION_CONFIRMATION_BASE_URL:http://localhost:5173/convocations/confirmation}
+    # Lien de confirmation de présence joint à chaque convocation, en clair, en
+    # QR code et via le code court. Pas de TTL : il cesse d'accepter une réponse
+    # à l'ouverture de la séance, ce que le statut de l'AG dit déjà (ADR 0002 §10).
+    convocation-confirmation-base-url: ${APP_CONVOCATION_CONFIRMATION_BASE_URL:${oikos.mail.public-base-url}/convocations/confirmation}
   storage:
     type: ${STORAGE_TYPE:local}
     local:

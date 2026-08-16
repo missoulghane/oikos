@@ -101,15 +101,27 @@ nano /opt/oikos/oikos-api/.env
 JWT_SECRET=<openssl rand -base64 32>
 MAIL_USERNAME=<compte Gmail applicatif>
 MAIL_PASSWORD=<mot de passe d'application Gmail>
-APP_VERIFICATION_BASE_URL=https://<domaine>/verify-email
-APP_ACCOUNT_ACTIVATION_BASE_URL=https://<domaine>/activate-account
-APP_PASSWORD_RESET_BASE_URL=https://<domaine>/reset-password
-APP_PARTY_INVITATION_BASE_URL=https://<domaine>/accept-invitation
-APP_INVITATION_BASE_URL=https://<domaine>/invitations
+# Origine publique d'oikos-web. TOUS les liens envoyés aux utilisateurs en
+# dérivent : emails (vérification, activation, invitation, mot de passe
+# oublié) et lien de confirmation des convocations, y compris son QR code.
+# L'oublier ne casse rien au démarrage - les destinataires reçoivent
+# simplement des liens vers localhost.
+APP_PUBLIC_BASE_URL=https://<domaine>
 APP_CORS_ALLOWED_ORIGINS=https://<domaine>
 ```
 Voir `oikos-api/.env.example` et `.env.example` (racine) pour la liste
 complète commentée.
+
+> **Mise à jour d'un déploiement antérieur à `APP_PUBLIC_BASE_URL`** : les
+> anciennes variables par lien (`APP_VERIFICATION_BASE_URL`,
+> `APP_INVITATION_BASE_URL`, …) restent prioritaires si elles sont présentes,
+> donc rien ne casse. Il suffit d'**ajouter** `APP_PUBLIC_BASE_URL` puis de
+> redémarrer l'API : c'est elle qui alimente les liens ajoutés depuis, à
+> commencer par la confirmation des convocations.
+>
+> ```bash
+> cd /opt/oikos && docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d api
+> ```
 
 ### 1.5 Clé SSH dédiée CI + authentification GHCR
 

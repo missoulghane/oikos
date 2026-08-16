@@ -272,9 +272,13 @@ pour la suite du développement) :
 
 Variables d'environnement utiles (voir `application.yml` /
 `application-dev.yml`) : `JWT_SECRET`, `MAIL_HOST`, `MAIL_PORT`,
-`MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`,
-`APP_VERIFICATION_BASE_URL`, `APP_ACCOUNT_ACTIVATION_BASE_URL`,
-`APP_PASSWORD_RESET_BASE_URL`. `MAIL_USERNAME`/`MAIL_PASSWORD` ne sont
+`MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`, et surtout
+`APP_PUBLIC_BASE_URL` — l'origine publique d'oikos-web, dont **tous** les
+liens envoyés aux utilisateurs dérivent (emails, lien de confirmation des
+convocations et son QR code). Les variables par lien
+(`APP_VERIFICATION_BASE_URL`, …) restent disponibles pour surcharger un lien
+isolé, mais ne sont plus le passage obligé : c'est leur multiplication qui a
+laissé partir des liens vers `localhost` en recette. `MAIL_USERNAME`/`MAIL_PASSWORD` ne sont
 requises que si `oikos.mail.enabled=true` (faux par défaut en profil `dev`,
 donc aucune de ces variables n'est nécessaire pour `./mvnw spring-boot:run`).
 

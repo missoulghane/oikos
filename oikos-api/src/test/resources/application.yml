@@ -30,16 +30,21 @@ oikos:
       max-units: 500
   mail:
     from: no-reply@oikos.ma
-    verification-base-url: http://localhost:8080/api/v1/users/verify
+    # Mêmes placeholders que application.yml, délibérément : figer les URL en dur
+    # ici rendrait la dérivation depuis APP_PUBLIC_BASE_URL intestable, et c'est
+    # précisément la mécanique qui a laissé passer un lien vers localhost en
+    # recette (voir PublicBaseUrlConfigurationTest).
+    public-base-url: ${APP_PUBLIC_BASE_URL:http://localhost:5173}
+    verification-base-url: ${APP_VERIFICATION_BASE_URL:http://localhost:8080/api/v1/users/verify}
     verification-token-ttl-hours: 24
-    account-activation-base-url: http://localhost:5173/activate-account
-    password-reset-base-url: http://localhost:5173/reset-password
+    account-activation-base-url: ${APP_ACCOUNT_ACTIVATION_BASE_URL:${oikos.mail.public-base-url}/activate-account}
+    password-reset-base-url: ${APP_PASSWORD_RESET_BASE_URL:${oikos.mail.public-base-url}/reset-password}
     password-reset-token-ttl-hours: 1
-    party-invitation-base-url: http://localhost:5173/accept-invitation
+    party-invitation-base-url: ${APP_PARTY_INVITATION_BASE_URL:${oikos.mail.public-base-url}/accept-invitation}
     party-invitation-token-ttl-hours: 168
-    invitation-base-url: http://localhost:5173/invitations
+    invitation-base-url: ${APP_INVITATION_BASE_URL:${oikos.mail.public-base-url}/invitations}
     invitation-token-ttl-days: 30
-    convocation-confirmation-base-url: http://localhost:5173/convocations/confirmation
+    convocation-confirmation-base-url: ${APP_CONVOCATION_CONFIRMATION_BASE_URL:${oikos.mail.public-base-url}/convocations/confirmation}
   storage:
     type: local
     local:
