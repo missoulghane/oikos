@@ -21,6 +21,7 @@ import com.architek.oikos.meeting.application.port.out.PropertyInfo;
 import com.architek.oikos.meeting.domain.model.GeneralMeeting;
 import com.architek.oikos.meeting.domain.model.MeetingQuorumSetting;
 import com.architek.oikos.meeting.domain.repository.GeneralMeetingRepository;
+import com.architek.oikos.meeting.domain.service.ShortCodeGenerator;
 import com.architek.oikos.meeting.domain.repository.MeetingQuorumSettingRepository;
 import com.architek.oikos.meeting.domain.valueobject.MeetingQuorumSettingId;
 import com.architek.oikos.meeting.domain.valueobject.MeetingStatus;
@@ -48,7 +49,8 @@ class CreateGeneralMeetingServiceTest {
     private final EntityId propertyId = EntityId.newId();
 
     private CreateGeneralMeetingService newService() {
-        return new CreateGeneralMeetingService(generalMeetingRepository, quorumSettingRepository, propertyDirectoryPort);
+        return new CreateGeneralMeetingService(generalMeetingRepository, quorumSettingRepository,
+                propertyDirectoryPort, new ShortCodeGenerator());
     }
 
     private GeneralMeeting create(VotingWeightMode mode, Optional<MeetingQuorumSetting> setting) {

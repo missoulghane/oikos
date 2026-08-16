@@ -52,6 +52,7 @@ import com.architek.oikos.meeting.domain.valueobject.QuorumPercentage;
 import com.architek.oikos.meeting.domain.valueobject.VoteChoice;
 import com.architek.oikos.meeting.domain.valueobject.VoteOutcome;
 import com.architek.oikos.meeting.domain.valueobject.VoteSessionStatus;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.domain.valueobject.VotingWeight;
 import com.architek.oikos.meeting.domain.valueobject.VotingWeightMode;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -91,7 +92,7 @@ class BallotServiceTest {
     @BeforeEach
     void setUp() {
         inProgress = GeneralMeeting.createDraft(GeneralMeetingId.newId(), propertyId, MeetingType.ORDINARY, "AG",
-                        null, null, QuorumPercentage.none(), VotingWeightMode.SHARES)
+                        null, null, QuorumPercentage.none(), VotingWeightMode.SHARES, ShortCode.of("agre01"))
                 .schedule(SESSION_DATE, VENUE).convene().open(true, false);
         openItem = AgendaItem.create(AgendaItemId.newId(), inProgress.getId(), "Travaux", null, 0, MajorityRule.SIMPLE)
                 .openVoteSession();
@@ -103,13 +104,13 @@ class BallotServiceTest {
 
     private Convocation present(EntityId unitId, int weight) {
         return Convocation.generate(ConvocationId.newId(), inProgress.getId(), unitId,
-                        VotingWeight.of(BigDecimal.valueOf(weight)), "token-1")
+                        VotingWeight.of(BigDecimal.valueOf(weight)), "token-1", ShortCode.of("code01"))
                 .checkIn(AttendanceMode.ON_SITE, null, CLOCK.instant());
     }
 
     private Convocation absent(EntityId unitId, int weight) {
         return Convocation.generate(ConvocationId.newId(), inProgress.getId(), unitId,
-                VotingWeight.of(BigDecimal.valueOf(weight)), "token-2");
+                VotingWeight.of(BigDecimal.valueOf(weight)), "token-2", ShortCode.of("code02"));
     }
 
     private void givenRoom(AgendaItem item, List<Convocation> convocations) {
@@ -180,7 +181,7 @@ class BallotServiceTest {
     @Test
     void a_ballot_cannot_be_opened_before_the_chair_opens_the_session() {
         GeneralMeeting convened = GeneralMeeting.createDraft(GeneralMeetingId.newId(), propertyId,
-                        MeetingType.ORDINARY, "AG", null, null, QuorumPercentage.none(), VotingWeightMode.SHARES)
+                        MeetingType.ORDINARY, "AG", null, null, QuorumPercentage.none(), VotingWeightMode.SHARES, ShortCode.of("agre02"))
                 .schedule(SESSION_DATE, VENUE).convene();
         AgendaItem item = AgendaItem.create(AgendaItemId.newId(), convened.getId(), "Travaux", null, 0,
                 MajorityRule.SIMPLE);

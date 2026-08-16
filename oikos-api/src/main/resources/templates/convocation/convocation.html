@@ -29,8 +29,18 @@
         ol.agenda li { padding: 4px 0; }
         .empty { color: #667085; font-style: italic; }
         .notice { margin-top: 24px; font-size: 10pt; color: #344054; }
-        .confirm-link { font-family: monospace; font-size: 10pt; word-wrap: break-word; padding: 8px;
-                        background: #f9fafb; border: 1px solid #e4e7ec; }
+        .confirm-link { font-family: monospace; font-size: 9pt; word-wrap: break-word; padding: 6px;
+                        background: #f9fafb; border: 1px solid #e4e7ec; margin: 4px 0; }
+        table.confirm-box { width: 100%; border-collapse: collapse; border: 1px solid #e4e7ec;
+                            background: #f9fafb; margin-top: 12px; }
+        td.confirm-qr { width: 130px; padding: 10px; vertical-align: top; }
+        td.confirm-text { padding: 10px 10px 10px 0; vertical-align: top; font-size: 10pt; }
+        td.confirm-text p { margin: 0 0 6px 0; }
+        /* Le code se recopie à la main : espacé et en capitales, l'application normalise
+           la casse à la réception (voir ShortCode). */
+        .confirm-code { font-family: monospace; font-size: 13pt; font-weight: bold; letter-spacing: 2px;
+                        text-transform: uppercase; }
+        .confirm-warning { color: #667085; font-size: 9pt; }
         .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e4e7ec; color: #667085; font-size: 9pt; }
     </style>
 </head>
@@ -90,16 +100,37 @@
         <span th:text="${quorumPercentage}">—</span> % des voix.
     </p>
     <!--
-      Le lien figure sur la lettre imprimée et pas seulement dans l'email : la voie
-      postale est précisément celle dont les destinataires n'ont pas de compte. Écrit
-      en toutes lettres parce qu'un PDF posté se recopie à la main - d'où aussi le
-      corps un peu plus grand et la coupure autorisée au milieu de la chaîne.
+      Trois voies vers la même confirmation, sur une seule feuille, parce qu'une lettre
+      papier est lue dans des situations très différentes : le QR pour qui a un téléphone,
+      l'adresse écrite pour qui lit le PDF à l'écran, la référence et le code pour qui
+      n'a ni l'un ni l'autre et ne recopiera pas quarante-trois caractères.
+
+      Le QR encode le lien à JETON, jamais le code court : un scan n'a aucune raison de
+      se rabattre sur le secret faible.
+
+      L'image est une data: URI - openhtmltopdf ne reçoit aucune base URI et n'atteindrait
+      pas une ressource externe. Balise fermée : le gabarit doit rester du XML bien formé.
     -->
-    <p th:if="${confirmationLink != null}">Vous pouvez confirmer votre présence ou votre absence,
-        sans avoir besoin d'un compte, à l'adresse suivante :</p>
-    <p class="confirm-link" th:if="${confirmationLink != null}" th:text="${confirmationLink}">—</p>
-    <p th:if="${confirmationLink != null}">Cette adresse vaut pour le lot indiqué ci-dessus : ne la
-        communiquez qu'aux personnes autorisées à répondre pour lui.</p>
+    <table class="confirm-box" th:if="${confirmationLink != null}">
+        <tr>
+            <td class="confirm-qr">
+                <img th:if="${confirmationQrCode != null}" th:src="${confirmationQrCode}"
+                     width="120" height="120" alt="QR code de confirmation"/>
+            </td>
+            <td class="confirm-text">
+                <p><strong>Confirmez votre présence ou votre absence</strong> — aucun compte n'est nécessaire.</p>
+                <p>Scannez le QR code, ou rendez-vous à l'adresse :</p>
+                <p class="confirm-link" th:text="${confirmationLink}">—</p>
+                <p th:if="${confirmationCode != null}">Sans téléphone, saisissez ces deux codes sur la page
+                    de confirmation :<br/>
+                    Référence de l'assemblée : <span class="confirm-code"
+                        th:text="${meetingPublicReference}">—</span><br/>
+                    Code de votre lot : <span class="confirm-code" th:text="${confirmationCode}">—</span></p>
+                <p class="confirm-warning">Ces informations valent pour le lot indiqué ci-dessus : ne les
+                    communiquez qu'aux personnes autorisées à répondre pour lui.</p>
+            </td>
+        </tr>
+    </table>
     <p th:if="${confirmationLink == null}">Merci d'indiquer votre présence ou votre absence depuis
         votre espace copropriétaire.</p>
 </div>

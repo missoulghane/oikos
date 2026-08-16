@@ -29,16 +29,29 @@ public record ConvocationView(ConvocationId id, GeneralMeetingId generalMeetingI
                                List<ConvocationDeliveryView> deliveries, Instant sentAt, DeliveryStatus deliveryStatus,
                                AttendanceReply attendanceReply, Instant repliedAt, ReplySource replySource,
                                String replyNote, boolean checkedIn, AttendanceMode attendanceMode, Instant checkedInAt,
-                               ConvocationStatus status) {
+                               ConvocationStatus status, String meetingPublicReference, String confirmationCode) {
+
+    /**
+     * The two short codes are the only thing on this record that is a secret,
+     * and they are carried on ONE screen: a lot's detail page, where a syndic
+     * reads them out to a copropriétaire who lost their letter. Every list path
+     * calls {@link #withoutCodes()} - a hundred lots' codes in one payload is
+     * the whole copropriété's answers handed to whoever can open that page.
+     */
+    public ConvocationView withoutCodes() {
+        return new ConvocationView(id, generalMeetingId, unitId, unitNumber, buildingName, recipients, votingWeight,
+                deliveries, sentAt, deliveryStatus, attendanceReply, repliedAt, replySource, replyNote, checkedIn,
+                attendanceMode, checkedInAt, status, null, null);
+    }
 
     public static ConvocationView from(Convocation convocation, String unitNumber, String buildingName,
                                         List<ConvocationRecipient> recipients,
-                                        List<ConvocationDeliveryView> deliveries) {
+                                        List<ConvocationDeliveryView> deliveries, String meetingPublicReference) {
         return new ConvocationView(convocation.getId(), convocation.getGeneralMeetingId(), convocation.getUnitId(),
                 unitNumber, buildingName, recipients, convocation.getVotingWeight().value(), deliveries,
                 convocation.getSentAt(), convocation.getDeliveryStatus(), convocation.getAttendanceReply(),
                 convocation.getRepliedAt(), convocation.getReplySource(), convocation.getReplyNote(),
                 convocation.isCheckedIn(), convocation.getAttendanceMode(), convocation.getCheckedInAt(),
-                convocation.status());
+                convocation.status(), meetingPublicReference, convocation.getConfirmationCode().value());
     }
 }

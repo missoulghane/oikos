@@ -19,7 +19,7 @@ class AttendanceTallyTest {
 
     private static Convocation lot(int weight) {
         return Convocation.generate(ConvocationId.newId(), MEETING, EntityId.newId(),
-                VotingWeight.of(BigDecimal.valueOf(weight)), "token-1");
+                VotingWeight.of(BigDecimal.valueOf(weight)), "token-1", ShortCode.of("code01"));
     }
 
     private static Convocation sent(Convocation convocation) {

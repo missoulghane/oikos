@@ -29,12 +29,14 @@ import com.architek.oikos.meeting.domain.repository.ConvocationChannelRepository
 import com.architek.oikos.meeting.domain.repository.ConvocationRepository;
 import com.architek.oikos.meeting.domain.repository.GeneralMeetingRepository;
 import com.architek.oikos.meeting.domain.service.ConvocationTokenGenerator;
+import com.architek.oikos.meeting.domain.service.ShortCodeGenerator;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationId;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
 import com.architek.oikos.meeting.domain.valueobject.MeetingStatus;
 import com.architek.oikos.meeting.domain.valueobject.MeetingType;
 import com.architek.oikos.meeting.domain.valueobject.MeetingVenue;
 import com.architek.oikos.meeting.domain.valueobject.QuorumPercentage;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.domain.valueobject.VotingWeight;
 import com.architek.oikos.meeting.domain.valueobject.VotingWeightMode;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -65,15 +67,15 @@ class GenerateConvocationsServiceTest {
     @BeforeEach
     void setUp() {
         scheduled = GeneralMeeting.createDraft(GeneralMeetingId.newId(), propertyId, MeetingType.ORDINARY,
-                        "AG ordinaire 2026", null, null, QuorumPercentage.of(BigDecimal.valueOf(50)), VotingWeightMode.SHARES)
+                        "AG ordinaire 2026", null, null, QuorumPercentage.of(BigDecimal.valueOf(50)), VotingWeightMode.SHARES, ShortCode.of("agre01"))
                 .schedule(SESSION_DATE, VENUE);
     }
 
     private GenerateConvocationsService newService() {
         return new GenerateConvocationsService(generalMeetingRepository, convocationRepository,
                 new ConvocationViewAssembler(propertyUnitDirectoryPort,
-                        new ConvocationChannelLookup(convocationChannelRepository)),
-                new ConvocationTokenGenerator());
+                        new ConvocationChannelLookup(convocationChannelRepository), generalMeetingRepository),
+                new ConvocationTokenGenerator(), new ShortCodeGenerator());
     }
 
     private void givenTwoLotsOneOfThemUnowned() {
@@ -121,7 +123,7 @@ class GenerateConvocationsServiceTest {
     @Test
     void a_flat_rate_property_gives_every_lot_one_voice_whatever_its_size() {
         GeneralMeeting perUnitMeeting = GeneralMeeting.createDraft(GeneralMeetingId.newId(), propertyId,
-                        MeetingType.ORDINARY, "AG", null, null, QuorumPercentage.none(), VotingWeightMode.PER_UNIT)
+                        MeetingType.ORDINARY, "AG", null, null, QuorumPercentage.none(), VotingWeightMode.PER_UNIT, ShortCode.of("agre02"))
                 .schedule(SESSION_DATE, VENUE);
         givenTwoLotsOneOfThemUnowned();
         when(generalMeetingRepository.findById(perUnitMeeting.getId())).thenReturn(Optional.of(perUnitMeeting));
@@ -155,7 +157,7 @@ class GenerateConvocationsServiceTest {
         givenTwoLotsOneOfThemUnowned();
         GeneralMeeting convened = scheduled.convene();
         Convocation existing = Convocation.generate(ConvocationId.newId(), convened.getId(), ownedUnitId,
-                VotingWeight.of(BigDecimal.valueOf(120)), "token-1");
+                VotingWeight.of(BigDecimal.valueOf(120)), "token-1", ShortCode.of("code01"));
         when(generalMeetingRepository.findById(convened.getId())).thenReturn(Optional.of(convened));
         when(convocationRepository.findByGeneralMeetingIdAndUnitIds(any(), any())).thenReturn(List.of(existing));
         when(convocationRepository.findByGeneralMeetingId(convened.getId())).thenReturn(List.of(existing));
@@ -170,7 +172,7 @@ class GenerateConvocationsServiceTest {
     void the_returned_rows_carry_the_lot_labels_the_tracking_table_shows() {
         givenTwoLotsOneOfThemUnowned();
         Convocation existing = Convocation.generate(ConvocationId.newId(), scheduled.getId(), ownedUnitId,
-                VotingWeight.of(BigDecimal.valueOf(120)), "token-2");
+                VotingWeight.of(BigDecimal.valueOf(120)), "token-2", ShortCode.of("code02"));
         when(generalMeetingRepository.findById(scheduled.getId())).thenReturn(Optional.of(scheduled));
         when(convocationRepository.findByGeneralMeetingIdAndUnitIds(any(), any())).thenReturn(List.of());
         when(convocationRepository.findByGeneralMeetingId(scheduled.getId())).thenReturn(List.of(existing));

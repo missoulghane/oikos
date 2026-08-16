@@ -10,6 +10,7 @@ import com.architek.oikos.meeting.domain.valueobject.MeetingStatus;
 import com.architek.oikos.meeting.domain.valueobject.MeetingType;
 import com.architek.oikos.meeting.domain.valueobject.MeetingVenue;
 import com.architek.oikos.meeting.domain.valueobject.QuorumPercentage;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.domain.valueobject.VotingWeightMode;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -58,13 +59,14 @@ public final class GeneralMeeting {
     private final QuorumPercentage quorumPercentage;
     private final VotingWeightMode votingWeightMode;
     private final String comment;
+    private final ShortCode publicReference;
     private final boolean openedWithoutQuorum;
     private final Instant createdDate;
 
     private GeneralMeeting(GeneralMeetingId id, EntityId propertyId, MeetingType meetingType, MeetingStatus status,
                             String title, Instant scheduledAt, MeetingVenue venue, QuorumPercentage quorumPercentage,
-                            VotingWeightMode votingWeightMode, String comment, boolean openedWithoutQuorum,
-                            Instant createdDate) {
+                            VotingWeightMode votingWeightMode, String comment, ShortCode publicReference,
+                            boolean openedWithoutQuorum, Instant createdDate) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.propertyId = Objects.requireNonNull(propertyId, "propertyId must not be null");
         this.meetingType = Objects.requireNonNull(meetingType, "meetingType must not be null");
@@ -78,6 +80,7 @@ public final class GeneralMeeting {
         this.scheduledAt = scheduledAt;
         this.venue = venue;
         this.comment = comment;
+        this.publicReference = Objects.requireNonNull(publicReference, "publicReference must not be null");
         this.openedWithoutQuorum = openedWithoutQuorum;
         this.createdDate = createdDate;
     }
@@ -91,17 +94,19 @@ public final class GeneralMeeting {
      */
     public static GeneralMeeting createDraft(GeneralMeetingId id, EntityId propertyId, MeetingType meetingType,
                                               String title, Instant scheduledAt, MeetingVenue venue,
-                                              QuorumPercentage quorumPercentage, VotingWeightMode votingWeightMode) {
+                                              QuorumPercentage quorumPercentage, VotingWeightMode votingWeightMode,
+                                              ShortCode publicReference) {
         return new GeneralMeeting(id, propertyId, meetingType, MeetingStatus.DRAFT, title, scheduledAt, venue,
-                quorumPercentage, votingWeightMode, null, false, null);
+                quorumPercentage, votingWeightMode, null, publicReference, false, null);
     }
 
     public static GeneralMeeting reconstruct(GeneralMeetingId id, EntityId propertyId, MeetingType meetingType,
                                               MeetingStatus status, String title, Instant scheduledAt, MeetingVenue venue,
                                               QuorumPercentage quorumPercentage, VotingWeightMode votingWeightMode,
-                                              String comment, boolean openedWithoutQuorum, Instant createdDate) {
+                                              String comment, ShortCode publicReference, boolean openedWithoutQuorum,
+                                              Instant createdDate) {
         return new GeneralMeeting(id, propertyId, meetingType, status, title, scheduledAt, venue, quorumPercentage,
-                votingWeightMode, comment, openedWithoutQuorum, createdDate);
+                votingWeightMode, comment, publicReference, openedWithoutQuorum, createdDate);
     }
 
     /**
@@ -122,7 +127,7 @@ public final class GeneralMeeting {
     public GeneralMeeting update(MeetingType newMeetingType, String newTitle, Instant newScheduledAt,
                                   MeetingVenue newVenue) {
         return new GeneralMeeting(id, propertyId, newMeetingType, status, newTitle, newScheduledAt, newVenue,
-                quorumPercentage, votingWeightMode, comment, openedWithoutQuorum, createdDate);
+                quorumPercentage, votingWeightMode, comment, publicReference, openedWithoutQuorum, createdDate);
     }
 
     /**
@@ -143,7 +148,7 @@ public final class GeneralMeeting {
     public GeneralMeeting withComment(String newComment) {
         String normalized = newComment == null || newComment.isBlank() ? null : newComment;
         return new GeneralMeeting(id, propertyId, meetingType, status, title, scheduledAt, venue, quorumPercentage,
-                votingWeightMode, normalized, openedWithoutQuorum, createdDate);
+                votingWeightMode, normalized, publicReference, openedWithoutQuorum, createdDate);
     }
 
     /**
@@ -192,7 +197,7 @@ public final class GeneralMeeting {
     private GeneralMeeting withStatus(MeetingStatus newStatus, Instant newScheduledAt, MeetingVenue newVenue,
                                        boolean newOpenedWithoutQuorum) {
         return new GeneralMeeting(id, propertyId, meetingType, newStatus, title, newScheduledAt, newVenue,
-                quorumPercentage, votingWeightMode, comment, newOpenedWithoutQuorum, createdDate);
+                quorumPercentage, votingWeightMode, comment, publicReference, newOpenedWithoutQuorum, createdDate);
     }
 
     private void requireTransitionTo(MeetingStatus target) {
@@ -251,6 +256,16 @@ public final class GeneralMeeting {
      */
     public String getComment() {
         return comment;
+    }
+
+    /**
+     * What a copropriétaire types to say which assembly their code belongs to.
+     * Public by construction - it is printed next to the code it scopes, and it
+     * protects nothing on its own. What it does is bound the search space for a
+     * guessed code to the lots of one copropriété (ADR 0002 §13).
+     */
+    public ShortCode getPublicReference() {
+        return publicReference;
     }
 
     public VotingWeightMode getVotingWeightMode() {

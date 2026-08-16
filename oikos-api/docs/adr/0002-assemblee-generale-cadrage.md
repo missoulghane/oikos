@@ -322,9 +322,9 @@ Ce qui borde ce choix, dans l'ordre où il faut l'évaluer :
   consultable et explique la clôture, plutôt que de renvoyer un 404 à quelqu'un
   qui a suivi le lien qu'on lui a donné.
 
-**Limite connue** : sur une lettre papier, l'adresse doit être recopiée à la
-main (43 caractères). Un QR code la lèverait ; il demande un encodeur d'image
-dans le rendu PDF et n'a pas été fait ici.
+**Limite levée depuis** (§13) : sur une lettre papier, l'adresse devait être
+recopiée à la main (43 caractères). La convocation porte désormais un QR code
+et un code à six caractères.
 
 ### 11. Les notifications in-app partent dans leur propre transaction (décision du 2026-08-16)
 
@@ -419,6 +419,63 @@ rien de tout cela n'avait de place.
   pour les documents composés par l'API (le PV, qui produit des titres que la
   première supprimerait).
 
+### 13. QR code et code à six caractères sur la convocation (décision du 2026-08-16)
+
+§10 laissait une limite écrite noir sur blanc : « sur une lettre papier,
+l'adresse doit être recopiée à la main (43 caractères). Un QR code la
+lèverait ». Cette section la lève, et ajoute une troisième voie pour qui n'a pas
+de téléphone.
+
+**Décisions** :
+
+1. **Un QR code sur le PDF**, encodant le **lien à jeton** — jamais le code
+   court. Un scan n'a aucune raison de se rabattre sur le secret faible, et le
+   fort ne coûte rien à encoder. Image PNG en `data:` URI : le rendu PDF ne
+   reçoit aucune base URI et n'atteindrait pas une ressource externe. Niveau de
+   correction M plutôt que L : la feuille est pliée, postée, scannée sous une
+   lumière quelconque.
+
+2. **Un code de six caractères par convocation** (`[0-9a-z]` moins `l` et `o`,
+   confondus avec `1` et `0` sur du papier), à saisir sur la page publique.
+
+**Ce que ce code n'est pas, et pourquoi cela commande sa mise en œuvre** : 34^6
+fait environ 1,5 milliard, contre 2^256 pour le jeton. Six ordres de grandeur.
+Un secret aussi court **ne peut pas porter seul** ce que porte le jeton, et il
+ne le remplace pas : il le double. Deux garde-fous en découlent, tous deux
+nécessaires :
+
+- **Le code est unique par AG, pas globalement**, et se présente avec une
+  **référence publique d'assemblée** (`GeneralMeeting.publicReference`, six
+  caractères eux aussi). Deviner un code utile suppose donc de savoir de quelle
+  assemblée il s'agit : l'espace de recherche tombe aux lots d'une copropriété
+  au lieu de toutes les convocations jamais émises. La référence ne protège
+  rien — elle est imprimée à côté du code — elle **adresse**. Sans elle,
+  « coupler le code à l'AG » voudrait dire recopier un UUID de 36 caractères
+  pour en économiser 43.
+
+- **Les tentatives sont plafonnées** par (AG, appelant) :
+  `ConfirmationAttemptLimiterPort`, dix échecs par quart d'heure. Une référence
+  fausse compte aussi, sinon parcourir les références serait gratuit. Et un
+  échec sur la référence est indiscernable d'un échec sur le code : les
+  distinguer permettrait de valider une référence à l'œil puis de dépenser
+  toutes ses tentatives sur le code seul.
+
+  **Limite assumée** : l'implémentation est en mémoire, donc par instance et
+  remise à zéro au redémarrage. Elle élève le coût d'un parcours de 34^6 de
+  plusieurs ordres de grandeur, ce qui est ce qui rend le code court
+  défendable ; ce n'est pas un rate limiter distribué. Le passage à Redis ou à
+  une table est le changement à faire le jour où le produit tourne sur
+  plusieurs instances — l'interface est déjà là pour ça.
+
+3. **Le code n'apparaît que sur le détail d'une convocation**, jamais dans le
+   tableau de suivi (`ConvocationView.withoutCodes()`). Cent codes dans une même
+   réponse, ce sont les réponses de toute la copropriété à portée de qui peut
+   ouvrir cet écran. C'est aussi pourquoi la page de détail interroge désormais
+   `GET /convocations/{id}` au lieu de piocher dans la liste en cache.
+
+Le blast radius reste borné par §5 : une confirmation devinée ne fait pas une
+présence. La présence est l'émargement, et rien d'autre.
+
 ## Conséquences
 
 - Trois permissions nouvelles au catalogue RBAC : `meeting:read`,
@@ -459,6 +516,7 @@ rien de tout cela n'avait de place.
 | A | Canaux d'envoi multiples (`convocation_delivery` + catalogue `convocation_channel`) et traçabilité de la confirmation (`ReplySource`) — voir §9 | **fait** |
 | B | Lien de confirmation tokenisé, pour les copropriétaires sans compte (`reply_source = OWNER_LINK`) — voir §10 | **fait** |
 | C | Commentaire global en texte riche et pièces jointes (AG et points de l'ordre du jour) — voir §12 | **fait** |
+| D | QR code sur la convocation et code de confirmation à six caractères — voir §13 | **fait** |
 
 Les lots 2 à 5 sont strictement ordonnés (chacun dépend du précédent) ; les
 lots 6 et 7 peuvent démarrer dès que le lot API correspondant est livré.

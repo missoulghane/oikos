@@ -10,9 +10,11 @@ import com.architek.oikos.meeting.application.port.out.PropertyInfo;
 import com.architek.oikos.meeting.domain.model.GeneralMeeting;
 import com.architek.oikos.meeting.domain.model.MeetingQuorumSetting;
 import com.architek.oikos.meeting.domain.repository.GeneralMeetingRepository;
+import com.architek.oikos.meeting.domain.service.ShortCodeGenerator;
 import com.architek.oikos.meeting.domain.repository.MeetingQuorumSettingRepository;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
 import com.architek.oikos.meeting.domain.valueobject.QuorumPercentage;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 
 /**
  * Creates a meeting as a draft, taking the two snapshots the aggregate lives
@@ -28,16 +30,21 @@ import com.architek.oikos.meeting.domain.valueobject.QuorumPercentage;
 @Component
 public class CreateGeneralMeetingService implements CreateGeneralMeetingUseCase {
 
+    private static final int MAX_REFERENCE_ATTEMPTS = 10;
+
     private final GeneralMeetingRepository generalMeetingRepository;
     private final MeetingQuorumSettingRepository quorumSettingRepository;
     private final PropertyDirectoryPort propertyDirectoryPort;
+    private final ShortCodeGenerator shortCodeGenerator;
 
     public CreateGeneralMeetingService(GeneralMeetingRepository generalMeetingRepository,
                                         MeetingQuorumSettingRepository quorumSettingRepository,
-                                        PropertyDirectoryPort propertyDirectoryPort) {
+                                        PropertyDirectoryPort propertyDirectoryPort,
+                                        ShortCodeGenerator shortCodeGenerator) {
         this.generalMeetingRepository = generalMeetingRepository;
         this.quorumSettingRepository = quorumSettingRepository;
         this.propertyDirectoryPort = propertyDirectoryPort;
+        this.shortCodeGenerator = shortCodeGenerator;
     }
 
     @Override
@@ -53,8 +60,29 @@ public class CreateGeneralMeetingService implements CreateGeneralMeetingUseCase 
 
         GeneralMeeting draft = GeneralMeeting.createDraft(GeneralMeetingId.newId(), command.propertyId(),
                 command.meetingType(), command.title(), command.scheduledAt(), command.venue(), quorum,
-                property.votingWeightMode());
+                property.votingWeightMode(), newPublicReference());
 
         return generalMeetingRepository.save(draft).getId();
+    }
+
+    /**
+     * A reference nobody else holds. The space is 34^6 and meetings are counted
+     * in hundreds, so a collision is a curiosity rather than a risk - but it is
+     * a unique column, and "practically never" is not a reason to let an insert
+     * fail in front of a syndic creating an assembly.
+     *
+     * <p>Bounded rather than a while(true): if this ever loops ten times the
+     * cause is not bad luck, it is a broken generator, and a failure that says
+     * so beats a request that never returns.
+     */
+    private ShortCode newPublicReference() {
+        for (int attempt = 0; attempt < MAX_REFERENCE_ATTEMPTS; attempt++) {
+            ShortCode candidate = ShortCode.of(shortCodeGenerator.generate());
+            if (generalMeetingRepository.findByPublicReference(candidate).isEmpty()) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException(
+                "Could not draw a free public reference in " + MAX_REFERENCE_ATTEMPTS + " attempts");
     }
 }

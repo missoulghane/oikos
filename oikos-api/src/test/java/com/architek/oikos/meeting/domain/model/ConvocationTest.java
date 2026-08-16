@@ -18,6 +18,7 @@ import com.architek.oikos.meeting.domain.valueobject.ConvocationStatus;
 import com.architek.oikos.meeting.domain.valueobject.DeliveryStatus;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
 import com.architek.oikos.meeting.domain.valueobject.ReplySource;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.domain.valueobject.VotingWeight;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -30,7 +31,7 @@ class ConvocationTest {
 
     private static Convocation generated() {
         return Convocation.generate(ConvocationId.newId(), GeneralMeetingId.newId(), EntityId.newId(),
-                VotingWeight.of(BigDecimal.valueOf(120)), "token-1");
+                VotingWeight.of(BigDecimal.valueOf(120)), "token-1", ShortCode.of("code01"));
     }
 
     private static ConvocationDelivery sentBy(ChannelCode channel, Instant at) {
@@ -191,7 +192,7 @@ class ConvocationTest {
                 .isInstanceOf(NullPointerException.class);
 
         assertThatThrownBy(() -> Convocation.reconstruct(ConvocationId.newId(), GeneralMeetingId.newId(),
-                EntityId.newId(), VotingWeight.perUnit(), List.of(), "token-3", AttendanceReply.ATTENDING, REPLIED_AT,
+                EntityId.newId(), VotingWeight.perUnit(), List.of(), "token-3", ShortCode.of("code02"), AttendanceReply.ATTENDING, REPLIED_AT,
                 null, null, null, false, null, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -219,7 +220,7 @@ class ConvocationTest {
     @Test
     void a_check_in_without_mode_or_timestamp_cannot_be_reconstructed() {
         assertThatThrownBy(() -> Convocation.reconstruct(ConvocationId.newId(), GeneralMeetingId.newId(),
-                EntityId.newId(), VotingWeight.perUnit(), List.of(), "token-4", AttendanceReply.NO_REPLY, null, null,
+                EntityId.newId(), VotingWeight.perUnit(), List.of(), "token-4", ShortCode.of("code03"), AttendanceReply.NO_REPLY, null, null,
                 null, null, true, null, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -229,7 +230,7 @@ class ConvocationTest {
         // ConfigurePropertyService creates units with zero shares; refusing them here would
         // block the convocation of a whole copropriété over a data-entry gap.
         Convocation convocation = Convocation.generate(ConvocationId.newId(), GeneralMeetingId.newId(),
-                EntityId.newId(), VotingWeight.of(BigDecimal.ZERO), "token-2");
+                EntityId.newId(), VotingWeight.of(BigDecimal.ZERO), "token-2", ShortCode.of("code04"));
 
         assertThat(convocation.getVotingWeight().value()).isEqualByComparingTo(BigDecimal.ZERO);
     }

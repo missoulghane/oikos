@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
 import { useConvocationChannels } from '@/features/property-mngt/general-meetings/hooks/useConvocationChannels';
-import { useConvocations } from '@/features/property-mngt/general-meetings/hooks/useConvocations';
+import { useConvocation } from '@/features/property-mngt/general-meetings/hooks/useConvocation';
 import { useDownloadConvocationDocument } from '@/features/property-mngt/general-meetings/hooks/useDownloadConvocationDocument';
 import {
   useCheckInConvocation,
@@ -52,15 +52,16 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
  * and can only summarise; a convocation emailed, then posted, then confirmed by
  * telephone is three facts, and this page is the only place they all fit.
  *
- * <p>Read from the meeting's convocation list rather than through a call of its
- * own: the list is already cached by the tracking table the visitor comes from,
- * and it carries exactly the same row. A dedicated fetch would only add a
- * round trip and a second thing to invalidate.
+ * <p>Fetched on its own rather than picked out of the cached list, which is
+ * what it used to do. The list deliberately carries no confirmation code - a
+ * hundred of them in one payload is the whole copropriété's answers on one
+ * screen - so this page is the only one that can show the code, and the only
+ * way to have it is to ask for this convocation alone.
  */
 export function ConvocationDetailPage() {
   const { property } = useOutletContext<{ property: Property }>();
   const { meetingId, convocationId } = useParams<{ meetingId: string; convocationId: string }>();
-  const convocations = useConvocations(meetingId ?? '');
+  const convocationQuery = useConvocation(convocationId ?? '');
   const channels = useConvocationChannels();
   const send = useSendConvocation(meetingId ?? '');
   const recordDelivery = useRecordConvocationDelivery(meetingId ?? '');
@@ -77,15 +78,15 @@ export function ConvocationDetailPage() {
   const selectedChannel = channelList.find((channel) => channel.code === channelCode) ?? channelList[0];
   const automatedCode = channelList.find((channel) => channel.automated)?.code ?? 'EMAIL';
 
-  if (convocations.isLoading) {
+  if (convocationQuery.isLoading) {
     return <Loader label="Chargement de la convocation…" />;
   }
 
-  if (convocations.isError) {
-    return <Alert message={getErrorMessage(convocations.error)} />;
+  if (convocationQuery.isError) {
+    return <Alert message={getErrorMessage(convocationQuery.error)} />;
   }
 
-  const convocation = (convocations.data ?? []).find((candidate) => candidate.id === convocationId);
+  const convocation = convocationQuery.data;
   const backPath = `/property-mngt/properties/${property.id}/general-meetings/${meetingId}/convocations`;
 
   if (!convocation) {
@@ -207,6 +208,32 @@ export function ConvocationDetailPage() {
           )}
         </div>
       </Card>
+
+      {convocation.confirmationCode && (
+        <Card className="flex flex-col gap-2">
+          <div>
+            <h4 className="font-medium text-gray-900 dark:text-white/90">Codes de confirmation</h4>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Imprimés sur la convocation de ce lot, à côté du QR code. À dicter au copropriétaire qui a égaré sa
+              lettre — ils lui permettent de confirmer sa présence sans compte.
+            </p>
+          </div>
+          <dl className="flex flex-wrap gap-6">
+            <div>
+              <dt className="text-sm text-gray-500 dark:text-gray-400">Référence de l'assemblée</dt>
+              <dd className="font-mono text-lg uppercase tracking-widest text-gray-900 dark:text-white/90">
+                {convocation.meetingPublicReference}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500 dark:text-gray-400">Code de ce lot</dt>
+              <dd className="font-mono text-lg uppercase tracking-widest text-gray-900 dark:text-white/90">
+                {convocation.confirmationCode}
+              </dd>
+            </div>
+          </dl>
+        </Card>
+      )}
 
       <Card className="flex flex-col gap-3">
         <div>

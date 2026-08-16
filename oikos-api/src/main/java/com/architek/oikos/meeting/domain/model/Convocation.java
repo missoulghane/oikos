@@ -13,6 +13,7 @@ import com.architek.oikos.meeting.domain.valueobject.ConvocationStatus;
 import com.architek.oikos.meeting.domain.valueobject.DeliveryStatus;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
 import com.architek.oikos.meeting.domain.valueobject.ReplySource;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.domain.valueobject.VotingWeight;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -51,6 +52,7 @@ public final class Convocation {
     private final VotingWeight votingWeight;
     private final List<ConvocationDelivery> deliveries;
     private final String confirmationToken;
+    private final ShortCode confirmationCode;
     private final AttendanceReply attendanceReply;
     private final Instant repliedAt;
     private final ReplySource replySource;
@@ -63,7 +65,7 @@ public final class Convocation {
     private final Instant createdDate;
 
     private Convocation(ConvocationId id, GeneralMeetingId generalMeetingId, EntityId unitId, VotingWeight votingWeight,
-                         List<ConvocationDelivery> deliveries, String confirmationToken,
+                         List<ConvocationDelivery> deliveries, String confirmationToken, ShortCode confirmationCode,
                          AttendanceReply attendanceReply, Instant repliedAt, ReplySource replySource,
                          EntityId repliedByPartyId, String replyNote, boolean checkedIn, AttendanceMode attendanceMode,
                          EntityId checkedInPartyId, Instant checkedInAt, Instant createdDate) {
@@ -82,6 +84,7 @@ public final class Convocation {
         }
         this.deliveries = List.copyOf(Objects.requireNonNull(deliveries, "deliveries must not be null"));
         this.confirmationToken = Objects.requireNonNull(confirmationToken, "confirmationToken must not be null");
+        this.confirmationCode = Objects.requireNonNull(confirmationCode, "confirmationCode must not be null");
         this.repliedAt = repliedAt;
         this.replySource = replySource;
         this.repliedByPartyId = repliedByPartyId;
@@ -103,20 +106,22 @@ public final class Convocation {
      * would be a letter without a link.
      */
     public static Convocation generate(ConvocationId id, GeneralMeetingId generalMeetingId, EntityId unitId,
-                                        VotingWeight votingWeight, String confirmationToken) {
+                                        VotingWeight votingWeight, String confirmationToken,
+                                        ShortCode confirmationCode) {
         return new Convocation(id, generalMeetingId, unitId, votingWeight, List.of(), confirmationToken,
-                AttendanceReply.NO_REPLY, null, null, null, null, false, null, null, null, null);
+                confirmationCode, AttendanceReply.NO_REPLY, null, null, null, null, false, null, null, null, null);
     }
 
     public static Convocation reconstruct(ConvocationId id, GeneralMeetingId generalMeetingId, EntityId unitId,
                                            VotingWeight votingWeight, List<ConvocationDelivery> deliveries,
-                                           String confirmationToken, AttendanceReply attendanceReply,
-                                           Instant repliedAt, ReplySource replySource, EntityId repliedByPartyId,
-                                           String replyNote, boolean checkedIn, AttendanceMode attendanceMode,
-                                           EntityId checkedInPartyId, Instant checkedInAt, Instant createdDate) {
+                                           String confirmationToken, ShortCode confirmationCode,
+                                           AttendanceReply attendanceReply, Instant repliedAt, ReplySource replySource,
+                                           EntityId repliedByPartyId, String replyNote, boolean checkedIn,
+                                           AttendanceMode attendanceMode, EntityId checkedInPartyId,
+                                           Instant checkedInAt, Instant createdDate) {
         return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken,
-                attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, checkedIn, attendanceMode,
-                checkedInPartyId, checkedInAt, createdDate);
+                confirmationCode, attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, checkedIn,
+                attendanceMode, checkedInPartyId, checkedInAt, createdDate);
     }
 
     /**
@@ -132,7 +137,7 @@ public final class Convocation {
         Objects.requireNonNull(delivery, "delivery must not be null");
         List<ConvocationDelivery> updated = new ArrayList<>(deliveries);
         updated.add(delivery);
-        return new Convocation(id, generalMeetingId, unitId, votingWeight, updated, confirmationToken,
+        return new Convocation(id, generalMeetingId, unitId, votingWeight, updated, confirmationToken, confirmationCode,
                 attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, checkedIn, attendanceMode,
                 checkedInPartyId, checkedInAt, createdDate);
     }
@@ -153,12 +158,12 @@ public final class Convocation {
         if (newReply == AttendanceReply.NO_REPLY) {
             // Taking the answer back takes its whole provenance with it: keeping a source for an
             // answer that no longer exists is the sort of leftover a contested AG makes expensive.
-            return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken,
+            return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken, confirmationCode,
                     newReply, null, null, null, null, checkedIn, attendanceMode, checkedInPartyId, checkedInAt,
                     createdDate);
         }
         Objects.requireNonNull(source, "reply source must not be null");
-        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken, newReply,
+        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken, confirmationCode, newReply,
                 Objects.requireNonNull(at, "at must not be null"), source, partyId, note, checkedIn, attendanceMode,
                 checkedInPartyId, checkedInAt, createdDate);
     }
@@ -175,14 +180,14 @@ public final class Convocation {
     public Convocation checkIn(AttendanceMode mode, EntityId partyId, Instant at) {
         Objects.requireNonNull(mode, "attendance mode must not be null");
         Objects.requireNonNull(at, "at must not be null");
-        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken,
+        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken, confirmationCode,
                 attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, true, mode, partyId, at,
                 createdDate);
     }
 
     /** Undoes a check-in entered by mistake - a room is ticked off by hand and hands slip. */
     public Convocation undoCheckIn() {
-        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken,
+        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken, confirmationCode,
                 attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, false, null, null, null,
                 createdDate);
     }
@@ -258,6 +263,18 @@ public final class Convocation {
      */
     public String getConfirmationToken() {
         return confirmationToken;
+    }
+
+    /**
+     * The six characters printed on the letter, for the copropriétaire who has
+     * neither scanned the QR code nor any intention of typing 43 characters.
+     *
+     * <p>Never a credential on its own: it is presented with its meeting's
+     * public reference, and attempts against it are capped. See ADR 0002 §13 for
+     * why a code this short cannot carry what the token carries.
+     */
+    public ShortCode getConfirmationCode() {
+        return confirmationCode;
     }
 
     public AttendanceReply getAttendanceReply() {

@@ -68,6 +68,13 @@ export interface Convocation {
   attendanceMode: AttendanceMode | null;
   checkedInAt: string | null;
   status: ConvocationStatus;
+  /**
+   * Null on every list response, populated only by GET /convocations/{id}. The
+   * pair a syndic reads out to a copropriétaire who lost their letter; the API
+   * keeps them off the list so a hundred codes never travel together.
+   */
+  meetingPublicReference: string | null;
+  confirmationCode: string | null;
 }
 
 export interface AttendanceSummary {

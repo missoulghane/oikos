@@ -34,6 +34,7 @@
 		<springdoc.version>2.8.9</springdoc.version>
 		<archunit.version>1.4.2</archunit.version>
 		<openhtmltopdf.version>1.1.37</openhtmltopdf.version>
+		<zxing.version>3.5.3</zxing.version>
 		<license-maven-plugin.version>2.7.1</license-maven-plugin.version>
 	</properties>
 
@@ -73,6 +74,22 @@
 			<groupId>io.github.openhtmltopdf</groupId>
 			<artifactId>openhtmltopdf-pdfbox</artifactId>
 			<version>${openhtmltopdf.version}</version>
+		</dependency>
+
+		<!-- QR code de la convocation. zxing est Apache 2.0, donc sans obligation
+		     de distribution particulière (contrairement à openhtmltopdf ci-dessus) ;
+		     la mention reste due dans THIRD-PARTY-NOTICES.md, régénéré par
+		     ./mvnw license:add-third-party. `javase` n'apporte que l'encodage vers
+		     BufferedImage - le rendu PNG lui-même passe par ImageIO du JDK. -->
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>core</artifactId>
+			<version>${zxing.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>javase</artifactId>
+			<version>${zxing.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

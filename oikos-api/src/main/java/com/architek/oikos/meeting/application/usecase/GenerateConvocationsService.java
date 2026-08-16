@@ -1,6 +1,7 @@
 package com.architek.oikos.meeting.application.usecase;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +21,8 @@ import com.architek.oikos.meeting.domain.model.Convocation;
 import com.architek.oikos.meeting.domain.model.GeneralMeeting;
 import com.architek.oikos.meeting.domain.repository.ConvocationRepository;
 import com.architek.oikos.meeting.domain.service.ConvocationTokenGenerator;
+import com.architek.oikos.meeting.domain.service.ShortCodeGenerator;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.domain.repository.GeneralMeetingRepository;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationId;
 import com.architek.oikos.meeting.domain.valueobject.MeetingStatus;
@@ -52,19 +55,43 @@ public class GenerateConvocationsService implements GenerateConvocationsUseCase 
 
     private static final Logger log = LoggerFactory.getLogger(GenerateConvocationsService.class);
 
+    private static final int MAX_CODE_ATTEMPTS = 10;
+
     private final GeneralMeetingRepository generalMeetingRepository;
     private final ConvocationRepository convocationRepository;
     private final ConvocationViewAssembler viewAssembler;
     private final ConvocationTokenGenerator tokenGenerator;
+    private final ShortCodeGenerator shortCodeGenerator;
 
     public GenerateConvocationsService(GeneralMeetingRepository generalMeetingRepository,
                                         ConvocationRepository convocationRepository,
                                         ConvocationViewAssembler viewAssembler,
-                                        ConvocationTokenGenerator tokenGenerator) {
+                                        ConvocationTokenGenerator tokenGenerator,
+                                        ShortCodeGenerator shortCodeGenerator) {
         this.generalMeetingRepository = generalMeetingRepository;
         this.convocationRepository = convocationRepository;
         this.viewAssembler = viewAssembler;
         this.tokenGenerator = tokenGenerator;
+        this.shortCodeGenerator = shortCodeGenerator;
+    }
+
+    /**
+     * A code free within this meeting. Uniqueness is only ever per meeting - two
+     * copropriétés may both hand out `w754a1`, since the meeting's public
+     * reference is always presented alongside.
+     *
+     * <p>Bounded rather than a while(true): with a few hundred lots against
+     * 34^6, ten failures in a row means the generator is broken, not unlucky.
+     */
+    private ShortCode drawUnusedCode(Set<ShortCode> usedCodes) {
+        for (int attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
+            ShortCode candidate = ShortCode.of(shortCodeGenerator.generate());
+            if (!usedCodes.contains(candidate)) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("Could not draw a free confirmation code in " + MAX_CODE_ATTEMPTS
+                + " attempts");
     }
 
     @Override
@@ -78,16 +105,23 @@ public class GenerateConvocationsService implements GenerateConvocationsUseCase 
                 .findByGeneralMeetingIdAndUnitIds(meeting.getId(), unitsById.keySet()).stream()
                 .map(Convocation::getUnitId).collect(Collectors.toSet());
 
+        // The codes already handed out for this meeting, so a re-run for a lot added late
+        // cannot draw one twice. Held in memory for the whole loop rather than queried per
+        // lot: the codes being created right now are not in the table yet either.
+        Set<ShortCode> usedCodes = new HashSet<>(convocationRepository.findConfirmationCodes(meeting.getId()));
+
         List<Convocation> created = new ArrayList<>();
         for (UnitInfo unit : unitsById.values()) {
             if (alreadyConvoked.contains(unit.unitId())) {
                 continue;
             }
-            // The confirmation token is minted here rather than at send time: the link it
-            // carries is printed on the letter, including the one a syndic prints to post.
+            // Both secrets are minted here rather than at send time: they are printed on the
+            // letter, including the one a syndic prints to post.
+            ShortCode code = drawUnusedCode(usedCodes);
+            usedCodes.add(code);
             created.add(Convocation.generate(ConvocationId.newId(), meeting.getId(), unit.unitId(),
                     VotingWeight.forMode(meeting.getVotingWeightMode(), unit.shares()),
-                    tokenGenerator.generate()));
+                    tokenGenerator.generate(), code));
         }
         convocationRepository.saveAll(created);
 

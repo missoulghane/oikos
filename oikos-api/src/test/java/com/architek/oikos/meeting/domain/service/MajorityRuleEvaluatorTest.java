@@ -20,6 +20,7 @@ import com.architek.oikos.meeting.domain.valueobject.VoteChoice;
 import com.architek.oikos.meeting.domain.valueobject.VoteId;
 import com.architek.oikos.meeting.domain.valueobject.VoteOutcome;
 import com.architek.oikos.meeting.domain.valueobject.VoteTally;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.domain.valueobject.VotingWeight;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -44,7 +45,7 @@ class MajorityRuleEvaluatorTest {
         Room lot(int weight, boolean present, VoteChoice choice) {
             EntityId unitId = EntityId.newId();
             Convocation convocation = Convocation.generate(ConvocationId.newId(), MEETING, unitId,
-                    VotingWeight.of(BigDecimal.valueOf(weight)), "token-1");
+                    VotingWeight.of(BigDecimal.valueOf(weight)), "token-1", ShortCode.of("code01"));
             convocations.add(present ? convocation.checkIn(AttendanceMode.ON_SITE, null, AT) : convocation);
             if (choice != null) {
                 votes.add(Vote.cast(VoteId.newId(), ITEM, unitId, choice, AT, null));

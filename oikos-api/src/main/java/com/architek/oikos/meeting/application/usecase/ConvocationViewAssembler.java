@@ -1,5 +1,6 @@
 package com.architek.oikos.meeting.application.usecase;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +15,9 @@ import com.architek.oikos.meeting.application.port.out.UnitInfo;
 import com.architek.oikos.meeting.domain.model.Convocation;
 import com.architek.oikos.meeting.domain.model.ConvocationChannel;
 import com.architek.oikos.meeting.domain.model.ConvocationDelivery;
+import com.architek.oikos.meeting.domain.repository.GeneralMeetingRepository;
 import com.architek.oikos.meeting.domain.valueobject.ChannelCode;
+import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
@@ -32,11 +35,14 @@ public class ConvocationViewAssembler {
 
     private final PropertyUnitDirectoryPort propertyUnitDirectoryPort;
     private final ConvocationChannelLookup channelLookup;
+    private final GeneralMeetingRepository generalMeetingRepository;
 
     public ConvocationViewAssembler(PropertyUnitDirectoryPort propertyUnitDirectoryPort,
-                                     ConvocationChannelLookup channelLookup) {
+                                     ConvocationChannelLookup channelLookup,
+                                     GeneralMeetingRepository generalMeetingRepository) {
         this.propertyUnitDirectoryPort = propertyUnitDirectoryPort;
         this.channelLookup = channelLookup;
+        this.generalMeetingRepository = generalMeetingRepository;
     }
 
     public Map<EntityId, UnitInfo> unitsByIdOf(EntityId propertyId) {
@@ -47,15 +53,33 @@ public class ConvocationViewAssembler {
         return byId;
     }
 
+    /**
+     * List rows, stripped of their confirmation codes. A tracking table shows
+     * every lot of the copropriété at once, and a code per row would put every
+     * lot's answer within reach of whoever can read that screen - the code is
+     * only ever carried by a single lot's detail (ConvocationView.withoutCodes).
+     */
     public List<ConvocationView> toViews(List<Convocation> convocations, Map<EntityId, UnitInfo> unitsById) {
         Map<ChannelCode, ConvocationChannel> channelsByCode = channelLookup.byCode();
+        // Cached across rows: a tracking table's hundred convocations belong to one meeting,
+        // and resolving its reference per row would be a hundred reads of the same aggregate.
+        // The codes are dropped anyway here - this only keeps the shared path honest.
+        Map<GeneralMeetingId, String> referenceCache = new HashMap<>();
         return convocations.stream()
-                .map(convocation -> toView(convocation, unitsById.get(convocation.getUnitId()), channelsByCode))
+                .map(convocation -> toView(convocation, unitsById.get(convocation.getUnitId()), channelsByCode,
+                        publicReferenceOf(convocation.getGeneralMeetingId(), referenceCache))
+                        .withoutCodes())
                 .toList();
     }
 
     public ConvocationView toView(Convocation convocation, UnitInfo unit) {
-        return toView(convocation, unit, channelLookup.byCode());
+        return toView(convocation, unit, channelLookup.byCode(),
+                publicReferenceOf(convocation.getGeneralMeetingId(), new HashMap<>()));
+    }
+
+    private String publicReferenceOf(GeneralMeetingId meetingId, Map<GeneralMeetingId, String> cache) {
+        return cache.computeIfAbsent(meetingId, id -> generalMeetingRepository.findById(id)
+                .map(meeting -> meeting.getPublicReference().value()).orElse(null));
     }
 
     /**
@@ -64,15 +88,15 @@ public class ConvocationViewAssembler {
      * unreadable - the row shows what it still knows.
      */
     public ConvocationView toView(Convocation convocation, UnitInfo unit,
-                                   Map<ChannelCode, ConvocationChannel> channelsByCode) {
+                                   Map<ChannelCode, ConvocationChannel> channelsByCode, String publicReference) {
         List<ConvocationDeliveryView> deliveries = convocation.getDeliveries().stream()
                 .map(delivery -> toDeliveryView(delivery, channelsByCode)).toList();
         if (unit == null) {
-            return ConvocationView.from(convocation, null, null, List.of(), deliveries);
+            return ConvocationView.from(convocation, null, null, List.of(), deliveries, publicReference);
         }
         return ConvocationView.from(convocation, unit.unitNumber(), unit.buildingName(),
                 unit.owners().stream().map(owner -> new ConvocationRecipient(owner.fullName(), owner.email())).toList(),
-                deliveries);
+                deliveries, publicReference);
     }
 
     /**

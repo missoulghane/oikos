@@ -97,6 +97,7 @@ tableau :
 - flyway-core — `org.flywaydb:flyway-core:12.4.0`
 - flyway-database-postgresql — `org.flywaydb:flyway-database-postgresql:12.4.0`
 - Hibernate ORM - hibernate-core — `org.hibernate.orm:hibernate-core:7.4.1.Final`
+- jcommander — `com.beust:jcommander:1.82`
 - JJWT :: API — `io.jsonwebtoken:jjwt-api:0.12.6`
 - JJWT :: Extensions :: Jackson — `io.jsonwebtoken:jjwt-jackson:0.12.6`
 - JJWT :: Impl — `io.jsonwebtoken:jjwt-impl:0.12.6`
@@ -192,6 +193,10 @@ tableau :
 
 - ANTLR 4 Runtime — `org.antlr:antlr4-runtime:4.13.2`
 
+### BSD 3-clause License w/nuclear disclaimer
+
+- Java Advanced Imaging Image I/O Tools API core (standalone) — `com.github.jai-imageio:jai-imageio-core:1.4.0`
+
 ### Eclipse Distribution License v. 1.0, Eclipse Public License v. 2.0
 
 - Jakarta Persistence API — `jakarta.persistence:jakarta.persistence-api:3.2.0`
@@ -278,6 +283,8 @@ tableau :
 - thymeleaf — `org.thymeleaf:thymeleaf:3.1.5.RELEASE`
 - thymeleaf-spring6 — `org.thymeleaf:thymeleaf-spring6:3.1.5.RELEASE`
 - unbescape — `org.unbescape:unbescape:1.1.6.RELEASE`
+- ZXing Core — `com.google.zxing:core:3.5.3`
+- ZXing Java SE extensions — `com.google.zxing:javase:3.5.3`
 
 ### The MIT License
 

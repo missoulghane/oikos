@@ -10,6 +10,7 @@ import com.architek.oikos.meeting.domain.valueobject.ChannelCode;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationDeliveryId;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationId;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.domain.valueobject.VotingWeight;
 import com.architek.oikos.meeting.infrastructure.persistence.ConvocationDeliveryEntity;
 import com.architek.oikos.meeting.infrastructure.persistence.ConvocationEntity;
@@ -34,6 +35,7 @@ public interface ConvocationPersistenceMapper {
         entity.setUnitId(convocation.getUnitId().value());
         entity.setVotingWeight(convocation.getVotingWeight().value());
         entity.setConfirmationToken(convocation.getConfirmationToken());
+        entity.setConfirmationCode(convocation.getConfirmationCode().value());
         entity.setAttendanceReply(convocation.getAttendanceReply());
         entity.setRepliedAt(convocation.getRepliedAt());
         entity.setReplySource(convocation.getReplySource());
@@ -72,7 +74,7 @@ public interface ConvocationPersistenceMapper {
         return Convocation.reconstruct(ConvocationId.of(entity.getId()),
                 GeneralMeetingId.of(entity.getGeneralMeetingId()), EntityId.of(entity.getUnitId()),
                 VotingWeight.of(entity.getVotingWeight()), deliveries, entity.getConfirmationToken(),
-                entity.getAttendanceReply(),
+                ShortCode.of(entity.getConfirmationCode()), entity.getAttendanceReply(),
                 entity.getRepliedAt(), entity.getReplySource(),
                 entity.getRepliedByPartyId() != null ? EntityId.of(entity.getRepliedByPartyId()) : null,
                 entity.getReplyNote(), entity.isCheckedIn(), entity.getAttendanceMode(),

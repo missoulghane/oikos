@@ -17,6 +17,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 
 import com.architek.oikos.meeting.application.command.AddAgendaItemCommand;
+import com.architek.oikos.meeting.application.command.ConfirmConvocationByCodeCommand;
 import com.architek.oikos.meeting.application.command.ConfirmConvocationByTokenCommand;
 import com.architek.oikos.meeting.application.command.CreateGeneralMeetingCommand;
 import com.architek.oikos.meeting.application.command.GenerateConvocationsCommand;
@@ -25,24 +26,31 @@ import com.architek.oikos.meeting.application.command.ScheduleGeneralMeetingComm
 import com.architek.oikos.meeting.application.dto.ConvocationConfirmationView;
 import com.architek.oikos.meeting.application.dto.ConvocationView;
 import com.architek.oikos.meeting.application.port.in.AddAgendaItemUseCase;
+import com.architek.oikos.meeting.application.port.in.ConfirmConvocationByCodeUseCase;
 import com.architek.oikos.meeting.application.port.in.ConfirmConvocationByTokenUseCase;
 import com.architek.oikos.meeting.application.port.in.CreateGeneralMeetingUseCase;
 import com.architek.oikos.meeting.application.port.in.GenerateConvocationsUseCase;
 import com.architek.oikos.meeting.application.port.in.GetConvocationByTokenUseCase;
+import com.architek.oikos.meeting.application.port.in.GetConvocationUseCase;
 import com.architek.oikos.meeting.application.port.in.ListConvocationsByMeetingUseCase;
 import com.architek.oikos.meeting.application.port.in.OpenGeneralMeetingUseCase;
 import com.architek.oikos.meeting.application.port.in.ScheduleGeneralMeetingUseCase;
+import com.architek.oikos.meeting.application.query.GetConvocationByCodeQuery;
 import com.architek.oikos.meeting.application.query.GetConvocationByTokenQuery;
+import com.architek.oikos.meeting.application.query.GetConvocationQuery;
 import com.architek.oikos.meeting.application.query.ListConvocationsByMeetingQuery;
 import com.architek.oikos.meeting.domain.exception.ConfirmationClosedException;
 import com.architek.oikos.meeting.domain.exception.InvalidConvocationTokenException;
+import com.architek.oikos.meeting.domain.exception.TooManyConfirmationAttemptsException;
 import com.architek.oikos.meeting.domain.valueobject.AttendanceReply;
+import com.architek.oikos.meeting.domain.valueobject.ConvocationId;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationStatus;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
 import com.architek.oikos.meeting.domain.valueobject.MajorityRule;
 import com.architek.oikos.meeting.domain.valueobject.MeetingType;
 import com.architek.oikos.meeting.domain.valueobject.MeetingVenue;
 import com.architek.oikos.meeting.domain.valueobject.ReplySource;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
@@ -86,7 +94,16 @@ class ConvocationConfirmationLinkPostgresIntegrationTest extends PostgresIntegra
     private GetConvocationByTokenUseCase getConvocationByTokenUseCase;
 
     @Autowired
+    private GetConvocationUseCase getConvocationUseCase;
+
+    @Autowired
     private ConfirmConvocationByTokenUseCase confirmConvocationByTokenUseCase;
+
+    @Autowired
+    private ConfirmConvocationByCodeUseCase confirmConvocationByCodeUseCase;
+
+    @Autowired
+    private com.architek.oikos.meeting.application.port.in.GetConvocationByCodeUseCase getConvocationByCodeUseCase;
 
     private EntityId propertyId;
     private UUID firstUnitId;
@@ -138,6 +155,109 @@ class ConvocationConfirmationLinkPostgresIntegrationTest extends PostgresIntegra
         return jdbcTemplate.queryForObject(
                 "select confirmation_token from convocation where general_meeting_id = ? and unit_id = ?", String.class,
                 meetingId.asUuid(), unitId);
+    }
+
+    private ShortCode meetingReference() {
+        return ShortCode.of(jdbcTemplate.queryForObject("select public_reference from general_meeting where id = ?",
+                String.class, meetingId.asUuid()));
+    }
+
+    private ShortCode codeOf(UUID unitId) {
+        return ShortCode.of(jdbcTemplate.queryForObject(
+                "select confirmation_code from convocation where general_meeting_id = ? and unit_id = ?", String.class,
+                meetingId.asUuid(), unitId));
+    }
+
+    @Test
+    void every_lot_gets_its_own_six_character_code_and_the_meeting_its_reference() {
+        ShortCode first = codeOf(firstUnitId);
+        ShortCode second = codeOf(secondUnitId);
+
+        assertThat(first.value()).hasSize(6).isNotEqualTo(second.value());
+        assertThat(meetingReference().value()).hasSize(6);
+        // Digits and lowercase letters, minus the two that are misread on paper.
+        assertThat(first.value()).matches("[0-9a-km-np-z]{6}");
+        assertThat(meetingReference().value()).matches("[0-9a-f]{6}|[0-9a-km-np-z]{6}");
+    }
+
+    @Test
+    void the_pair_of_codes_confirms_exactly_like_the_link() {
+        ConvocationConfirmationView answered = confirmConvocationByCodeUseCase.confirm(
+                new ConfirmConvocationByCodeCommand(meetingReference(), codeOf(firstUnitId),
+                        AttendanceReply.ATTENDING, "203.0.113.7"));
+
+        assertThat(answered.attendanceReply()).isEqualTo(AttendanceReply.ATTENDING);
+        assertThat(convocationOf(firstUnitId).replySource()).isEqualTo(ReplySource.OWNER_LINK);
+        assertThat(convocationOf(secondUnitId).attendanceReply()).isEqualTo(AttendanceReply.NO_REPLY);
+    }
+
+    @Test
+    void a_code_belonging_to_another_meeting_does_not_open_this_one() {
+        // Codes are unique per meeting, not globally - which is only safe because the
+        // reference is always presented with them.
+        GeneralMeetingId otherMeeting = createGeneralMeetingUseCase.create(new CreateGeneralMeetingCommand(propertyId,
+                MeetingType.ORDINARY, "Autre AG", SESSION_DATE, VENUE));
+        addAgendaItemUseCase.add(new AddAgendaItemCommand(otherMeeting, "Point", null, MajorityRule.SIMPLE));
+        scheduleGeneralMeetingUseCase.schedule(new ScheduleGeneralMeetingCommand(otherMeeting, SESSION_DATE, VENUE));
+        generateConvocationsUseCase.generate(new GenerateConvocationsCommand(otherMeeting));
+        ShortCode otherReference = ShortCode.of(jdbcTemplate.queryForObject(
+                "select public_reference from general_meeting where id = ?", String.class, otherMeeting.asUuid()));
+
+        assertThatThrownBy(() -> getConvocationByCodeUseCase.getByCode(
+                new GetConvocationByCodeQuery(otherReference, codeOf(firstUnitId), "203.0.113.8")))
+                .isInstanceOf(InvalidConvocationTokenException.class);
+    }
+
+    @Test
+    void a_wrong_code_says_nothing_and_a_wrong_reference_says_the_same() {
+        // Telling them apart would let someone confirm a reference for free, then spend every
+        // remaining attempt on the code alone.
+        assertThatThrownBy(() -> getConvocationByCodeUseCase.getByCode(
+                new GetConvocationByCodeQuery(meetingReference(), ShortCode.of("zzzzzz"), "203.0.113.9")))
+                .isInstanceOf(InvalidConvocationTokenException.class)
+                .hasMessageNotContainingAny("Appartement", "Al Amal");
+
+        assertThatThrownBy(() -> getConvocationByCodeUseCase.getByCode(
+                new GetConvocationByCodeQuery(ShortCode.of("zzzzzz"), codeOf(firstUnitId), "203.0.113.10")))
+                .isInstanceOf(InvalidConvocationTokenException.class)
+                .hasMessageNotContainingAny("Appartement", "Al Amal");
+    }
+
+    @Test
+    void walking_the_code_space_is_cut_off_after_a_few_attempts() {
+        // The other half of the decision to offer a six-character code at all: 34^6 is only
+        // out of reach if it cannot be tried in a loop.
+        String attacker = "198.51.100.4";
+        for (int attempt = 0; attempt < 10; attempt++) {
+            assertThatThrownBy(() -> getConvocationByCodeUseCase.getByCode(
+                    new GetConvocationByCodeQuery(meetingReference(), ShortCode.of("zzzzzz"), attacker)))
+                    .isInstanceOf(InvalidConvocationTokenException.class);
+        }
+
+        assertThatThrownBy(() -> getConvocationByCodeUseCase.getByCode(
+                new GetConvocationByCodeQuery(meetingReference(), ShortCode.of("zzzzzz"), attacker)))
+                .isInstanceOf(TooManyConfirmationAttemptsException.class);
+
+        // And the cap is per caller: one attacker must not lock out a whole copropriété.
+        assertThat(getConvocationByCodeUseCase.getByCode(new GetConvocationByCodeQuery(meetingReference(),
+                codeOf(firstUnitId), "203.0.113.11")).unitNumber()).isEqualTo("Appartement 1");
+    }
+
+    @Test
+    void the_tracking_list_never_carries_a_code_and_the_detail_does() {
+        // A hundred codes in one payload is the whole copropriété's answers handed to whoever
+        // can open that screen.
+        List<ConvocationView> list = listConvocationsByMeetingUseCase
+                .listConvocations(new ListConvocationsByMeetingQuery(meetingId, null));
+
+        assertThat(list).isNotEmpty()
+                .allSatisfy(view -> assertThat(view.confirmationCode()).isNull());
+        assertThat(list.toString()).doesNotContain(codeOf(firstUnitId).value());
+
+        ConvocationView detail = getConvocationUseCase.getConvocation(
+                new GetConvocationQuery(ConvocationId.of(convocationOf(firstUnitId).id().toString())));
+        assertThat(detail.confirmationCode()).isEqualTo(codeOf(firstUnitId).value());
+        assertThat(detail.meetingPublicReference()).isEqualTo(meetingReference().value());
     }
 
     private ConvocationView convocationOf(UUID unitId) {

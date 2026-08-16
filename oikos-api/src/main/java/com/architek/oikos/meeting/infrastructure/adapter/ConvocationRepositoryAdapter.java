@@ -15,6 +15,7 @@ import com.architek.oikos.meeting.domain.model.ConvocationDelivery;
 import com.architek.oikos.meeting.domain.repository.ConvocationRepository;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationId;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.infrastructure.mapper.ConvocationPersistenceMapper;
 import com.architek.oikos.meeting.infrastructure.persistence.ConvocationDeliveryEntity;
 import com.architek.oikos.meeting.infrastructure.persistence.ConvocationDeliveryJpaRepository;
@@ -80,6 +81,20 @@ public class ConvocationRepositoryAdapter implements ConvocationRepository {
     public Optional<Convocation> findByConfirmationToken(String confirmationToken) {
         return jpaRepository.findByConfirmationToken(confirmationToken)
                 .map(entity -> mapper.toDomain(entity, deliveriesOf(entity.getId())));
+    }
+
+    @Override
+    public Optional<Convocation> findByGeneralMeetingIdAndConfirmationCode(GeneralMeetingId generalMeetingId,
+                                                                            ShortCode confirmationCode) {
+        return jpaRepository
+                .findByGeneralMeetingIdAndConfirmationCode(generalMeetingId.asUuid(), confirmationCode.value())
+                .map(entity -> mapper.toDomain(entity, deliveriesOf(entity.getId())));
+    }
+
+    @Override
+    public List<ShortCode> findConfirmationCodes(GeneralMeetingId generalMeetingId) {
+        return jpaRepository.findConfirmationCodesByGeneralMeetingId(generalMeetingId.asUuid()).stream()
+                .map(ShortCode::of).toList();
     }
 
     @Override

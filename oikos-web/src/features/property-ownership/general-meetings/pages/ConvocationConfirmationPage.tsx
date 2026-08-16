@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AuthLayout } from '@/shared/layouts/AuthLayout';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { Button } from '@/shared/components/Button/Button';
 import { Card } from '@/shared/components/Card/Card';
+import { Input } from '@/shared/components/Input/Input';
 import { Loader } from '@/shared/components/Loader/Loader';
 import {
   useConfirmConvocation,
+  useConfirmConvocationByCode,
   useConvocationConfirmation,
+  useConvocationConfirmationByCode,
 } from '@/features/property-ownership/general-meetings/hooks/useConvocationConfirmation';
 import {
   ATTENDANCE_REPLY_LABELS,
@@ -46,14 +50,67 @@ function Row({ label, value }: { label: string; value: string }) {
 export function ConvocationConfirmationPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-  const confirmation = useConvocationConfirmation(token);
-  const confirm = useConfirmConvocation(token);
 
-  if (!token) {
+  // The two codes off the letter, for whoever arrives here without a link. Submitted
+  // explicitly rather than as you type: a wrong pair counts against the server's attempt
+  // cap, and firing one request per keystroke would burn through it on the way to a
+  // correct code.
+  const [referenceInput, setReferenceInput] = useState(searchParams.get('ag') ?? '');
+  const [codeInput, setCodeInput] = useState(searchParams.get('code') ?? '');
+  const [submitted, setSubmitted] = useState<{ reference: string; code: string } | null>(
+    searchParams.get('ag') && searchParams.get('code')
+      ? { reference: searchParams.get('ag')!, code: searchParams.get('code')! }
+      : null,
+  );
+
+  const byToken = useConvocationConfirmation(token);
+  const byCode = useConvocationConfirmationByCode(submitted?.reference ?? '', submitted?.code ?? '', Boolean(submitted));
+  const confirmByToken = useConfirmConvocation(token);
+  const confirmByCode = useConfirmConvocationByCode(submitted?.reference ?? '', submitted?.code ?? '');
+
+  const confirmation = token ? byToken : byCode;
+  const confirm = token ? confirmByToken : confirmByCode;
+
+  if (!token && !submitted) {
     return (
       <AuthLayout>
-        <Card>
-          <Alert message="Ce lien est incomplet. Utilisez le lien reçu avec votre convocation, tel quel." />
+        <Card className="flex flex-col gap-4">
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Confirmation de présence</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Saisissez les deux codes imprimés sur votre convocation. Aucun compte n'est nécessaire.
+            </p>
+          </div>
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setSubmitted({ reference: referenceInput.trim(), code: codeInput.trim() });
+            }}
+          >
+            <Input
+              label="Référence de l'assemblée"
+              name="meetingReference"
+              value={referenceInput}
+              placeholder="x7k2m9"
+              autoCapitalize="none"
+              onChange={(event) => setReferenceInput(event.target.value)}
+            />
+            <Input
+              label="Code de votre lot"
+              name="confirmationCode"
+              value={codeInput}
+              placeholder="w754a1"
+              autoCapitalize="none"
+              onChange={(event) => setCodeInput(event.target.value)}
+            />
+            <Button type="submit" disabled={referenceInput.trim().length !== 6 || codeInput.trim().length !== 6}>
+              Continuer
+            </Button>
+          </form>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            Vous pouvez aussi scanner le QR code de votre convocation, ou suivre le lien reçu par email.
+          </p>
         </Card>
       </AuthLayout>
     );
@@ -71,8 +128,17 @@ export function ConvocationConfirmationPage() {
     return (
       <AuthLayout>
         <Card className="flex flex-col gap-3">
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Lien non valide</h1>
-          <Alert message="Ce lien de confirmation n'est pas valide. Vérifiez que vous l'avez recopié en entier, ou contactez votre syndic." />
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">
+            {token ? 'Lien non valide' : 'Codes non reconnus'}
+          </h1>
+          {/* The API says the same thing for a wrong reference and a wrong code, on purpose -
+              so this page cannot say which of the two to correct either. */}
+          <Alert message={getErrorMessage(confirmation.error)} />
+          {!token && (
+            <Button variant="secondary" onClick={() => setSubmitted(null)}>
+              Ressaisir les codes
+            </Button>
+          )}
         </Card>
       </AuthLayout>
     );

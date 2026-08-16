@@ -56,6 +56,9 @@ public class ThymeleafConvocationRenderer implements ConvocationRendererPort {
         context.setVariable("quorumPercentage", convocation.quorumPercentage());
         context.setVariable("confirmationLink", convocation.confirmationLink());
         context.setVariable("commentParagraphs", convocation.commentParagraphs());
+        context.setVariable("confirmationQrCode", convocation.confirmationQrCode());
+        context.setVariable("meetingPublicReference", convocation.meetingPublicReference());
+        context.setVariable("confirmationCode", convocation.confirmationCode());
 
         String html = templateEngine.process(TEMPLATE, context);
 

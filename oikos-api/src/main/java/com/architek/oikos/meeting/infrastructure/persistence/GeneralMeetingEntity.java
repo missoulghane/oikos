@@ -74,6 +74,10 @@ public class GeneralMeetingEntity extends AuditableEntity {
     @Column(name = "comment", columnDefinition = "text")
     private String comment;
 
+    /** Unique globally: it is how a copropriétaire names their assembly on the public form. */
+    @Column(name = "public_reference", nullable = false, unique = true, length = 6)
+    private String publicReference;
+
     @Column(name = "opened_without_quorum", nullable = false)
     private boolean openedWithoutQuorum;
 }

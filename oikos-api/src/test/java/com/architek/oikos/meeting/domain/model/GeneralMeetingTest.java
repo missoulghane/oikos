@@ -16,6 +16,7 @@ import com.architek.oikos.meeting.domain.valueobject.MeetingStatus;
 import com.architek.oikos.meeting.domain.valueobject.MeetingType;
 import com.architek.oikos.meeting.domain.valueobject.MeetingVenue;
 import com.architek.oikos.meeting.domain.valueobject.QuorumPercentage;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.domain.valueobject.VotingWeightMode;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -26,7 +27,7 @@ class GeneralMeetingTest {
 
     private static GeneralMeeting draft() {
         return GeneralMeeting.createDraft(GeneralMeetingId.newId(), EntityId.newId(), MeetingType.ORDINARY,
-                "AG ordinaire 2026", null, null, QuorumPercentage.of(BigDecimal.valueOf(50)), VotingWeightMode.SHARES);
+                "AG ordinaire 2026", null, null, QuorumPercentage.of(BigDecimal.valueOf(50)), VotingWeightMode.SHARES, ShortCode.of("agre01"));
     }
 
     private static GeneralMeeting convened() {
@@ -170,7 +171,7 @@ class GeneralMeetingTest {
     @Test
     void a_meeting_needs_a_title() {
         assertThatThrownBy(() -> GeneralMeeting.createDraft(GeneralMeetingId.newId(), EntityId.newId(),
-                MeetingType.ORDINARY, "   ", null, null, QuorumPercentage.none(), VotingWeightMode.PER_UNIT))
+                MeetingType.ORDINARY, "   ", null, null, QuorumPercentage.none(), VotingWeightMode.PER_UNIT, ShortCode.of("agre02")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("title");
     }
@@ -179,12 +180,12 @@ class GeneralMeetingTest {
     void a_reconstructed_meeting_past_draft_must_carry_its_date_and_venue() {
         assertThatThrownBy(() -> GeneralMeeting.reconstruct(GeneralMeetingId.newId(), EntityId.newId(),
                 MeetingType.ORDINARY, MeetingStatus.CONVENED, "AG", null, null, QuorumPercentage.none(),
-                VotingWeightMode.PER_UNIT, null, false, null))
+                VotingWeightMode.PER_UNIT, null, ShortCode.of("agref1"), false, null))
                 .isInstanceOf(IllegalArgumentException.class);
 
         assertThatCode(() -> GeneralMeeting.reconstruct(GeneralMeetingId.newId(), EntityId.newId(),
                 MeetingType.ORDINARY, MeetingStatus.DRAFT, "AG", null, null, QuorumPercentage.none(),
-                VotingWeightMode.PER_UNIT, null, false, null))
+                VotingWeightMode.PER_UNIT, null, ShortCode.of("agref1"), false, null))
                 .doesNotThrowAnyException();
     }
 }

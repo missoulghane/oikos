@@ -6,6 +6,7 @@ import com.architek.oikos.meeting.domain.model.GeneralMeeting;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
 import com.architek.oikos.meeting.domain.valueobject.MeetingVenue;
 import com.architek.oikos.meeting.domain.valueobject.QuorumPercentage;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.infrastructure.persistence.GeneralMeetingEntity;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -30,6 +31,7 @@ public interface GeneralMeetingPersistenceMapper {
         entity.setQuorumPercentage(meeting.getQuorumPercentage().value());
         entity.setVotingWeightMode(meeting.getVotingWeightMode());
         entity.setComment(meeting.getComment());
+        entity.setPublicReference(meeting.getPublicReference().value());
         entity.setOpenedWithoutQuorum(meeting.isOpenedWithoutQuorum());
         return entity;
     }
@@ -40,6 +42,7 @@ public interface GeneralMeetingPersistenceMapper {
         return GeneralMeeting.reconstruct(GeneralMeetingId.of(entity.getId()), EntityId.of(entity.getPropertyId()),
                 entity.getMeetingType(), entity.getStatus(), entity.getTitle(), entity.getScheduledAt(), venue,
                 QuorumPercentage.of(entity.getQuorumPercentage()), entity.getVotingWeightMode(),
-                entity.getComment(), entity.isOpenedWithoutQuorum(), entity.getCreatedDate());
+                entity.getComment(), ShortCode.of(entity.getPublicReference()), entity.isOpenedWithoutQuorum(),
+                entity.getCreatedDate());
     }
 }

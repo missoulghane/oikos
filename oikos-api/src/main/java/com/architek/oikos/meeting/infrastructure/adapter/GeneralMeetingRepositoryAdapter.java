@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import com.architek.oikos.meeting.domain.model.GeneralMeeting;
 import com.architek.oikos.meeting.domain.repository.GeneralMeetingRepository;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.domain.valueobject.MeetingStatus;
 import com.architek.oikos.meeting.domain.valueobject.MeetingType;
 import com.architek.oikos.meeting.infrastructure.mapper.GeneralMeetingPersistenceMapper;
@@ -38,6 +39,11 @@ public class GeneralMeetingRepositoryAdapter implements GeneralMeetingRepository
         GeneralMeetingEntity entity = jpaRepository.findById(generalMeeting.getId().asUuid())
                 .orElseGet(GeneralMeetingEntity::new);
         return mapper.toDomain(jpaRepository.save(mapper.toEntity(generalMeeting, entity)));
+    }
+
+    @Override
+    public Optional<GeneralMeeting> findByPublicReference(ShortCode publicReference) {
+        return jpaRepository.findByPublicReference(publicReference.value()).map(mapper::toDomain);
     }
 
     @Override

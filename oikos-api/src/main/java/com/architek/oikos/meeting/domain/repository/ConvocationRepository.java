@@ -7,6 +7,7 @@ import java.util.Optional;
 import com.architek.oikos.meeting.domain.model.Convocation;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationId;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 public interface ConvocationRepository {
@@ -36,4 +37,15 @@ public interface ConvocationRepository {
      * caller can reach, and the token is all it has to go on.
      */
     Optional<Convocation> findByConfirmationToken(String confirmationToken);
+
+    /**
+     * The convocation behind a code typed off a letter. Scoped to the meeting,
+     * always: the code is unique only within one, and that scoping is what keeps
+     * a guess bounded to a single copropriété's lots.
+     */
+    Optional<Convocation> findByGeneralMeetingIdAndConfirmationCode(GeneralMeetingId generalMeetingId,
+                                                                     ShortCode confirmationCode);
+
+    /** The codes already handed out for a meeting - what generation draws against. */
+    List<ShortCode> findConfirmationCodes(GeneralMeetingId generalMeetingId);
 }

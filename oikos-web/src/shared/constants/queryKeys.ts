@@ -115,10 +115,14 @@ export const queryKeys = {
     detail: (meetingId: string) => ['general-meetings', meetingId, 'detail'] as const,
     agendaItems: (meetingId: string) => ['general-meetings', meetingId, 'agenda-items'] as const,
     convocations: (meetingId: string) => ['general-meetings', meetingId, 'convocations'] as const,
+    /** Its own key: the single fetch carries the confirmation code, the list never does. */
+    convocation: (convocationId: string) => ['convocations', convocationId] as const,
     /** Not scoped by meeting or property: the channel catalog is the product's, global. */
     convocationChannels: () => ['convocation-channels'] as const,
     /** Keyed by the token itself: the anonymous page has no other identifier to key on. */
     convocationConfirmation: (token: string) => ['convocations', 'by-token', token] as const,
+    convocationByCode: (meetingReference: string, code: string) =>
+      ['convocations', 'by-reference', meetingReference, code] as const,
     attendanceSummary: (meetingId: string) => ['general-meetings', meetingId, 'attendance-summary'] as const,
     minutes: (meetingId: string) => ['general-meetings', meetingId, 'minutes'] as const,
     quorumSettings: (propertyId: string) => ['general-meetings', propertyId, 'quorum-settings'] as const,

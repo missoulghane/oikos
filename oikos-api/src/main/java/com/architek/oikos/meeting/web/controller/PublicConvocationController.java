@@ -7,12 +7,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
+import com.architek.oikos.meeting.application.command.ConfirmConvocationByCodeCommand;
 import com.architek.oikos.meeting.application.command.ConfirmConvocationByTokenCommand;
+import com.architek.oikos.meeting.application.port.in.ConfirmConvocationByCodeUseCase;
 import com.architek.oikos.meeting.application.port.in.ConfirmConvocationByTokenUseCase;
+import com.architek.oikos.meeting.application.port.in.GetConvocationByCodeUseCase;
 import com.architek.oikos.meeting.application.port.in.GetConvocationByTokenUseCase;
+import com.architek.oikos.meeting.application.query.GetConvocationByCodeQuery;
 import com.architek.oikos.meeting.application.query.GetConvocationByTokenQuery;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.web.request.ConfirmConvocationRequest;
 import com.architek.oikos.meeting.web.response.ConvocationConfirmationResponse;
 
@@ -37,11 +43,17 @@ public class PublicConvocationController {
 
     private final GetConvocationByTokenUseCase getConvocationByTokenUseCase;
     private final ConfirmConvocationByTokenUseCase confirmConvocationByTokenUseCase;
+    private final GetConvocationByCodeUseCase getConvocationByCodeUseCase;
+    private final ConfirmConvocationByCodeUseCase confirmConvocationByCodeUseCase;
 
     public PublicConvocationController(GetConvocationByTokenUseCase getConvocationByTokenUseCase,
-                                        ConfirmConvocationByTokenUseCase confirmConvocationByTokenUseCase) {
+                                        ConfirmConvocationByTokenUseCase confirmConvocationByTokenUseCase,
+                                        GetConvocationByCodeUseCase getConvocationByCodeUseCase,
+                                        ConfirmConvocationByCodeUseCase confirmConvocationByCodeUseCase) {
         this.getConvocationByTokenUseCase = getConvocationByTokenUseCase;
         this.confirmConvocationByTokenUseCase = confirmConvocationByTokenUseCase;
+        this.getConvocationByCodeUseCase = getConvocationByCodeUseCase;
+        this.confirmConvocationByCodeUseCase = confirmConvocationByCodeUseCase;
     }
 
     /** What the landing page shows: which assembly, which lot, and where the answer stands. */
@@ -56,5 +68,53 @@ public class PublicConvocationController {
                                                      @Valid @RequestBody ConfirmConvocationRequest request) {
         return ConvocationConfirmationResponse.from(confirmConvocationByTokenUseCase.confirm(
                 new ConfirmConvocationByTokenCommand(token, request.attendanceReply())));
+    }
+
+    /**
+     * The same two operations, reached by the pair of six-character codes printed
+     * on the letter - for whoever has no phone to scan the QR code and will not
+     * type a 43-character token.
+     *
+     * <p>Both codes travel in the path rather than the body, GET included, so the
+     * page can be reached from a bookmark or a re-typed URL. Neither is a secret
+     * worth hiding from a proxy log the way a password would be: the reference is
+     * printed publicly, and the code is capped, single-lot and single-meeting.
+     *
+     * <p>The caller's IP is read here and never trusted from the body: it feeds
+     * the attempt cap, and a client that could state its own identity would be
+     * handed the means to reset its own counter.
+     */
+    @GetMapping("/by-reference/{meetingReference}/{code}")
+    public ConvocationConfirmationResponse previewByCode(@PathVariable String meetingReference,
+                                                           @PathVariable String code, HttpServletRequest request) {
+        return ConvocationConfirmationResponse.from(getConvocationByCodeUseCase.getByCode(
+                new GetConvocationByCodeQuery(ShortCode.ofNullable(meetingReference), ShortCode.ofNullable(code),
+                        callerIdOf(request))));
+    }
+
+    @PutMapping("/by-reference/{meetingReference}/{code}/reply")
+    public ConvocationConfirmationResponse confirmByCode(@PathVariable String meetingReference,
+                                                           @PathVariable String code,
+                                                           @Valid @RequestBody ConfirmConvocationRequest body,
+                                                           HttpServletRequest request) {
+        return ConvocationConfirmationResponse.from(confirmConvocationByCodeUseCase.confirm(
+                new ConfirmConvocationByCodeCommand(ShortCode.ofNullable(meetingReference),
+                        ShortCode.ofNullable(code), body.attendanceReply(), callerIdOf(request))));
+    }
+
+    /**
+     * Who is trying, for the attempt cap only. X-Forwarded-For is honoured
+     * because the product runs behind a reverse proxy, where every request would
+     * otherwise share the proxy's own address and one attacker would lock out
+     * every copropriétaire at once. It is a header, so it is forgeable - which
+     * only means the cap raises the cost of walking the code space rather than
+     * making it impossible, exactly as its javadoc says.
+     */
+    private static String callerIdOf(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

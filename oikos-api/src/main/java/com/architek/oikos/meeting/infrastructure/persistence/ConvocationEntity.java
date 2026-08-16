@@ -52,6 +52,11 @@ public class ConvocationEntity extends AuditableEntity {
     @Column(name = "confirmation_token", nullable = false, unique = true, length = 64)
     private String confirmationToken;
 
+    /** Unique per meeting, not globally - the meeting's public reference is always presented
+     * with it, and per-meeting scoping is what bounds a guess to one copropriété's lots. */
+    @Column(name = "confirmation_code", nullable = false, length = 6)
+    private String confirmationCode;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "attendance_reply", nullable = false)
     private AttendanceReply attendanceReply;

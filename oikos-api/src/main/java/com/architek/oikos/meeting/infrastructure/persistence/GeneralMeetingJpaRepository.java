@@ -1,5 +1,6 @@
 package com.architek.oikos.meeting.infrastructure.persistence;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -28,4 +29,6 @@ public interface GeneralMeetingJpaRepository extends JpaRepository<GeneralMeetin
                                                           @Param("status") MeetingStatus status,
                                                           @Param("meetingType") MeetingType meetingType,
                                                           Pageable pageable);
+
+    Optional<GeneralMeetingEntity> findByPublicReference(String publicReference);
 }

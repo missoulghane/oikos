@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface ConvocationJpaRepository extends JpaRepository<ConvocationEntity, UUID> {
 
@@ -16,4 +18,11 @@ public interface ConvocationJpaRepository extends JpaRepository<ConvocationEntit
     List<ConvocationEntity> findByUnitIdIn(Collection<UUID> unitIds);
 
     Optional<ConvocationEntity> findByConfirmationToken(String confirmationToken);
+
+    Optional<ConvocationEntity> findByGeneralMeetingIdAndConfirmationCode(UUID generalMeetingId,
+                                                                          String confirmationCode);
+
+    /** Every code already used in one meeting - what generation checks against. */
+    @Query("select c.confirmationCode from ConvocationEntity c where c.generalMeetingId = :generalMeetingId")
+    List<String> findConfirmationCodesByGeneralMeetingId(@Param("generalMeetingId") UUID generalMeetingId);
 }

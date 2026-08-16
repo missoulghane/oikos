@@ -136,7 +136,12 @@ Contextes métier existants sous `src/main/java/com/architek/oikos/` :
   et il y en a beaucoup — pouvaient jusqu'ici recevoir une convocation sans
   avoir aucun moyen d'y répondre. Le lien figure dans l'email **et** sur le PDF
   imprimé, cesse d'accepter une réponse à l'ouverture de la séance, et n'expose
-  qu'une convocation : ni identifiant, ni autre lot, ni nom (ADR 0002 §10). Enfin les
+  qu'une convocation : ni identifiant, ni autre lot, ni nom (ADR 0002 §10). La
+  lettre porte trois voies vers la même page : un **QR code** (qui encode le
+  lien à jeton, jamais le code court), l'adresse écrite, et un **code à six
+  caractères** couplé à la référence publique de l'AG. Ce dernier est un secret
+  faible assumé — d'où l'unicité par AG et le plafond de tentatives qui
+  l'encadrent (ADR 0002 §13). Enfin les
   `Vote` : ouverture et clôture de scrutin par point, saisie nominative ou à
   main levée (un choix pour la salle, avec des exceptions nommées), et
   dépouillement (`VoteTally` + `MajorityRuleEvaluator`). Un lot ne vote que

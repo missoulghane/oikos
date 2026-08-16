@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import com.architek.oikos.meeting.application.dto.ConvocationDocumentView;
 import com.architek.oikos.meeting.application.port.out.OwnerInfo;
+import com.architek.oikos.meeting.application.port.out.QrCodeRendererPort;
 import com.architek.oikos.meeting.application.port.out.UnitInfo;
 import com.architek.oikos.meeting.domain.model.AgendaItem;
 import com.architek.oikos.meeting.domain.model.Convocation;
@@ -26,17 +27,21 @@ public class ConvocationDocumentComposer {
 
     private final AgendaItemRepository agendaItemRepository;
     private final ConvocationLinkComposer linkComposer;
+    private final QrCodeRendererPort qrCodeRendererPort;
 
     public ConvocationDocumentComposer(AgendaItemRepository agendaItemRepository,
-                                        ConvocationLinkComposer linkComposer) {
+                                        ConvocationLinkComposer linkComposer,
+                                        QrCodeRendererPort qrCodeRendererPort) {
         this.agendaItemRepository = agendaItemRepository;
         this.linkComposer = linkComposer;
+        this.qrCodeRendererPort = qrCodeRendererPort;
     }
 
     public ConvocationDocumentView compose(Convocation convocation, GeneralMeeting meeting, UnitInfo unit,
                                             String propertyName) {
         List<String> agendaLabels = agendaItemRepository.findByGeneralMeetingId(meeting.getId()).stream()
                 .map(AgendaItem::getLabel).toList();
+        String confirmationLink = linkComposer.link(convocation.getConfirmationToken());
         return new ConvocationDocumentView(propertyName, meeting.getTitle(), meeting.getMeetingType().name(),
                 meeting.getScheduledAt(),
                 meeting.getVenue() != null ? meeting.getVenue().type() : null,
@@ -45,8 +50,11 @@ public class ConvocationDocumentComposer {
                 unit != null ? unit.unitNumber() : null,
                 unit != null ? unit.buildingName() : null,
                 unit == null ? List.of() : unit.owners().stream().map(OwnerInfo::fullName).toList(),
-                agendaLabels, meeting.getQuorumPercentage().value().toPlainString(),
-                linkComposer.link(convocation.getConfirmationToken()),
+                agendaLabels, meeting.getQuorumPercentage().value().toPlainString(), confirmationLink,
+                // The QR encodes the TOKEN link, never the short code: a scan has no reason to
+                // fall back on the weaker secret, and the strong one costs nothing to encode.
+                qrCodeRendererPort.renderAsDataUri(confirmationLink),
+                meeting.getPublicReference().value(), convocation.getConfirmationCode().value(),
                 RichTextToParagraphs.convert(meeting.getComment()));
     }
 

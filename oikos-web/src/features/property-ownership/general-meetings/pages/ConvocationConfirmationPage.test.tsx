@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/shared/context/ThemeContext';
 import { ConvocationConfirmationPage } from '@/features/property-ownership/general-meetings/pages/ConvocationConfirmationPage';
 import { getConvocationConfirmation } from '@/features/property-ownership/general-meetings/api/getConvocationConfirmation';
 import { confirmConvocation } from '@/features/property-ownership/general-meetings/api/confirmConvocation';
+import { getConvocationConfirmationByCode } from '@/features/property-ownership/general-meetings/api/getConvocationConfirmationByCode';
 import type { ConvocationConfirmation } from '@/features/property-ownership/general-meetings/types/convocationConfirmation.types';
 
 // Factory form (not bare automock): a bare `vi.mock(path)` still loads the
@@ -18,9 +19,16 @@ vi.mock('@/features/property-ownership/general-meetings/api/getConvocationConfir
 vi.mock('@/features/property-ownership/general-meetings/api/confirmConvocation', () => ({
   confirmConvocation: vi.fn(),
 }));
+vi.mock('@/features/property-ownership/general-meetings/api/getConvocationConfirmationByCode', () => ({
+  getConvocationConfirmationByCode: vi.fn(),
+}));
+vi.mock('@/features/property-ownership/general-meetings/api/confirmConvocationByCode', () => ({
+  confirmConvocationByCode: vi.fn(),
+}));
 
 const mockedGet = vi.mocked(getConvocationConfirmation);
 const mockedConfirm = vi.mocked(confirmConvocation);
+const mockedGetByCode = vi.mocked(getConvocationConfirmationByCode);
 
 const convocation: ConvocationConfirmation = {
   propertyName: 'Résidence Al Amal',
@@ -56,6 +64,7 @@ describe('ConvocationConfirmationPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedGet.mockResolvedValue(convocation);
+    mockedGetByCode.mockResolvedValue(convocation);
   });
 
   it('names the meeting and the lot the link concerns', async () => {
@@ -104,10 +113,42 @@ describe('ConvocationConfirmationPage', () => {
     expect(await screen.findByText(/Lien non valide/i)).toBeInTheDocument();
   });
 
-  it('says so when the URL carries no token at all', async () => {
+  it('offers the code form when the URL carries no token', async () => {
+    // The paper path: whoever typed the address by hand has no token, only the two codes
+    // printed on their letter.
     renderPage('');
 
-    expect(await screen.findByText(/lien est incomplet/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/Référence de l'assemblée/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Code de votre lot/i)).toBeInTheDocument();
     expect(mockedGet).not.toHaveBeenCalled();
+  });
+
+  it('does not query until both codes are complete', async () => {
+    // A wrong pair costs one of the copropriétaire's own attempts against the server's cap -
+    // one request per keystroke would burn through it on the way to a correct code.
+    renderPage('');
+
+    await userEvent.type(await screen.findByLabelText(/Référence de l'assemblée/i), 'x7k2m');
+    expect(screen.getByRole('button', { name: /continuer/i })).toBeDisabled();
+    expect(mockedGetByCode).not.toHaveBeenCalled();
+  });
+
+  it('confirms through the pair of codes', async () => {
+    mockedGetByCode.mockResolvedValue(convocation);
+    renderPage('');
+
+    await userEvent.type(await screen.findByLabelText(/Référence de l'assemblée/i), 'x7k2m9');
+    await userEvent.type(screen.getByLabelText(/Code de votre lot/i), 'w754a1');
+    await userEvent.click(screen.getByRole('button', { name: /continuer/i }));
+
+    await waitFor(() => expect(mockedGetByCode).toHaveBeenCalledWith('x7k2m9', 'w754a1'));
+    expect(await screen.findByText(/Bâtiment A — Appartement 1/)).toBeInTheDocument();
+  });
+
+  it('reads both codes straight from the URL, as the QR code supplies them', async () => {
+    mockedGetByCode.mockResolvedValue(convocation);
+    renderPage('?ag=x7k2m9&code=w754a1');
+
+    await waitFor(() => expect(mockedGetByCode).toHaveBeenCalledWith('x7k2m9', 'w754a1'));
   });
 });

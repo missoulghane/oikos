@@ -36,6 +36,7 @@ import com.architek.oikos.meeting.domain.valueobject.MajorityRule;
 import com.architek.oikos.meeting.domain.valueobject.MeetingType;
 import com.architek.oikos.meeting.domain.valueobject.MeetingVenue;
 import com.architek.oikos.meeting.domain.valueobject.QuorumPercentage;
+import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.domain.valueobject.VotingWeightMode;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.exception.BusinessException;
@@ -66,7 +67,7 @@ class AgendaLifecycleServiceTest {
     @BeforeEach
     void setUp() {
         draft = GeneralMeeting.createDraft(GeneralMeetingId.newId(), propertyId, MeetingType.ORDINARY,
-                "AG ordinaire 2026", null, null, QuorumPercentage.none(), VotingWeightMode.PER_UNIT);
+                "AG ordinaire 2026", null, null, QuorumPercentage.none(), VotingWeightMode.PER_UNIT, ShortCode.of("agre01"));
     }
 
     private GeneralMeetingViewAssembler assembler() {

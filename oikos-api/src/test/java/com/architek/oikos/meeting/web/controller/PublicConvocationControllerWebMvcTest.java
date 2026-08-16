@@ -24,9 +24,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.architek.oikos.meeting.application.command.ConfirmConvocationByCodeCommand;
 import com.architek.oikos.meeting.application.command.ConfirmConvocationByTokenCommand;
 import com.architek.oikos.meeting.application.dto.ConvocationConfirmationView;
+import com.architek.oikos.meeting.application.query.GetConvocationByCodeQuery;
+import com.architek.oikos.meeting.application.port.in.ConfirmConvocationByCodeUseCase;
 import com.architek.oikos.meeting.application.port.in.ConfirmConvocationByTokenUseCase;
+import com.architek.oikos.meeting.application.port.in.GetConvocationByCodeUseCase;
 import com.architek.oikos.meeting.application.port.in.GetConvocationByTokenUseCase;
 import com.architek.oikos.meeting.domain.valueobject.AttendanceReply;
 import com.architek.oikos.meeting.domain.valueobject.VenueType;
@@ -57,6 +61,12 @@ class PublicConvocationControllerWebMvcTest {
 
     @MockitoBean
     private ConfirmConvocationByTokenUseCase confirmConvocationByTokenUseCase;
+
+    @MockitoBean
+    private GetConvocationByCodeUseCase getConvocationByCodeUseCase;
+
+    @MockitoBean
+    private ConfirmConvocationByCodeUseCase confirmConvocationByCodeUseCase;
 
     private static ConvocationConfirmationView view(AttendanceReply reply, boolean stillOpen) {
         return new ConvocationConfirmationView("Résidence Al Amal", "AG ordinaire 2026", "ORDINARY",
@@ -99,6 +109,49 @@ class PublicConvocationControllerWebMvcTest {
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(confirmConvocationByTokenUseCase);
+    }
+
+    @Test
+    void the_pair_of_codes_reaches_the_same_confirmation_anonymously() throws Exception {
+        // The path for a paper letter: six characters and six characters, no token, no account.
+        when(confirmConvocationByCodeUseCase.confirm(any())).thenReturn(view(AttendanceReply.ATTENDING, true));
+
+        mockMvc.perform(put("/api/v1/convocations/by-token/by-reference/x7k2m9/w754a1/reply")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"attendanceReply\":\"ATTENDING\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.attendanceReply").value("ATTENDING"));
+
+        ArgumentCaptor<ConfirmConvocationByCodeCommand> captor =
+                ArgumentCaptor.forClass(ConfirmConvocationByCodeCommand.class);
+        verify(confirmConvocationByCodeUseCase).confirm(captor.capture());
+        assertThat(captor.getValue().meetingReference().value()).isEqualTo("x7k2m9");
+        assertThat(captor.getValue().confirmationCode().value()).isEqualTo("w754a1");
+        // Deduced from the request, never taken from the body: a caller able to state its own
+        // identity would be handed the means to reset its own attempt counter.
+        assertThat(captor.getValue().callerId()).isNotBlank();
+    }
+
+    @Test
+    void a_code_typed_in_capitals_is_the_same_code() throws Exception {
+        // It is read off paper, where it is printed in capitals for legibility.
+        when(getConvocationByCodeUseCase.getByCode(any())).thenReturn(view(AttendanceReply.NO_REPLY, true));
+
+        mockMvc.perform(get("/api/v1/convocations/by-token/by-reference/X7K2M9/W754A1"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<GetConvocationByCodeQuery> captor = ArgumentCaptor.forClass(GetConvocationByCodeQuery.class);
+        verify(getConvocationByCodeUseCase).getByCode(captor.capture());
+        assertThat(captor.getValue().meetingReference().value()).isEqualTo("x7k2m9");
+        assertThat(captor.getValue().confirmationCode().value()).isEqualTo("w754a1");
+    }
+
+    @Test
+    void a_code_of_the_wrong_length_is_refused_without_reaching_the_use_case() throws Exception {
+        mockMvc.perform(get("/api/v1/convocations/by-token/by-reference/x7k2m9/toolong"))
+                .andExpect(status().is4xxClientError());
+
+        verifyNoInteractions(getConvocationByCodeUseCase);
     }
 
     @Test

@@ -219,6 +219,7 @@ Assemblée générale d'une `Property`. Cycle de vie en six statuts porté par l
 | venue_type | ENUM (nullable) | `PHYSICAL`, `VIDEOCONFERENCE`, `HYBRID` |
 | venue_address / venue_link | VARCHAR | Adresse et/ou lien, selon `venue_type` |
 | quorum_percentage | NUMERIC(5,2) | Snapshot de `meeting_quorum_setting` |
+| public_reference | VARCHAR(6), **unique**, NOT NULL | Référence publique de l'assemblée, saisie avec le code de confirmation. Publique par construction — imprimée à côté du code, elle ne protège rien, elle adresse |
 | comment | TEXT (nullable) | Commentaire global de l'AG, HTML d'éditeur riche. Lu par les copropriétaires (espace, mobile, PDF de convocation) — jamais réinjecté brut : assaini côté clients, aplati en texte pour le PDF (ADR 0002 §12) |
 | voting_weight_mode | ENUM | `PER_UNIT`, `SHARES` — snapshot de `property.dues_calculation_mode` |
 | opened_without_quorum | BOOLEAN | Séance ouverte malgré un quorum non atteint (acte tracé) |
@@ -257,6 +258,7 @@ Parcours complet d'un **lot** pour une AG : envoi, confirmation, émargement (ob
 | reply_source | ENUM (nullable) | `OWNER_APP`, `OWNER_LINK`, `SYNDIC_OFFICE` — **comment** la confirmation a été obtenue. Déduite de l'appelant côté serveur, jamais envoyée par le client |
 | replied_by_party_id | UUID (FK, nullable) | → `party.id` — qui a répondu, quand c'est connu |
 | reply_note | VARCHAR(500) (nullable) | Par quel biais la réponse est parvenue au bureau (« appelée mardi ») |
+| confirmation_code | VARCHAR(6), NOT NULL, **unique par `(general_meeting_id, …)`** | Code à recopier depuis la lettre (`w754a1`). Alphabet `[0-9a-z]` moins `l`/`o`. Unique **par AG** seulement : il se présente toujours avec `general_meeting.public_reference`, et c'est ce couplage qui borne l'espace de recherche (ADR 0002 §13). Absent des réponses de liste, présent sur `GET /convocations/{id}` |
 | confirmation_token | VARCHAR(64), **unique**, NOT NULL | Jeton du lien de confirmation (32 octets `SecureRandom`, Base64-url). Créé à la génération, pas à l'envoi : le lien s'imprime sur la lettre postée. Unique par construction — c'est la seule chose que présente un visiteur anonyme, donc la seule chose qui désigne la convocation. N'apparaît dans aucune réponse JSON du back-office (ADR 0002 §10) |
 | checked_in / checked_in_at | BOOLEAN / TIMESTAMPTZ | Émargement ; condition nécessaire au vote du lot |
 | attendance_mode | ENUM (nullable) | `ON_SITE`, `REMOTE` |
