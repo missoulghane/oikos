@@ -119,8 +119,15 @@ jobs:
         run: |
           scp -i ~/.ssh/id_deploy docker-compose.yml docker-compose.staging.yml Caddyfile \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/oikos/
+          # The migration directory on the VPS is a MIRROR of this one, not an accumulation:
+          # emptied before every copy so that a migration deleted or renamed here disappears
+          # there too. scp only ever adds, so without this the VPS keeps running files the
+          # repository no longer contains - which is how the 2026-08-17 squash failed its first
+          # deployment: Flyway found the new V1 alongside the stale V2..V15 left by earlier
+          # deploys, and replayed ALTERs against a schema that already had them applied.
           ssh -i ~/.ssh/id_deploy ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "mkdir -p /opt/oikos/oikos-api/src/main/resources/db/migration"
+            "mkdir -p /opt/oikos/oikos-api/src/main/resources/db/migration \
+             && rm -f /opt/oikos/oikos-api/src/main/resources/db/migration/*.sql"
           scp -i ~/.ssh/id_deploy oikos-api/src/main/resources/db/migration/*.sql \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/oikos/oikos-api/src/main/resources/db/migration/
       - name: Pull & restart services on VPS
