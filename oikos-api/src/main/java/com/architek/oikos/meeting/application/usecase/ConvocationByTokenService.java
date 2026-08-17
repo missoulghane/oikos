@@ -25,10 +25,12 @@ import com.architek.oikos.meeting.domain.exception.GeneralMeetingNotFoundExcepti
 import com.architek.oikos.meeting.domain.exception.InvalidConvocationTokenException;
 import com.architek.oikos.meeting.domain.exception.TooManyConfirmationAttemptsException;
 import com.architek.oikos.meeting.domain.model.Convocation;
+import com.architek.oikos.meeting.domain.model.ConvocationReply;
 import com.architek.oikos.meeting.domain.model.GeneralMeeting;
 import com.architek.oikos.meeting.domain.repository.ConvocationRepository;
 import com.architek.oikos.meeting.domain.repository.GeneralMeetingRepository;
 import com.architek.oikos.meeting.domain.valueobject.AttendanceReply;
+import com.architek.oikos.meeting.domain.valueobject.ConvocationReplyId;
 import com.architek.oikos.meeting.domain.valueobject.MeetingStatus;
 import com.architek.oikos.meeting.domain.valueobject.ReplySource;
 import com.architek.oikos.meeting.domain.valueobject.ShortCode;
@@ -39,9 +41,10 @@ import com.architek.oikos.meeting.domain.valueobject.ShortCode;
  *
  * <p>It exists because a large share of lots have no account behind them. Their
  * owners receive the convocation and, until now, had no way of answering other
- * than telephoning the syndic - which is why every reply in the system was
- * SYNDIC_OFFICE. The link is what makes {@link ReplySource#OWNER_LINK} a real
- * answer rather than a hypothetical one.
+ * than telephoning the syndic - which is why every reply in the system reached
+ * the office some other way and was recorded as {@link ReplySource#OTHER}. The
+ * link is what makes {@link ReplySource#OWNER_LINK} a real answer rather than a
+ * hypothetical one.
  *
  * <p>Both entry points are anonymous, which shapes the whole class:
  *
@@ -120,8 +123,13 @@ public class ConvocationByTokenService implements GetConvocationByTokenUseCase, 
         if (!isOpenForConfirmation(meeting)) {
             throw new ConfirmationClosedException();
         }
-        Convocation answered = convocation.reply(reply,
-                reply == AttendanceReply.NO_REPLY ? null : ReplySource.OWNER_LINK, null, null, clock.instant());
+        // OWNER_LINK even on a withdrawal: the history entry records who performed the act, and
+        // somebody holding the link did. No medium - the answer came through the application,
+        // not to the office by some other means.
+        // No announced mode and no stand-in: the public confirmation page asks for neither,
+        // and inventing "sur place" for someone who only clicked a link would be a fabrication.
+        Convocation answered = convocation.reply(ConvocationReply.record(ConvocationReplyId.newId(), reply, null,
+                false, ReplySource.OWNER_LINK, null, null, null, clock.instant(), null));
         // The lot, not the person: nothing here identifies who answered, and the log must not
         // pretend otherwise.
         log.info("Convocation {} answered {} through its confirmation link", convocation.getId(), reply);

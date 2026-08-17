@@ -1,6 +1,7 @@
 package com.architek.oikos.meeting.application.usecase;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -13,8 +14,14 @@ import com.architek.oikos.meeting.application.port.in.ReplyToConvocationUseCase;
 import com.architek.oikos.meeting.application.port.out.OwnerInfo;
 import com.architek.oikos.meeting.application.port.out.PartyAccountDirectoryPort;
 import com.architek.oikos.meeting.application.port.out.UnitInfo;
+import com.architek.oikos.meeting.domain.exception.ReplyMediumNotFoundException;
 import com.architek.oikos.meeting.domain.model.Convocation;
+import com.architek.oikos.meeting.domain.model.ConvocationReply;
+import com.architek.oikos.meeting.domain.repository.ReplyMediumRepository;
+import com.architek.oikos.meeting.domain.valueobject.AttendanceMode;
 import com.architek.oikos.meeting.domain.valueobject.AttendanceReply;
+import com.architek.oikos.meeting.domain.valueobject.ConvocationReplyId;
+import com.architek.oikos.meeting.domain.valueobject.ReplyMediumCode;
 import com.architek.oikos.meeting.domain.valueobject.ReplySource;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -38,12 +45,14 @@ public class ReplyToConvocationService implements ReplyToConvocationUseCase {
 
     private final ConvocationLookup lookup;
     private final PartyAccountDirectoryPort partyAccountDirectoryPort;
+    private final ReplyMediumRepository replyMediumRepository;
     private final Clock clock;
 
     public ReplyToConvocationService(ConvocationLookup lookup, PartyAccountDirectoryPort partyAccountDirectoryPort,
-                                      Clock clock) {
+                                      ReplyMediumRepository replyMediumRepository, Clock clock) {
         this.lookup = lookup;
         this.partyAccountDirectoryPort = partyAccountDirectoryPort;
+        this.replyMediumRepository = replyMediumRepository;
         this.clock = clock;
     }
 
@@ -53,13 +62,43 @@ public class ReplyToConvocationService implements ReplyToConvocationUseCase {
         Convocation convocation = lookup.require(command.convocationId());
         UnitInfo unit = lookup.unitOf(convocation);
 
-        EntityId answeringParty = command.attendanceReply() == AttendanceReply.NO_REPLY ? null
-                : ownerPartyOf(unit, command.requestedByUserId());
-        ReplySource source = command.attendanceReply() == AttendanceReply.NO_REPLY ? null
-                : answeringParty != null ? ReplySource.OWNER_APP : ReplySource.SYNDIC_OFFICE;
+        EntityId answeringParty = ownerPartyOf(unit, command.requestedByUserId());
+        ReplySource source = answeringParty != null ? ReplySource.OWNER_APP : ReplySource.OTHER;
+        // Only meaningful for an answer that reached the office some other way. Dropped rather
+        // than refused when it does not: a screen sending a stale medium alongside an owner's
+        // own confirmation is a client bug, and failing the confirmation would punish the owner
+        // for it. The domain refuses the impossible combination either way.
+        ReplyMediumCode medium = source == ReplySource.OTHER ? requireKnownMedium(command.medium()) : null;
+        // Declared, and allowed to predate the request: a letter that arrived on Tuesday is
+        // keyed in on Thursday. The audit date of the row records when that keying happened.
+        Instant receivedAt = command.receivedAt() != null ? command.receivedAt() : clock.instant();
 
-        return lookup.save(convocation.reply(command.attendanceReply(), source, answeringParty, command.note(),
-                clock.instant()), unit);
+        // Dropped rather than refused on a non-attending answer, for the same reason as the
+        // medium: a screen leaving a stale "sur place" selected alongside "absent" is a client
+        // bug, and failing the answer would punish whoever gave it. The domain still refuses
+        // the impossible combination if anything else builds one.
+        boolean attending = command.attendanceReply() == AttendanceReply.ATTENDING;
+        AttendanceMode announcedMode = attending ? command.attendanceMode() : null;
+        boolean byProxy = attending && command.byProxy();
+
+        ConvocationReply entry = ConvocationReply.record(ConvocationReplyId.newId(), command.attendanceReply(),
+                announcedMode, byProxy, source, medium, answeringParty, command.note(), receivedAt,
+                command.requestedByUserId());
+        return lookup.save(convocation.reply(entry), unit);
+    }
+
+    /**
+     * Rejects a medium the catalog does not know rather than storing it. The
+     * column carries a foreign key onto the catalog, so an unknown code would
+     * fail at commit anyway - failing here turns a constraint violation into an
+     * answer the caller can act on.
+     */
+    private ReplyMediumCode requireKnownMedium(ReplyMediumCode medium) {
+        if (medium == null) {
+            return null;
+        }
+        return replyMediumRepository.findByCode(medium)
+                .orElseThrow(() -> new ReplyMediumNotFoundException(medium)).getCode();
     }
 
     /**

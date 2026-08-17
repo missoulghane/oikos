@@ -22,6 +22,13 @@ import com.architek.oikos.meeting.domain.valueobject.MeetingVenue;
  * the attached PDF, and it is the document that has legal standing. Hence the
  * deliberate brevity here, and the reminder variant differing only by its
  * opening line.
+ *
+ * <p>The messagerie shares that wording through {@link #inAppBody}, with one
+ * difference that is not cosmetic: it cannot say the convocation is attached,
+ * because the messagerie carries no attachment. It points at the
+ * copropriétaire's own space instead, where the PDF is already downloadable -
+ * GET /convocations/&#123;id&#125;/document is open to the lot's owner, not only to
+ * the syndic.
  */
 @Component
 class ConvocationEmailComposer {
@@ -42,6 +49,26 @@ class ConvocationEmailComposer {
     String htmlBody(String propertyName, GeneralMeeting meeting, UnitInfo unit, String confirmationLink) {
         return body(propertyName, meeting, unit, confirmationLink,
                 "<p>Vous êtes convoqué(e) à l'assemblée générale suivante :</p>");
+    }
+
+    /**
+     * The same note, for a reader who is already signed in. No confirmation
+     * link: the recipient has an account, so they answer from their space,
+     * which records who answered rather than only that the link was held
+     * (ADR 0002 §10). And no "attached to this email", which would be false.
+     */
+    String inAppBody(String propertyName, GeneralMeeting meeting, UnitInfo unit) {
+        return """
+                <p>Vous êtes convoqué(e) à l'assemblée générale suivante :</p>
+                <p><strong>%s</strong> — assemblée générale %s<br/>
+                Copropriété : %s<br/>
+                Lot concerné : %s<br/>
+                Date : %s<br/>
+                Lieu : %s</p>
+                <p>La convocation détaillée, avec l'ordre du jour, est disponible dans votre espace
+                    copropriétaire, où vous pouvez également indiquer votre présence ou votre absence.</p>
+                """.formatted(escape(meeting.getTitle()), typeLabel(meeting.getMeetingType()), escape(propertyName),
+                escape(lotLabel(unit)), dateLabel(meeting.getScheduledAt()), escape(venueLabel(meeting.getVenue())));
     }
 
     String reminderHtmlBody(String propertyName, GeneralMeeting meeting, UnitInfo unit, String confirmationLink) {

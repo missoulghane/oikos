@@ -119,6 +119,7 @@ export const queryKeys = {
     convocation: (convocationId: string) => ['convocations', convocationId] as const,
     /** Not scoped by meeting or property: the channel catalog is the product's, global. */
     convocationChannels: () => ['convocation-channels'] as const,
+    replyMedia: () => ['reply-media'] as const,
     /** Keyed by the token itself: the anonymous page has no other identifier to key on. */
     convocationConfirmation: (token: string) => ['convocations', 'by-token', token] as const,
     convocationByCode: (meetingReference: string, code: string) =>

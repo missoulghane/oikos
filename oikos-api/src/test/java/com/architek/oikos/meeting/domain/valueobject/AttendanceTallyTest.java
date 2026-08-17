@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import com.architek.oikos.meeting.domain.model.Convocation;
 import com.architek.oikos.meeting.domain.model.ConvocationDelivery;
+import com.architek.oikos.meeting.domain.model.ConvocationReply;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 class AttendanceTallyTest {
@@ -54,7 +55,7 @@ class AttendanceTallyTest {
     void announcing_attendance_does_not_make_a_lot_present() {
         // An owner who confirms and then does not come cannot make the quorum.
         AttendanceTally tally = AttendanceTally
-                .of(List.of(sent(lot(500)).reply(AttendanceReply.ATTENDING, ReplySource.OWNER_APP, null, null, AT), sent(lot(500))));
+                .of(List.of(sent(lot(500)).reply(ConvocationReply.record(ConvocationReplyId.newId(), AttendanceReply.ATTENDING, null, false, ReplySource.OWNER_APP, null, null, null, AT, null)), sent(lot(500))));
 
         assertThat(tally.attendingCount()).isEqualTo(1);
         assertThat(tally.checkedInCount()).isZero();
@@ -64,8 +65,8 @@ class AttendanceTallyTest {
     @Test
     void the_reply_counters_partition_the_lots() {
         AttendanceTally tally = AttendanceTally.of(List.of(
-                sent(lot(10)).reply(AttendanceReply.ATTENDING, ReplySource.OWNER_APP, null, null, AT),
-                sent(lot(10)).reply(AttendanceReply.NOT_ATTENDING, ReplySource.OWNER_APP, null, null, AT),
+                sent(lot(10)).reply(ConvocationReply.record(ConvocationReplyId.newId(), AttendanceReply.ATTENDING, null, false, ReplySource.OWNER_APP, null, null, null, AT, null)),
+                sent(lot(10)).reply(ConvocationReply.record(ConvocationReplyId.newId(), AttendanceReply.NOT_ATTENDING, null, false, ReplySource.OWNER_APP, null, null, null, AT, null)),
                 sent(lot(10)),
                 lot(10)));
 

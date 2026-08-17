@@ -19,13 +19,13 @@ import com.architek.oikos.meeting.domain.valueobject.ChannelCode;
  * Guards the convocation channel catalog, which is seeded twice on purpose and
  * so can drift.
  *
- * <p>V6 creates the table and fills it, for prod and docker. The dev profile
- * cannot apply V6 - it runs on H2 with Flyway disabled and a schema generated
+ * <p>V1__baseline.sql creates the table and fills it, for prod and docker. The dev profile
+ * cannot apply V1 - it runs on H2 with Flyway disabled and a schema generated
  * by Hibernate, so a migration dropping columns would fail on the first
- * statement - and loads V7 as a plain script through spring.sql.init instead.
+ * statement - and loads db/seed/ as plain scripts through spring.sql.init instead.
  * Two files, one catalog: exactly the shape that made
  * {@link RolePermissionSeedTest} necessary for the RBAC bundles, one table
- * further along. A channel added to V6 alone works in prod and offers nothing
+ * further along. A channel added to V1 alone works in prod and offers nothing
  * in dev.
  *
  * <p>The last assertion is the other half of the same problem: the two codes
@@ -35,14 +35,14 @@ import com.architek.oikos.meeting.domain.valueobject.ChannelCode;
 class ConvocationChannelSeedTest {
 
     private static final Path RESOURCES = resolveModuleRoot().resolve("src/main/resources");
-    private static final Path CATALOG_MIGRATION = RESOURCES.resolve("db/migration/V6__convocation_channels_and_reply_source.sql");
-    private static final Path SEED_MIGRATION = RESOURCES.resolve("db/migration/V7__seed_convocation_channel.sql");
+    private static final Path CATALOG_MIGRATION = RESOURCES.resolve("db/migration/V1__baseline.sql");
+    private static final Path SEED_MIGRATION = RESOURCES.resolve("db/seed/seed_convocation_channel.sql");
     private static final Path DEV_PROFILE = RESOURCES.resolve("application-dev.yml");
 
     @Test
     void both_files_declare_the_same_catalog() throws IOException {
         assertThat(channelsIn(SEED_MIGRATION))
-                .as("V7 re-seeds for dev what V6 seeds for prod - a channel in one and not the other is a "
+                .as("db/seed/ re-seeds for dev what V1__baseline.sql seeds for prod - a channel in one and not the other is a "
                         + "select box that differs between environments")
                 .containsExactlyInAnyOrderElementsOf(channelsIn(CATALOG_MIGRATION));
     }
@@ -50,15 +50,15 @@ class ConvocationChannelSeedTest {
     @Test
     void the_dev_profile_loads_the_seed() throws IOException {
         assertThat(Files.readString(DEV_PROFILE))
-                .as("application-dev.yml must list V7 in spring.sql.init.data-locations - without it the dev "
+                .as("application-dev.yml must list the seed file in spring.sql.init.data-locations - without it the dev "
                         + "database has no channel at all and no convocation can be sent")
                 .contains(SEED_MIGRATION.getFileName().toString());
     }
 
     @Test
     void the_seed_is_replayable() throws IOException {
-        // It is loaded on every dev start-up, and applied as a migration in prod where V6 has
-        // already inserted the same rows.
+        // It is loaded on every dev start-up, and V1 has already inserted the same rows in
+        // any environment provisioned by Flyway.
         assertThat(Files.readString(SEED_MIGRATION))
                 .as("the dev seed runs repeatedly, so every insert must guard against its own rows")
                 .contains("WHERE NOT EXISTS");
@@ -74,8 +74,8 @@ class ConvocationChannelSeedTest {
 
     /**
      * The code of every row a convocation_channel insert declares - the first
-     * quoted value of each tuple, whichever form the file uses: V6 lists them as
-     * VALUES tuples, V7 as one guarded SELECT apiece.
+     * quoted value of each tuple, whichever form the file uses: V1 lists them as
+     * VALUES tuples, the dev seed as one guarded SELECT apiece.
      */
     private static Set<String> channelsIn(Path migration) throws IOException {
         Set<String> codes = new LinkedHashSet<>();

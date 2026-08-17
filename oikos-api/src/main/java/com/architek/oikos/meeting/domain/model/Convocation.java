@@ -8,10 +8,12 @@ import java.util.Objects;
 
 import com.architek.oikos.meeting.domain.valueobject.AttendanceMode;
 import com.architek.oikos.meeting.domain.valueobject.AttendanceReply;
+import com.architek.oikos.meeting.domain.valueobject.ChannelCode;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationId;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationStatus;
 import com.architek.oikos.meeting.domain.valueobject.DeliveryStatus;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
+import com.architek.oikos.meeting.domain.valueobject.ReplyMediumCode;
 import com.architek.oikos.meeting.domain.valueobject.ReplySource;
 import com.architek.oikos.meeting.domain.valueobject.ShortCode;
 import com.architek.oikos.meeting.domain.valueobject.VotingWeight;
@@ -51,6 +53,7 @@ public final class Convocation {
     private final EntityId unitId;
     private final VotingWeight votingWeight;
     private final List<ConvocationDelivery> deliveries;
+    private final List<ConvocationReply> replies;
     private final String confirmationToken;
     private final ShortCode confirmationCode;
     private final AttendanceReply attendanceReply;
@@ -58,6 +61,9 @@ public final class Convocation {
     private final ReplySource replySource;
     private final EntityId repliedByPartyId;
     private final String replyNote;
+    private final ReplyMediumCode replyMedium;
+    private final AttendanceMode replyAttendanceMode;
+    private final boolean replyByProxy;
     private final boolean checkedIn;
     private final AttendanceMode attendanceMode;
     private final EntityId checkedInPartyId;
@@ -65,10 +71,13 @@ public final class Convocation {
     private final Instant createdDate;
 
     private Convocation(ConvocationId id, GeneralMeetingId generalMeetingId, EntityId unitId, VotingWeight votingWeight,
-                         List<ConvocationDelivery> deliveries, String confirmationToken, ShortCode confirmationCode,
+                         List<ConvocationDelivery> deliveries, List<ConvocationReply> replies,
+                         String confirmationToken, ShortCode confirmationCode,
                          AttendanceReply attendanceReply, Instant repliedAt, ReplySource replySource,
-                         EntityId repliedByPartyId, String replyNote, boolean checkedIn, AttendanceMode attendanceMode,
-                         EntityId checkedInPartyId, Instant checkedInAt, Instant createdDate) {
+                         EntityId repliedByPartyId, String replyNote, ReplyMediumCode replyMedium,
+                         AttendanceMode replyAttendanceMode, boolean replyByProxy, boolean checkedIn,
+                         AttendanceMode attendanceMode, EntityId checkedInPartyId, Instant checkedInAt,
+                         Instant createdDate) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.generalMeetingId = Objects.requireNonNull(generalMeetingId, "generalMeetingId must not be null");
         this.unitId = Objects.requireNonNull(unitId, "unitId must not be null");
@@ -82,13 +91,27 @@ public final class Convocation {
         if ((attendanceReply == AttendanceReply.NO_REPLY) != (replySource == null)) {
             throw new IllegalArgumentException("a recorded reply must carry its source, and no reply must carry none");
         }
+        if (replyMedium != null && replySource != ReplySource.OTHER) {
+            throw new IllegalArgumentException("a reply medium only describes a reply whose source is OTHER");
+        }
         this.deliveries = List.copyOf(Objects.requireNonNull(deliveries, "deliveries must not be null"));
+        this.replies = List.copyOf(Objects.requireNonNull(replies, "replies must not be null"));
         this.confirmationToken = Objects.requireNonNull(confirmationToken, "confirmationToken must not be null");
         this.confirmationCode = Objects.requireNonNull(confirmationCode, "confirmationCode must not be null");
         this.repliedAt = repliedAt;
         this.replySource = replySource;
         this.repliedByPartyId = repliedByPartyId;
         this.replyNote = replyNote;
+        this.replyMedium = replyMedium;
+        // Announced, never constated: replyAttendanceMode says how the lot SAID it would come,
+        // attendanceMode below says how it actually signed in. Two facts a contested AG must be
+        // able to tell apart, which is why they are two fields and not one reused.
+        if (attendanceReply != AttendanceReply.ATTENDING && (replyAttendanceMode != null || replyByProxy)) {
+            throw new IllegalArgumentException(
+                    "only an attending reply carries an attendance mode or a proxy announcement");
+        }
+        this.replyAttendanceMode = replyAttendanceMode;
+        this.replyByProxy = replyByProxy;
         this.checkedIn = checkedIn;
         this.attendanceMode = attendanceMode;
         this.checkedInPartyId = checkedInPartyId;
@@ -108,20 +131,24 @@ public final class Convocation {
     public static Convocation generate(ConvocationId id, GeneralMeetingId generalMeetingId, EntityId unitId,
                                         VotingWeight votingWeight, String confirmationToken,
                                         ShortCode confirmationCode) {
-        return new Convocation(id, generalMeetingId, unitId, votingWeight, List.of(), confirmationToken,
-                confirmationCode, AttendanceReply.NO_REPLY, null, null, null, null, false, null, null, null, null);
+        return new Convocation(id, generalMeetingId, unitId, votingWeight, List.of(), List.of(), confirmationToken,
+                confirmationCode, AttendanceReply.NO_REPLY, null, null, null, null, null, null, false, false, null,
+                null, null, null);
     }
 
     public static Convocation reconstruct(ConvocationId id, GeneralMeetingId generalMeetingId, EntityId unitId,
                                            VotingWeight votingWeight, List<ConvocationDelivery> deliveries,
-                                           String confirmationToken, ShortCode confirmationCode,
+                                           List<ConvocationReply> replies, String confirmationToken,
+                                           ShortCode confirmationCode,
                                            AttendanceReply attendanceReply, Instant repliedAt, ReplySource replySource,
-                                           EntityId repliedByPartyId, String replyNote, boolean checkedIn,
-                                           AttendanceMode attendanceMode, EntityId checkedInPartyId,
-                                           Instant checkedInAt, Instant createdDate) {
-        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken,
-                confirmationCode, attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, checkedIn,
-                attendanceMode, checkedInPartyId, checkedInAt, createdDate);
+                                           EntityId repliedByPartyId, String replyNote, ReplyMediumCode replyMedium,
+                                           AttendanceMode replyAttendanceMode, boolean replyByProxy,
+                                           boolean checkedIn, AttendanceMode attendanceMode,
+                                           EntityId checkedInPartyId, Instant checkedInAt, Instant createdDate) {
+        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, replies, confirmationToken,
+                confirmationCode, attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, replyMedium,
+                replyAttendanceMode, replyByProxy, checkedIn, attendanceMode, checkedInPartyId, checkedInAt,
+                createdDate);
     }
 
     /**
@@ -137,35 +164,60 @@ public final class Convocation {
         Objects.requireNonNull(delivery, "delivery must not be null");
         List<ConvocationDelivery> updated = new ArrayList<>(deliveries);
         updated.add(delivery);
-        return new Convocation(id, generalMeetingId, unitId, votingWeight, updated, confirmationToken, confirmationCode,
-                attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, checkedIn, attendanceMode,
-                checkedInPartyId, checkedInAt, createdDate);
+        return new Convocation(id, generalMeetingId, unitId, votingWeight, updated, replies, confirmationToken,
+                confirmationCode, attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, replyMedium,
+                replyAttendanceMode, replyByProxy, checkedIn, attendanceMode, checkedInPartyId, checkedInAt,
+                createdDate);
     }
 
     /**
      * The owner's answer, or the syndic entering it on their behalf (a lot
-     * whose owners have no account still has to be tracked). Answering again
-     * simply overwrites: people change their mind, and the last answer before
-     * the session is the one that counts.
+     * whose owners have no account still has to be tracked).
      *
-     * <p>source says how the answer was obtained and is settled by the caller
-     * from who is calling - never from what they claim. partyId names the
-     * person who answered when it is known, and note carries the detail the
-     * syndic would otherwise keep on a post-it ("called on Tuesday").
+     * <p>Appends to the history AND re-derives the fields above from it, in one
+     * call - which is the only reason the duplication between the two is safe.
+     * The convocation's own columns are a denormalised copy of the newest entry,
+     * kept because the quorum, the derived status, the reminder run and every
+     * render of the tracking table read them; deriving them on the fly would
+     * change all of that to save a column. The copy is only ever as trustworthy
+     * as the guarantee that nothing can write one without the other, and this
+     * method is that guarantee. No service is able to touch either half on its
+     * own.
+     *
+     * <p>Note that a late entry does not necessarily win. An answer backdated
+     * before the one that stands is filed and changes nothing - which is what
+     * makes recording an old letter safe long after a phone call superseded it.
+     *
+     * <p>The source of each entry says how it was obtained and is settled by
+     * the caller from who is calling, never from what they claim.
      */
-    public Convocation reply(AttendanceReply newReply, ReplySource source, EntityId partyId, String note, Instant at) {
-        Objects.requireNonNull(newReply, "reply must not be null");
-        if (newReply == AttendanceReply.NO_REPLY) {
-            // Taking the answer back takes its whole provenance with it: keeping a source for an
-            // answer that no longer exists is the sort of leftover a contested AG makes expensive.
-            return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken, confirmationCode,
-                    newReply, null, null, null, null, checkedIn, attendanceMode, checkedInPartyId, checkedInAt,
-                    createdDate);
-        }
-        Objects.requireNonNull(source, "reply source must not be null");
-        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken, confirmationCode, newReply,
-                Objects.requireNonNull(at, "at must not be null"), source, partyId, note, checkedIn, attendanceMode,
-                checkedInPartyId, checkedInAt, createdDate);
+    public Convocation reply(ConvocationReply entry) {
+        Objects.requireNonNull(entry, "reply entry must not be null");
+        List<ConvocationReply> updated = new ArrayList<>(replies);
+        updated.add(entry);
+        return withReplies(updated);
+    }
+
+    /**
+     * Rebuilds the denormalised answer from the history. Private on purpose:
+     * the projection has exactly one caller, and a second one would be a way to
+     * change the standing answer without recording why it changed.
+     *
+     * <p>A withdrawal projects to nothing at all - no date, no source, no
+     * author, no note. Keeping the provenance of an answer that no longer
+     * exists is the sort of leftover a contested AG makes expensive, and the
+     * table's own CHECK says the same thing. The history keeps it instead.
+     */
+    private Convocation withReplies(List<ConvocationReply> updated) {
+        ConvocationReply standing = updated.stream().min(ConvocationReply.LATEST_FIRST).orElse(null);
+        boolean answered = standing != null && !standing.isWithdrawal();
+        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, updated, confirmationToken,
+                confirmationCode, standing == null ? AttendanceReply.NO_REPLY : standing.getReply(),
+                answered ? standing.getReceivedAt() : null, answered ? standing.getSource() : null,
+                answered ? standing.getRepliedByPartyId() : null, answered ? standing.getNote() : null,
+                answered ? standing.getMedium() : null, answered ? standing.getAttendanceMode() : null,
+                answered && standing.isByProxy(), checkedIn, attendanceMode, checkedInPartyId, checkedInAt,
+                createdDate);
     }
 
     /**
@@ -180,16 +232,16 @@ public final class Convocation {
     public Convocation checkIn(AttendanceMode mode, EntityId partyId, Instant at) {
         Objects.requireNonNull(mode, "attendance mode must not be null");
         Objects.requireNonNull(at, "at must not be null");
-        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken, confirmationCode,
-                attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, true, mode, partyId, at,
-                createdDate);
+        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, replies, confirmationToken,
+                confirmationCode, attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, replyMedium,
+                replyAttendanceMode, replyByProxy, true, mode, partyId, at, createdDate);
     }
 
     /** Undoes a check-in entered by mistake - a room is ticked off by hand and hands slip. */
     public Convocation undoCheckIn() {
-        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, confirmationToken, confirmationCode,
-                attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, false, null, null, null,
-                createdDate);
+        return new Convocation(id, generalMeetingId, unitId, votingWeight, deliveries, replies, confirmationToken,
+                confirmationCode, attendanceReply, repliedAt, replySource, repliedByPartyId, replyNote, replyMedium,
+                replyAttendanceMode, replyByProxy, false, null, null, null, createdDate);
     }
 
     /** The SFD's statut_global, derived from the three groups of fields above. */
@@ -232,6 +284,24 @@ public final class Convocation {
     /** Selects the population a reminder run targets: reached, but still silent. */
     public boolean awaitsReply() {
         return getDeliveryStatus() == DeliveryStatus.SENT && attendanceReply == AttendanceReply.NO_REPLY;
+    }
+
+    /**
+     * Whether one channel in particular has already carried this convocation.
+     * Deliberately narrower than {@link #getDeliveryStatus()}, and the two must
+     * not be confused: the syndic now presses one button per channel, so "still
+     * to send" has to be asked of a channel rather than of the convocation.
+     * Asking the wider question instead would let the first successful run
+     * empty every other channel's population - press "Email", and "Messagerie"
+     * would then find nobody left to send to.
+     *
+     * <p>Reminders count here like any other successful attempt: they went out
+     * by that channel, which is all this answers.
+     */
+    public boolean hasBeenSentBy(ChannelCode channelCode) {
+        Objects.requireNonNull(channelCode, "channelCode must not be null");
+        return deliveries.stream()
+                .anyMatch(delivery -> delivery.isSent() && channelCode.equals(delivery.getChannelCode()));
     }
 
     public ConvocationId getId() {
@@ -295,6 +365,41 @@ public final class Convocation {
 
     public String getReplyNote() {
         return replyNote;
+    }
+
+    /**
+     * By what means the standing answer reached the office, when the syndic
+     * said. Null whenever the source is not OTHER - an answer given in the
+     * owner's own space arrived by no medium at all.
+     */
+    public ReplyMediumCode getReplyMedium() {
+        return replyMedium;
+    }
+
+    /**
+     * How the lot ANNOUNCED it would attend, per the standing answer. Not to be
+     * confused with {@link #getAttendanceMode()}, which is how it actually
+     * signed in - announcing a presence has never granted a voice (ADR 0002 §5).
+     */
+    public AttendanceMode getReplyAttendanceMode() {
+        return replyAttendanceMode;
+    }
+
+    /** The standing answer announced a stand-in. An announcement, not a mandate (ADR 0002 §7). */
+    public boolean isReplyByProxy() {
+        return replyByProxy;
+    }
+
+    /**
+     * Every answer ever given for this lot, in the order they were recorded -
+     * withdrawals included. Unmodifiable.
+     *
+     * <p>An audit trail, never the authority: what counts for the session is
+     * the answer on the fields above, and this list is what explains how it got
+     * there. Sorting by {@link ConvocationReply#LATEST_FIRST} reproduces it.
+     */
+    public List<ConvocationReply> getReplies() {
+        return replies;
     }
 
     public boolean isCheckedIn() {

@@ -93,6 +93,61 @@ export const DELIVERY_STATUS_LABELS: Record<DeliveryStatus, string> = {
   FAILED: 'Échec',
 };
 
+/**
+ * The five answers a syndic records, as one flat list - and three fields
+ * underneath. "Absent, sur place" is not a state of the world, so the screen
+ * offers combinations that exist rather than a cartesian product it would then
+ * have to police.
+ *
+ * <p>`byProxy` announces a stand-in; it is NOT a procuration. The mandate - who
+ * holds it, whose voice it carries - is still out of scope, and nothing here
+ * counts towards a vote: presence is the check-in, on the Séance tab.
+ */
+export const ATTENDANCE_ANSWERS = [
+  { value: 'ATTENDING_ON_SITE', label: 'Présent – Sur place', reply: 'ATTENDING', mode: 'ON_SITE', byProxy: false },
+  { value: 'ATTENDING_REMOTE', label: 'Présent – À distance', reply: 'ATTENDING', mode: 'REMOTE', byProxy: false },
+  {
+    value: 'PROXY_ON_SITE',
+    label: 'Présent par procuration – Sur place',
+    reply: 'ATTENDING',
+    mode: 'ON_SITE',
+    byProxy: true,
+  },
+  {
+    value: 'PROXY_REMOTE',
+    label: 'Présent par procuration – À distance',
+    reply: 'ATTENDING',
+    mode: 'REMOTE',
+    byProxy: true,
+  },
+  { value: 'NOT_ATTENDING', label: 'Absent', reply: 'NOT_ATTENDING', mode: null, byProxy: false },
+] as const satisfies readonly {
+  value: string;
+  label: string;
+  reply: AttendanceReply;
+  mode: AttendanceMode | null;
+  byProxy: boolean;
+}[];
+
+export type AttendanceAnswerValue = (typeof ATTENDANCE_ANSWERS)[number]['value'];
+
+/**
+ * The same five labels, rebuilt from what a stored answer carries - so the
+ * history reads exactly like the select that produced it. Falls back to the
+ * bare reply for anything recorded before the mode existed, or answered through
+ * the confirmation link, which asks for neither.
+ */
+export function attendanceAnswerLabel(
+  reply: AttendanceReply,
+  mode: AttendanceMode | null,
+  byProxy: boolean,
+): string {
+  const match = ATTENDANCE_ANSWERS.find(
+    (answer) => answer.reply === reply && answer.mode === mode && answer.byProxy === byProxy,
+  );
+  return match ? match.label : ATTENDANCE_REPLY_LABELS[reply];
+}
+
 export const ATTENDANCE_REPLY_LABELS: Record<AttendanceReply, string> = {
   ATTENDING: 'Présent',
   NOT_ATTENDING: 'Absent',
@@ -105,14 +160,20 @@ export const ATTENDANCE_MODE_LABELS: Record<AttendanceMode, string> = {
 };
 
 /**
- * Named from the copropriétaire's side rather than the syndic's: "au bureau du
- * syndic" is what a reader needs to tell a confirmation the owner gave from
- * one the office wrote down for them.
+ * What the server can actually vouch for, and no more. The first two name a
+ * path the application itself witnessed; OTHER says only that neither was
+ * taken. By what means the answer then arrived is the medium - declared by the
+ * syndic, shown next to this - and the wording keeps the two apart rather than
+ * letting a declaration read as something the application observed.
+ *
+ * No medium labels here, for the same reason there are no channel ones: the
+ * catalog lives on the server so that adding an entry is an INSERT and not a
+ * release. Labels come with the data - `mediumLabel` on each reply.
  */
 export const REPLY_SOURCE_LABELS: Record<ReplySource, string> = {
   OWNER_APP: 'Depuis son espace',
   OWNER_LINK: 'Via le lien reçu',
-  SYNDIC_OFFICE: 'Au bureau du syndic',
+  OTHER: 'Reçue au bureau',
 };
 
 export const CONVOCATION_STATUS_LABELS: Record<ConvocationStatus, string> = {

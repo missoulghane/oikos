@@ -20,6 +20,7 @@ import com.architek.oikos.meeting.application.command.CreateGeneralMeetingComman
 import com.architek.oikos.meeting.application.command.GenerateConvocationsCommand;
 import com.architek.oikos.meeting.application.command.OpenGeneralMeetingCommand;
 import com.architek.oikos.meeting.application.command.RecordConvocationDeliveryCommand;
+import com.architek.oikos.meeting.application.command.RemindPendingConvocationsCommand;
 import com.architek.oikos.meeting.application.command.ReplyToConvocationCommand;
 import com.architek.oikos.meeting.application.command.SendPendingConvocationsCommand;
 import com.architek.oikos.meeting.application.command.ScheduleGeneralMeetingCommand;
@@ -35,6 +36,7 @@ import com.architek.oikos.meeting.application.port.in.ListConvocationsByMeetingU
 import com.architek.oikos.meeting.application.port.in.ListConvocationChannelsUseCase;
 import com.architek.oikos.meeting.application.port.in.OpenGeneralMeetingUseCase;
 import com.architek.oikos.meeting.application.port.in.RecordConvocationDeliveryUseCase;
+import com.architek.oikos.meeting.application.port.in.RemindPendingConvocationsUseCase;
 import com.architek.oikos.meeting.application.port.in.ReplyToConvocationUseCase;
 import com.architek.oikos.meeting.application.port.in.GetConvocationDocumentUseCase;
 import com.architek.oikos.meeting.application.port.in.SendPendingConvocationsUseCase;
@@ -46,6 +48,7 @@ import com.architek.oikos.meeting.application.query.ListConvocationsByMeetingQue
 import com.architek.oikos.meeting.domain.exception.ConvocationChannelNotFoundException;
 import com.architek.oikos.meeting.domain.exception.ConvocationNotSendableException;
 import com.architek.oikos.meeting.domain.exception.QuorumNotReachedException;
+import com.architek.oikos.meeting.domain.valueobject.AttendanceMode;
 import com.architek.oikos.meeting.domain.valueobject.AttendanceReply;
 import com.architek.oikos.meeting.domain.valueobject.ChannelCode;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationId;
@@ -56,6 +59,7 @@ import com.architek.oikos.meeting.domain.valueobject.MajorityRule;
 import com.architek.oikos.meeting.domain.valueobject.MeetingStatus;
 import com.architek.oikos.meeting.domain.valueobject.MeetingType;
 import com.architek.oikos.meeting.domain.valueobject.MeetingVenue;
+import com.architek.oikos.meeting.domain.valueobject.ReplyMediumCode;
 import com.architek.oikos.meeting.domain.valueobject.ReplySource;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -118,6 +122,9 @@ class ConvocationDispatchPostgresIntegrationTest extends PostgresIntegrationTest
 
     @Autowired
     private RecordConvocationDeliveryUseCase recordConvocationDeliveryUseCase;
+
+    @Autowired
+    private RemindPendingConvocationsUseCase remindPendingConvocationsUseCase;
 
     @Autowired
     private ReplyToConvocationUseCase replyToConvocationUseCase;
@@ -310,6 +317,45 @@ class ConvocationDispatchPostgresIntegrationTest extends PostgresIntegrationTest
     }
 
     @Test
+    void a_reminder_is_recorded_as_a_delivery_of_its_own() {
+        // It used to send its emails and write nothing at all - the service was even declared
+        // readOnly - so three reminders were indistinguishable from none in the tracking table.
+        generateAndSend();
+        Instant firstSentAt = convocationOf(ownedUnitId).sentAt();
+
+        int reminded = remindPendingConvocationsUseCase.remind(
+                new RemindPendingConvocationsCommand(meetingId, syndicUserId));
+
+        assertThat(reminded).isEqualTo(1);
+        ConvocationView owned = convocationOf(ownedUnitId);
+        assertThat(owned.deliveries()).hasSize(2);
+        assertThat(owned.deliveries().get(1))
+                .satisfies(delivery -> assertThat(delivery.channelCode()).isEqualTo("EMAIL"))
+                .satisfies(delivery -> assertThat(delivery.reminder()).isTrue());
+        // The date the notice period runs from: the first success, never the chase.
+        assertThat(owned.sentAt()).isEqualTo(firstSentAt);
+        assertThat(owned.deliveryStatus()).isEqualTo(DeliveryStatus.SENT);
+    }
+
+    @Test
+    void a_lot_that_answered_is_not_chased_and_leaves_no_reminder_row() {
+        generateAndSend();
+        replyToConvocationUseCase.reply(new ReplyToConvocationCommand(
+                ConvocationId.of(convocationOf(ownedUnitId).id().toString()), AttendanceReply.ATTENDING, null, false, null,
+                null, null, syndicUserId));
+
+        int reminded = remindPendingConvocationsUseCase.remind(
+                new RemindPendingConvocationsCommand(meetingId, syndicUserId));
+
+        assertThat(reminded).isZero();
+        assertThat(convocationOf(ownedUnitId).deliveries()).hasSize(1);
+        // The unreachable lot never got through, so it is not chased either: reminding someone
+        // of a letter they never received is noise, and that lot needs sending, not chasing.
+        assertThat(convocationOf(unownedUnitId).deliveries())
+                .allSatisfy(delivery -> assertThat(delivery.reminder()).isFalse());
+    }
+
+    @Test
     void generating_twice_neither_duplicates_a_convocation_nor_resends_it() {
         generateAndSend();
         Instant firstSentAt = convocationOf(ownedUnitId).sentAt();
@@ -447,9 +493,12 @@ class ConvocationDispatchPostgresIntegrationTest extends PostgresIntegrationTest
 
         ConvocationView answered = replyToConvocationUseCase.reply(new ReplyToConvocationCommand(
                 ConvocationId.of(convocationOf(ownedUnitId).id().toString()), AttendanceReply.ATTENDING,
-                "appelée mardi", syndicUserId));
+                AttendanceMode.ON_SITE, false, ReplyMediumCode.of("TELEPHONE"), null, "appelée mardi",
+                syndicUserId));
 
-        assertThat(answered.replySource()).isEqualTo(ReplySource.SYNDIC_OFFICE);
+        assertThat(answered.replySource()).isEqualTo(ReplySource.OTHER);
+        assertThat(answered.replyMediumCode()).isEqualTo("TELEPHONE");
+        assertThat(answered.replyMediumLabel()).isEqualTo("Téléphone");
         assertThat(answered.replyNote()).isEqualTo("appelée mardi");
         assertThat(answered.status()).isEqualTo(ConvocationStatus.CONFIRMED);
     }
@@ -457,12 +506,12 @@ class ConvocationDispatchPostgresIntegrationTest extends PostgresIntegrationTest
     @Test
     void an_owner_answering_for_their_own_lot_is_recorded_as_such_and_named() {
         // Deduced, never declared: the same endpoint and the same body yield OWNER_APP here and
-        // SYNDIC_OFFICE above, purely because of who is calling.
+        // OTHER above, purely because of who is calling.
         generateAndSend();
 
         ConvocationView answered = replyToConvocationUseCase.reply(new ReplyToConvocationCommand(
-                ConvocationId.of(convocationOf(ownedUnitId).id().toString()), AttendanceReply.ATTENDING, null,
-                ownerUserId));
+                ConvocationId.of(convocationOf(ownedUnitId).id().toString()), AttendanceReply.ATTENDING, null, false, null,
+                null, null, ownerUserId));
 
         assertThat(answered.replySource()).isEqualTo(ReplySource.OWNER_APP);
         assertThat(jdbcTemplate.queryForObject("select replied_by_party_id from convocation where id = ?", UUID.class,
@@ -473,11 +522,11 @@ class ConvocationDispatchPostgresIntegrationTest extends PostgresIntegrationTest
     void withdrawing_an_answer_takes_its_provenance_with_it() {
         generateAndSend();
         ConvocationId convocationId = ConvocationId.of(convocationOf(ownedUnitId).id().toString());
-        replyToConvocationUseCase.reply(new ReplyToConvocationCommand(convocationId, AttendanceReply.ATTENDING, null,
-                syndicUserId));
+        replyToConvocationUseCase.reply(new ReplyToConvocationCommand(convocationId, AttendanceReply.ATTENDING, null, false,
+                null, null, null, syndicUserId));
 
         ConvocationView withdrawn = replyToConvocationUseCase.reply(new ReplyToConvocationCommand(convocationId,
-                AttendanceReply.NO_REPLY, null, syndicUserId));
+                AttendanceReply.NO_REPLY, null, false, null, null, null, syndicUserId));
 
         assertThat(withdrawn.replySource()).isNull();
         assertThat(withdrawn.repliedAt()).isNull();

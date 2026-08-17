@@ -12,7 +12,9 @@ export function useReplyToMyConvocation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ convocationId, reply }: { convocationId: string; reply: AttendanceReply }) =>
-      replyToConvocation(convocationId, reply),
+      // No medium: the owner is answering from their own space, so the server settles the
+      // source as OWNER_APP and a means of reaching the office would describe nothing.
+      replyToConvocation(convocationId, { attendanceReply: reply }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.generalMeetings.myConvocations() }),
   });
 }

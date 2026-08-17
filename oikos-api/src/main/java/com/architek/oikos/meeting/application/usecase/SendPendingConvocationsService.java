@@ -14,17 +14,22 @@ import com.architek.oikos.meeting.domain.exception.GeneralMeetingNotFoundExcepti
 import com.architek.oikos.meeting.domain.model.Convocation;
 import com.architek.oikos.meeting.domain.repository.ConvocationRepository;
 import com.architek.oikos.meeting.domain.repository.GeneralMeetingRepository;
-import com.architek.oikos.meeting.domain.valueobject.DeliveryStatus;
 
 /**
  * Sends in bulk what is still waiting to go out - the counterpart of
  * generating, and a separate act from it: a syndic generates the convocations,
  * looks at the tracking table, and only then sends.
  *
- * <p>"Pending" means no successful delivery yet, on any channel - so a lot whose
- * email bounced is retried and one already reached by post is not. Retrying a
- * failure is the point: the previous attempt stays in the record either way,
- * since deliveries are appended and never replaced.
+ * <p>"Pending" means no successful delivery yet <em>on the channel being sent
+ * by</em> - not on any channel at all, which is what it used to mean. The
+ * distinction only became visible when the syndic gained one button per
+ * channel: under the old reading, a successful email run emptied every other
+ * channel's population, so pressing "Messagerie" straight after "Email" found
+ * nobody left and silently did nothing. The two buttons neutralised each other.
+ *
+ * <p>Retrying a failure is still the point, and it works the same way: the
+ * previous attempt stays in the record either way, since deliveries are
+ * appended and never replaced.
  *
  * <p>Deliberately NOT transactional at this level. Each convocation is sent by
  * SendConvocationUseCase in its own REQUIRES_NEW transaction, so one that
@@ -62,7 +67,7 @@ public class SendPendingConvocationsService implements SendPendingConvocationsUs
                 .orElseThrow(() -> new GeneralMeetingNotFoundException(command.generalMeetingId()));
 
         List<Convocation> pending = convocationRepository.findByGeneralMeetingId(command.generalMeetingId()).stream()
-                .filter(convocation -> convocation.getDeliveryStatus() != DeliveryStatus.SENT).toList();
+                .filter(convocation -> !convocation.hasBeenSentBy(command.channel())).toList();
 
         int sent = 0;
         int failed = 0;

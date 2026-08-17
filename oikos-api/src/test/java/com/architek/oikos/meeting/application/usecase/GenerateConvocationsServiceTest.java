@@ -26,6 +26,7 @@ import com.architek.oikos.meeting.application.port.out.UnitInfo;
 import com.architek.oikos.meeting.domain.model.Convocation;
 import com.architek.oikos.meeting.domain.model.GeneralMeeting;
 import com.architek.oikos.meeting.domain.repository.ConvocationChannelRepository;
+import com.architek.oikos.meeting.domain.repository.ReplyMediumRepository;
 import com.architek.oikos.meeting.domain.repository.ConvocationRepository;
 import com.architek.oikos.meeting.domain.repository.GeneralMeetingRepository;
 import com.architek.oikos.meeting.domain.service.ConvocationTokenGenerator;
@@ -59,6 +60,9 @@ class GenerateConvocationsServiceTest {
     @Mock
     private ConvocationChannelRepository convocationChannelRepository;
 
+    @Mock
+    private ReplyMediumRepository replyMediumRepository;
+
     private final EntityId propertyId = EntityId.newId();
     private final EntityId ownedUnitId = EntityId.newId();
     private final EntityId unownedUnitId = EntityId.newId();
@@ -74,7 +78,8 @@ class GenerateConvocationsServiceTest {
     private GenerateConvocationsService newService() {
         return new GenerateConvocationsService(generalMeetingRepository, convocationRepository,
                 new ConvocationViewAssembler(propertyUnitDirectoryPort,
-                        new ConvocationChannelLookup(convocationChannelRepository), generalMeetingRepository),
+                        new ConvocationChannelLookup(convocationChannelRepository), replyMediumRepository,
+                        generalMeetingRepository),
                 new ConvocationTokenGenerator(), new ShortCodeGenerator());
     }
 

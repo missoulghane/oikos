@@ -17,6 +17,10 @@ import com.architek.oikos.meeting.domain.valueobject.ReplySource;
  * ship: the tracking table has one column for the state of the sending, the
  * detail page shows every attempt that produced it.
  *
+ * <p>replies is the answer history, newest first; attendanceReply and the
+ * fields around it are the one that stands. Same arrangement as the deliveries
+ * above, and the same reason for keeping both.
+ *
  * <p>meetingPublicReference and confirmationCode are null on every list
  * response and populated only on GET /convocations/{id} - see
  * ConvocationView.withoutCodes for why a hundred codes must not travel
@@ -25,8 +29,11 @@ import com.architek.oikos.meeting.domain.valueobject.ReplySource;
 public record ConvocationResponse(String id, String generalMeetingId, String unitId, String unitNumber,
                                    String buildingName, List<ConvocationRecipient> recipients, BigDecimal votingWeight,
                                    List<ConvocationDeliveryResponse> deliveries, Instant sentAt,
-                                   DeliveryStatus deliveryStatus, AttendanceReply attendanceReply, Instant repliedAt,
-                                   ReplySource replySource, String replyNote, boolean checkedIn,
+                                   DeliveryStatus deliveryStatus, List<ConvocationReplyResponse> replies,
+                                   AttendanceReply attendanceReply, Instant repliedAt,
+                                   ReplySource replySource, String replyMediumCode, String replyMediumLabel,
+                                   String replyNote, AttendanceMode replyAttendanceMode, boolean replyByProxy,
+                                   boolean checkedIn,
                                    AttendanceMode attendanceMode, Instant checkedInAt, ConvocationStatus status,
                                    String meetingPublicReference, String confirmationCode) {
 
@@ -34,8 +41,11 @@ public record ConvocationResponse(String id, String generalMeetingId, String uni
         return new ConvocationResponse(view.id().toString(), view.generalMeetingId().toString(),
                 view.unitId().toString(), view.unitNumber(), view.buildingName(), view.recipients(),
                 view.votingWeight(), view.deliveries().stream().map(ConvocationDeliveryResponse::from).toList(),
-                view.sentAt(), view.deliveryStatus(), view.attendanceReply(), view.repliedAt(), view.replySource(),
-                view.replyNote(), view.checkedIn(), view.attendanceMode(), view.checkedInAt(), view.status(),
-                view.meetingPublicReference(), view.confirmationCode());
+                view.sentAt(), view.deliveryStatus(),
+                view.replies().stream().map(ConvocationReplyResponse::from).toList(),
+                view.attendanceReply(), view.repliedAt(), view.replySource(), view.replyMediumCode(),
+                view.replyMediumLabel(), view.replyNote(), view.replyAttendanceMode(), view.replyByProxy(),
+                view.checkedIn(), view.attendanceMode(),
+                view.checkedInAt(), view.status(), view.meetingPublicReference(), view.confirmationCode());
     }
 }

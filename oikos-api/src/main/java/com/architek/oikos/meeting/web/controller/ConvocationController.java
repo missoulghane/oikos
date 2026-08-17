@@ -46,6 +46,7 @@ import com.architek.oikos.meeting.application.query.ListConvocationsByMeetingQue
 import com.architek.oikos.meeting.application.query.ListMyConvocationsQuery;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationId;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationStatus;
+import com.architek.oikos.meeting.domain.valueobject.ReplyMediumCode;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
 import com.architek.oikos.meeting.web.request.CheckInConvocationRequest;
 import com.architek.oikos.meeting.web.request.RecordConvocationDeliveryRequest;
@@ -232,8 +233,11 @@ public class ConvocationController {
     @PutMapping("/convocations/{id}/reply")
     public ConvocationResponse reply(@PathVariable String id, @Valid @RequestBody ReplyToConvocationRequest request,
                                       Authentication authentication) {
+        ReplyMediumCode medium = request.medium() == null || request.medium().isBlank() ? null
+                : ReplyMediumCode.of(request.medium());
         return ConvocationResponse.from(replyToConvocationUseCase.reply(new ReplyToConvocationCommand(
-                ConvocationId.of(id), request.attendanceReply(), request.note(), currentUserId(authentication))));
+                ConvocationId.of(id), request.attendanceReply(), request.attendanceMode(), request.byProxy(), medium,
+                request.receivedAt(), request.note(), currentUserId(authentication))));
     }
 
     @PreAuthorize("@propertyAccess.canManageConvocation(authentication, #id)")

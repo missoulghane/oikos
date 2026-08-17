@@ -50,3 +50,12 @@ export function toDateTimeLocalValue(isoInstant: string | null): string {
   const pad = (value: number) => String(value).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
+
+/**
+ * Now, as `<input type="datetime-local">` expects it. Built from the local
+ * getters rather than by slicing toISOString(), which would show the UTC hour
+ * and quietly shift a recorded answer by one or two hours in Casablanca.
+ */
+export function nowAsDateTimeLocal(): string {
+  return toDateTimeLocalValue(new Date().toISOString());
+}

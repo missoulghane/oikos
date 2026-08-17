@@ -51,7 +51,7 @@ public class PublishMeetingMinutesService implements PublishMeetingMinutesUseCas
     private final MeetingMinutesRendererPort rendererPort;
     private final MeetingMinutesDocumentPort documentPort;
     private final ConvocationViewAssembler convocationViewAssembler;
-    private final MeetingNotificationDispatcher notificationDispatcher;
+    private final MeetingInAppDispatcher notificationDispatcher;
     private final Clock clock;
 
     public PublishMeetingMinutesService(MeetingMinutesRepository meetingMinutesRepository,
@@ -60,7 +60,7 @@ public class PublishMeetingMinutesService implements PublishMeetingMinutesUseCas
                                          MeetingMinutesRendererPort rendererPort,
                                          MeetingMinutesDocumentPort documentPort,
                                          ConvocationViewAssembler convocationViewAssembler,
-                                         MeetingNotificationDispatcher notificationDispatcher, Clock clock) {
+                                         MeetingInAppDispatcher notificationDispatcher, Clock clock) {
         this.meetingMinutesRepository = meetingMinutesRepository;
         this.generalMeetingRepository = generalMeetingRepository;
         this.propertyDirectoryPort = propertyDirectoryPort;
@@ -101,7 +101,7 @@ public class PublishMeetingMinutesService implements PublishMeetingMinutesUseCas
      * two states.
      *
      * <p>Which is exactly what it did until the dispatch moved to
-     * MeetingNotificationDispatcher. Everything here runs in one transaction (see
+     * MeetingInAppDispatcher. Everything here runs in one transaction (see
      * this class's header), the notification's own services joined it, and a
      * failure among them marked it rollback-only before this catch ever saw the
      * exception - publishing the minutes then failed at commit, over a

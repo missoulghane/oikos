@@ -26,15 +26,17 @@ import com.architek.oikos.meeting.domain.model.ConvocationDelivery;
 import com.architek.oikos.meeting.domain.model.GeneralMeeting;
 import com.architek.oikos.meeting.domain.repository.ConvocationRepository;
 import com.architek.oikos.meeting.domain.repository.GeneralMeetingRepository;
+import com.architek.oikos.meeting.domain.valueobject.ChannelCode;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationDeliveryId;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
- * Sends one lot's convocation: renders the letter, files it as a Document
- * attached to the convocation, emails it to the lot's current owners, and
- * notifies those who have an account.
+ * Sends one lot's convocation on ONE channel: renders the letter, files it as a
+ * Document attached to the convocation, then either emails the lot's current
+ * owners or drops the convocation into the messagerie of those who have an
+ * account.
  *
  * <p>The owners are resolved here, at send time, rather than stored on the
  * convocation - a sale between the convocation and the session then needs no
@@ -68,7 +70,7 @@ public class SendConvocationService implements SendConvocationUseCase {
     private final ConvocationEmailComposer emailComposer;
     private final ConvocationLinkComposer linkComposer;
     private final EmailSenderPort emailSenderPort;
-    private final MeetingNotificationDispatcher notificationDispatcher;
+    private final MeetingInAppDispatcher dispatcher;
     private final Clock clock;
 
     public SendConvocationService(ConvocationRepository convocationRepository,
@@ -79,7 +81,7 @@ public class SendConvocationService implements SendConvocationUseCase {
                                    ConvocationDocumentPort documentPort, ConvocationEmailComposer emailComposer,
                                    ConvocationLinkComposer linkComposer,
                                    EmailSenderPort emailSenderPort,
-                                   MeetingNotificationDispatcher notificationDispatcher, Clock clock) {
+                                   MeetingInAppDispatcher dispatcher, Clock clock) {
         this.convocationRepository = convocationRepository;
         this.generalMeetingRepository = generalMeetingRepository;
         this.propertyDirectoryPort = propertyDirectoryPort;
@@ -91,7 +93,7 @@ public class SendConvocationService implements SendConvocationUseCase {
         this.emailComposer = emailComposer;
         this.linkComposer = linkComposer;
         this.emailSenderPort = emailSenderPort;
-        this.notificationDispatcher = notificationDispatcher;
+        this.dispatcher = dispatcher;
         this.clock = clock;
     }
 
@@ -126,58 +128,109 @@ public class SendConvocationService implements SendConvocationUseCase {
 
         // Re-rendered rather than reusing whatever was filed at generation time: the meeting's
         // date and venue stay editable (ADR 0002 §8), so what goes out has to be current.
+        // Filed whatever the channel and whatever becomes of the send: a convocation that could
+        // not be delivered still has to exist as a document, since it is what the syndic prints.
         byte[] pdf = rendererPort.render(documentComposer.compose(convocation, meeting, unit, propertyName));
         documentPort.replaceConvocationDocument(convocation.getId(), ConvocationDocumentComposer.fileNameFor(unit),
                 pdf, command.requestedByUserId());
 
         List<OwnerInfo> recipients = unit == null ? List.of() : unit.owners();
-        List<String> emails = recipients.stream().map(OwnerInfo::email).filter(email -> email != null && !email.isBlank())
-                .toList();
-        if (emails.isEmpty()) {
+        if (!emit(command.channel(), convocation, meeting, unit, propertyName, recipients,
+                command.requestedByUserId())) {
             // Recorded as FAILED rather than left pending: an unreachable lot is exactly what the
-            // syndic must see in the tracking table to convoke it by post instead.
+            // syndic must see in the tracking table to convoke it another way instead.
             Convocation failed = convocation.recordDelivery(ConvocationDelivery.failed(ConvocationDeliveryId.newId(),
                     command.channel(), clock.instant(), command.requestedByUserId()));
             ConvocationView view = viewAssembler.toView(convocationRepository.save(failed), unit);
-            throw new NoConvocationRecipientException(view.unitNumber());
+            throw ChannelCode.APP.equals(command.channel())
+                    ? NoConvocationRecipientException.noAccount(view.unitNumber())
+                    : NoConvocationRecipientException.noEmail(view.unitNumber());
         }
 
+        Convocation sent = convocation.recordDelivery(ConvocationDelivery.sent(ConvocationDeliveryId.newId(),
+                command.channel(), clock.instant(), null, command.requestedByUserId()));
+        log.info("Convocation {} sent by {}", convocation.getId(), command.channel());
+        return viewAssembler.toView(convocationRepository.save(sent), unit);
+    }
+
+    /**
+     * Performs the send on ONE channel, and says whether it reached anybody.
+     *
+     * <p>This branch is the point of the whole change. The service used to mail
+     * the owners and notify them in-app on every call, then record a single
+     * delivery carrying whichever code the caller had asked for - so sending
+     * "by APP" wrote APP while the email went out too, and the tracking table
+     * asserted a route that was not the one taken. One channel now means one
+     * act and one row, which is what lets the syndic press one button per
+     * channel and read back what each one did.
+     *
+     * <p>Only EMAIL and APP ever get here: {@code requireSendable} has already
+     * refused the manual channels and the automated ones no emitter exists for,
+     * and {@code ConvocationChannelLookup.EMITTED_CODES} is the list this switch
+     * must stay in step with. The final throw is that pact made visible - a code
+     * added there and forgotten here fails loudly rather than sending nothing.
+     */
+    private boolean emit(ChannelCode channel, Convocation convocation, GeneralMeeting meeting, UnitInfo unit,
+                          String propertyName, List<OwnerInfo> recipients, EntityId senderUserId) {
+        if (ChannelCode.EMAIL.equals(channel)) {
+            return emailTo(convocation, meeting, unit, propertyName, recipients);
+        }
+        if (ChannelCode.APP.equals(channel)) {
+            return deliverInApp(meeting, unit, propertyName, recipients, senderUserId);
+        }
+        throw new IllegalStateException("No emitter for channel " + channel + " - ConvocationChannelLookup let "
+                + "through a code SendConvocationService does not implement");
+    }
+
+    private boolean emailTo(Convocation convocation, GeneralMeeting meeting, UnitInfo unit, String propertyName,
+                             List<OwnerInfo> recipients) {
+        List<String> emails = recipients.stream().map(OwnerInfo::email)
+                .filter(email -> email != null && !email.isBlank()).toList();
+        if (emails.isEmpty()) {
+            return false;
+        }
         String subject = emailComposer.subject(propertyName, meeting);
         String body = emailComposer.htmlBody(propertyName, meeting, unit,
                 linkComposer.link(convocation.getConfirmationToken()));
         for (String email : emails) {
             emailSenderPort.send(EmailVO.of(email), subject, body);
         }
-
-        notifyOwnersWithAnAccount(recipients, meeting, propertyName);
-
-        Convocation sent = convocation.recordDelivery(ConvocationDelivery.sent(ConvocationDeliveryId.newId(),
-                command.channel(), clock.instant(), null, command.requestedByUserId()));
-        log.info("Convocation {} sent to {} recipient(s) by {}", convocation.getId(), emails.size(), command.channel());
-        return viewAssembler.toView(convocationRepository.save(sent), unit);
+        log.info("Convocation {} emailed to {} recipient(s)", convocation.getId(), emails.size());
+        return true;
     }
 
     /**
-     * In-app notification on top of the email, for the owners who have an
-     * account. Best effort by design: not being notified in the app must never
-     * make a convocation fail, the email and the filed PDF are the record.
+     * The messagerie, plus the notification that points at it - one act, one
+     * delivery row. Reaching a lot in the application means leaving its owners
+     * something they can read and answer from, not only a bell.
      *
-     * <p>Delegated to MeetingNotificationDispatcher rather than done here, and
-     * that indirection is the whole point: its REQUIRES_NEW suspends this
-     * transaction, so a failure marks that one instead of this one. Inline, the
-     * catch below was decorative - the notification's own services join this
-     * transaction, mark it rollback-only on their way out, and the commit failed
-     * afterwards whatever was caught.
+     * <p>Hence the change of stance from when this was a courtesy alongside the
+     * email: it used to be swallowed because the email carried the record, and
+     * here there is no email to fall back on. A failure has to come back as
+     * FAILED so the syndic sees a lot to reach another way.
+     *
+     * <p>Still delegated to MeetingInAppDispatcher, and still for the original
+     * reason: its REQUIRES_NEW suspends this transaction, so a failure marks its
+     * own rather than this one. Without that, catching here would be decorative
+     * - the messaging and notification services would join this transaction,
+     * mark it rollback-only on their way out, and the commit would fail
+     * afterwards whatever was caught, losing the FAILED row this method exists
+     * to write.
      */
-    private void notifyOwnersWithAnAccount(List<OwnerInfo> owners, GeneralMeeting meeting, String propertyName) {
-        if (owners.isEmpty()) {
-            return;
+    private boolean deliverInApp(GeneralMeeting meeting, UnitInfo unit, String propertyName,
+                                  List<OwnerInfo> recipients, EntityId senderUserId) {
+        if (recipients.isEmpty()) {
+            return false;
         }
         try {
-            notificationDispatcher.notifyConvoked(owners.stream().map(OwnerInfo::partyId).toList(), meeting);
+            return dispatcher.deliverConvocation(recipients.stream().map(OwnerInfo::partyId).toList(), meeting,
+                    senderUserId, emailComposer.subject(propertyName, meeting),
+                    emailComposer.inAppBody(propertyName, meeting, unit),
+                    ConvocationDocumentComposer.lotLabelOf(unit)) > 0;
         } catch (RuntimeException e) {
-            log.warn("In-app notification failed for general meeting {} on property {} - the convocation itself stands",
+            log.warn("In-app delivery failed for general meeting {} on property {} - recorded as a failed delivery",
                     meeting.getId(), propertyName, e);
+            return false;
         }
     }
 

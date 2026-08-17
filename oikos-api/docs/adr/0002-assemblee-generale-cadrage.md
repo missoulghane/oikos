@@ -264,15 +264,21 @@ rien ne les distinguait.
    chose et compteraient deux envois pour un seul. Un canal SMS, lui, serait
    bien une ligne de plus — et un émetteur à écrire.
 
-3. **`ReplySource` (`OWNER_APP` / `OWNER_LINK` / `SYNDIC_OFFICE`) reste un
-   enum de code**, contrairement aux canaux : chaque valeur est un chemin de
-   code distinct, pas une donnée. Elle est **déduite de l'appelant côté
-   serveur et jamais envoyée par le client** — un client capable de déclarer
-   sa propre source pourrait écrire « le copropriétaire a confirmé depuis
-   l'app » sur une réponse que personne n'a donnée, ce qui est précisément
-   l'affirmation sur laquelle se joue une AG contestée. `repliedByPartyId`
-   nomme le répondant quand il est identifié, `replyNote` porte la précision
-   que le syndic garderait sinon sur un post-it.
+   **Amendé le 2026-08-17 (§15)** : `APP` dépose désormais un message dans la
+   messagerie *et* pousse la notification. Toujours une seule ligne, pour la
+   raison même qui a écarté `MOBILE`.
+
+3. **`ReplySource` reste un enum de code**, contrairement aux canaux : chaque
+   valeur est un chemin de code distinct, pas une donnée. Elle est **déduite de
+   l'appelant côté serveur et jamais envoyée par le client** — un client capable
+   de déclarer sa propre source pourrait écrire « le copropriétaire a confirmé
+   depuis l'app » sur une réponse que personne n'a donnée, ce qui est
+   précisément l'affirmation sur laquelle se joue une AG contestée.
+   `repliedByPartyId` nomme le répondant quand il est identifié, `replyNote`
+   porte la précision que le syndic garderait sinon sur un post-it.
+
+   **Amendé le 2026-08-17 (§14)** : la troisième valeur, alors nommée
+   `SYNDIC_OFFICE`, est devenue `OTHER`.
 
 La présence *réelle* reste l'émargement et n'est pas touchée : confirmer sa
 venue n'a jamais donné le droit de voter (§5).
@@ -284,7 +290,7 @@ point de départ du §6, qui rendait tout le parcours saisissable à la main. Ma
 la saisie manuelle ne résout que la moitié du problème : le syndic pouvait
 enregistrer une réponse, le copropriétaire n'avait toujours aucun moyen d'en
 donner une autrement qu'en téléphonant. C'est pourquoi, jusqu'ici, **toute**
-réponse enregistrée était `SYNDIC_OFFICE` (§9).
+réponse enregistrée était `SYNDIC_OFFICE` — aujourd'hui `OTHER` (§9, §14).
 
 **Décision** : un jeton opaque par convocation, porteur d'un lien personnel,
 et deux points d'entrée anonymes — `GET /convocations/by-token/{token}` pour
@@ -520,3 +526,129 @@ présence. La présence est l'émargement, et rien d'autre.
 
 Les lots 2 à 5 sont strictement ordonnés (chacun dépend du précédent) ; les
 lots 6 et 7 peuvent démarrer dès que le lot API correspondant est livré.
+
+### 14. Une réponse a un historique, et son moyen d'arrivée est une déclaration (décision du 2026-08-17)
+
+Le §9 avait réglé « on savait *si* le copropriétaire avait répondu, pas
+*comment* ». Deux angles morts subsistaient, constatés à l'usage.
+
+**On ne gardait qu'une réponse.** Répondre à nouveau écrasait la précédente.
+C'est le bon comportement pour la séance — la dernière réponse est celle qui
+compte — mais pas pour une AG contestée, où il faut pouvoir montrer ce qui a été
+dit et quand.
+
+**`SYNDIC_OFFICE` prétendait en savoir plus que le serveur.** La valeur nommait
+le lieu où la réponse arrivait. Or « reçue par téléphone » n'est pas un chemin de
+code : c'est ce que le syndic déclare d'une conversation que l'application n'a
+jamais vue. Les trois moyens demandés — téléphone, courrier, email — auraient
+tous été des valeurs d'enum ne se distinguant par aucun comportement.
+
+**Décisions** :
+
+1. **`SYNDIC_OFFICE` devient `OTHER`.** Les trois valeurs disent alors
+   exactement ce que le serveur établit : l'espace authentifié, le lien reçu, ou
+   ni l'un ni l'autre. La garantie du §9 — source déduite de l'appelant, jamais
+   du corps de la requête — tient sans modification.
+
+2. **Le moyen est un champ à part, et un catalogue** (`reply_medium` :
+   `TELEPHONE`, `COURRIER`, `EMAIL`, `GUICHET`), nullable et n'ayant de sens que
+   si la source vaut `OTHER`. Deux champs et non une valeur d'enum de plus,
+   parce que les deux ne sont pas de même nature : la source est constatée, le
+   moyen est déclaré. Les fondre laisserait une déclaration se faire passer pour
+   une observation — exactement ce que le §9 s'employait à empêcher. Catalogue et
+   non enum pour la raison qui a fait de `ConvocationChannel` une table : rien ne
+   branche dessus, donc en ajouter un est un `INSERT`.
+
+3. **`ConvocationReply`, 1—N, en ajout seul**, retraits compris : « le syndic a
+   repris la réponse le 15 » est un fait, et sa disparition est ce que
+   l'historique existe pour empêcher. Noter l'asymétrie assumée avec les colonnes
+   de `convocation`, qui perdent la provenance d'un retrait — là, aucune réponse
+   ne tient, donc aucune source ne la décrit ; ici, la source décrit l'acte de
+   retirer.
+
+4. **La réponse qui fait foi reste dénormalisée sur la convocation.** C'est une
+   **exception explicite** à la convention constante du codebase (`VoteTally`,
+   `ConvocationStatus`, `DeliveryStatus`, `InstallmentStatus` : calculés à la
+   lecture, jamais stockés), et elle est prise pour le rayon d'impact, pas pour
+   la performance — dériver « la dernière ligne » d'une liste déjà chargée ne
+   coûte rien. Les colonnes actuelles portent deux `CHECK`, une invariante du
+   domaine, le calcul du quorum, le statut dérivé, `awaitsReply()` et toute la
+   suite de tests. Les garder, c'est ajouter une table sans rien réécrire.
+
+   Ce qui rend l'entorse sûre est **un point d'écriture unique** :
+   `Convocation.reply()` ajoute la ligne d'historique *et* reprojette les
+   colonnes dans le même appel, exactement comme `recordDelivery()` ajoute aux
+   livraisons. Aucun service ne peut toucher une moitié sans l'autre, et
+   `ConvocationTest` épingle l'invariante elle-même (« la réponse portée par la
+   convocation est celle de la tête de son historique »). Un relecteur qui
+   voudrait « corriger » la duplication doit lire ce paragraphe d'abord.
+
+5. **Deux dates par réponse, et elles ne sont pas interchangeables.**
+   `receivedAt` est la date à laquelle la réponse a été donnée, déclarée et
+   librement antidatable ; `createdDate` est la date de saisie, tenue par l'audit.
+   Trier sur la seule saisie ferait écraser un appel récent par une vieille
+   lettre encodée après coup ; trier sur la seule réception ne départagerait pas
+   deux réponses revendiquant le même instant, dont l'une corrige l'autre. La
+   règle est donc « la plus récemment reçue, à égalité la plus récemment saisie ».
+   Conséquence directe : **enregistrer une réponse antidatée est sans danger** —
+   elle est classée et ne prend pas la main.
+
+Périmètre inchangé : la présence *réelle* reste l'émargement (§5), et
+l'historique n'est jamais l'autorité — c'est une piste d'audit, la réponse qui
+compte pour la séance restant celle que porte la convocation.
+
+### 15. Le canal applicatif dépose un message, et la notification y renvoie (décision du 2026-08-17)
+
+Le §9 avait laissé `APP` être la notification — la cloche — et rien d'autre. En
+usage, un copropriétaire recevait une alerte sans contenu, là où l'email portait
+la note d'accompagnement complète.
+
+**Décision** : le canal `APP` fait deux choses, et n'en trace qu'une.
+
+1. **Un message dans la messagerie, une notification qui y renvoie.** Le message
+   est le contenu, la notification est le signal. **Une seule ligne d'envoi**
+   pour les deux : c'est exactement la règle qui a écarté une ligne `MOBILE` au
+   §9 — deux lignes compteraient deux envois pour un seul acte, et le suivi
+   afficherait 120 envois pour 60 lots.
+
+2. **Le message d'abord, la notification ensuite.** Une notification pointant
+   vers un fil qui n'a pas pu être créé est pire que pas de notification : elle
+   envoie le copropriétaire chercher ce qui n'existe pas. Dans cet ordre, un
+   message en échec fait échouer toute la livraison, qui est enregistrée
+   `FAILED`.
+
+3. **Une conversation `GROUP` par convocation, pas un `BROADCAST`.** La
+   diffusion est unique par copropriété et s'adresse à tout le monde : elle
+   produirait un message pour cent lots et aucune trace par lot, alors que tout
+   le module repose sur une convocation par lot. `concernsUnit` porte le lot,
+   ce qui distingue les fils d'un propriétaire de trois lots. Et un nouveau fil
+   à chaque envoi, puisque `StartGroupConversationService` ne fait jamais de
+   *find-or-create* — ce qui colle aux lignes d'envoi, une par tentative.
+
+4. **`SenderIdentity.BOARD`, déclaré et non déduit.** Le validateur exige un
+   choix explicite quand l'expéditeur porte les deux casquettes sur la
+   copropriété ; un syndic possédant lui-même un lot serait refusé en pleine
+   campagne. Une convocation est envoyée au titre de la gestion, jamais de la
+   propriété : il n'y a rien d'ambigu à trancher.
+
+5. **Le message ne porte pas la pièce jointe**, parce que la messagerie n'en a
+   pas — et la convocation qui a valeur juridique est le PDF. Le corps reprend
+   le texte de l'email, moins la phrase « jointe à cet email » qui serait fausse,
+   et renvoie vers l'espace copropriétaire où le PDF est déjà téléchargeable :
+   `GET /convocations/{id}/document` est ouvert au copropriétaire du lot, pas au
+   seul syndic.
+
+6. **La notification continue de viser l'espace copropriétaire, et non le lien à
+   jeton**, bien que ce lien soit « le lien de confirmation de présence ». Trois
+   raisons qui se cumulent : `Notification.linkPath` est un chemin interne, pas
+   une URL absolue ; le lien porte un secret ; et une notification n'arrive qu'à
+   quelqu'un de déjà authentifié. Surtout, y renvoyer *affaiblirait* la réponse —
+   par le lien elle s'enregistre `OWNER_LINK` sans nommer le répondant (§10),
+   depuis l'espace elle s'enregistre `OWNER_APP` avec son identité.
+
+**Conséquence assumée, et c'est un rétrécissement** : la messagerie n'accepte
+comme destinataires que des **membres de la copropriété**, là où la notification
+seule se contentait d'un compte lié. Un copropriétaire disposant d'un compte mais
+sans rattachement à la copropriété n'est plus joignable par ce canal — ce qui est
+cohérent, puisqu'il ne verrait aucune messagerie. Ces lots sortent en `FAILED`,
+et c'est ce qui dit au syndic de les convoquer autrement.

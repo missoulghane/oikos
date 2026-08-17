@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import com.architek.oikos.meeting.domain.model.Convocation;
 import com.architek.oikos.meeting.domain.model.ConvocationDelivery;
+import com.architek.oikos.meeting.domain.model.ConvocationReply;
 import com.architek.oikos.meeting.domain.repository.ConvocationRepository;
 import com.architek.oikos.meeting.domain.valueobject.ConvocationId;
 import com.architek.oikos.meeting.domain.valueobject.GeneralMeetingId;
@@ -21,6 +22,8 @@ import com.architek.oikos.meeting.infrastructure.persistence.ConvocationDelivery
 import com.architek.oikos.meeting.infrastructure.persistence.ConvocationDeliveryJpaRepository;
 import com.architek.oikos.meeting.infrastructure.persistence.ConvocationEntity;
 import com.architek.oikos.meeting.infrastructure.persistence.ConvocationJpaRepository;
+import com.architek.oikos.meeting.infrastructure.persistence.ConvocationReplyEntity;
+import com.architek.oikos.meeting.infrastructure.persistence.ConvocationReplyJpaRepository;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
@@ -41,20 +44,23 @@ public class ConvocationRepositoryAdapter implements ConvocationRepository {
 
     private final ConvocationJpaRepository jpaRepository;
     private final ConvocationDeliveryJpaRepository deliveryJpaRepository;
+    private final ConvocationReplyJpaRepository replyJpaRepository;
     private final ConvocationPersistenceMapper mapper;
 
     public ConvocationRepositoryAdapter(ConvocationJpaRepository jpaRepository,
                                          ConvocationDeliveryJpaRepository deliveryJpaRepository,
+                                         ConvocationReplyJpaRepository replyJpaRepository,
                                          ConvocationPersistenceMapper mapper) {
         this.jpaRepository = jpaRepository;
         this.deliveryJpaRepository = deliveryJpaRepository;
+        this.replyJpaRepository = replyJpaRepository;
         this.mapper = mapper;
     }
 
     @Override
     public Convocation save(Convocation convocation) {
         ConvocationEntity saved = jpaRepository.save(toManagedEntity(convocation));
-        return mapper.toDomain(saved, saveNewDeliveries(convocation));
+        return mapper.toDomain(saved, saveNewDeliveries(convocation), saveNewReplies(convocation));
     }
 
     @Override
@@ -63,24 +69,27 @@ public class ConvocationRepositoryAdapter implements ConvocationRepository {
         List<ConvocationEntity> saved = jpaRepository.saveAll(entities);
 
         Map<UUID, List<ConvocationDelivery>> deliveriesById = new LinkedHashMap<>();
+        Map<UUID, List<ConvocationReply>> repliesById = new LinkedHashMap<>();
         for (Convocation convocation : convocations) {
             deliveriesById.put(convocation.getId().asUuid(), saveNewDeliveries(convocation));
+            repliesById.put(convocation.getId().asUuid(), saveNewReplies(convocation));
         }
         return saved.stream()
-                .map(entity -> mapper.toDomain(entity, deliveriesById.getOrDefault(entity.getId(), List.of())))
+                .map(entity -> mapper.toDomain(entity, deliveriesById.getOrDefault(entity.getId(), List.of()),
+                        repliesById.getOrDefault(entity.getId(), List.of())))
                 .toList();
     }
 
     @Override
     public Optional<Convocation> findById(ConvocationId id) {
         return jpaRepository.findById(id.asUuid())
-                .map(entity -> mapper.toDomain(entity, deliveriesOf(entity.getId())));
+                .map(entity -> mapper.toDomain(entity, deliveriesOf(entity.getId()), repliesOf(entity.getId())));
     }
 
     @Override
     public Optional<Convocation> findByConfirmationToken(String confirmationToken) {
         return jpaRepository.findByConfirmationToken(confirmationToken)
-                .map(entity -> mapper.toDomain(entity, deliveriesOf(entity.getId())));
+                .map(entity -> mapper.toDomain(entity, deliveriesOf(entity.getId()), repliesOf(entity.getId())));
     }
 
     @Override
@@ -88,7 +97,7 @@ public class ConvocationRepositoryAdapter implements ConvocationRepository {
                                                                             ShortCode confirmationCode) {
         return jpaRepository
                 .findByGeneralMeetingIdAndConfirmationCode(generalMeetingId.asUuid(), confirmationCode.value())
-                .map(entity -> mapper.toDomain(entity, deliveriesOf(entity.getId())));
+                .map(entity -> mapper.toDomain(entity, deliveriesOf(entity.getId()), repliesOf(entity.getId())));
     }
 
     @Override
@@ -123,12 +132,49 @@ public class ConvocationRepositoryAdapter implements ConvocationRepository {
         if (entities.isEmpty()) {
             return List.of();
         }
-        Map<UUID, List<ConvocationDelivery>> deliveriesByConvocation = deliveriesOf(
-                entities.stream().map(ConvocationEntity::getId).toList());
+        List<UUID> ids = entities.stream().map(ConvocationEntity::getId).toList();
+        Map<UUID, List<ConvocationDelivery>> deliveriesByConvocation = deliveriesOf(ids);
+        Map<UUID, List<ConvocationReply>> repliesByConvocation = repliesOf(ids);
         return entities.stream()
                 .map(entity -> mapper.toDomain(entity,
-                        deliveriesByConvocation.getOrDefault(entity.getId(), List.of())))
+                        deliveriesByConvocation.getOrDefault(entity.getId(), List.of()),
+                        repliesByConvocation.getOrDefault(entity.getId(), List.of())))
                 .toList();
+    }
+
+    private List<ConvocationReply> repliesOf(UUID convocationId) {
+        return replyJpaRepository.findByConvocationIdOrderByCreatedDateAsc(convocationId).stream()
+                .map(mapper::toDomain).toList();
+    }
+
+    private Map<UUID, List<ConvocationReply>> repliesOf(Collection<UUID> convocationIds) {
+        Map<UUID, List<ConvocationReply>> byConvocation = new LinkedHashMap<>();
+        for (ConvocationReplyEntity entity : replyJpaRepository
+                .findByConvocationIdInOrderByCreatedDateAsc(convocationIds)) {
+            byConvocation.computeIfAbsent(entity.getConvocationId(), key -> new ArrayList<>())
+                    .add(mapper.toDomain(entity));
+        }
+        return byConvocation;
+    }
+
+    /**
+     * Inserts the answers this convocation carries that are not in the table
+     * yet. Same discipline as the deliveries, and for the same reason: an answer
+     * is an event, recorded once and never edited. Changing one's mind is a new
+     * row, not a rewrite of the old one - which is the whole point of keeping
+     * the history at all.
+     */
+    private List<ConvocationReply> saveNewReplies(Convocation convocation) {
+        List<ConvocationReply> replies = convocation.getReplies();
+        if (replies.isEmpty()) {
+            return List.of();
+        }
+        for (ConvocationReply reply : replies) {
+            if (!replyJpaRepository.existsById(reply.getId().asUuid())) {
+                replyJpaRepository.save(mapper.toEntity(reply, convocation.getId()));
+            }
+        }
+        return repliesOf(convocation.getId().asUuid());
     }
 
     private List<ConvocationDelivery> deliveriesOf(UUID convocationId) {

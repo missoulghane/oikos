@@ -17,7 +17,10 @@ import { recordShowOfHands } from '@/features/property-mngt/general-meetings/api
 import { remindConvocations } from '@/features/property-mngt/general-meetings/api/remindConvocations';
 import { sendPendingConvocations } from '@/features/property-mngt/general-meetings/api/sendPendingConvocations';
 import { reorderAgendaItems } from '@/features/property-mngt/general-meetings/api/reorderAgendaItems';
-import { replyToConvocation } from '@/features/property-mngt/general-meetings/api/replyToConvocation';
+import {
+  replyToConvocation,
+  type ReplyToConvocationInput,
+} from '@/features/property-mngt/general-meetings/api/replyToConvocation';
 import { scheduleGeneralMeeting } from '@/features/property-mngt/general-meetings/api/scheduleGeneralMeeting';
 import { sendConvocation } from '@/features/property-mngt/general-meetings/api/sendConvocation';
 import { setQuorumSetting } from '@/features/property-mngt/general-meetings/api/setQuorumSetting';
@@ -36,7 +39,6 @@ import type {
 } from '@/features/property-mngt/general-meetings/types/generalMeeting.types';
 import type {
   AttendanceMode,
-  AttendanceReply,
   ChannelCode,
   DeliveryStatus,
 } from '@/features/property-mngt/general-meetings/types/convocation.types';
@@ -60,6 +62,12 @@ function useMeetingScopedInvalidation(meetingId: string) {
     // The list carries the status badge and the agenda count, both of which
     // most of these mutations move.
     queryClient.invalidateQueries({ queryKey: ['general-meetings'] });
+    // A convocation's own detail hangs off the meeting too, but under another key
+    // root: it is fetched alone because it carries the confirmation code the list
+    // deliberately never does (see queryKeys.generalMeetings.convocation). Missing
+    // it here is what left the detail page showing a delivery list and an answer
+    // history that only a manual page refresh would update.
+    queryClient.invalidateQueries({ queryKey: ['convocations'] });
   };
 }
 
@@ -189,15 +197,8 @@ export function useRecordConvocationDelivery(meetingId: string) {
 export function useReplyToConvocation(meetingId: string) {
   const invalidate = useMeetingScopedInvalidation(meetingId);
   return useMutation({
-    mutationFn: ({
-      convocationId,
-      reply,
-      note,
-    }: {
-      convocationId: string;
-      reply: AttendanceReply;
-      note?: string;
-    }) => replyToConvocation(convocationId, reply, note),
+    mutationFn: ({ convocationId, ...input }: { convocationId: string } & ReplyToConvocationInput) =>
+      replyToConvocation(convocationId, input),
     onSuccess: invalidate,
   });
 }

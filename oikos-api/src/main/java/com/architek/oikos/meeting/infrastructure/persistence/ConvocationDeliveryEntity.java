@@ -48,6 +48,10 @@ public class ConvocationDeliveryEntity extends AuditableEntity {
     @Column(name = "reference")
     private String reference;
 
+    /** A chase rather than the convocation itself - display only, nothing computes on it. */
+    @Column(name = "is_reminder", nullable = false)
+    private boolean reminder;
+
     @Column(name = "recorded_by_user_id")
     private UUID recordedByUserId;
 }

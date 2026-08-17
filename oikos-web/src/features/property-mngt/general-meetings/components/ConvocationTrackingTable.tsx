@@ -1,4 +1,4 @@
-import type { AttendanceReply, Convocation } from '@/features/property-mngt/general-meetings/types/convocation.types';
+import type { Convocation } from '@/features/property-mngt/general-meetings/types/convocation.types';
 import {
   ATTENDANCE_REPLY_LABELS,
   CONVOCATION_STATUS_COLORS,
@@ -6,38 +6,40 @@ import {
   DELIVERY_STATUS_LABELS,
 } from '@/features/property-mngt/general-meetings/constants/generalMeetingLabels';
 import { formatLotLabel, formatWeight } from '@/features/property-mngt/general-meetings/utils/formatMeeting';
+import type { ConvocationSortField } from '@/features/property-mngt/general-meetings/utils/filterConvocations';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/shared/components/Badge/Badge';
-import { Button } from '@/shared/components/Button/Button';
-import { DownloadIcon } from '@/shared/icons';
+import { SortableColumnHeader } from '@/shared/components/SortableColumnHeader/SortableColumnHeader';
+import type { SortDirection } from '@/shared/utils/sorting';
 
 interface ConvocationTrackingTableProps {
   convocations: Convocation[];
-  isBusy: boolean;
+  sortBy: ConvocationSortField;
+  sortDirection: SortDirection;
+  onSort: (field: ConvocationSortField) => void;
   detailPathOf: (convocationId: string) => string;
-  onSend: (convocationId: string) => void;
-  onMarkDelivered: (convocationId: string) => void;
-  onReply: (convocationId: string, reply: AttendanceReply) => void;
-  onDownload: (convocation: Convocation) => void;
 }
 
 /**
- * One row per lot. "Envoyer" performs the send; "Marquer remise" records that
- * a person did it - two distinct actions, because a tracking table that cannot
- * tell them apart has lost the only thing it exists to record.
+ * One row per lot, and nothing but reading.
+ *
+ * <p>The row used to carry six buttons - envoyer, marquer remise, présent,
+ * absent, PDF, détail - and they are gone. Every one of them already exists on
+ * the convocation's own page, so nothing is lost but a click; what is gained is
+ * a table that can be scanned. "Marquer remise" in particular has no business
+ * on a line: recording that a letter was posted needs a channel and a tracking
+ * number, and the shortcut silently borrowed both from a dropdown sitting above
+ * the table.
  *
  * <p>Two layouts for the same data: stacked cards below `sm`, the table above
- * it. Seven columns cannot be read on a phone, and a table that only scrolls
- * sideways hides the actions - which is the column people come for.
+ * it. Six columns cannot be read on a phone.
  */
 export function ConvocationTrackingTable({
   convocations,
-  isBusy,
+  sortBy,
+  sortDirection,
+  onSort,
   detailPathOf,
-  onSend,
-  onMarkDelivered,
-  onReply,
-  onDownload,
 }: ConvocationTrackingTableProps) {
   function ownerLabel(convocation: Convocation) {
     return convocation.recipients.length > 0 ? (
@@ -52,50 +54,19 @@ export function ConvocationTrackingTable({
   /**
    * The state of the sending, then the channels it went through. One column
    * cannot list every attempt, so it names them and leaves the dates and the
-   * tracking numbers to the detail page.
+   * tracking numbers to the detail page. Reminders are marked rather than
+   * listed again: three chases by email would otherwise read as "Email, Email,
+   * Email" and say nothing.
    */
   function deliveryLabel(convocation: Convocation) {
-    const channels = convocation.deliveries.map((delivery) => delivery.channelLabel).join(', ');
+    const channels = [
+      ...new Set(convocation.deliveries.filter((d) => !d.reminder).map((d) => d.channelLabel)),
+    ].join(', ');
+    const reminders = convocation.deliveries.filter((d) => d.reminder).length;
+    const relance = reminders > 0 ? ` · ${reminders} relance${reminders > 1 ? 's' : ''}` : '';
     return channels
-      ? `${DELIVERY_STATUS_LABELS[convocation.deliveryStatus]} · ${channels}`
-      : DELIVERY_STATUS_LABELS[convocation.deliveryStatus];
-  }
-
-  function actions(convocation: Convocation) {
-    return (
-      <div className="flex flex-wrap gap-2">
-        {/* The letter is downloadable before anything is sent: that is what a syndic prints
-            when convoking by post. */}
-        <Button
-          variant="secondary"
-          title="Télécharger la convocation (PDF)"
-          aria-label="Télécharger la convocation en PDF"
-          onClick={() => onDownload(convocation)}
-        >
-          <DownloadIcon />
-        </Button>
-        <Link
-          to={detailPathOf(convocation.id)}
-          aria-label="Ouvrir le détail de la convocation"
-          title="Détail"
-          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-white dark:bg-gray-800 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-400 shadow-theme-xs ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
-        >
-          Détail
-        </Link>
-        <Button variant="secondary" disabled={isBusy} onClick={() => onSend(convocation.id)}>
-          Envoyer
-        </Button>
-        <Button variant="secondary" disabled={isBusy} onClick={() => onMarkDelivered(convocation.id)}>
-          Marquer remise
-        </Button>
-        <Button variant="secondary" disabled={isBusy} onClick={() => onReply(convocation.id, 'ATTENDING')}>
-          Présent
-        </Button>
-        <Button variant="secondary" disabled={isBusy} onClick={() => onReply(convocation.id, 'NOT_ATTENDING')}>
-          Absent
-        </Button>
-      </div>
-    );
+      ? `${DELIVERY_STATUS_LABELS[convocation.deliveryStatus]} · ${channels}${relance}`
+      : `${DELIVERY_STATUS_LABELS[convocation.deliveryStatus]}${relance}`;
   }
 
   return (
@@ -122,22 +93,26 @@ export function ConvocationTrackingTable({
               {formatWeight(convocation.votingWeight)} voix · {deliveryLabel(convocation)} ·{' '}
               {ATTENDANCE_REPLY_LABELS[convocation.attendanceReply]}
             </p>
-            {actions(convocation)}
           </li>
         ))}
       </ul>
 
       <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full min-w-[52rem] text-left text-sm">
+        <table className="w-full min-w-[44rem] text-left text-sm">
           <thead className="text-gray-500 dark:text-gray-400">
             <tr className="border-b border-gray-200 dark:border-gray-800">
-              <th className="py-2 pr-4 font-normal">Lot</th>
+              <SortableColumnHeader field="LOT" activeField={sortBy} direction={sortDirection} onSort={onSort}>
+                Lot
+              </SortableColumnHeader>
               <th className="py-2 pr-4 font-normal">Copropriétaire(s)</th>
-              <th className="py-2 pr-4 font-normal">Voix</th>
-              <th className="py-2 pr-4 font-normal">Envoi</th>
+              <SortableColumnHeader field="WEIGHT" activeField={sortBy} direction={sortDirection} onSort={onSort}>
+                Voix
+              </SortableColumnHeader>
+              <SortableColumnHeader field="SENT_AT" activeField={sortBy} direction={sortDirection} onSort={onSort}>
+                Envoi
+              </SortableColumnHeader>
               <th className="py-2 pr-4 font-normal">Réponse</th>
-              <th className="py-2 pr-4 font-normal">Statut</th>
-              <th className="py-2 font-normal">Actions</th>
+              <th className="py-2 font-normal">Statut</th>
             </tr>
           </thead>
           <tbody>
@@ -152,19 +127,18 @@ export function ConvocationTrackingTable({
                   </Link>
                 </td>
                 <td className="py-3 pr-4 text-gray-500 dark:text-gray-400">{ownerLabel(convocation)}</td>
-                <td className="py-3 pr-4 text-gray-500 dark:text-gray-400">
+                <td className="py-3 pr-4 text-gray-500 dark:text-gray-400 tabular-nums">
                   {formatWeight(convocation.votingWeight)}
                 </td>
                 <td className="py-3 pr-4 text-gray-500 dark:text-gray-400">{deliveryLabel(convocation)}</td>
                 <td className="py-3 pr-4 text-gray-500 dark:text-gray-400">
                   {ATTENDANCE_REPLY_LABELS[convocation.attendanceReply]}
                 </td>
-                <td className="py-3 pr-4">
+                <td className="py-3">
                   <Badge color={CONVOCATION_STATUS_COLORS[convocation.status]}>
                     {CONVOCATION_STATUS_LABELS[convocation.status]}
                   </Badge>
                 </td>
-                <td className="py-3">{actions(convocation)}</td>
               </tr>
             ))}
           </tbody>

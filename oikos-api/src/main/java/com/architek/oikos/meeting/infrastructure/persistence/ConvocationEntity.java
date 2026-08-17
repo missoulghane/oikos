@@ -74,6 +74,21 @@ public class ConvocationEntity extends AuditableEntity {
     @Column(name = "reply_note")
     private String replyNote;
 
+    /**
+     * By what means the standing answer reached the office. Only ever set
+     * alongside a source of OTHER - the table's CHECK says so too.
+     */
+    @Column(name = "reply_medium")
+    private String replyMedium;
+
+    /** Announced, not constated - attendanceMode below is the check-in. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reply_attendance_mode")
+    private AttendanceMode replyAttendanceMode;
+
+    @Column(name = "reply_by_proxy", nullable = false)
+    private boolean replyByProxy;
+
     @Column(name = "checked_in", nullable = false)
     private boolean checkedIn;
 

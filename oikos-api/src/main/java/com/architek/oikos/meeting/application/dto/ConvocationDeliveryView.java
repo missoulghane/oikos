@@ -12,5 +12,5 @@ import com.architek.oikos.meeting.domain.valueobject.DeliveryStatus;
  * meant to avoid.
  */
 public record ConvocationDeliveryView(String id, String channelCode, String channelLabel, DeliveryStatus status,
-                                       Instant sentAt, String reference) {
+                                       Instant sentAt, String reference, boolean reminder) {
 }

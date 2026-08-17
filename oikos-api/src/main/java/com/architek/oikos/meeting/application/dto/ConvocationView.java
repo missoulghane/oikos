@@ -23,12 +23,19 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * <p>deliveries carries every attempt; deliveryStatus and sentAt summarise them
  * for the columns that only have room for one value. Both are kept: the table
  * needs the summary, the detail page needs the history.
+ *
+ * <p>replies is the same arrangement one field along: every answer ever given,
+ * next to the attendanceReply / repliedAt / replySource / replyMedium that
+ * summarise the one which stands. The summary is what the quorum and the
+ * tracking table read; the history is what explains how it got there.
  */
 public record ConvocationView(ConvocationId id, GeneralMeetingId generalMeetingId, EntityId unitId, String unitNumber,
                                String buildingName, List<ConvocationRecipient> recipients, BigDecimal votingWeight,
                                List<ConvocationDeliveryView> deliveries, Instant sentAt, DeliveryStatus deliveryStatus,
-                               AttendanceReply attendanceReply, Instant repliedAt, ReplySource replySource,
-                               String replyNote, boolean checkedIn, AttendanceMode attendanceMode, Instant checkedInAt,
+                               List<ConvocationReplyView> replies, AttendanceReply attendanceReply, Instant repliedAt,
+                               ReplySource replySource, String replyMediumCode, String replyMediumLabel,
+                               String replyNote, AttendanceMode replyAttendanceMode, boolean replyByProxy,
+                               boolean checkedIn, AttendanceMode attendanceMode, Instant checkedInAt,
                                ConvocationStatus status, String meetingPublicReference, String confirmationCode) {
 
     /**
@@ -40,18 +47,23 @@ public record ConvocationView(ConvocationId id, GeneralMeetingId generalMeetingI
      */
     public ConvocationView withoutCodes() {
         return new ConvocationView(id, generalMeetingId, unitId, unitNumber, buildingName, recipients, votingWeight,
-                deliveries, sentAt, deliveryStatus, attendanceReply, repliedAt, replySource, replyNote, checkedIn,
-                attendanceMode, checkedInAt, status, null, null);
+                deliveries, sentAt, deliveryStatus, replies, attendanceReply, repliedAt, replySource, replyMediumCode,
+                replyMediumLabel, replyNote, replyAttendanceMode, replyByProxy, checkedIn, attendanceMode, checkedInAt,
+                status, null, null);
     }
 
     public static ConvocationView from(Convocation convocation, String unitNumber, String buildingName,
                                         List<ConvocationRecipient> recipients,
-                                        List<ConvocationDeliveryView> deliveries, String meetingPublicReference) {
+                                        List<ConvocationDeliveryView> deliveries, List<ConvocationReplyView> replies,
+                                        String replyMediumLabel, String meetingPublicReference) {
         return new ConvocationView(convocation.getId(), convocation.getGeneralMeetingId(), convocation.getUnitId(),
                 unitNumber, buildingName, recipients, convocation.getVotingWeight().value(), deliveries,
-                convocation.getSentAt(), convocation.getDeliveryStatus(), convocation.getAttendanceReply(),
-                convocation.getRepliedAt(), convocation.getReplySource(), convocation.getReplyNote(),
-                convocation.isCheckedIn(), convocation.getAttendanceMode(), convocation.getCheckedInAt(),
-                convocation.status(), meetingPublicReference, convocation.getConfirmationCode().value());
+                convocation.getSentAt(), convocation.getDeliveryStatus(), replies, convocation.getAttendanceReply(),
+                convocation.getRepliedAt(), convocation.getReplySource(),
+                convocation.getReplyMedium() != null ? convocation.getReplyMedium().value() : null, replyMediumLabel,
+                convocation.getReplyNote(), convocation.getReplyAttendanceMode(), convocation.isReplyByProxy(),
+                convocation.isCheckedIn(), convocation.getAttendanceMode(),
+                convocation.getCheckedInAt(), convocation.status(), meetingPublicReference,
+                convocation.getConfirmationCode().value());
     }
 }

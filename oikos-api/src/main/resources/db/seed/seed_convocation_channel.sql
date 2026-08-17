@@ -22,7 +22,7 @@ SELECT 'EMAIL', 'Email', true, 1, true
 WHERE NOT EXISTS (SELECT 1 FROM convocation_channel WHERE code = 'EMAIL');
 
 INSERT INTO convocation_channel (code, label, automated, position, active)
-SELECT 'APP', 'Notification (application)', true, 2, true
+SELECT 'APP', 'Messagerie interne', true, 2, true
 WHERE NOT EXISTS (SELECT 1 FROM convocation_channel WHERE code = 'APP');
 
 INSERT INTO convocation_channel (code, label, automated, position, active)

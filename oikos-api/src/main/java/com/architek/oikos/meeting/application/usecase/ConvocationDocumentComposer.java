@@ -58,6 +58,18 @@ public class ConvocationDocumentComposer {
                 RichTextToParagraphs.convert(meeting.getComment()));
     }
 
+    /**
+     * The lot as a person names it - "Bâtiment A - Appartement 12". Used as the
+     * "concerne" hint on a messagerie thread, which is what tells an owner of
+     * three lots which of them a convocation is about.
+     */
+    public static String lotLabelOf(UnitInfo unit) {
+        if (unit == null || unit.unitNumber() == null) {
+            return null;
+        }
+        return unit.buildingName() == null ? unit.unitNumber() : unit.buildingName() + " - " + unit.unitNumber();
+    }
+
     /** Keeps the attachment name readable and free of anything a file system would object to. */
     public static String fileNameFor(UnitInfo unit) {
         String raw = unit == null || unit.unitNumber() == null ? "lot" : unit.unitNumber();

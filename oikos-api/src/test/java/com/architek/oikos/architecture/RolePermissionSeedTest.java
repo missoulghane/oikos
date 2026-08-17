@@ -35,12 +35,17 @@ class RolePermissionSeedTest {
 
     private static final Path RESOURCES = resolveModuleRoot().resolve("src/main/resources");
     private static final Path MIGRATIONS = RESOURCES.resolve("db/migration");
+    private static final Path SEEDS = RESOURCES.resolve("db/seed");
     private static final Path DEV_SEED = RESOURCES.resolve("db/dev/dev.sql");
     private static final Path DEV_PROFILE = RESOURCES.resolve("application-dev.yml");
 
-    /** The catalog started in V1 but is no longer confined to it: a new module ships its own
-     * keys in its own migration (V4 for `meeting`), so every assertion below reads the whole
-     * migration folder rather than two hard-coded files. */
+    /**
+     * Read across db/migration AND db/seed. Since the 2026-08-17 squash there is exactly one
+     * migration - V1__baseline.sql, carrying the catalog and the bundles for a real deployment -
+     * and db/seed/ carries the same rows for the dev profile, which cannot run V1 at all (H2,
+     * Flyway disabled). Scanning both is what keeps a key added to one and not the other from
+     * compiling perfectly and failing as a 403 in one environment only.
+     */
     private static final String CATALOG_INSERT = "INSERT INTO permission (key, description) VALUES";
     private static final String BUNDLE_INSERT = "INSERT INTO role_permission (role_name, permission_key)";
 
@@ -114,19 +119,31 @@ class RolePermissionSeedTest {
      * file further along.
      */
     @Test
-    void every_migration_seeding_bundles_is_loaded_by_the_dev_profile() throws IOException {
+    void every_seed_file_is_loaded_by_the_dev_profile() throws IOException {
+        // V1 is deliberately not in that list and cannot be: the dev profile runs on H2 with
+        // Flyway disabled and a Hibernate-generated schema, so it never applies a migration -
+        // it loads db/seed/ as plain scripts. A seed file that exists but is not listed
+        // authorizes nothing in dev while working in production, which is the exact shape of
+        // the incident this class was written after.
         String devProfile = Files.readString(DEV_PROFILE);
-        for (Path migration : migrationFiles()) {
-            if (!Files.readString(migration).contains(BUNDLE_INSERT)) {
-                continue;
-            }
+        for (Path seed : sqlFilesIn(SEEDS)) {
             assertThat(devProfile)
-                    .as("%s seeds role_permission, so application-dev.yml must list it in "
-                            + "spring.sql.init.data-locations - otherwise its grants exist in prod only",
-                            migration.getFileName())
-                    .contains(migration.getFileName().toString());
+                    .as("%s must be listed in application-dev.yml spring.sql.init.data-locations - "
+                            + "otherwise its rows exist in production only", seed.getFileName())
+                    .contains(seed.getFileName().toString());
         }
     }
+
+    @Test
+    void the_bundles_shipped_to_production_and_to_dev_are_the_same() throws IOException {
+        // The squash left the same rows in two places on purpose - V1 for a real deployment,
+        // db/seed/ for dev - and duplication that nothing checks is duplication that drifts.
+        assertThat(bundleKeysIn(sqlFilesIn(SEEDS)))
+                .as("the role -> permission bundles in db/seed/ must match those in V1__baseline.sql - "
+                        + "a grant in one and not the other is an authorization that differs by environment")
+                .containsExactlyInAnyOrderElementsOf(bundleKeysIn(sqlFilesIn(MIGRATIONS)));
+    }
+
 
     private static Set<String> catalogKeys() throws IOException {
         return matchesIn(statementsWithPrefix(CATALOG_INSERT), "\\('([^']+)',");
@@ -138,6 +155,26 @@ class RolePermissionSeedTest {
 
     private static List<String> bundleStatements() throws IOException {
         return statementsWithPrefix(BUNDLE_INSERT);
+    }
+
+    /** The (role, permission) pairs a given set of SQL files grants. */
+    private static Set<String> bundleKeysIn(List<Path> files) throws IOException {
+        Set<String> pairs = new LinkedHashSet<>();
+        Pattern pattern = Pattern.compile("\\('([A-Z_]+),?\\s*'?|\\('([A-Z_]+)',\\s*'([^']+)'\\)");
+        for (Path file : files) {
+            String sql = Files.readString(file);
+            int start = sql.indexOf(BUNDLE_INSERT);
+            while (start >= 0) {
+                int end = sql.indexOf(';', start);
+                String statement = end < 0 ? sql.substring(start) : sql.substring(start, end);
+                Matcher matcher = Pattern.compile("\\('([A-Z_]+)',\\s*'([^']+)'\\)").matcher(statement);
+                while (matcher.find()) {
+                    pairs.add(matcher.group(1) + " -> " + matcher.group(2));
+                }
+                start = sql.indexOf(BUNDLE_INSERT, start + BUNDLE_INSERT.length());
+            }
+        }
+        return pairs;
     }
 
     /**
@@ -163,8 +200,15 @@ class RolePermissionSeedTest {
         return statements;
     }
 
+    /** Both sources of seed SQL: the deployment's single migration, and the dev profile's copies. */
     private static List<Path> migrationFiles() throws IOException {
-        try (Stream<Path> files = Files.list(MIGRATIONS)) {
+        List<Path> files = new ArrayList<>(sqlFilesIn(MIGRATIONS));
+        files.addAll(sqlFilesIn(SEEDS));
+        return files;
+    }
+
+    private static List<Path> sqlFilesIn(Path directory) throws IOException {
+        try (Stream<Path> files = Files.list(directory)) {
             return files.filter(path -> path.getFileName().toString().endsWith(".sql")).sorted().toList();
         }
     }

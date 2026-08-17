@@ -255,9 +255,10 @@ Parcours complet d'un **lot** pour une AG : envoi, confirmation, émargement (ob
 | unit_id | UUID (FK) | → `unit.id` |
 | voting_weight | NUMERIC(12,2) | Snapshot : `1` en mode `PER_UNIT`, tantièmes du lot en mode `SHARES` |
 | attendance_reply / replied_at | ENUM / TIMESTAMPTZ | `ATTENDING`, `NOT_ATTENDING`, `NO_REPLY` (défaut, pas `NULL`) |
-| reply_source | ENUM (nullable) | `OWNER_APP`, `OWNER_LINK`, `SYNDIC_OFFICE` — **comment** la confirmation a été obtenue. Déduite de l'appelant côté serveur, jamais envoyée par le client |
+| reply_source | ENUM (nullable) | `OWNER_APP`, `OWNER_LINK`, `OTHER` — **comment** la confirmation a été obtenue. Déduite de l'appelant côté serveur, jamais envoyée par le client. `OTHER` dit seulement qu'aucun des deux chemins applicatifs n'a été emprunté ; par quel moyen elle est alors arrivée est `reply_medium` |
+| reply_medium | VARCHAR(30) (FK, nullable) | → `reply_medium.code`. Par quel moyen la réponse est parvenue au bureau (`TELEPHONE`, `COURRIER`, `EMAIL`, `GUICHET`). **Déclaré par le client**, contrairement à `reply_source` : seule la personne qui a pris l'appel le sait. `CHECK` : non nul uniquement si `reply_source = 'OTHER'` |
 | replied_by_party_id | UUID (FK, nullable) | → `party.id` — qui a répondu, quand c'est connu |
-| reply_note | VARCHAR(500) (nullable) | Par quel biais la réponse est parvenue au bureau (« appelée mardi ») |
+| reply_note | VARCHAR(500) (nullable) | La précision que le syndic garderait sinon sur un post-it (« appelée mardi »). Le moyen, lui, est structuré dans `reply_medium` |
 | confirmation_code | VARCHAR(6), NOT NULL, **unique par `(general_meeting_id, …)`** | Code à recopier depuis la lettre (`w754a1`). Alphabet `[0-9a-z]` moins `l`/`o`. Unique **par AG** seulement : il se présente toujours avec `general_meeting.public_reference`, et c'est ce couplage qui borne l'espace de recherche (ADR 0002 §13). Absent des réponses de liste, présent sur `GET /convocations/{id}` |
 | confirmation_token | VARCHAR(64), **unique**, NOT NULL | Jeton du lien de confirmation (32 octets `SecureRandom`, Base64-url). Créé à la génération, pas à l'envoi : le lien s'imprime sur la lettre postée. Unique par construction — c'est la seule chose que présente un visiteur anonyme, donc la seule chose qui désigne la convocation. N'apparaît dans aucune réponse JSON du back-office (ADR 0002 §10) |
 | checked_in / checked_in_at | BOOLEAN / TIMESTAMPTZ | Émargement ; condition nécessaire au vote du lot |
