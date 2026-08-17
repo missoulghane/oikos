@@ -28,6 +28,43 @@ services:
     volumes:
       - ./oikos-api/src/main/resources/db/migration:/flyway/sql:ro
 
+  # DEMO MODE, off unless COMPOSE_PROFILES=demo is set in .env (see .env.example).
+  #
+  # Wipes the business data and reloads db/dev/dev.sql - the 8 fictional owner /
+  # board profiles - so a recette environment can be put back into a known,
+  # demonstrable state without destroying its PostgreSQL volume.
+  #
+  # Runs AFTER flyway, never instead of it: the schema still comes from
+  # V1__baseline.sql, and the reference catalogs it seeds are deliberately kept
+  # (see reset.sql). That is what makes this safe to re-run on every deploy.
+  #
+  # Deliberately nothing depends on this service. A conditional depends_on does
+  # not exist in compose, and declaring one from `api` would make the whole
+  # stack refuse to start whenever the profile is off - the demo data simply
+  # lands a few seconds after the API is up, which is harmless.
+  demo-seed:
+    profiles: ["demo"]
+    image: postgres:16-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./oikos-api/src/main/resources/db/dev:/seed:ro
+    # $$ escapes compose's own interpolation: these are read by the container's
+    # shell, not substituted from the host .env.
+    entrypoint:
+      - sh
+      - -c
+      - >
+        psql -h postgres -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -v ON_ERROR_STOP=1 -q -f /seed/reset.sql &&
+        psql -h postgres -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -v ON_ERROR_STOP=1 -q -f /seed/dev.sql
+
   api:
     build:
       context: ./oikos-api

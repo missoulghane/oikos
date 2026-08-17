@@ -127,9 +127,17 @@ jobs:
           # deploys, and replayed ALTERs against a schema that already had them applied.
           ssh -i ~/.ssh/id_deploy ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             "mkdir -p /opt/oikos/oikos-api/src/main/resources/db/migration \
-             && rm -f /opt/oikos/oikos-api/src/main/resources/db/migration/*.sql"
+                      /opt/oikos/oikos-api/src/main/resources/db/dev \
+             && rm -f /opt/oikos/oikos-api/src/main/resources/db/migration/*.sql \
+                      /opt/oikos/oikos-api/src/main/resources/db/dev/*.sql"
           scp -i ~/.ssh/id_deploy oikos-api/src/main/resources/db/migration/*.sql \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/oikos/oikos-api/src/main/resources/db/migration/
+          # db/dev is only ever read by the `demo-seed` service, which stays off unless
+          # COMPOSE_PROFILES=demo. Copied unconditionally all the same: the switch belongs to
+          # the environment's .env, and a mode that needs a redeploy to become available is a
+          # mode nobody uses.
+          scp -i ~/.ssh/id_deploy oikos-api/src/main/resources/db/dev/*.sql \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/oikos/oikos-api/src/main/resources/db/dev/
       - name: Pull & restart services on VPS
         uses: appleboy/ssh-action@v1
         with:
@@ -147,4 +155,9 @@ jobs:
             # ne s'appliqueraient jamais sans ce --force-recreate ciblé.
             docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --force-recreate flyway
             docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+            # demo-seed est one-shot comme flyway, et pour la meme raison il ne se relance pas
+            # tout seul. Sans profil actif la commande ne fait rien (le service n'existe pas),
+            # avec COMPOSE_PROFILES=demo elle rejoue la purge + dev.sql. Place APRES le up -d
+            # general : la purge doit passer sur un schema deja migre.
+            docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --force-recreate demo-seed 2>/dev/null || true
             docker image prune -f
