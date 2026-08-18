@@ -18,23 +18,39 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
  * the session. "Aucun quorum requis" and "quorum non configuré" read the same
  * to a machine but not to a person, which is why quorumRequired is shown
  * rather than inferred from a zero.
+ *
+ * <p>`showAttendance` is what the Convocations tab turns off, and it covers two
+ * things rather than one: the émargement count, and the quorum badge. Both are
+ * facts of the session - the quorum is computed on the lots signed in - so on
+ * a tab that runs from the sending to the opening of the session, both would
+ * read "0" and "non atteint" from end to end, alarming a syndic about a room
+ * nobody has entered yet.
  */
-export function AttendanceSummaryCard({ summary }: { summary: AttendanceSummary }) {
+export function AttendanceSummaryCard({
+  summary,
+  showAttendance = true,
+}: {
+  summary: AttendanceSummary;
+  showAttendance?: boolean;
+}) {
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-medium text-gray-900 dark:text-white/90">Présences</h3>
-        {summary.quorumRequired ? (
-          <Badge color={summary.quorumReached ? 'success' : 'error'}>
-            Quorum {summary.quorumPercentage.toLocaleString('fr-FR')} %{' '}
-            {summary.quorumReached ? 'atteint' : 'non atteint'}
-          </Badge>
-        ) : (
-          <Badge color="light">Aucun quorum requis</Badge>
-        )}
+        <h3 className="font-medium text-gray-900 dark:text-white/90">
+          {showAttendance ? 'Présences' : 'Convocations et réponses'}
+        </h3>
+        {showAttendance &&
+          (summary.quorumRequired ? (
+            <Badge color={summary.quorumReached ? 'success' : 'error'}>
+              Quorum {summary.quorumPercentage.toLocaleString('fr-FR')} %{' '}
+              {summary.quorumReached ? 'atteint' : 'non atteint'}
+            </Badge>
+          ) : (
+            <Badge color="light">Aucun quorum requis</Badge>
+          ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-4 ${showAttendance ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
         <Stat label="Lots convoqués" value={String(summary.totalUnits)} />
         <Stat label="Convocations envoyées" value={String(summary.sentCount)} />
         <Stat
@@ -42,11 +58,13 @@ export function AttendanceSummaryCard({ summary }: { summary: AttendanceSummary 
           value={`${summary.attendingCount} / ${summary.notAttendingCount}`}
           hint={`présents / absents · ${summary.noReplyCount} sans réponse`}
         />
-        <Stat
-          label="Émargés"
-          value={String(summary.checkedInCount)}
-          hint={`${formatWeight(summary.presentWeight)} voix sur ${formatWeight(summary.totalWeight)}`}
-        />
+        {showAttendance && (
+          <Stat
+            label="Émargés"
+            value={String(summary.checkedInCount)}
+            hint={`${formatWeight(summary.presentWeight)} voix sur ${formatWeight(summary.totalWeight)}`}
+          />
+        )}
       </div>
     </Card>
   );

@@ -207,6 +207,18 @@ describe('ConvocationsTab, once generated', () => {
     expect(within(table).getByRole('link', { name: 'Appartement 2' })).toBeInTheDocument();
   });
 
+  it('says nothing of émargement, which belongs to the Séance tab', async () => {
+    // The synthetic status column topped out at "Émargé", on a screen that runs from the
+    // sending of the convocation to the opening of the session. What was useful in it -
+    // à envoyer, envoyée - is the Envoi column, with the channels besides.
+    renderTab();
+
+    const table = await screen.findByRole('table');
+    expect(within(table).getByRole('columnheader', { name: /Envoi/ })).toBeInTheDocument();
+    expect(within(table).queryByRole('columnheader', { name: /Statut/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Émarg/)).not.toBeInTheDocument();
+  });
+
   it('offers no émargement filter, which would always be empty here', async () => {
     const user = userEvent.setup();
     renderTab();

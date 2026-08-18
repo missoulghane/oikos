@@ -69,12 +69,21 @@ export function AgendaItemForm({
         <label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Description (facultative)
         </label>
+        {/* Ten rows and resizable: this holds the resolution as it will be put to the vote,
+            which on a works contract or a budget runs to a page. Three rows made a long text
+            something to scroll blindly through. */}
         <textarea
           id="description"
-          rows={3}
-          className="rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-base text-gray-800 dark:text-white/90 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/20"
+          rows={10}
+          className="resize-y rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-base text-gray-800 dark:text-white/90 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/20"
+          aria-invalid={Boolean(errors.description)}
           {...register('description')}
         />
+        {/* It was validated and never shown: too long a description simply did nothing on
+            submit, with no error and no clue as to which field refused. */}
+        {errors.description && (
+          <p className="text-sm text-error-500 dark:text-error-400">{errors.description.message}</p>
+        )}
       </div>
       <Select label="Majorité requise" {...register('majorityRule')} errorMessage={errors.majorityRule?.message}>
         {MAJORITY_RULES.map((rule) => (

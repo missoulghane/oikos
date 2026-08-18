@@ -90,3 +90,32 @@
   color: rgba(255, 255, 255, 0.9);
   border-color: #344054;
 }
+
+/* French labels for the heading dropdown, which Quill's Snow theme writes in English
+   through ::before content. Same selectors as quill.snow.css, and this file is imported
+   after it, so equal specificity resolves in our favour. Only the minutes editor turns
+   headings on - see QuillEditor's `headings` prop for why it is not the default. */
+.ql-snow .ql-picker.ql-header .ql-picker-label::before,
+.ql-snow .ql-picker.ql-header .ql-picker-item::before {
+  content: 'Paragraphe';
+}
+
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value='1']::before,
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value='1']::before {
+  content: 'Titre';
+}
+
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value='2']::before,
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value='2']::before {
+  content: 'Section';
+}
+
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value='3']::before,
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value='3']::before {
+  content: 'Sous-section';
+}
+
+/* The header picker is wider than Quill's default 98px once its labels are words. */
+.ql-snow .ql-picker.ql-header {
+  width: 130px;
+}

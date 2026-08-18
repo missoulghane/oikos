@@ -135,7 +135,10 @@ export function ConvocationsTab() {
         <Alert variant="warning" message="Cette assemblée n'a ni date ni lieu : elle ne peut pas être convoquée." />
       )}
 
-      {summary.data && <AttendanceSummaryCard summary={summary.data} />}
+      {/* Without the émargement count and the quorum badge: this tab handles the convocation,
+          from its sending to the opening of the session, and nobody has signed in yet. Both
+          live on the Séance tab, where they change as the room fills. */}
+      {summary.data && <AttendanceSummaryCard summary={summary.data} showAttendance={false} />}
 
       {isLoaded && !isGenerated && (
         <Card className="flex flex-col gap-4">

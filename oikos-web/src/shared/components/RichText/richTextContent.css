@@ -52,8 +52,9 @@
   font-weight: 700;
 }
 
-/* Headings only ever come from server-composed documents (the minutes), never
-   from the editor's toolbar - sanitizeDocumentHtml is the allow-list that lets
+/* Headings belong to documents (the minutes), never to a typed field: they come
+   from the API's composer and from the minutes editor, which is the only one
+   whose toolbar offers them. sanitizeDocumentHtml is the allow-list that lets
    them through, sanitizeRichText is the one that does not. */
 .ql-content h1,
 .ql-content h2,

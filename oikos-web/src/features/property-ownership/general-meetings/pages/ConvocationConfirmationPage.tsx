@@ -63,9 +63,16 @@ export function ConvocationConfirmationPage() {
       : null,
   );
 
+  // The lot code, asked for again at the moment of answering when the visitor arrived by
+  // link. The link says the convocation was received, never by whom: it is forwarded,
+  // printed, left on a table. The code is on the letter, in the hands of whoever answers
+  // for the lot. On the paper path it was already typed to get here, so it is not asked
+  // twice.
+  const [lotCode, setLotCode] = useState('');
+
   const byToken = useConvocationConfirmation(token);
   const byCode = useConvocationConfirmationByCode(submitted?.reference ?? '', submitted?.code ?? '', Boolean(submitted));
-  const confirmByToken = useConfirmConvocation(token);
+  const confirmByToken = useConfirmConvocation(token, lotCode.trim());
   const confirmByCode = useConfirmConvocationByCode(submitted?.reference ?? '', submitted?.code ?? '');
 
   const confirmation = token ? byToken : byCode;
@@ -148,6 +155,10 @@ export function ConvocationConfirmationPage() {
   const lotLabel = formatLotLabel(data.unitNumber, data.buildingName);
   const meetingTypeLabel = MEETING_TYPE_LABELS[data.meetingType as MeetingType] ?? data.meetingType;
   const hasAnswered = data.attendanceReply !== 'NO_REPLY';
+  // Held back rather than left to fail on the server: an answer sent without the code comes
+  // back a 400, and telling someone their answer was refused is worse than telling them
+  // beforehand what is still missing.
+  const isMissingLotCode = Boolean(token) && lotCode.trim().length !== 6;
 
   return (
     <AuthLayout>
@@ -196,23 +207,45 @@ export function ConvocationConfirmationPage() {
         {confirm.isError && <Alert message={getErrorMessage(confirm.error)} />}
 
         {data.stillOpen ? (
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button
-              className="sm:flex-1"
-              isLoading={confirm.isPending}
-              variant={data.attendanceReply === 'ATTENDING' ? 'primary' : 'secondary'}
-              onClick={() => confirm.mutate('ATTENDING')}
-            >
-              Je serai présent(e)
-            </Button>
-            <Button
-              className="sm:flex-1"
-              isLoading={confirm.isPending}
-              variant={data.attendanceReply === 'NOT_ATTENDING' ? 'primary' : 'secondary'}
-              onClick={() => confirm.mutate('NOT_ATTENDING')}
-            >
-              Je serai absent(e)
-            </Button>
+          <div className="flex flex-col gap-4">
+            {token && (
+              <div className="flex flex-col gap-1 sm:max-w-xs">
+                <Input
+                  label="Code de votre lot"
+                  name="lotConfirmationCode"
+                  value={lotCode}
+                  placeholder="w754a1"
+                  maxLength={6}
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  onChange={(event) => setLotCode(event.target.value)}
+                />
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  Les six caractères imprimés sur votre convocation, à côté du QR code. Ils confirment que la
+                  réponse vient bien du lot indiqué.
+                </p>
+              </div>
+            )}
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                className="sm:flex-1"
+                isLoading={confirm.isPending}
+                disabled={isMissingLotCode || confirm.isPending}
+                variant={data.attendanceReply === 'ATTENDING' ? 'primary' : 'secondary'}
+                onClick={() => confirm.mutate('ATTENDING')}
+              >
+                Je serai présent(e)
+              </Button>
+              <Button
+                className="sm:flex-1"
+                isLoading={confirm.isPending}
+                disabled={isMissingLotCode || confirm.isPending}
+                variant={data.attendanceReply === 'NOT_ATTENDING' ? 'primary' : 'secondary'}
+                onClick={() => confirm.mutate('NOT_ATTENDING')}
+              >
+                Je serai absent(e)
+              </Button>
+            </div>
           </div>
         ) : (
           // Not an error, and not a dead end either: the visitor followed a link they were

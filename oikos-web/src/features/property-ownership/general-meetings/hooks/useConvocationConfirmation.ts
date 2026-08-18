@@ -17,10 +17,17 @@ export function useConvocationConfirmation(token: string | null) {
   });
 }
 
-export function useConfirmConvocation(token: string | null) {
+/**
+ * The code is a parameter of the hook rather than of the mutation so that both
+ * confirmation paths take the same variables - an AttendanceReply and nothing
+ * else. The page then calls `confirm.mutate('ATTENDING')` without knowing which
+ * of the two it is driving.
+ */
+export function useConfirmConvocation(token: string | null, confirmationCode: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (attendanceReply: AttendanceReply) => confirmConvocation(token!, attendanceReply),
+    mutationFn: (attendanceReply: AttendanceReply) =>
+      confirmConvocation(token!, attendanceReply, confirmationCode),
     // The response is the fresh state of the same thing the query holds, so it is
     // written straight in rather than refetched.
     onSuccess: (confirmation) =>

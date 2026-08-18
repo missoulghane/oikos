@@ -9,6 +9,7 @@ import type {
 } from '@/features/property-mngt/general-meetings/types/generalMeeting.types';
 import { MEETING_STATUS_LABELS } from '@/features/property-mngt/general-meetings/constants/generalMeetingLabels';
 import { Alert } from '@/shared/components/Alert/Alert';
+import { Card } from '@/shared/components/Card/Card';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Pagination } from '@/shared/components/Pagination/Pagination';
@@ -27,10 +28,10 @@ export function GeneralMeetingsListTab() {
   const meetings = useGeneralMeetings(property.id, page, PAGE_SIZE, filters);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <Card className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white/90">Assemblées générales</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Assemblées générales</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Préparer une AG, convoquer les lots, tenir la séance et publier le procès-verbal.
           </p>
@@ -45,55 +46,50 @@ export function GeneralMeetingsListTab() {
         </Link>
       </div>
 
-      {/* No wrapping card: the rows are already framed, and nesting a card inside a card
-          only added a border and 24px of padding around the filter. */}
-      <div className="flex flex-col gap-4">
-        <div className="sm:max-w-xs">
-          <Select
-            label="Statut"
-            name="status"
-            value={filters.status ?? ''}
-            onChange={(event) => {
-              const value = event.target.value;
-              setPage(0);
-              setFilters(value ? { status: value as MeetingStatus } : {});
-            }}
-          >
-            <option value="">Tous les statuts</option>
-            {STATUS_VALUES.map((status) => (
-              <option key={status} value={status}>
-                {MEETING_STATUS_LABELS[status]}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        {meetings.isLoading && <Loader label="Chargement des assemblées…" />}
-        {meetings.isError && <Alert message={getErrorMessage(meetings.error)} />}
-
-        {meetings.data && meetings.data.content.length === 0 && (
-          <EmptyState title="Aucune assemblée générale">
-            Créez une assemblée pour préparer son ordre du jour, puis convoquer les copropriétaires.
-          </EmptyState>
-        )}
-
-        {meetings.data && meetings.data.content.length > 0 && (
-          <ul className="flex flex-col gap-3">
-            {meetings.data.content.map((meeting) => (
-              <li key={meeting.id}>
-                <Link to={`/property-mngt/properties/${property.id}/general-meetings/${meeting.id}`}>
-                  <GeneralMeetingRow meeting={meeting} />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {meetings.data && meetings.data.totalPages > 1 && (
-          <Pagination pageNumber={page} totalPages={meetings.data.totalPages} onPageChange={setPage} />
-        )}
+      <div className="sm:max-w-xs">
+        <Select
+          label="Statut"
+          name="status"
+          value={filters.status ?? ''}
+          onChange={(event) => {
+            const value = event.target.value;
+            setPage(0);
+            setFilters(value ? { status: value as MeetingStatus } : {});
+          }}
+        >
+          <option value="">Tous les statuts</option>
+          {STATUS_VALUES.map((status) => (
+            <option key={status} value={status}>
+              {MEETING_STATUS_LABELS[status]}
+            </option>
+          ))}
+        </Select>
       </div>
 
-    </div>
+      {meetings.isLoading && <Loader label="Chargement des assemblées…" />}
+      {meetings.isError && <Alert message={getErrorMessage(meetings.error)} />}
+
+      {meetings.data && meetings.data.content.length === 0 && (
+        <EmptyState title="Aucune assemblée générale">
+          Créez une assemblée pour préparer son ordre du jour, puis convoquer les copropriétaires.
+        </EmptyState>
+      )}
+
+      {meetings.data && meetings.data.content.length > 0 && (
+        <ul className="flex flex-col gap-3">
+          {meetings.data.content.map((meeting) => (
+            <li key={meeting.id}>
+              <Link to={`/property-mngt/properties/${property.id}/general-meetings/${meeting.id}`}>
+                <GeneralMeetingRow meeting={meeting} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {meetings.data && meetings.data.totalPages > 1 && (
+        <Pagination pageNumber={page} totalPages={meetings.data.totalPages} onPageChange={setPage} />
+      )}
+    </Card>
   );
 }

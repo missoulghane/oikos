@@ -77,14 +77,29 @@ describe('ConvocationConfirmationPage', () => {
 
   it('records an answer without asking for an account', async () => {
     // The whole reason the page exists: no login, no registration, no invitation
-    // to create one - just the question and two buttons.
+    // to create one - the question, the lot's own code, and two buttons.
     mockedConfirm.mockResolvedValue({ ...convocation, attendanceReply: 'ATTENDING', repliedAt: '2026-08-20T09:00:00Z' });
     renderPage();
 
-    await userEvent.click(await screen.findByRole('button', { name: /présent/i }));
+    await userEvent.type(await screen.findByLabelText(/Code de votre lot/i), 'w754a1');
+    await userEvent.click(screen.getByRole('button', { name: /présent/i }));
 
-    await waitFor(() => expect(mockedConfirm).toHaveBeenCalledWith('a-token', 'ATTENDING'));
+    await waitFor(() => expect(mockedConfirm).toHaveBeenCalledWith('a-token', 'ATTENDING', 'w754a1'));
     expect(screen.queryByLabelText(/mot de passe/i)).not.toBeInTheDocument();
+  });
+
+  it('does not answer on the link alone', async () => {
+    // A link is forwarded, printed, left on a table. The code is on the letter, in the
+    // hands of whoever answers for the lot. The API refuses without it; the page says so
+    // before the click rather than after a rejected answer.
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: /présent/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /absent/i })).toBeDisabled();
+
+    await userEvent.type(screen.getByLabelText(/Code de votre lot/i), 'w754');
+    expect(screen.getByRole('button', { name: /présent/i })).toBeDisabled();
+    expect(mockedConfirm).not.toHaveBeenCalled();
   });
 
   it('lets a copropriétaire change their mind', async () => {
@@ -92,9 +107,10 @@ describe('ConvocationConfirmationPage', () => {
     mockedConfirm.mockResolvedValue({ ...convocation, attendanceReply: 'NOT_ATTENDING' });
     renderPage();
 
-    await userEvent.click(await screen.findByRole('button', { name: /absent/i }));
+    await userEvent.type(await screen.findByLabelText(/Code de votre lot/i), 'w754a1');
+    await userEvent.click(screen.getByRole('button', { name: /absent/i }));
 
-    await waitFor(() => expect(mockedConfirm).toHaveBeenCalledWith('a-token', 'NOT_ATTENDING'));
+    await waitFor(() => expect(mockedConfirm).toHaveBeenCalledWith('a-token', 'NOT_ATTENDING', 'w754a1'));
   });
 
   it('explains that confirmations are closed once the session has started', async () => {
@@ -143,6 +159,16 @@ describe('ConvocationConfirmationPage', () => {
 
     await waitFor(() => expect(mockedGetByCode).toHaveBeenCalledWith('x7k2m9', 'w754a1'));
     expect(await screen.findByText(/Bâtiment A — Appartement 1/)).toBeInTheDocument();
+  });
+
+  it('does not ask for the code twice on the paper path', async () => {
+    // It was already typed to get here, and asking again would read as a refusal of the
+    // code the visitor has just entered.
+    mockedGetByCode.mockResolvedValue(convocation);
+    renderPage('?ag=x7k2m9&code=w754a1');
+
+    expect(await screen.findByRole('button', { name: /présent/i })).toBeEnabled();
+    expect(screen.queryByLabelText(/Code de votre lot/i)).not.toBeInTheDocument();
   });
 
   it('reads both codes straight from the URL, as the QR code supplies them', async () => {

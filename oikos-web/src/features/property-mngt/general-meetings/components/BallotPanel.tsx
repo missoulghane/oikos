@@ -6,6 +6,7 @@ import {
   useRecordShowOfHands,
 } from '@/features/property-mngt/general-meetings/hooks/useMeetingMutations';
 import { useAgendaItemResult } from '@/features/property-mngt/general-meetings/hooks/useAgendaItemResult';
+import { useVotes } from '@/features/property-mngt/general-meetings/hooks/useVotes';
 import {
   MAJORITY_RULE_LABELS,
   VOTE_CHOICE_COLORS,
@@ -43,11 +44,20 @@ interface BallotPanelProps {
  * are all displayed under the result: the applied rule uses one of them, and a
  * contested outcome has to be readable against the other two.
  *
+ * <p>Each lot carries the vote already on record for it, badge and filled
+ * button. A roll call is read down a list and voted across it, and without that
+ * mark the only way to know whether a lot had already been called was to
+ * remember.
+ *
  * <p>Collapsed unless its ballot is open. A meeting has as many panels as it
  * has agenda items, and only one of them is ever being voted on; showing them
  * all unfolded turned the session tab into a page nobody could find their
  * place in. SessionTab remounts the panel when the ballot status changes, so
  * opening a ballot unfolds it.
+ *
+ * <p>Closing a ballot takes away the voting controls, never the roll: the
+ * per-lot detail stays readable on a closed ballot, because it is what a
+ * contested result is checked against and what the minutes are written from.
  */
 export function BallotPanel({ meetingId, item, position, convocations, sessionInProgress }: BallotPanelProps) {
   const openBallot = useOpenVoteSession(meetingId);
@@ -60,7 +70,21 @@ export function BallotPanel({ meetingId, item, position, convocations, sessionIn
 
   const presentLots = convocations.filter((convocation) => convocation.checkedIn);
   const isOpen = item.voteSessionStatus === 'OPEN';
+  // A ballot that was held, open or closed. Closing it settles the votes, it does not hide
+  // them: the roll is what a contested result is checked against, and what the minutes are
+  // written from - it has to stay readable once the ballot is over.
+  const hasBallot = item.voteSessionStatus !== 'NOT_OPENED';
   const error = openBallot.error ?? closeBallot.error ?? castVote.error ?? showOfHands.error;
+
+  // Only while the panel is unfolded: this is one request per agenda item, and a session
+  // tab holds as many panels as the meeting has points.
+  const votes = useVotes(item.id, isOpenPanel && hasBallot);
+  // What each lot has on record, so a vote stays readable after it is cast - the roll is
+  // gone through lot by lot, and "where was I" is the question it has to answer.
+  const choiceByUnitId = new Map((votes.data ?? []).map((vote) => [vote.unitId, vote.choice]));
+  // Which button is actually waiting, not all of them: one mutation drives the whole roll,
+  // so isPending alone would turn every button of every lot into "Chargement…".
+  const pendingVote = castVote.isPending ? castVote.variables : undefined;
 
   return (
     <Card className="flex flex-col gap-4">
@@ -113,7 +137,7 @@ export function BallotPanel({ meetingId, item, position, convocations, sessionIn
               <Button
                 key={choice}
                 variant="secondary"
-                isLoading={showOfHands.isPending}
+                isLoading={showOfHands.isPending && showOfHands.variables?.payload.defaultChoice === choice}
                 onClick={() => showOfHands.mutate({ agendaItemId: item.id, payload: { defaultChoice: choice } })}
               >
                 Tous {VOTE_CHOICE_LABELS[choice].toLowerCase()}
@@ -123,42 +147,72 @@ export function BallotPanel({ meetingId, item, position, convocations, sessionIn
           <p className="text-xs text-gray-400 dark:text-gray-500">
             Le vote à main levée ne s'applique qu'aux {presentLots.length} lot(s) émargé(s) — jamais aux absents.
           </p>
+        </div>
+      )}
 
-          <button
-            type="button"
+      {/* Its own block, on every ballot that was held rather than on an open one only:
+          closing settles the votes, it does not put them away. */}
+      {isOpenPanel && hasBallot && (
+        <div className="flex flex-col gap-3">
+          {/* A button, like every other control of this panel. As a bare text link under the
+              show-of-hands row it read as a footnote, and the roll call - the ordinary way
+              a ballot is held - looked like it did not exist. */}
+          <Button
+            variant="secondary"
+            className="w-fit"
+            aria-expanded={expanded}
             onClick={() => setExpanded((value) => !value)}
-            className="w-fit text-sm text-brand-500 hover:underline"
           >
-            {expanded ? 'Masquer le vote nominatif' : 'Vote nominatif, lot par lot'}
-          </button>
+            {expanded ? 'Masquer le détail des votes' : 'Détail des votes, lot par lot'}
+          </Button>
 
           {expanded && (
             <ul className="flex flex-col gap-2">
-              {presentLots.map((convocation) => (
-                <li
-                  key={convocation.id}
-                  className="flex flex-col gap-2 rounded-lg border border-gray-200 dark:border-gray-800 p-2 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <span className="text-sm text-gray-900 dark:text-white/90">
-                    {formatLotLabel(convocation.unitNumber, convocation.buildingName)} ·{' '}
-                    {formatWeight(convocation.votingWeight)} voix
-                  </span>
-                  <div className="flex gap-2">
-                    {CHOICES.map((choice) => (
-                      <Button
-                        key={choice}
-                        variant="secondary"
-                        isLoading={castVote.isPending}
-                        onClick={() =>
-                          castVote.mutate({ agendaItemId: item.id, unitId: convocation.unitId, choice })
-                        }
-                      >
-                        {VOTE_CHOICE_LABELS[choice]}
-                      </Button>
-                    ))}
-                  </div>
-                </li>
-              ))}
+              {presentLots.map((convocation) => {
+                const castChoice = choiceByUnitId.get(convocation.unitId);
+                return (
+                  <li
+                    key={convocation.id}
+                    className="flex flex-col gap-2 rounded-lg border border-gray-200 dark:border-gray-800 p-2 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <span className="flex flex-wrap items-center gap-2 text-sm text-gray-900 dark:text-white/90">
+                      {formatLotLabel(convocation.unitNumber, convocation.buildingName)} ·{' '}
+                      {formatWeight(convocation.votingWeight)} voix
+                      {/* The badge says what is on record; the filled button says the same thing
+                          where the hand is about to click. Both, because the roll is read down
+                          the list and voted across it. */}
+                      {castChoice ? (
+                        <Badge color={VOTE_CHOICE_COLORS[castChoice]}>{VOTE_CHOICE_LABELS[castChoice]}</Badge>
+                      ) : (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          {isOpen ? 'Pas encore voté' : 'N’a pas voté'}
+                        </span>
+                      )}
+                    </span>
+                    {/* No buttons once the ballot is closed: the API refuses a vote on a closed
+                        session, and offering three buttons that can only fail is worse than
+                        offering none. The badge above carries the whole answer. */}
+                    {isOpen && (
+                      <div className="flex gap-2">
+                        {CHOICES.map((choice) => (
+                          <Button
+                            key={choice}
+                            variant={castChoice === choice ? 'primary' : 'secondary'}
+                            isLoading={
+                              pendingVote?.unitId === convocation.unitId && pendingVote?.choice === choice
+                            }
+                            onClick={() =>
+                              castVote.mutate({ agendaItemId: item.id, unitId: convocation.unitId, choice })
+                            }
+                          >
+                            {VOTE_CHOICE_LABELS[choice]}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

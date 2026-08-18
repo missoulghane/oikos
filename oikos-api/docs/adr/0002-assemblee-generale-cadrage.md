@@ -652,3 +652,60 @@ seule se contentait d'un compte lié. Un copropriétaire disposant d'un compte m
 sans rattachement à la copropriété n'est plus joignable par ce canal — ce qui est
 cohérent, puisqu'il ne verrait aucune messagerie. Ces lots sortent en `FAILED`,
 et c'est ce qui dit au syndic de les convoquer autrement.
+
+### 16. Répondre par le lien demande aussi le code du lot (décision du 2026-08-18)
+
+Le §10 a fait du jeton la seule pièce à présenter : le lien ouvrait la page
+*et* enregistrait la réponse. Le §13 a ajouté un code à six caractères par
+convocation, mais **seulement sur la voie papier** — qui scannait le QR code
+n'avait rien à saisir.
+
+Ce que cela laissait faire : un lien se transfère, s'imprime, reste ouvert sur
+un écran, traîne sur une table. Quiconque l'avait sous les yeux répondait au nom
+du lot en un clic, et la réponse s'enregistrait `OWNER_LINK` sans que personne
+ne puisse dire qu'elle ne venait pas du copropriétaire.
+
+**Décision** : lire la page demande le lien ; **enregistrer une réponse demande
+le lien et le code du lot**.
+
+1. **La lecture reste ouverte au lien seul.** Il faut voir de quelle assemblée
+   et de quel lot il s'agit *avant* de saisir quoi que ce soit — sans quoi on
+   demanderait un code pour une page dont on ignore l'objet. Et une convocation
+   consultable est ce qui a justifié la page depuis le début.
+
+2. **Le code est vérifié côté serveur**, dans `ConvocationByTokenService`, pas
+   seulement demandé par la page. Un contrôle qui ne vit que dans le front n'en
+   est pas un : l'endpoint est anonyme et public, et `PUT .../reply` sans le
+   champ répondrait toujours. `ConfirmConvocationByTokenRequest` porte donc le
+   code en `@NotBlank`, et un test de tranche web épingle le refus — c'est
+   précisément par la disparition silencieuse du champ que la règle se
+   déferait.
+
+3. **Les tentatives sont plafonnées comme sur la voie papier**, même compteur et
+   même clé (`ConfirmationAttemptLimiterPort`, §13). Sans cela, un lien fuité
+   redeviendrait six caractères à parcourir — c'est-à-dire exactement la
+   situation contre laquelle ce contrôle existe.
+
+4. **Un code faux est nommé comme tel**, contrairement à une paire fausse sur la
+   voie papier (`InvalidConfirmationCodeException`, 400, distincte de
+   `InvalidConvocationTokenException`). Ce n'est pas un oracle : qui tient le
+   lien voit déjà le lot que la page nomme. Répondre « ce lien n'est pas
+   valide » à qui a mal recopié un caractère l'enverrait chercher une nouvelle
+   convocation.
+
+5. **La voie papier ne demande rien de plus** : le code y a déjà été saisi pour
+   arriver sur la page. Le redemander se lirait comme un refus du code qu'on
+   vient de taper.
+
+**Ce que ce contrôle vaut, exactement.** Sur la lettre, le code est imprimé à
+côté du QR code : qui tient la lettre tient les deux. Le gain n'est donc pas
+cryptographique, il est de **provenance** — la réponse suppose la convocation en
+main, et non le seul lien qui a pu être relayé. C'est pour la même raison que
+l'email de convocation **annonce** le code sans l'imprimer : un message portant
+les deux répondrait à sa propre question.
+
+**Conséquences** : `ConfirmConvocationByTokenCommand` gagne le code et
+l'identifiant d'appelant (l'IP, déduite de la requête et jamais lue du corps,
+comme au §13) ; le PDF présente désormais le code du lot en premier et la
+référence comme le complément de qui n'a pas de téléphone ; et la page publique
+demande les six caractères avant d'activer ses deux boutons.

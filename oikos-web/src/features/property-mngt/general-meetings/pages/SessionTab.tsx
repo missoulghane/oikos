@@ -31,8 +31,14 @@ export function SessionTab() {
   const openMeeting = useOpenGeneralMeeting(meeting.id);
   const closeMeeting = useCloseGeneralMeeting(meeting.id);
   const [confirmForce, setConfirmForce] = useState(false);
+  // Unfolded until the session is under way, folded from then on: at that point the tab is
+  // about the ballots, and sixty lots stood between the syndic and them. Held in state and
+  // not derived on every render - a latecomer has to be signed in mid-session, so unfolding
+  // it again must stick.
+  const [showCheckIn, setShowCheckIn] = useState(meeting.status !== 'IN_PROGRESS');
 
   const rows = convocations.data ?? [];
+  const checkedInCount = rows.filter((convocation) => convocation.checkedIn).length;
   const canCheckIn = meeting.status === 'CONVENED' || meeting.status === 'IN_PROGRESS';
   const quorumMissing = summary.data ? summary.data.quorumRequired && !summary.data.quorumReached : false;
 
@@ -100,67 +106,83 @@ export function SessionTab() {
       </Card>
 
       <Card className="flex flex-col gap-4">
-        <div>
-          <h3 className="font-medium text-gray-900 dark:text-white/90">Émargement</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Seul un lot émargé peut voter, et seul son poids compte pour le quorum. Une réponse « présent » ne
-            suffit pas.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h3 className="font-medium text-gray-900 dark:text-white/90">
+              Émargement{' '}
+              <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                {checkedInCount}/{rows.length}
+              </span>
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Seul un lot émargé peut voter, et seul son poids compte pour le quorum. Une réponse « présent » ne
+              suffit pas.
+            </p>
+          </div>
+          {/* The count stays in the heading while folded: it is the one figure the syndic would
+              otherwise unfold the whole sheet to read. */}
+          <Button variant="secondary" aria-expanded={showCheckIn} onClick={() => setShowCheckIn((value) => !value)}>
+            {showCheckIn ? 'Replier' : 'Déplier'}
+          </Button>
         </div>
-        {convocations.isLoading && <Loader label="Chargement de la feuille de présence…" />}
-        {convocations.isError && <Alert message={getErrorMessage(convocations.error)} />}
-        {checkIn.isError && <Alert message={getErrorMessage(checkIn.error)} />}
-        {undo.isError && <Alert message={getErrorMessage(undo.error)} />}
+        {showCheckIn && (
+          <>
+            {convocations.isLoading && <Loader label="Chargement de la feuille de présence…" />}
+            {convocations.isError && <Alert message={getErrorMessage(convocations.error)} />}
+            {checkIn.isError && <Alert message={getErrorMessage(checkIn.error)} />}
+            {undo.isError && <Alert message={getErrorMessage(undo.error)} />}
 
-        {convocations.data && rows.length === 0 && (
-          <EmptyState title="Aucune convocation">Générez les convocations pour établir la feuille de présence.</EmptyState>
-        )}
+            {convocations.data && rows.length === 0 && (
+              <EmptyState title="Aucune convocation">Générez les convocations pour établir la feuille de présence.</EmptyState>
+            )}
 
-        {rows.length > 0 && (
-          <ul className="flex flex-col gap-2">
-            {rows.map((convocation) => (
-              <li
-                key={convocation.id}
-                className="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-gray-800 p-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex flex-col">
-                  <span className="text-gray-900 dark:text-white/90">
-                    {formatLotLabel(convocation.unitNumber, convocation.buildingName)}
-                  </span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {formatWeight(convocation.votingWeight)} voix
-                    {convocation.checkedIn && convocation.attendanceMode
-                      ? ` · émargé (${ATTENDANCE_MODE_LABELS[convocation.attendanceMode].toLowerCase()})`
-                      : ''}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {convocation.checkedIn ? (
-                    <Button variant="secondary" disabled={!canCheckIn} onClick={() => undo.mutate(convocation.id)}>
-                      Annuler l'émargement
-                    </Button>
-                  ) : (
-                    <>
-                      <Button
-                        variant="secondary"
-                        disabled={!canCheckIn}
-                        onClick={() => checkIn.mutate({ convocationId: convocation.id, mode: 'ON_SITE' })}
-                      >
-                        Présent sur place
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        disabled={!canCheckIn}
-                        onClick={() => checkIn.mutate({ convocationId: convocation.id, mode: 'REMOTE' })}
-                      >
-                        À distance
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+            {rows.length > 0 && (
+              <ul className="flex flex-col gap-2">
+                {rows.map((convocation) => (
+                  <li
+                    key={convocation.id}
+                    className="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-gray-800 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-gray-900 dark:text-white/90">
+                        {formatLotLabel(convocation.unitNumber, convocation.buildingName)}
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {formatWeight(convocation.votingWeight)} voix
+                        {convocation.checkedIn && convocation.attendanceMode
+                          ? ` · émargé (${ATTENDANCE_MODE_LABELS[convocation.attendanceMode].toLowerCase()})`
+                          : ''}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {convocation.checkedIn ? (
+                        <Button variant="secondary" disabled={!canCheckIn} onClick={() => undo.mutate(convocation.id)}>
+                          Annuler l'émargement
+                        </Button>
+                      ) : (
+                        <>
+                          <Button
+                            variant="secondary"
+                            disabled={!canCheckIn}
+                            onClick={() => checkIn.mutate({ convocationId: convocation.id, mode: 'ON_SITE' })}
+                          >
+                            Présent sur place
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            disabled={!canCheckIn}
+                            onClick={() => checkIn.mutate({ convocationId: convocation.id, mode: 'REMOTE' })}
+                          >
+                            À distance
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
         )}
       </Card>
 

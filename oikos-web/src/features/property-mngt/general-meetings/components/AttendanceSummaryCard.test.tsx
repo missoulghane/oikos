@@ -40,4 +40,14 @@ describe('AttendanceSummaryCard', () => {
 
     expect(screen.getByText('400 voix sur 1 000')).toBeInTheDocument();
   });
+
+  it('drops the émargement count and the quorum badge where the session has not opened', () => {
+    // The Convocations tab: both are facts of the session, and both would read "0" and
+    // "non atteint" from the first sending to the opening, about a room nobody has entered.
+    render(<AttendanceSummaryCard summary={{ ...base, quorumPercentage: 50, quorumRequired: true }} showAttendance={false} />);
+
+    expect(screen.getByText('Convocations envoyées')).toBeInTheDocument();
+    expect(screen.queryByText('Émargés')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Quorum/)).not.toBeInTheDocument();
+  });
 });

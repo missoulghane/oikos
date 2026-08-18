@@ -97,6 +97,12 @@ class ConvocationEmailComposer {
      * have an account. Naming the link first is deliberate: the previous wording
      * pointed everyone at "votre espace copropriétaire", which a large share of
      * recipients do not have and cannot get - they simply had no way to answer.
+     *
+     * <p>It says the page will ask for the lot's code, and deliberately does not
+     * print it. An email carrying both the link and the code would answer its own
+     * question, which is the whole of what the code is there to prevent (ADR 0002
+     * §16). "Sur votre convocation" rather than "sur la convocation jointe": a
+     * reminder carries no PDF, and the recipient has the first email.
      */
     private static String confirmationBlock(String confirmationLink) {
         if (confirmationLink == null || confirmationLink.isBlank()) {
@@ -106,6 +112,9 @@ class ConvocationEmailComposer {
                 <p>Merci d'indiquer votre présence ou votre absence en suivant ce lien personnel,
                     sans avoir besoin de compte :<br/>
                     <a href="%s">%s</a></p>
+                <p>La page vous demandera le <strong>code de votre lot</strong> : les six caractères imprimés
+                    sur votre convocation, à côté du QR code. Il atteste que la réponse vient bien de votre
+                    lot.</p>
                 <p style="color:#667085;font-size:12px;">Ce lien vaut pour le lot ci-dessus : ne le transmettez
                     qu'aux personnes autorisées à répondre pour lui.</p>
                 """.formatted(escape(confirmationLink), escape(confirmationLink));

@@ -1,14 +1,11 @@
 import type { Convocation } from '@/features/property-mngt/general-meetings/types/convocation.types';
 import {
   ATTENDANCE_REPLY_LABELS,
-  CONVOCATION_STATUS_COLORS,
-  CONVOCATION_STATUS_LABELS,
   DELIVERY_STATUS_LABELS,
 } from '@/features/property-mngt/general-meetings/constants/generalMeetingLabels';
 import { formatLotLabel, formatWeight } from '@/features/property-mngt/general-meetings/utils/formatMeeting';
 import type { ConvocationSortField } from '@/features/property-mngt/general-meetings/utils/filterConvocations';
 import { Link } from 'react-router-dom';
-import { Badge } from '@/shared/components/Badge/Badge';
 import { SortableColumnHeader } from '@/shared/components/SortableColumnHeader/SortableColumnHeader';
 import type { SortDirection } from '@/shared/utils/sorting';
 
@@ -31,8 +28,14 @@ interface ConvocationTrackingTableProps {
  * number, and the shortcut silently borrowed both from a dropdown sitting above
  * the table.
  *
+ * <p>No synthetic status column. Its top value is "Émargé", which this screen
+ * has no business showing: the tab covers the convocation from its sending to
+ * the opening of the session, and signing the room in belongs to the Séance
+ * tab. What is left of that status - "à envoyer", "envoyée" - is already the
+ * Envoi column, said with the channels and the reminders besides.
+ *
  * <p>Two layouts for the same data: stacked cards below `sm`, the table above
- * it. Six columns cannot be read on a phone.
+ * it. Five columns cannot be read on a phone.
  */
 export function ConvocationTrackingTable({
   convocations,
@@ -77,17 +80,12 @@ export function ConvocationTrackingTable({
             key={convocation.id}
             className="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-gray-800 p-3"
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Link
-                to={detailPathOf(convocation.id)}
-                className="font-medium text-gray-900 dark:text-white/90 hover:underline"
-              >
-                {formatLotLabel(convocation.unitNumber, convocation.buildingName)}
-              </Link>
-              <Badge color={CONVOCATION_STATUS_COLORS[convocation.status]}>
-                {CONVOCATION_STATUS_LABELS[convocation.status]}
-              </Badge>
-            </div>
+            <Link
+              to={detailPathOf(convocation.id)}
+              className="font-medium text-gray-900 dark:text-white/90 hover:underline"
+            >
+              {formatLotLabel(convocation.unitNumber, convocation.buildingName)}
+            </Link>
             <p className="text-sm text-gray-500 dark:text-gray-400">{ownerLabel(convocation)}</p>
             <p className="text-sm text-gray-400 dark:text-gray-500">
               {formatWeight(convocation.votingWeight)} voix · {deliveryLabel(convocation)} ·{' '}
@@ -98,7 +96,7 @@ export function ConvocationTrackingTable({
       </ul>
 
       <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full min-w-[44rem] text-left text-sm">
+        <table className="w-full min-w-[38rem] text-left text-sm">
           <thead className="text-gray-500 dark:text-gray-400">
             <tr className="border-b border-gray-200 dark:border-gray-800">
               <SortableColumnHeader field="LOT" activeField={sortBy} direction={sortDirection} onSort={onSort}>
@@ -111,8 +109,7 @@ export function ConvocationTrackingTable({
               <SortableColumnHeader field="SENT_AT" activeField={sortBy} direction={sortDirection} onSort={onSort}>
                 Envoi
               </SortableColumnHeader>
-              <th className="py-2 pr-4 font-normal">Réponse</th>
-              <th className="py-2 font-normal">Statut</th>
+              <th className="py-2 font-normal">Réponse</th>
             </tr>
           </thead>
           <tbody>
@@ -131,13 +128,8 @@ export function ConvocationTrackingTable({
                   {formatWeight(convocation.votingWeight)}
                 </td>
                 <td className="py-3 pr-4 text-gray-500 dark:text-gray-400">{deliveryLabel(convocation)}</td>
-                <td className="py-3 pr-4 text-gray-500 dark:text-gray-400">
+                <td className="py-3 text-gray-500 dark:text-gray-400">
                   {ATTENDANCE_REPLY_LABELS[convocation.attendanceReply]}
-                </td>
-                <td className="py-3">
-                  <Badge color={CONVOCATION_STATUS_COLORS[convocation.status]}>
-                    {CONVOCATION_STATUS_LABELS[convocation.status]}
-                  </Badge>
                 </td>
               </tr>
             ))}

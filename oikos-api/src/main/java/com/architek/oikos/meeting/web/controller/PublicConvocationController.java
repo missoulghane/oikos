@@ -19,6 +19,7 @@ import com.architek.oikos.meeting.application.port.in.GetConvocationByTokenUseCa
 import com.architek.oikos.meeting.application.query.GetConvocationByCodeQuery;
 import com.architek.oikos.meeting.application.query.GetConvocationByTokenQuery;
 import com.architek.oikos.meeting.domain.valueobject.ShortCode;
+import com.architek.oikos.meeting.web.request.ConfirmConvocationByTokenRequest;
 import com.architek.oikos.meeting.web.request.ConfirmConvocationRequest;
 import com.architek.oikos.meeting.web.response.ConvocationConfirmationResponse;
 
@@ -63,11 +64,23 @@ public class PublicConvocationController {
                 getConvocationByTokenUseCase.getByToken(new GetConvocationByTokenQuery(token)));
     }
 
+    /**
+     * Answering takes the token <em>and</em> the lot's six-character code, the
+     * one printed beside the QR code on the convocation. Reading the page needs
+     * only the link; recording an answer in a lot's name asks for the letter
+     * itself (ADR 0002 §16).
+     *
+     * <p>The caller's IP is read here exactly as on the paper path below, and
+     * never trusted from the body: it feeds the attempt cap that keeps a
+     * six-character code from being tried in a loop.
+     */
     @PutMapping("/{token}/reply")
     public ConvocationConfirmationResponse confirm(@PathVariable String token,
-                                                     @Valid @RequestBody ConfirmConvocationRequest request) {
+                                                     @Valid @RequestBody ConfirmConvocationByTokenRequest body,
+                                                     HttpServletRequest request) {
         return ConvocationConfirmationResponse.from(confirmConvocationByTokenUseCase.confirm(
-                new ConfirmConvocationByTokenCommand(token, request.attendanceReply())));
+                new ConfirmConvocationByTokenCommand(token, ShortCode.ofNullable(body.confirmationCode()),
+                        body.attendanceReply(), callerIdOf(request))));
     }
 
     /**

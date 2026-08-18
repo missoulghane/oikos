@@ -48,6 +48,18 @@ interface QuillEditorProps {
   minHeight?: number;
   autoFocus?: boolean;
   ariaLabel?: string;
+  /**
+   * Adds the heading dropdown. Only read at mount, like `defaultValue`.
+   *
+   * <p>Off by default, and that default is a rule rather than a taste: what the
+   * toolbar can produce is what sanitizeRichText allows through, and headings
+   * are not on that list. They are on sanitizeDocumentHtml's, which is why the
+   * one editor that turns this on is the minutes - a document with sections,
+   * composed by the API with h1/h2/h3 already in it. Enabling it on a field
+   * displayed with the narrow allow-list would let a person write headings that
+   * are then silently stripped when read back.
+   */
+  headings?: boolean;
 }
 
 const TOOLBAR_OPTIONS = [
@@ -57,6 +69,8 @@ const TOOLBAR_OPTIONS = [
   ['link'],
   ['clean'],
 ];
+
+const HEADING_OPTION = [{ header: [1, 2, 3, false] }];
 
 // Quill's empty document is "<p><br></p>", not "" - normalized to an actual
 // empty string so react-hook-form's min(1) "message can't be empty" check
@@ -83,6 +97,7 @@ export function QuillEditor({
   minHeight = 80,
   autoFocus = false,
   ariaLabel,
+  headings = false,
 }: QuillEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const quillRef = useRef<Quill | null>(null);
@@ -113,7 +128,7 @@ export function QuillEditor({
     const quill = new Quill(editorRoot, {
       theme: 'snow',
       placeholder,
-      modules: { toolbar: TOOLBAR_OPTIONS },
+      modules: { toolbar: headings ? [HEADING_OPTION, ...TOOLBAR_OPTIONS] : TOOLBAR_OPTIONS },
     });
     quillRef.current = quill;
     if (ariaLabel) {

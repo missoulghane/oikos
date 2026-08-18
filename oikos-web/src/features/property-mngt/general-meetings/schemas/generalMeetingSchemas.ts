@@ -28,7 +28,10 @@ export type CreateGeneralMeetingFormValues = z.infer<typeof createGeneralMeeting
 
 export const agendaItemSchema = z.object({
   label: z.string().trim().min(1, 'Un libellé est requis').max(200, 'Libellé limité à 200 caractères'),
-  description: z.string().trim().max(4000, 'Description limitée à 4000 caractères').optional(),
+  // 20 000, like a meeting's comment: the column is `text`, the 4 000 that stood here came
+  // from nothing but caution, and a point of an agenda carries the resolution as it will be
+  // put to the vote - a full paragraph of contract terms, not a note.
+  description: z.string().trim().max(20000, 'Description limitée à 20 000 caractères').optional(),
   majorityRule: z.enum(['SIMPLE', 'ABSOLUTE', 'UNANIMITY']),
 });
 

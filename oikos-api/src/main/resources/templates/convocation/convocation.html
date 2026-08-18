@@ -108,6 +108,10 @@
       Le QR encode le lien à JETON, jamais le code court : un scan n'a aucune raison de
       se rabattre sur le secret faible.
 
+      Le code du lot, lui, est demandé sur les trois voies : il est ce qui atteste que la
+      réponse vient du lot et non de qui a reçu le lien (ADR 0002 §16). D'où sa place ici,
+      annoncé avant la référence et non plus comme le repli de qui n'a pas de téléphone.
+
       L'image est une data: URI - openhtmltopdf ne reçoit aucune base URI et n'atteindrait
       pas une ressource externe. Balise fermée : le gabarit doit rester du XML bien formé.
     -->
@@ -121,11 +125,11 @@
                 <p><strong>Confirmez votre présence ou votre absence</strong> — aucun compte n'est nécessaire.</p>
                 <p>Scannez le QR code, ou rendez-vous à l'adresse :</p>
                 <p class="confirm-link" th:text="${confirmationLink}">—</p>
-                <p th:if="${confirmationCode != null}">Sans téléphone, saisissez ces deux codes sur la page
-                    de confirmation :<br/>
-                    Référence de l'assemblée : <span class="confirm-code"
-                        th:text="${meetingPublicReference}">—</span><br/>
-                    Code de votre lot : <span class="confirm-code" th:text="${confirmationCode}">—</span></p>
+                <p th:if="${confirmationCode != null}">La page vous demandera le code de votre lot, qui
+                    atteste que la réponse vient bien de vous :<br/>
+                    Code de votre lot : <span class="confirm-code" th:text="${confirmationCode}">—</span><br/>
+                    Sans téléphone, saisissez-le sur la page de confirmation avec la référence de
+                    l'assemblée : <span class="confirm-code" th:text="${meetingPublicReference}">—</span></p>
                 <p class="confirm-warning">Ces informations valent pour le lot indiqué ci-dessus : ne les
                     communiquez qu'aux personnes autorisées à répondre pour lui.</p>
             </td>

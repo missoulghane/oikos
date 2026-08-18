@@ -22,6 +22,7 @@ import com.architek.oikos.meeting.application.query.GetConvocationByCodeQuery;
 import com.architek.oikos.meeting.application.query.GetConvocationByTokenQuery;
 import com.architek.oikos.meeting.domain.exception.ConfirmationClosedException;
 import com.architek.oikos.meeting.domain.exception.GeneralMeetingNotFoundException;
+import com.architek.oikos.meeting.domain.exception.InvalidConfirmationCodeException;
 import com.architek.oikos.meeting.domain.exception.InvalidConvocationTokenException;
 import com.architek.oikos.meeting.domain.exception.TooManyConfirmationAttemptsException;
 import com.architek.oikos.meeting.domain.model.Convocation;
@@ -49,9 +50,11 @@ import com.architek.oikos.meeting.domain.valueobject.ShortCode;
  * <p>Both entry points are anonymous, which shapes the whole class:
  *
  * <ul>
- * <li>The token is the only credential, so it is the only thing looked up. An
- * unknown one yields the same flat "not valid" for every wrong token - saying
- * more would turn the endpoint into an oracle.</li>
+ * <li>The token is the only thing looked up. An unknown one yields the same
+ * flat "not valid" for every wrong token - saying more would turn the endpoint
+ * into an oracle. It is the whole credential for <em>reading</em> the page;
+ * recording an answer also takes the lot's six-character code (ADR 0002
+ * §16).</li>
  * <li>The view is deliberately narrow (see ConvocationConfirmationView): a
  * leaked link must expose one lot's convocation and nothing of the
  * copropriété.</li>
@@ -107,11 +110,50 @@ public class ConvocationByTokenService implements GetConvocationByTokenUseCase, 
         return toView(convocation, requireMeetingOf(convocation));
     }
 
+    /**
+     * Reading the page takes the link; answering takes the link <em>and</em> the
+     * lot's code.
+     *
+     * <p>The token says the convocation was received, never by whom. It is
+     * forwarded, printed, left on a table, and it opens a page whose two buttons
+     * would otherwise let anyone holding it answer in the lot's name. The code
+     * asks for the letter itself, which is what the person answering for the lot
+     * has in hand (ADR 0002 §16).
+     */
     @Override
     @Transactional
     public ConvocationConfirmationView confirm(ConfirmConvocationByTokenCommand command) {
         Convocation convocation = require(command.token());
-        return record(convocation, requireMeetingOf(convocation), command.attendanceReply());
+        GeneralMeeting meeting = requireMeetingOf(convocation);
+        requireCodeOf(convocation, meeting, command.confirmationCode(), command.callerId());
+        return record(convocation, meeting, command.attendanceReply());
+    }
+
+    /**
+     * The code, checked against the convocation the token already found - and
+     * capped exactly like the paper path.
+     *
+     * <p>The cap is not decoration here either: without it, a leaked link would
+     * turn into six characters to walk, and the link is the very thing whose
+     * leaking this check exists to survive. Same key as the paper path, so
+     * attempts on one meeting count together whichever door they come through.
+     *
+     * <p>A wrong code is named as such, unlike a wrong pair of codes. Nothing is
+     * given away by it: whoever holds the link is already looking at the lot the
+     * page names, and telling them "this link is not valid" would send someone
+     * who mistyped one character looking for a new convocation.
+     */
+    private void requireCodeOf(Convocation convocation, GeneralMeeting meeting, ShortCode submitted,
+                                String callerId) {
+        String limiterKey = meeting.getPublicReference().value();
+        if (!attemptLimiter.isAllowed(limiterKey, callerId)) {
+            throw new TooManyConfirmationAttemptsException();
+        }
+        if (submitted == null || !submitted.equals(convocation.getConfirmationCode())) {
+            attemptLimiter.recordFailure(limiterKey, callerId);
+            throw new InvalidConfirmationCodeException();
+        }
+        attemptLimiter.recordSuccess(limiterKey, callerId);
     }
 
     /**

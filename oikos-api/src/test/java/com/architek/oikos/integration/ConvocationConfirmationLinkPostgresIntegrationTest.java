@@ -40,6 +40,7 @@ import com.architek.oikos.meeting.application.query.GetConvocationByTokenQuery;
 import com.architek.oikos.meeting.application.query.GetConvocationQuery;
 import com.architek.oikos.meeting.application.query.ListConvocationsByMeetingQuery;
 import com.architek.oikos.meeting.domain.exception.ConfirmationClosedException;
+import com.architek.oikos.meeting.domain.exception.InvalidConfirmationCodeException;
 import com.architek.oikos.meeting.domain.exception.InvalidConvocationTokenException;
 import com.architek.oikos.meeting.domain.exception.TooManyConfirmationAttemptsException;
 import com.architek.oikos.meeting.domain.valueobject.AttendanceReply;
@@ -303,8 +304,8 @@ class ConvocationConfirmationLinkPostgresIntegrationTest extends PostgresIntegra
     void an_answer_through_the_link_is_recorded_as_coming_from_the_link() {
         // The whole point: this source cannot be reached from the authenticated endpoint,
         // and cannot be claimed by a client either - being here is what proves it.
-        confirmConvocationByTokenUseCase.confirm(
-                new ConfirmConvocationByTokenCommand(tokenOf(firstUnitId), AttendanceReply.ATTENDING));
+        confirmConvocationByTokenUseCase.confirm(new ConfirmConvocationByTokenCommand(tokenOf(firstUnitId),
+                codeOf(firstUnitId), AttendanceReply.ATTENDING, "203.0.113.20"));
 
         ConvocationView convocation = convocationOf(firstUnitId);
         assertThat(convocation.attendanceReply()).isEqualTo(AttendanceReply.ATTENDING);
@@ -313,11 +314,72 @@ class ConvocationConfirmationLinkPostgresIntegrationTest extends PostgresIntegra
     }
 
     @Test
+    void the_link_alone_does_not_answer_for_a_lot() {
+        // A link is forwarded, printed, left on a table. Reading the page takes the link;
+        // answering takes the code printed on the letter too (ADR 0002 §16).
+        assertThatThrownBy(() -> confirmConvocationByTokenUseCase.confirm(new ConfirmConvocationByTokenCommand(
+                tokenOf(firstUnitId), null, AttendanceReply.ATTENDING, "203.0.113.30")))
+                .isInstanceOf(InvalidConfirmationCodeException.class);
+
+        assertThatThrownBy(() -> confirmConvocationByTokenUseCase.confirm(new ConfirmConvocationByTokenCommand(
+                tokenOf(firstUnitId), ShortCode.of("zzzzzz"), AttendanceReply.ATTENDING, "203.0.113.31")))
+                .isInstanceOf(InvalidConfirmationCodeException.class);
+
+        assertThat(convocationOf(firstUnitId).attendanceReply()).isEqualTo(AttendanceReply.NO_REPLY);
+    }
+
+    @Test
+    void another_lots_code_does_not_answer_for_this_one() {
+        // Both codes are valid, and both belong to this assembly - which is exactly the
+        // mix-up a copropriétaire holding two convocations can make, and the one that would
+        // record an answer on a neighbour's lot.
+        assertThatThrownBy(() -> confirmConvocationByTokenUseCase.confirm(new ConfirmConvocationByTokenCommand(
+                tokenOf(firstUnitId), codeOf(secondUnitId), AttendanceReply.ATTENDING, "203.0.113.32")))
+                .isInstanceOf(InvalidConfirmationCodeException.class);
+
+        assertThat(convocationOf(firstUnitId).attendanceReply()).isEqualTo(AttendanceReply.NO_REPLY);
+        assertThat(convocationOf(secondUnitId).attendanceReply()).isEqualTo(AttendanceReply.NO_REPLY);
+    }
+
+    @Test
+    void guessing_the_code_behind_a_leaked_link_is_capped_like_the_paper_path() {
+        // Otherwise the check the link now carries would be six characters to walk, and the
+        // leaked link is the very thing it exists to survive.
+        String attacker = "198.51.100.9";
+        String token = tokenOf(firstUnitId);
+        for (int attempt = 0; attempt < 10; attempt++) {
+            assertThatThrownBy(() -> confirmConvocationByTokenUseCase.confirm(new ConfirmConvocationByTokenCommand(
+                    token, ShortCode.of("zzzzzz"), AttendanceReply.ATTENDING, attacker)))
+                    .isInstanceOf(InvalidConfirmationCodeException.class);
+        }
+
+        assertThatThrownBy(() -> confirmConvocationByTokenUseCase.confirm(new ConfirmConvocationByTokenCommand(
+                token, ShortCode.of("zzzzzz"), AttendanceReply.ATTENDING, attacker)))
+                .isInstanceOf(TooManyConfirmationAttemptsException.class);
+
+        // And the cap is per caller, here as there: one attacker must not lock out a whole
+        // copropriété on the eve of its assembly.
+        assertThat(confirmConvocationByTokenUseCase.confirm(new ConfirmConvocationByTokenCommand(token,
+                codeOf(firstUnitId), AttendanceReply.ATTENDING, "203.0.113.33")).attendanceReply())
+                .isEqualTo(AttendanceReply.ATTENDING);
+    }
+
+    @Test
+    void the_page_still_opens_on_the_link_alone() {
+        // The code guards the answer, not the reading: someone who scanned the QR code must
+        // see which assembly and which lot they are about to answer for before typing it.
+        ConvocationConfirmationView view = getConvocationByTokenUseCase
+                .getByToken(new GetConvocationByTokenQuery(tokenOf(firstUnitId)));
+
+        assertThat(view.unitNumber()).isEqualTo("Appartement 1");
+    }
+
+    @Test
     void the_link_never_names_who_answered() {
         // The token proves the convocation was received, not which of several indivisaires
         // is clicking. Writing a party id here would be an invention.
-        confirmConvocationByTokenUseCase.confirm(
-                new ConfirmConvocationByTokenCommand(tokenOf(firstUnitId), AttendanceReply.ATTENDING));
+        confirmConvocationByTokenUseCase.confirm(new ConfirmConvocationByTokenCommand(tokenOf(firstUnitId),
+                codeOf(firstUnitId), AttendanceReply.ATTENDING, "203.0.113.21"));
 
         assertThat(jdbcTemplate.queryForObject("select replied_by_party_id from convocation where unit_id = ?",
                 UUID.class, firstUnitId)).isNull();
@@ -325,8 +387,8 @@ class ConvocationConfirmationLinkPostgresIntegrationTest extends PostgresIntegra
 
     @Test
     void one_lots_link_answers_for_that_lot_only() {
-        confirmConvocationByTokenUseCase.confirm(
-                new ConfirmConvocationByTokenCommand(tokenOf(firstUnitId), AttendanceReply.NOT_ATTENDING));
+        confirmConvocationByTokenUseCase.confirm(new ConfirmConvocationByTokenCommand(tokenOf(firstUnitId),
+                codeOf(firstUnitId), AttendanceReply.NOT_ATTENDING, "203.0.113.22"));
 
         assertThat(convocationOf(firstUnitId).attendanceReply()).isEqualTo(AttendanceReply.NOT_ATTENDING);
         assertThat(convocationOf(secondUnitId).attendanceReply()).isEqualTo(AttendanceReply.NO_REPLY);
@@ -336,11 +398,12 @@ class ConvocationConfirmationLinkPostgresIntegrationTest extends PostgresIntegra
     void changing_ones_mind_through_the_link_is_allowed() {
         // Same rule as everywhere else: the last answer before the session is the one that counts.
         String token = tokenOf(firstUnitId);
+        ShortCode code = codeOf(firstUnitId);
         confirmConvocationByTokenUseCase.confirm(
-                new ConfirmConvocationByTokenCommand(token, AttendanceReply.ATTENDING));
+                new ConfirmConvocationByTokenCommand(token, code, AttendanceReply.ATTENDING, "203.0.113.23"));
 
         ConvocationConfirmationView changed = confirmConvocationByTokenUseCase.confirm(
-                new ConfirmConvocationByTokenCommand(token, AttendanceReply.NOT_ATTENDING));
+                new ConfirmConvocationByTokenCommand(token, code, AttendanceReply.NOT_ATTENDING, "203.0.113.23"));
 
         assertThat(changed.attendanceReply()).isEqualTo(AttendanceReply.NOT_ATTENDING);
     }
@@ -354,7 +417,8 @@ class ConvocationConfirmationLinkPostgresIntegrationTest extends PostgresIntegra
                 .hasMessageNotContainingAny("Appartement", "Al Amal", "AG ordinaire");
 
         assertThatThrownBy(() -> confirmConvocationByTokenUseCase.confirm(
-                new ConfirmConvocationByTokenCommand("clearly-not-a-real-token", AttendanceReply.ATTENDING)))
+                new ConfirmConvocationByTokenCommand("clearly-not-a-real-token", codeOf(firstUnitId),
+                        AttendanceReply.ATTENDING, "203.0.113.24")))
                 .isInstanceOf(InvalidConvocationTokenException.class);
     }
 
@@ -372,10 +436,11 @@ class ConvocationConfirmationLinkPostgresIntegrationTest extends PostgresIntegra
         // Accepting here would let a lot appear to have "confirmed" a meeting nobody attended,
         // on the record the minutes are drawn from.
         String token = tokenOf(firstUnitId);
+        ShortCode code = codeOf(firstUnitId);
         openGeneralMeetingUseCase.open(new OpenGeneralMeetingCommand(meetingId, true));
 
         assertThatThrownBy(() -> confirmConvocationByTokenUseCase.confirm(
-                new ConfirmConvocationByTokenCommand(token, AttendanceReply.ATTENDING)))
+                new ConfirmConvocationByTokenCommand(token, code, AttendanceReply.ATTENDING, "203.0.113.25")))
                 .isInstanceOf(ConfirmationClosedException.class);
     }
 

@@ -90,7 +90,7 @@ class PublicConvocationControllerWebMvcTest {
 
         mockMvc.perform(put("/api/v1/convocations/by-token/some-token/reply")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"attendanceReply\":\"ATTENDING\"}"))
+                        .content("{\"attendanceReply\":\"ATTENDING\",\"confirmationCode\":\"W754A1\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.attendanceReply").value("ATTENDING"));
 
@@ -99,13 +99,31 @@ class PublicConvocationControllerWebMvcTest {
         verify(confirmConvocationByTokenUseCase).confirm(captor.capture());
         assertThat(captor.getValue().token()).isEqualTo("some-token");
         assertThat(captor.getValue().attendanceReply()).isEqualTo(AttendanceReply.ATTENDING);
+        // Read off paper, where it is printed in capitals - the same normalisation as the
+        // paper path, or half the copropriétaires would be told their own code is wrong.
+        assertThat(captor.getValue().confirmationCode().value()).isEqualTo("w754a1");
+        // Deduced from the request, never taken from the body: it feeds the attempt cap.
+        assertThat(captor.getValue().callerId()).isNotBlank();
     }
 
     @Test
     void a_body_without_an_answer_is_rejected_before_reaching_the_use_case() throws Exception {
         mockMvc.perform(put("/api/v1/convocations/by-token/some-token/reply")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
+                        .content("{\"confirmationCode\":\"w754a1\"}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(confirmConvocationByTokenUseCase);
+    }
+
+    @Test
+    void an_answer_without_the_lot_code_never_reaches_the_use_case() throws Exception {
+        // The link alone no longer answers for a lot (ADR 0002 §16). Pinned at the web layer
+        // because dropping the field from the body is exactly how the check would come undone:
+        // the page would keep working, and nothing would fail.
+        mockMvc.perform(put("/api/v1/convocations/by-token/some-token/reply")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"attendanceReply\":\"ATTENDING\"}"))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(confirmConvocationByTokenUseCase);

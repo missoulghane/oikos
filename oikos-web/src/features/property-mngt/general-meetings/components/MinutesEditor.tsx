@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { QuillEditor } from '@/shared/components/RichText/QuillEditor';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { Button } from '@/shared/components/Button/Button';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
@@ -17,10 +18,22 @@ interface MinutesEditorProps {
 /**
  * The draft editor, holding the unsaved text.
  *
+ * <p>Rich text, not a textarea of raw HTML. The draft is composed by the API
+ * with headings, bold and lists in it, and a textarea showed the syndic
+ * `<h1>Procès-verbal — …` as characters to be typed around. A procès-verbal is
+ * a document the syndic completes with what was said in the room, and asking
+ * for markup is asking the wrong person for the wrong thing.
+ *
+ * <p>Headings are turned on here and nowhere else: they are exactly what
+ * sanitizeDocumentHtml lets through and sanitizeRichText does not, and this is
+ * the one field displayed with the wider list.
+ *
  * <p>Its own component rather than state inside the tab, so the parent can
  * reset it by remounting it (key on the server content) instead of syncing an
  * effect: regenerating the minutes has to throw the local buffer away, and
- * "reset state when a prop changes" is exactly what a key is for.
+ * "reset state when a prop changes" is exactly what a key is for - which
+ * matters more with Quill, since it owns its content after mount and pushing a
+ * prop back into it mid-typing scrambles the text (see QuillEditor's comment).
  */
 export function MinutesEditor({
   initialContent,
@@ -40,12 +53,12 @@ export function MinutesEditor({
         Complétez le brouillon : débats, remarques, opposition qu'un copropriétaire demande à faire consigner.
         Valider fige définitivement le texte.
       </p>
-      <textarea
-        aria-label="Contenu du procès-verbal"
-        rows={18}
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        className="rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 font-mono text-sm text-gray-800 dark:text-white/90 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/20"
+      <QuillEditor
+        defaultValue={initialContent}
+        onChange={setDraft}
+        headings
+        minHeight={420}
+        ariaLabel="Contenu du procès-verbal"
       />
       {error != null && <Alert message={getErrorMessage(error)} />}
       <div className="flex flex-wrap gap-3">
