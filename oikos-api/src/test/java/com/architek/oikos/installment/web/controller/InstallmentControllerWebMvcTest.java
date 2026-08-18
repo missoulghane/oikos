@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.installment.application.dto.InstallmentView;
+import com.architek.oikos.installment.application.port.in.GetInstallmentCollectionSummaryUseCase;
 import com.architek.oikos.installment.application.port.in.GetInstallmentUseCase;
 import com.architek.oikos.installment.application.port.in.ListInstallmentsByPropertyUseCase;
 import com.architek.oikos.installment.application.port.in.ListInstallmentsByUnitUseCase;
@@ -50,6 +51,9 @@ class InstallmentControllerWebMvcTest {
 
     @MockitoBean
     private GetInstallmentUseCase getInstallmentUseCase;
+
+    @MockitoBean
+    private GetInstallmentCollectionSummaryUseCase getInstallmentCollectionSummaryUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));

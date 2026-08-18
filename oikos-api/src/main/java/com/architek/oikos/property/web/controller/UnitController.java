@@ -16,10 +16,12 @@ import jakarta.validation.Valid;
 import com.architek.oikos.property.application.command.AddUnitCommand;
 import com.architek.oikos.property.application.command.UpdateUnitSharesCommand;
 import com.architek.oikos.property.application.port.in.AddUnitUseCase;
+import com.architek.oikos.property.application.port.in.CountUnitsByPropertyUseCase;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitsByBuildingUseCase;
 import com.architek.oikos.property.application.port.in.UpdateUnitSharesUseCase;
 import com.architek.oikos.property.application.query.GetUnitQuery;
+import com.architek.oikos.property.application.query.CountUnitsByPropertyQuery;
 import com.architek.oikos.property.application.query.ListUnitsByBuildingQuery;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.OwnershipStatus;
@@ -30,7 +32,9 @@ import com.architek.oikos.property.web.request.AddUnitRequest;
 import com.architek.oikos.property.web.request.UpdateUnitSharesRequest;
 import com.architek.oikos.property.web.response.UnitResponse;
 import com.architek.oikos.property.web.response.PagedUnitResponse;
+import com.architek.oikos.property.web.response.UnitCountResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.pagination.SortDirection;
 import org.springframework.web.bind.annotation.PutMapping;
 
@@ -41,15 +45,30 @@ public class UnitController {
     private final GetUnitUseCase getUnitUseCase;
     private final ListUnitsByBuildingUseCase listUnitsByBuildingUseCase;
     private final UpdateUnitSharesUseCase updateUnitSharesUseCase;
+    private final CountUnitsByPropertyUseCase countUnitsByPropertyUseCase;
 
     public UnitController(AddUnitUseCase addUnitUseCase,
                           GetUnitUseCase getUnitUseCase,
                           ListUnitsByBuildingUseCase listUnitsByBuildingUseCase,
-                          UpdateUnitSharesUseCase updateUnitSharesUseCase) {
+                          UpdateUnitSharesUseCase updateUnitSharesUseCase,
+                          CountUnitsByPropertyUseCase countUnitsByPropertyUseCase) {
         this.addUnitUseCase = addUnitUseCase;
         this.getUnitUseCase = getUnitUseCase;
         this.listUnitsByBuildingUseCase = listUnitsByBuildingUseCase;
         this.updateUnitSharesUseCase = updateUnitSharesUseCase;
+        this.countUnitsByPropertyUseCase = countUnitsByPropertyUseCase;
+    }
+
+    /**
+     * The lot count of a whole copropriété, which no other endpoint gives:
+     * units are listed per building, so counting them meant one call per
+     * building and summing the totals on the client.
+     */
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
+    @GetMapping("/properties/{propertyId}/units/count")
+    public UnitCountResponse count(@PathVariable String propertyId) {
+        return new UnitCountResponse(
+                countUnitsByPropertyUseCase.countUnits(new CountUnitsByPropertyQuery(EntityId.of(propertyId))));
     }
 
     @PreAuthorize("@propertyAccess.managesBuilding(authentication, #buildingId)")

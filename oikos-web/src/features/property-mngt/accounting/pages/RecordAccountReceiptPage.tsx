@@ -5,9 +5,16 @@ import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
 
+/**
+ * Enregistrer une recette. Reached two ways, and the difference is only which
+ * fields are already answered: from a treasury account's operations page the
+ * account is fixed, and from the syndic dashboard nothing is - the form then
+ * asks for the lot and the account itself, which it already knew how to do.
+ */
 export function RecordAccountReceiptPage() {
   const { property } = useOutletContext<{ property: Property }>();
-  const { accountId } = useParams<{ accountId: string }>();
+  // Absent on the property-level entry point (accounting/receipts/new).
+  const { accountId } = useParams<{ accountId?: string }>();
   const currentUser = useCurrentUser();
   const navigate = useNavigate();
 
@@ -19,13 +26,15 @@ export function RecordAccountReceiptPage() {
     return <Navigate to="/forbidden" replace />;
   }
 
-  const backTo = `/property-mngt/properties/${property.id}/accounting/treasury-accounts/${accountId}`;
+  const backTo = accountId
+    ? `/property-mngt/properties/${property.id}/accounting/treasury-accounts/${accountId}`
+    : `/property-mngt/properties/${property.id}/accounting`;
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <Link to={backTo} className="text-sm text-gray-500 dark:text-gray-400 hover:underline">
-          ← Retour au compte
+          {accountId ? '← Retour au compte' : '← Retour à la comptabilité'}
         </Link>
         <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Enregistrer une recette</h1>
       </div>

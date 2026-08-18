@@ -41,15 +41,31 @@ const DEFAULT_FILTERS: InstallmentFiltersValue = {
 export function InstallmentsListTab() {
   const [searchParams] = useSearchParams();
   const installmentCallIdFromUrl = searchParams.get('installmentCallId') ?? '';
+  // The syndic dashboard's "à collecter" badge links here with ?status=NOT_SETTLED, and
+  // means the list it counted: unpaid, and already due. "Already due" is this screen's
+  // default (includeNotYetDue false), so the badge only has to name the status.
+  const statusFromUrl = (searchParams.get('status') ?? '') as InstallmentFiltersValue['status'];
 
-  // Keyed on the url param: "Voir les échéances" on the Appels de fonds tab
+  // Keyed on the url params: "Voir les échéances" on the Appels de fonds tab
   // links here with ?installmentCallId=... - remounting (instead of syncing
   // via an effect) resets the filter state to that value, including when
   // clicking that link again for a different call while already on this tab.
-  return <InstallmentsListTabContent key={installmentCallIdFromUrl} installmentCallIdFromUrl={installmentCallIdFromUrl} />;
+  return (
+    <InstallmentsListTabContent
+      key={`${installmentCallIdFromUrl}-${statusFromUrl}`}
+      installmentCallIdFromUrl={installmentCallIdFromUrl}
+      statusFromUrl={statusFromUrl}
+    />
+  );
 }
 
-function InstallmentsListTabContent({ installmentCallIdFromUrl }: { installmentCallIdFromUrl: string }) {
+function InstallmentsListTabContent({
+  installmentCallIdFromUrl,
+  statusFromUrl,
+}: {
+  installmentCallIdFromUrl: string;
+  statusFromUrl: InstallmentFiltersValue['status'];
+}) {
   const { property } = useOutletContext<{ property: Property }>();
   const currentUser = useCurrentUser();
   const canWrite = currentUser.data ? canWriteAccounting(currentUser.data, property.id) : false;
@@ -59,6 +75,7 @@ function InstallmentsListTabContent({ installmentCallIdFromUrl }: { installmentC
   const [filters, setFilters] = useState<InstallmentFiltersValue>({
     ...DEFAULT_FILTERS,
     installmentCallId: installmentCallIdFromUrl,
+    status: statusFromUrl,
   });
 
   function handleFiltersChange(next: InstallmentFiltersValue) {

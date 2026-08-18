@@ -10,9 +10,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.architek.oikos.installment.application.port.in.GetInstallmentCollectionSummaryUseCase;
 import com.architek.oikos.installment.application.port.in.GetInstallmentUseCase;
 import com.architek.oikos.installment.application.port.in.ListInstallmentsByPropertyUseCase;
 import com.architek.oikos.installment.application.port.in.ListInstallmentsByUnitUseCase;
+import com.architek.oikos.installment.application.query.GetInstallmentCollectionSummaryQuery;
 import com.architek.oikos.installment.application.query.GetInstallmentQuery;
 import com.architek.oikos.installment.application.query.ListInstallmentsByPropertyQuery;
 import com.architek.oikos.installment.application.query.ListInstallmentsByUnitQuery;
@@ -21,6 +23,7 @@ import com.architek.oikos.installment.domain.valueobject.InstallmentFilter;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentSortField;
 import com.architek.oikos.installment.domain.valueobject.InstallmentStatus;
+import com.architek.oikos.installment.web.response.InstallmentCollectionSummaryResponse;
 import com.architek.oikos.installment.web.response.InstallmentResponse;
 import com.architek.oikos.installment.web.response.PagedInstallmentResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
@@ -33,13 +36,16 @@ public class InstallmentController {
     private final ListInstallmentsByUnitUseCase listInstallmentsByUnitUseCase;
     private final ListInstallmentsByPropertyUseCase listInstallmentsByPropertyUseCase;
     private final GetInstallmentUseCase getInstallmentUseCase;
+    private final GetInstallmentCollectionSummaryUseCase getInstallmentCollectionSummaryUseCase;
 
     public InstallmentController(ListInstallmentsByUnitUseCase listInstallmentsByUnitUseCase,
                                   ListInstallmentsByPropertyUseCase listInstallmentsByPropertyUseCase,
-                                  GetInstallmentUseCase getInstallmentUseCase) {
+                                  GetInstallmentUseCase getInstallmentUseCase,
+                                  GetInstallmentCollectionSummaryUseCase getInstallmentCollectionSummaryUseCase) {
         this.listInstallmentsByUnitUseCase = listInstallmentsByUnitUseCase;
         this.listInstallmentsByPropertyUseCase = listInstallmentsByPropertyUseCase;
         this.getInstallmentUseCase = getInstallmentUseCase;
+        this.getInstallmentCollectionSummaryUseCase = getInstallmentCollectionSummaryUseCase;
     }
 
     @PreAuthorize("@propertyAccess.managesUnit(authentication, #unitId) or @propertyAccess.ownsUnit(authentication, #unitId)")
@@ -72,6 +78,19 @@ public class InstallmentController {
         return PagedInstallmentResponse.from(listInstallmentsByPropertyUseCase.listInstallments(
                 new ListInstallmentsByPropertyQuery(EntityId.of(propertyId), filter, PageRequest.of(page, size),
                         search)));
+    }
+
+    /**
+     * What is still to be collected: unpaid installments already due, and their
+     * total. The dashboard badge, and the figures behind the link that opens
+     * the tracking list on "Non soldée" with "à échoir" off - same set, so the
+     * count on the badge is the number of rows that come up.
+     */
+    @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
+    @GetMapping("/properties/{propertyId}/installments/collection-summary")
+    public InstallmentCollectionSummaryResponse collectionSummary(@PathVariable String propertyId) {
+        return InstallmentCollectionSummaryResponse.from(getInstallmentCollectionSummaryUseCase.getSummary(
+                new GetInstallmentCollectionSummaryQuery(EntityId.of(propertyId), LocalDate.now())));
     }
 
     @PreAuthorize("@propertyAccess.managesInstallment(authentication, #id)")

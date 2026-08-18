@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Import;
 import com.architek.oikos.installment.domain.model.Installment;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
+import com.architek.oikos.installment.domain.valueobject.InstallmentCollectionSummary;
 import com.architek.oikos.installment.domain.valueobject.InstallmentFilter;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentSortField;
@@ -169,6 +170,34 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
                 PageRequest.of(0, 10));
 
         assertThat(page.content()).extracting(Installment::getId).containsExactly(fromCall.getId());
+    }
+
+    @Test
+    void summarises_what_is_unpaid_and_already_due() {
+        seed();
+        // Owed now: nothing received on it and its date has passed. The two installments
+        // dated ahead are owed later, the partially settled one has been paid into, and the
+        // settled one is done - none of the three is money to collect today.
+        Installment overdue = Installment.create(InstallmentId.newId(), unitA, TODAY.minusDays(3),
+                Amount.of(new BigDecimal("150")));
+        installmentAdapter.save(overdue);
+
+        InstallmentCollectionSummary summary = installmentAdapter
+                .summariseCollectible(List.of(unitA, unitB), TODAY);
+
+        assertThat(summary.count()).isEqualTo(1);
+        assertThat(summary.amount()).isEqualByComparingTo(new BigDecimal("150"));
+    }
+
+    @Test
+    void summarises_a_copropriete_that_owes_nothing_as_zero_rather_than_null() {
+        // sum() over no row is null, and a badge with a blank where "0" belongs reads as a
+        // screen that failed to load.
+        InstallmentCollectionSummary summary = installmentAdapter
+                .summariseCollectible(List.of(EntityId.newId()), TODAY);
+
+        assertThat(summary.count()).isZero();
+        assertThat(summary.amount()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test

@@ -1,9 +1,14 @@
 import { Link } from 'react-router-dom';
-import { useCurrentUser, boardPropertyIds, hasCopro } from '@/features/identity/me';
+import { useCurrentUser, boardPropertyIds, canWriteAccounting, hasCopro } from '@/features/identity/me';
 import { useEffectiveSpace } from '@/shared/hooks/useEffectiveSpace';
 import { useMandateProperties } from '@/shared/hooks/useMandateProperties';
 import { useProperty } from '@/features/property-mngt/properties/hooks/useProperty';
 import { useProperties } from '@/features/property-mngt/properties/hooks/useProperties';
+import { usePropertyUnitCount } from '@/features/property-mngt/properties/hooks/usePropertyUnitCount';
+import { useLedgerAccounts } from '@/features/property-mngt/accounting/hooks/useLedgerAccounts';
+import { TreasuryAccountCard } from '@/features/property-mngt/accounting/components/TreasuryAccountCard';
+import { useInstallmentCollectionSummary } from '@/features/property-mngt/installments';
+import type { Property } from '@/features/property-mngt/properties/types/property.types';
 import { MyUnitsList } from '@/features/property-ownership/units/components/MyUnitsList';
 import { ResumeOnboardingBanner } from '@/features/identity/onboarding/components/ResumeOnboardingBanner';
 import { SpaceLinkCard } from '@/shared/components/SpaceLinkCard/SpaceLinkCard';
@@ -55,10 +60,104 @@ function MandatesStrip({ mandateIds, currentPropertyId }: { mandateIds: string[]
   );
 }
 
+/**
+ * La copropriété elle-même : son nom, son adresse, ses lots. Une carte
+ * cliquable plutôt qu'un titre suivi d'un bouton - c'est l'identité de ce que
+ * le tableau de bord résume, et le geste attendu dessus est d'aller la
+ * consulter.
+ */
+function PropertyIdentityCard({ property, propertyId }: { property: Property; propertyId: string }) {
+  const unitCount = usePropertyUnitCount(propertyId);
+
+  return (
+    <Link
+      to={`/property-mngt/properties/${propertyId}/property`}
+      className="block transition-shadow hover:shadow-theme-md"
+    >
+      <Card className="flex flex-col gap-1">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">{property.name}</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{property.address}</p>
+        {/* Le compte se charge après le reste : la carte s'affiche sans l'attendre plutôt
+            que de retenir le nom et l'adresse, déjà connus. */}
+        <p className="text-sm text-gray-400 dark:text-gray-500">
+          {unitCount.data === undefined ? '—' : `${unitCount.data} lot${unitCount.data > 1 ? 's' : ''}`}
+        </p>
+      </Card>
+    </Link>
+  );
+}
+
+/**
+ * Les soldes de trésorerie, comme sur la vue d'ensemble de la comptabilité et
+ * par le même composant : un solde qui se lirait différemment de deux écrans
+ * serait un solde qu'on vérifie ailleurs.
+ */
+function TreasuryBalances({ propertyId }: { propertyId: string }) {
+  const ledgerAccounts = useLedgerAccounts(propertyId);
+  const treasuryAccounts = (ledgerAccounts.data ?? []).filter(
+    (account) => account.role === 'CASH' || account.role === 'BANK',
+  );
+
+  if (ledgerAccounts.isError) {
+    return <Alert message={getErrorMessage(ledgerAccounts.error)} />;
+  }
+
+  if (treasuryAccounts.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {treasuryAccounts.map((account) => (
+        <TreasuryAccountCard key={account.id} account={account} propertyId={propertyId} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Ce qu'il reste à encaisser : les échéances non soldées et déjà échues. Le
+ * lien ouvre exactement l'ensemble compté - filtre « Non soldée », et « à
+ * échoir » resté à false, qui est le défaut de cet écran.
+ */
+function CollectionCard({ propertyId }: { propertyId: string }) {
+  const summary = useInstallmentCollectionSummary(propertyId);
+
+  return (
+    <Link
+      to={`/property-mngt/properties/${propertyId}/installments?status=NOT_SETTLED`}
+      className="block transition-shadow hover:shadow-theme-md"
+    >
+      <Card className="flex flex-col gap-1">
+        <p className="text-sm text-gray-500 dark:text-gray-400">À collecter</p>
+        {summary.isError ? (
+          <Alert message={getErrorMessage(summary.error)} />
+        ) : (
+          <>
+            <p className="text-2xl font-semibold text-gray-900 dark:text-white/90">
+              {summary.data ? `${summary.data.amount.toLocaleString('fr-FR')} MAD` : '—'}
+            </p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              {summary.data
+                ? `${summary.data.count} échéance${summary.data.count > 1 ? 's' : ''} non soldée${
+                    summary.data.count > 1 ? 's' : ''
+                  } et échue${summary.data.count > 1 ? 's' : ''}`
+                : 'Chargement…'}
+            </p>
+          </>
+        )}
+      </Card>
+    </Link>
+  );
+}
+
 function BoardDashboard({ propertyId, mandateIds }: { propertyId: string; mandateIds: string[] }) {
   const property = useProperty(propertyId);
   const currentUser = useCurrentUser();
   const ownsHere = currentUser.data ? hasCopro(currentUser.data) : false;
+  // Les deux saisies ne s'affichent que pour qui peut écrire en comptabilité - un bouton
+  // qui mène à un formulaire refusé n'est pas un raccourci.
+  const canWrite = currentUser.data ? canWriteAccounting(currentUser.data, propertyId) : false;
 
   if (property.isLoading) {
     return <Loader label="Chargement de votre copropriété…" />;
@@ -76,26 +175,31 @@ function BoardDashboard({ propertyId, mandateIds }: { propertyId: string; mandat
     <>
       <ResumeOnboardingBanner propertyId={propertyId} />
       {mandateIds.length > 1 && <MandatesStrip mandateIds={mandateIds} currentPropertyId={propertyId} />}
-      <Card className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">{property.data.name}</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{property.data.address}</p>
-        </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <PropertyIdentityCard property={property.data} propertyId={propertyId} />
+        <CollectionCard propertyId={propertyId} />
+      </div>
+
+      <TreasuryBalances propertyId={propertyId} />
+
+      {canWrite && (
         <div className="flex flex-wrap gap-3">
           <Link
-            to={`/property-mngt/properties/${propertyId}/property`}
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+            to={`/property-mngt/properties/${propertyId}/accounting/receipts/new`}
+            className="inline-flex min-h-11 items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
           >
-            Ma copropriété
+            Saisir une recette
           </Link>
           <Link
-            to={`/property-mngt/properties/${propertyId}/installments`}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+            to={`/property-mngt/properties/${propertyId}/accounting/supplier-payments/new`}
+            className="inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-400 shadow-theme-xs ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
           >
-            Gestion des échéances
+            Saisir une dépense
           </Link>
         </div>
-      </Card>
+      )}
+
       {ownsHere && (
         <SpaceLinkCard
           to="/dashboard?space=owner"

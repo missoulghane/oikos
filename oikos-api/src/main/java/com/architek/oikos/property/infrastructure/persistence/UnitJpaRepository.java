@@ -15,6 +15,13 @@ public interface UnitJpaRepository extends JpaRepository<UnitEntity, UUID> {
 
     Page<UnitEntity> findByBuildingId(UUID buildingId, Pageable pageable);
 
+    /**
+     * By property and not by building: a copropriété's lot count is one figure,
+     * and summing it building by building would be one query per building for a
+     * number the column already carries.
+     */
+    long countByPropertyId(UUID propertyId);
+
     boolean existsByUnitTypeId(UUID unitTypeId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

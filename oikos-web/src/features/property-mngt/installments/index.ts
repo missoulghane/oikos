@@ -7,3 +7,4 @@ export { UnitPaymentsSection } from '@/features/property-mngt/installments/compo
 export { RecordOwnerPaymentForm } from '@/features/property-mngt/installments/components/RecordOwnerPaymentForm';
 export { useLatestPayments } from '@/features/property-mngt/installments/hooks/useLatestPayments';
 export { PaymentRow } from '@/features/property-mngt/installments/components/PaymentRow';
+export { useInstallmentCollectionSummary } from '@/features/property-mngt/installments/hooks/useInstallmentCollectionSummary';

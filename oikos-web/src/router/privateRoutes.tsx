@@ -639,6 +639,16 @@ export const privateRoutes: RouteObject[] = [
                 ),
               },
               {
+                // Property-level entry point, for the dashboard's "Saisir une recette":
+                // the account-scoped one below fixes the account, this one asks for it.
+                path: 'accounting/receipts/new',
+                element: (
+                  <Suspense fallback={<Loader />}>
+                    <RecordAccountReceiptPage />
+                  </Suspense>
+                ),
+              },
+              {
                 path: 'accounting/supplier-payments/new',
                 element: (
                   <Suspense fallback={<Loader />}>

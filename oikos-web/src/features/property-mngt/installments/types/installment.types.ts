@@ -40,3 +40,14 @@ export interface InstallmentListFilters {
   sortBy: InstallmentSortField;
   sortDirection: SortDirection;
 }
+
+/**
+ * The two figures of the dashboard's "à collecter": installments unpaid
+ * (nothing received on them) and already due, and what they add up to. The set
+ * is exactly what the tracking list shows under "Non soldée" with "à échoir"
+ * off, so the badge and the page it opens agree.
+ */
+export interface InstallmentCollectionSummary {
+  count: number;
+  amount: number;
+}

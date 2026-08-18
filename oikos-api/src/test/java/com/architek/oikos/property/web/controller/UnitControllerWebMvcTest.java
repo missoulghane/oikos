@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.property.application.dto.BuildingView;
 import com.architek.oikos.property.application.dto.UnitView;
+import com.architek.oikos.property.application.port.in.CountUnitsByPropertyUseCase;
 import com.architek.oikos.property.application.port.in.AddUnitUseCase;
 import com.architek.oikos.property.application.port.in.GetBuildingUseCase;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
@@ -53,6 +54,9 @@ class UnitControllerWebMvcTest {
 
     @MockitoBean
     private AddUnitUseCase addUnitUseCase;
+
+    @MockitoBean
+    private CountUnitsByPropertyUseCase countUnitsByPropertyUseCase;
 
     @MockitoBean
     private GetUnitUseCase getUnitUseCase;

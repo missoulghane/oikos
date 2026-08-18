@@ -20,6 +20,11 @@ export const queryKeys = {
      */
     installments: (propertyId: string, page: number, size: number, filters: object) =>
       ['properties', propertyId, 'installments', page, size, filters] as const,
+    /** The lot count of a whole copropriété, which no other endpoint carries. */
+    unitCount: (propertyId: string) => ['properties', propertyId, 'unit-count'] as const,
+    /** What is unpaid and already due - the syndic dashboard's "à collecter". */
+    installmentCollectionSummary: (propertyId: string) =>
+      ['properties', propertyId, 'installments', 'collection-summary'] as const,
     unitTypePrices: (propertyId: string) => ['properties', propertyId, 'unit-type-prices'] as const,
     unitTypes: (propertyId: string) => ['properties', propertyId, 'unit-types'] as const,
     installmentCalls: (propertyId: string, page: number, size: number) =>

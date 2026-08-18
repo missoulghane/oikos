@@ -16,6 +16,7 @@ import com.architek.oikos.property.infrastructure.persistence.UnitEntity;
 import com.architek.oikos.property.infrastructure.persistence.UnitJpaRepository;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 @Component
 public class UnitRepositoryAdapter implements UnitRepository {
@@ -33,6 +34,11 @@ public class UnitRepositoryAdapter implements UnitRepository {
         UnitEntity entity = jpaRepository.findById(unit.getId().asUuid()).orElseGet(UnitEntity::new);
         UnitEntity saved = jpaRepository.save(mapper.toEntity(unit, entity));
         return mapper.toDomain(saved);
+    }
+
+    @Override
+    public long countByPropertyId(EntityId propertyId) {
+        return jpaRepository.countByPropertyId(propertyId.value());
     }
 
     @Override

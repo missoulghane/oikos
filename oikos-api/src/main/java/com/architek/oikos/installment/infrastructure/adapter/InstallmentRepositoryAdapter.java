@@ -1,5 +1,6 @@
 package com.architek.oikos.installment.infrastructure.adapter;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -10,11 +11,13 @@ import org.springframework.stereotype.Component;
 import com.architek.oikos.installment.domain.model.Installment;
 import com.architek.oikos.installment.domain.repository.InstallmentRepository;
 import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
+import com.architek.oikos.installment.domain.valueobject.InstallmentCollectionSummary;
 import com.architek.oikos.installment.domain.valueobject.InstallmentFilter;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentSortField;
 import com.architek.oikos.installment.domain.valueobject.InstallmentStatus;
 import com.architek.oikos.installment.infrastructure.mapper.InstallmentPersistenceMapper;
+import com.architek.oikos.installment.infrastructure.persistence.InstallmentCollectionProjection;
 import com.architek.oikos.installment.infrastructure.persistence.InstallmentEntity;
 import com.architek.oikos.installment.infrastructure.persistence.InstallmentJpaRepository;
 import com.architek.oikos.shared.domain.pagination.Page;
@@ -79,6 +82,18 @@ public class InstallmentRepositoryAdapter implements InstallmentRepository {
 
         List<Installment> content = page.getContent().stream().map(mapper::toDomain).toList();
         return Page.of(content, page.getNumber(), page.getSize(), page.getTotalElements());
+    }
+
+    @Override
+    public InstallmentCollectionSummary summariseCollectible(List<EntityId> unitIds, LocalDate asOf) {
+        // A copropriété with no lot yet: `in ()` is not valid SQL, and the answer is known
+        // without asking.
+        if (unitIds.isEmpty()) {
+            return InstallmentCollectionSummary.EMPTY;
+        }
+        InstallmentCollectionProjection projection = jpaRepository
+                .summariseCollectible(unitIds.stream().map(EntityId::value).toList(), asOf);
+        return new InstallmentCollectionSummary(projection.count(), projection.amount());
     }
 
     private static Sort toSort(InstallmentFilter filter) {

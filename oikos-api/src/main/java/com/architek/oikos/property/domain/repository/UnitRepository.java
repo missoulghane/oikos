@@ -8,6 +8,7 @@ import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
+import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 public interface UnitRepository {
 
@@ -25,6 +26,9 @@ public interface UnitRepository {
     Optional<Unit> findByIdForUpdate(UnitId id);
 
     Page<Unit> findAllByBuildingId(BuildingId buildingId, PageRequest pageRequest);
+
+    /** How many lots the copropriété holds, across all of its buildings. */
+    long countByPropertyId(EntityId propertyId);
 
     boolean existsByUnitTypeId(UnitTypeDefinitionId unitTypeId);
 }
