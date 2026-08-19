@@ -90,7 +90,7 @@ public class RegistrationController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void captureOnboardingLead(@Valid @RequestBody CaptureOnboardingLeadRequest request) {
         captureOnboardingLeadUseCase.capture(new CaptureOnboardingLeadCommand(
-                EmailVO.of(request.email()), request.firstName(), request.lastName()));
+                EmailVO.of(request.email()), request.fullName()));
     }
 
     @PostMapping("/register-property-user")
@@ -98,6 +98,7 @@ public class RegistrationController {
         RegisterUserCommand command = new RegisterUserCommand(
                 request.fullName(),
                 EmailVO.of(request.email()),
+                request.phone(),
                 RawPassword.of(request.password()),
                 request.role(),
                 request.returnTo(),

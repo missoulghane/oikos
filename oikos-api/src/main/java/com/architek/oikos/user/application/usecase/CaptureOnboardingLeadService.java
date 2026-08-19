@@ -39,8 +39,8 @@ public class CaptureOnboardingLeadService implements CaptureOnboardingLeadUseCas
             return;
         }
         OnboardingLead lead = onboardingLeadRepository.findByEmail(command.email())
-                .map(existing -> existing.withNames(command.firstName(), command.lastName()))
-                .orElseGet(() -> OnboardingLead.capture(command.email(), command.firstName(), command.lastName()));
+                .map(existing -> existing.withFullName(command.fullName()))
+                .orElseGet(() -> OnboardingLead.capture(command.email(), command.fullName()));
         onboardingLeadRepository.save(lead);
     }
 }

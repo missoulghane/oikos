@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
@@ -10,6 +11,7 @@ import { ONBOARDING_DONE_PATH, previousStepPath, stepPath } from '@/features/ide
 import {
   buildingSummary,
   formatAddress,
+  isOnboardingTokenUsable,
   totalUnitCount,
   unitCountOf,
 } from '@/features/identity/onboarding/state/onboardingDraft';
@@ -54,7 +56,13 @@ export function SummaryStepPage() {
       {
         propertyId: draft.registration.propertyId,
         payload: toPayload(),
-        onboardingToken: draft.registration.onboardingToken,
+        // Jeton périmé : ne pas l'envoyer laisse l'intercepteur poser celui de la
+        // session, que l'API accepte aussi pour un syndic déjà connecté
+        // (canConfigureOnboarding). Sinon l'appel partait avec un jeton mort et
+        // échouait même pour un compte vérifié qui venait de se connecter.
+        onboardingToken: isOnboardingTokenUsable(draft.registration)
+          ? draft.registration.onboardingToken
+          : undefined,
       },
       { onSuccess: () => navigate(ONBOARDING_DONE_PATH) },
     );
@@ -83,7 +91,23 @@ export function SummaryStepPage() {
       backPath={previousStepPath('summary')}
     >
       <div className="flex flex-col gap-4">
-        {configure.isError && <Alert message={getErrorMessage(configure.error)} />}
+        {configure.isError &&
+          (isExpiredOnboarding(configure.error) ? (
+            <div className="flex flex-col gap-2">
+              <Alert
+                variant="warning"
+                message="Votre lien d'inscription a expiré (il est valable 2 heures). Votre compte et votre copropriété sont bien créés : activez votre compte depuis l'email reçu, connectez-vous, puis revenez sur cette page pour finaliser la configuration."
+              />
+              <Link
+                to={`/login?returnTo=${encodeURIComponent(stepPath('summary'))}`}
+                className="text-sm font-medium text-brand-500 underline dark:text-brand-400"
+              >
+                Se connecter pour reprendre
+              </Link>
+            </div>
+          ) : (
+            <Alert message={getErrorMessage(configure.error)} />
+          ))}
 
         <RecapSection title="Votre copropriété" editPath={stepPath('property')}>
           <RecapLine label="Nom" value={draft.property.name} />
@@ -147,6 +171,16 @@ export function SummaryStepPage() {
       </div>
     </WizardShell>
   );
+}
+
+/**
+ * 401 sur cette étape = le jeton d'onboarding n'est plus valide (expiré, ou
+ * brouillon repris depuis un autre navigateur). Le message brut de l'API
+ * (« Authentication is required... ») ne dit rien à un visiteur qui n'a jamais
+ * eu à se connecter : la sortie est de vérifier son email puis de revenir.
+ */
+function isExpiredOnboarding(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 401;
 }
 
 function RecapSection({

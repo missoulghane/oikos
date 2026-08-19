@@ -10,7 +10,7 @@ import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { useRegisterPropertyBoardAdmin } from '@/features/identity/register/hooks/useRegisterPropertyBoardAdmin';
 import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingContext';
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
-import { formatAddress, fullName } from '@/features/identity/onboarding/state/onboardingDraft';
+import { formatAddress } from '@/features/identity/onboarding/state/onboardingDraft';
 import {
   propertyStepSchema,
   PROPERTY_ADDRESS_MAX_LENGTH,
@@ -61,7 +61,7 @@ export function PropertyStepScreen({ navigation }: Props) {
 
     registerBoardAdmin.mutate(
       {
-        fullName: fullName(draft.account),
+        fullName: draft.account.fullName,
         email: draft.account.email,
         password,
         propertyName: property.name,

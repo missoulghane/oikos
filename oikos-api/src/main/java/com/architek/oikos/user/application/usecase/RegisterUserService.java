@@ -75,7 +75,8 @@ public class RegisterUserService implements RegisterUserUseCase {
             throw new RoleNotAllowedException(role);
         }
         HashedPassword hashedPassword = passwordEncoderPort.encode(command.password());
-        User user = User.register(UserId.newId(), command.email(), command.fullName(), hashedPassword, role);
+        User user = User.register(UserId.newId(), command.email(), command.fullName(), command.phone(),
+                hashedPassword, role);
         User savedUser = userRepository.save(user);
 
         if (command.invitationToken() != null) {

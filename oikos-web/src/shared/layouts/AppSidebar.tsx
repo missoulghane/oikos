@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { BrandLogo, BrandMark } from '@/shared/components/BrandLogo/BrandLogo';
 import { useSidebar } from '@/shared/context/SidebarContext';
 import { useCurrentUser, boardPropertyIds, canManageProperties, isManagerTier } from '@/features/identity/me';
 import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
@@ -365,8 +366,8 @@ export function AppSidebar() {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className={`flex py-8 ${!showExpanded ? 'lg:justify-center' : 'justify-start'}`}>
-        <Link to="/" onClick={closeMobileSidebar} className="text-xl font-semibold text-gray-900 dark:text-white/90">
-          {showExpanded ? 'Oikos' : 'O'}
+        <Link to="/" onClick={closeMobileSidebar} className="text-gray-900 dark:text-white/90">
+          {showExpanded ? <BrandLogo wordmarkClassName="text-xl" /> : <BrandMark />}
         </Link>
       </div>
       <nav className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">

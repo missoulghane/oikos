@@ -29,7 +29,7 @@ oikos:
     configure:
       max-units: 500
   mail:
-    from: no-reply@oikos.ma
+    from: no-reply@daba-syndic.com
     # Mêmes placeholders que application.yml, délibérément : figer les URL en dur
     # ici rendrait la dérivation depuis APP_PUBLIC_BASE_URL intestable, et c'est
     # précisément la mécanique qui a laissé passer un lien vers localhost en
@@ -45,6 +45,16 @@ oikos:
     invitation-base-url: ${APP_INVITATION_BASE_URL:${oikos.mail.public-base-url}/invitations}
     invitation-token-ttl-days: 30
     convocation-confirmation-base-url: ${APP_CONVOCATION_CONFIRMATION_BASE_URL:${oikos.mail.public-base-url}/convocations/confirmation}
+  whatsapp:
+    # Ce fichier masque application.yml sous test : sans ce bloc, les
+    # @Value de VonageWhatsAppAdapter n'ont plus de valeur à résoudre et le
+    # contexte ne démarre plus dès qu'on active l'envoi (voir
+    # WhatsAppAdapterWiringTest). Envoi désactivé par défaut, comme en dev.
+    enabled: false
+    api-key:
+    api-secret:
+    from:
+    messages-url: https://api.nexmo.com/v1/messages
   storage:
     type: local
     local:

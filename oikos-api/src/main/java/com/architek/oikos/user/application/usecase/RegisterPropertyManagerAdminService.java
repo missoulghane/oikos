@@ -90,7 +90,8 @@ public class RegisterPropertyManagerAdminService implements RegisterPropertyMana
         propertyProvisioningPort.assignPropertyManager(propertyId, partyId);
 
         HashedPassword hashedPassword = passwordEncoderPort.encode(command.password());
-        User user = User.register(UserId.newId(), command.email(), command.fullName(), hashedPassword, Role.ROLE_USER)
+        User user = User.register(UserId.newId(), command.email(), command.fullName(), command.phone(), hashedPassword,
+                        Role.ROLE_USER)
                 .withLinkedParty(partyId)
                 .withPropertyRoleGrant(partyId, propertyId, PropertyRole.PROPERTY_MANAGER_ADMIN);
         User savedUser = userRepository.save(user);

@@ -43,9 +43,9 @@ function renderWizard(initialPath = '/register/board-admin/account') {
 }
 
 async function fillAccountStep(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByLabelText('Prénom'), 'Jane');
-  await user.type(screen.getByLabelText('Nom'), 'Doe');
+  await user.type(screen.getByLabelText('Nom complet'), 'Jane Doe');
   await user.type(screen.getByLabelText('Adresse email'), 'jane.doe@example.com');
+  await user.type(screen.getByLabelText('Téléphone'), '0612345678');
   await user.type(screen.getByLabelText('Mot de passe'), 'motdepasse123');
   await user.type(screen.getByLabelText('Confirmation du mot de passe'), 'motdepasse123');
   await user.click(screen.getByRole('button', { name: 'Continuer' }));
@@ -80,6 +80,22 @@ describe('OnboardingWizardPage', () => {
     mockedCaptureLead.mockResolvedValue(undefined);
   });
 
+  it('reprend un brouillon écrit avant l’ajout du téléphone, sans tomber', async () => {
+    // Ce brouillon-là existe pour de vrai dans les navigateurs ouverts avant que
+    // le champ n'existe : `account` y tient en deux clés, et le remplacement en
+    // bloc des valeurs par défaut laissait `phone` à `undefined`, ce que
+    // PhoneField faisait payer d'un écran blanc.
+    window.localStorage.setItem(
+      'oikos-onboarding-draft',
+      JSON.stringify({ account: { fullName: 'Jane Doe', email: 'jane.doe@example.com' } }),
+    );
+
+    renderWizard();
+
+    expect(await screen.findByLabelText('Nom complet')).toHaveValue('Jane Doe');
+    expect(screen.getByLabelText('Téléphone')).toHaveValue('');
+  });
+
   it('captures the email on step 1, before any account can exist', async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -89,11 +105,35 @@ describe('OnboardingWizardPage', () => {
     await waitFor(() => expect(mockedCaptureLead).toHaveBeenCalled());
     expect(mockedCaptureLead.mock.calls[0][0]).toEqual({
       email: 'jane.doe@example.com',
-      firstName: 'Jane',
-      lastName: 'Doe',
+      fullName: 'Jane Doe',
     });
     expect(mockedRegister).not.toHaveBeenCalled();
     expect(await screen.findByText('Parlez-nous de votre copropriété')).toBeInTheDocument();
+  });
+
+  it('signals two different passwords on the spot, without submitting the step', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByLabelText('Mot de passe'), 'motdepasse123');
+    await user.type(screen.getByLabelText('Confirmation du mot de passe'), 'motdepasse124');
+    // Sortie du champ : ni clic sur « Continuer », ni appel réseau.
+    await user.tab();
+
+    expect(await screen.findByText('Les mots de passe ne correspondent pas')).toBeInTheDocument();
+    expect(mockedCaptureLead).not.toHaveBeenCalled();
+  });
+
+  it('keeps the password rule out of sight until it is actually broken', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    expect(screen.queryByText('Au moins 10 caractères')).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Mot de passe'), 'court');
+    await user.tab();
+
+    expect(await screen.findByText('Au moins 10 caractères')).toBeInTheDocument();
   });
 
   it('creates the account at the end of step 2, with the address recomposed into a single field', async () => {
@@ -103,8 +143,6 @@ describe('OnboardingWizardPage', () => {
     await fillAccountStep(user);
     await user.type(await screen.findByLabelText('Nom de la copropriété'), 'Résidence Exemple');
     await user.type(screen.getByLabelText('Adresse'), '12 rue Exemple');
-    await user.type(screen.getByLabelText("Complément d'adresse (optionnel)"), 'Bâtiment B');
-    await user.type(screen.getByLabelText('Code postal'), '20000');
     await user.type(screen.getByLabelText('Ville'), 'Casablanca');
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
 
@@ -113,8 +151,11 @@ describe('OnboardingWizardPage', () => {
       expect.objectContaining({
         fullName: 'Jane Doe',
         email: 'jane.doe@example.com',
+        // Saisi « 0612345678 » sous l'indicatif marocain : le 0 de tête n'existe
+        // pas en format international, c'est PhoneField qui l'écarte.
+        phone: '+212612345678',
         propertyName: 'Résidence Exemple',
-        propertyAddress: '12 rue Exemple, Bâtiment B, 20000 Casablanca',
+        propertyAddress: '12 rue Exemple, Casablanca',
       }),
     );
   });

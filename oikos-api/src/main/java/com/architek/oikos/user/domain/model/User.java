@@ -69,11 +69,12 @@ public final class User {
     }
 
     public static User register(UserId id, EmailVO email, String fullName, HashedPassword password) {
-        return register(id, email, fullName, password, Role.ROLE_USER);
+        return register(id, email, fullName, null, password, Role.ROLE_USER);
     }
 
-    public static User register(UserId id, EmailVO email, String fullName, HashedPassword password, Role role) {
-        return new User(id, email, fullName, null, password, Set.of(role), Set.of(), Set.of(), false, true, null, null);
+    public static User register(UserId id, EmailVO email, String fullName, String phone, HashedPassword password,
+                                 Role role) {
+        return new User(id, email, fullName, phone, password, Set.of(role), Set.of(), Set.of(), false, true, null, null);
     }
 
     /**

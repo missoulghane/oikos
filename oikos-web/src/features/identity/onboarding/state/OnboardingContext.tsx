@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { initialDraft, type OnboardingDraft } from '@/features/identity/onboarding/state/onboardingDraft';
+import { initialDraft, mergeStoredDraft, type OnboardingDraft } from '@/features/identity/onboarding/state/onboardingDraft';
 
 const STORAGE_KEY = 'oikos-onboarding-draft';
 
@@ -30,7 +30,7 @@ function readStoredDraft(): OnboardingDraft {
     }
     // Fusion avec les valeurs par défaut : un brouillon écrit par une version
     // antérieure du wizard n'a pas forcément toutes les clés attendues.
-    return { ...initialDraft(), ...(JSON.parse(stored) as Partial<OnboardingDraft>) };
+    return mergeStoredDraft(JSON.parse(stored) as Partial<OnboardingDraft>);
   } catch {
     return initialDraft();
   }

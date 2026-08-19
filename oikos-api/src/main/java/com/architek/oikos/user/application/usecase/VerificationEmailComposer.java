@@ -20,7 +20,7 @@ class VerificationEmailComposer {
     }
 
     String subject() {
-        return "OIKOS - Confirmez votre adresse email";
+        return "Daba Syndic - Confirmez votre adresse email";
     }
 
     /**
@@ -33,7 +33,7 @@ class VerificationEmailComposer {
         String link = verificationBaseUrl + "?token=" + token
                 + (returnTo != null ? "&returnTo=" + URLEncoder.encode(returnTo, StandardCharsets.UTF_8) : "");
         return """
-                <p>Bienvenue sur OIKOS,</p>
+                <p>Bienvenue sur Daba Syndic,</p>
                 <p>Merci de confirmer votre adresse email en cliquant sur le lien ci-dessous :</p>
                 <p><a href="%s">Confirmer mon compte</a></p>
                 <p>Ce lien expire dans 24 heures.</p>

@@ -35,11 +35,11 @@ export function AccountStepScreen({ navigation }: Props) {
   const typedPassword = watch('password') ?? '';
 
   function onSubmit(values: AccountStepValues) {
-    update({ account: { firstName: values.firstName, lastName: values.lastName, email: values.email } });
+    update({ account: { fullName: values.fullName, email: values.email } });
     setPassword(values.password);
     // Capture d'email « au mieux » : le compte n'existe qu'à la fin de l'étape 2,
     // et un échec ici ne doit surtout pas bloquer la progression du visiteur.
-    captureLead.mutate({ email: values.email, firstName: values.firstName, lastName: values.lastName });
+    captureLead.mutate({ email: values.email, fullName: values.fullName });
     navigation.navigate('Property');
   }
 
@@ -51,8 +51,7 @@ export function AccountStepScreen({ navigation }: Props) {
         subtitle="Quelques informations pour créer votre compte de syndic bénévole."
       >
         <View style={styles.form}>
-          <ControlledInput control={control} name="firstName" label="Prénom" autoComplete="given-name" errorMessage={errors.firstName?.message} />
-          <ControlledInput control={control} name="lastName" label="Nom" autoComplete="family-name" errorMessage={errors.lastName?.message} />
+          <ControlledInput control={control} name="fullName" label="Nom complet" autoComplete="name" errorMessage={errors.fullName?.message} />
           <ControlledInput
             control={control}
             name="email"

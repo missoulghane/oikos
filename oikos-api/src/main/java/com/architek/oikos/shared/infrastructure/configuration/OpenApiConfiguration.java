@@ -21,7 +21,7 @@ public class OpenApiConfiguration {
     @Bean
     public OpenAPI oikosOpenApi() {
         return new OpenAPI()
-                .info(new Info().title("OIKOS API").description("Property Management API").version("v1"))
+                .info(new Info().title("Daba Syndic API").description("Property Management API").version("v1"))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME_NAME))
                 .components(new Components().addSecuritySchemes(BEARER_SCHEME_NAME,
                         new SecurityScheme()

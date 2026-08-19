@@ -18,13 +18,13 @@ class AccountActivationEmailComposer {
     }
 
     String subject() {
-        return "OIKOS - Activez votre compte";
+        return "Daba Syndic - Activez votre compte";
     }
 
     String htmlBody(String token) {
         String link = accountActivationBaseUrl + "?token=" + token;
         return """
-                <p>Bienvenue sur OIKOS,</p>
+                <p>Bienvenue sur Daba Syndic,</p>
                 <p>Un compte administrateur a été créé pour vous. Cliquez sur le lien ci-dessous pour
                 l'activer et choisir votre mot de passe :</p>
                 <p><a href="%s">Activer mon compte</a></p>

@@ -39,11 +39,11 @@ class ConvocationEmailComposer {
             DateTimeFormatter.ofPattern("EEEE d MMMM yyyy 'à' HH'h'mm", FR).withZone(CASABLANCA);
 
     String subject(String propertyName, GeneralMeeting meeting) {
-        return "OIKOS - Convocation : " + meeting.getTitle() + " (" + propertyName + ")";
+        return "Daba Syndic - Convocation : " + meeting.getTitle() + " (" + propertyName + ")";
     }
 
     String reminderSubject(String propertyName, GeneralMeeting meeting) {
-        return "OIKOS - Rappel : " + meeting.getTitle() + " (" + propertyName + ")";
+        return "Daba Syndic - Rappel : " + meeting.getTitle() + " (" + propertyName + ")";
     }
 
     String htmlBody(String propertyName, GeneralMeeting meeting, UnitInfo unit, String confirmationLink) {

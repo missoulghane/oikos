@@ -17,15 +17,16 @@ import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.exception.EmailDeliveryException;
 
 /**
- * SMTP adapter (Gmail-compatible) implementing the generic EmailSenderPort. Holds
- * no business/domain concept: subject and body are supplied by the calling feature.
+ * SMTP adapter implementing the generic EmailSenderPort - any relay will do,
+ * Gmail is only the default host (spring.mail.host). Holds no business/domain
+ * concept: subject and body are supplied by the calling feature.
  * Disabled via oikos.mail.enabled=false, in favor of {@link LoggingEmailAdapter}.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "oikos.mail", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class GmailEmailAdapter implements EmailSenderPort {
+public class SmtpEmailAdapter implements EmailSenderPort {
 
     private final JavaMailSender mailSender;
 
@@ -48,7 +49,7 @@ public class GmailEmailAdapter implements EmailSenderPort {
      */
     @PostConstruct
     void logConfiguration() {
-        log.info("Email sending ENABLED (GmailEmailAdapter) - relay {}:{}, authenticated as {}, From: {}",
+        log.info("Email sending ENABLED (SmtpEmailAdapter) - relay {}:{}, authenticated as {}, From: {}",
                 smtpHost, smtpPort, smtpUsername, fromAddress);
     }
 

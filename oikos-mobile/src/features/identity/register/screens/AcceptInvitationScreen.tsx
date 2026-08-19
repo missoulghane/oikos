@@ -26,7 +26,7 @@ export function AcceptInvitationScreen({ route, navigation }: Props) {
   return (
     <AuthLayout>
       <Card style={styles.card}>
-        <Text style={styles.title}>Invitation à rejoindre Oikos</Text>
+        <Text style={styles.title}>Invitation à rejoindre Daba Syndic</Text>
         {!token && <Alert message="Ce lien d'invitation est invalide." />}
         {token && isSuccess && (
           <Text style={styles.body}>

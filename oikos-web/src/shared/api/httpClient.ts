@@ -17,7 +17,12 @@ const refreshClient = axios.create({ baseURL: API_URL });
 
 httpClient.interceptors.request.use((config) => {
   const { accessToken } = useAuthStore.getState();
-  if (accessToken) {
+  // Un Authorization posé par l'appelant l'emporte : le wizard d'inscription
+  // s'authentifie avec son propre jeton d'onboarding alors qu'une session peut
+  // traîner dans le localStorage (un autre compte, ou le même expiré). Écraser
+  // ce jeton renvoyait un 401 - le jeton de session ne vaut rien sur
+  // /properties/{id}/configuration - et bloquait la fin du wizard.
+  if (accessToken && !config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;

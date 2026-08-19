@@ -9,7 +9,7 @@ import { useRegisterPropertyBoardAdmin } from '@/features/identity/register/hook
 import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingContext';
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
 import { nextStepPath, previousStepPath } from '@/features/identity/onboarding/constants/steps';
-import { formatAddress, fullName } from '@/features/identity/onboarding/state/onboardingDraft';
+import { formatAddress } from '@/features/identity/onboarding/state/onboardingDraft';
 import {
   propertyStepSchema,
   PROPERTY_ADDRESS_MAX_LENGTH,
@@ -34,13 +34,7 @@ export function PropertyStepPage() {
   const alreadyRegistered = draft.registration !== null;
 
   function onSubmit(values: PropertyStepValues) {
-    const property = {
-      name: values.name,
-      address: values.address,
-      addressComplement: values.addressComplement ?? '',
-      postalCode: values.postalCode ?? '',
-      city: values.city,
-    };
+    const property = { name: values.name, address: values.address, city: values.city };
     const address = formatAddress(property);
     if (address.length > PROPERTY_ADDRESS_MAX_LENGTH) {
       setError('address', { message: `Adresse complète trop longue (${PROPERTY_ADDRESS_MAX_LENGTH} caractères maximum)` });
@@ -58,8 +52,9 @@ export function PropertyStepPage() {
 
     register_.mutate(
       {
-        fullName: fullName(draft.account),
+        fullName: draft.account.fullName,
         email: draft.account.email,
+        phone: draft.account.phone,
         password,
         propertyName: property.name,
         propertyAddress: address,
@@ -71,6 +66,7 @@ export function PropertyStepPage() {
             registration: {
               propertyId: registration.propertyId,
               onboardingToken: registration.onboardingToken,
+              onboardingTokenExpiresAt: Date.now() + registration.expiresInSeconds * 1000,
             },
           });
           navigate(nextStepPath('property')!);
@@ -96,15 +92,7 @@ export function PropertyStepPage() {
         )}
         <Input label="Nom de la copropriété" {...register('name')} errorMessage={errors.name?.message} />
         <Input label="Adresse" autoComplete="street-address" {...register('address')} errorMessage={errors.address?.message} />
-        <Input
-          label="Complément d'adresse (optionnel)"
-          {...register('addressComplement')}
-          errorMessage={errors.addressComplement?.message}
-        />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Code postal" autoComplete="postal-code" {...register('postalCode')} errorMessage={errors.postalCode?.message} />
-          <Input label="Ville" autoComplete="address-level2" {...register('city')} errorMessage={errors.city?.message} />
-        </div>
+        <Input label="Ville" autoComplete="address-level2" {...register('city')} errorMessage={errors.city?.message} />
         <Button type="submit" isLoading={register_.isPending} disabled={!password && !alreadyRegistered}>
           Continuer
         </Button>

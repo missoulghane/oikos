@@ -2,8 +2,7 @@ import type { DuesCalculationMode } from '@/features/identity/onboarding/state/o
 
 export interface CaptureOnboardingLeadPayload {
   email: string;
-  firstName?: string;
-  lastName?: string;
+  fullName?: string;
 }
 
 /** Réponse de POST /users/register-property-board-admin (fin de l'étape 2). */

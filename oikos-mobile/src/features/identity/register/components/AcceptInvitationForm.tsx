@@ -30,7 +30,7 @@ export function AcceptInvitationForm({ onSubmit, isSubmitting, errorMessage }: A
     <View style={styles.form}>
       {errorMessage && <Alert message={errorMessage} />}
       <Text style={styles.hint}>
-        Si vous avez déjà un compte Oikos, laissez ce champ vide. Sinon, choisissez un mot de passe pour créer votre
+        Si vous avez déjà un compte Daba Syndic, laissez ce champ vide. Sinon, choisissez un mot de passe pour créer votre
         compte.
       </Text>
       <ControlledInput

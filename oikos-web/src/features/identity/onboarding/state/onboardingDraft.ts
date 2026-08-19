@@ -13,16 +13,15 @@ export const UNIT_TYPE_CHOICES = [
 export type UnitTypeName = (typeof UNIT_TYPE_CHOICES)[number]['name'];
 
 export interface OnboardingAccount {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
+  /** Format international, tel que le compose PhoneField (« +212612345678 »). */
+  phone: string;
 }
 
 export interface OnboardingProperty {
   name: string;
   address: string;
-  addressComplement: string;
-  postalCode: string;
   city: string;
 }
 
@@ -40,6 +39,24 @@ export interface OnboardingBankAccount {
 export interface OnboardingRegistration {
   propertyId: string;
   onboardingToken: string;
+  /**
+   * Échéance du jeton d'onboarding (epoch ms). Le brouillon survit dans le
+   * localStorage bien au-delà des 2 h du jeton : sans cette date, un wizard
+   * repris le lendemain postait un jeton périmé et se heurtait à un 401 sans
+   * issue. Absente sur un brouillon écrit avant cet ajout - on tente alors le
+   * jeton, l'API tranchera.
+   */
+  onboardingTokenExpiresAt?: number;
+}
+
+/** Marge de sécurité : un jeton qui expire pendant l'appel est déjà périmé. */
+const TOKEN_EXPIRY_MARGIN_MS = 30_000;
+
+export function isOnboardingTokenUsable(registration: OnboardingRegistration): boolean {
+  return (
+    registration.onboardingTokenExpiresAt === undefined ||
+    registration.onboardingTokenExpiresAt - TOKEN_EXPIRY_MARGIN_MS > Date.now()
+  );
 }
 
 export interface OnboardingDraft {
@@ -63,8 +80,8 @@ export function emptyBuilding(index: number): OnboardingBuilding {
 
 export function initialDraft(): OnboardingDraft {
   return {
-    account: { firstName: '', lastName: '', email: '' },
-    property: { name: '', address: '', addressComplement: '', postalCode: '', city: '' },
+    account: { fullName: '', email: '', phone: '' },
+    property: { name: '', address: '', city: '' },
     // Forfait par défaut, comme demandé - et c'est aussi le défaut du domaine.
     duesCalculationMode: 'FLAT_RATE',
     projectedBudget: '',
@@ -73,6 +90,36 @@ export function initialDraft(): OnboardingDraft {
     buildings: [emptyBuilding(0)],
     bankAccounts: [],
     registration: null,
+  };
+}
+
+/**
+ * Reconstruit un brouillon complet à partir de ce qu'on relit du localStorage.
+ *
+ * <p>Une fusion à plat ne suffit pas : le brouillon survit aux déploiements, et
+ * celui écrit avant l'ajout du téléphone porte un `account` à deux champs qui
+ * remplaçait l'objet par défaut en entier - `phone` valait alors `undefined`, et
+ * le formulaire de l'étape 1 plantait au premier rendu. Chaque objet imbriqué
+ * est donc fusionné champ par champ.
+ *
+ * <p>Les collections sont vérifiées plutôt que reprises telles quelles : un
+ * brouillon tronqué (onglet fermé pendant l'écriture, quota atteint) ferait
+ * échouer le premier `.map` bien plus loin, sans rien qui désigne la cause.
+ */
+export function mergeStoredDraft(stored: Partial<OnboardingDraft> | null | undefined): OnboardingDraft {
+  const base = initialDraft();
+  if (!stored || typeof stored !== 'object') {
+    return base;
+  }
+  return {
+    ...base,
+    ...stored,
+    account: { ...base.account, ...stored.account },
+    property: { ...base.property, ...stored.property },
+    unitTypePrices: { ...base.unitTypePrices, ...stored.unitTypePrices },
+    selectedUnitTypes: Array.isArray(stored.selectedUnitTypes) ? stored.selectedUnitTypes : base.selectedUnitTypes,
+    buildings: Array.isArray(stored.buildings) ? stored.buildings : base.buildings,
+    bankAccounts: Array.isArray(stored.bankAccounts) ? stored.bankAccounts : base.bankAccounts,
   };
 }
 
@@ -116,17 +163,13 @@ export function totalUnitCount(draft: OnboardingDraft): number {
   );
 }
 
-export function fullName(account: OnboardingAccount): string {
-  return `${account.firstName} ${account.lastName}`.trim();
-}
-
 /**
- * L'API ne stocke qu'une adresse en un seul champ (250 caractères) : les quatre
+ * L'API ne stocke qu'une adresse en un seul champ (250 caractères) : les deux
  * saisies du wizard sont donc recomposées ici, et c'est cette chaîne qui est
  * validée en longueur, pas chaque champ pris isolément.
  */
 export function formatAddress(property: OnboardingProperty): string {
-  return [property.address, property.addressComplement, [property.postalCode, property.city].filter(Boolean).join(' ')]
+  return [property.address, property.city]
     .map((part) => part.trim())
     .filter(Boolean)
     .join(', ');

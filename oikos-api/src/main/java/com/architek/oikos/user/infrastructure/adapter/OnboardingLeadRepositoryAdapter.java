@@ -32,8 +32,7 @@ public class OnboardingLeadRepositoryAdapter implements OnboardingLeadRepository
             entity.setId(lead.id().asUuid());
         }
         entity.setEmail(lead.email().value());
-        entity.setFirstName(lead.firstName());
-        entity.setLastName(lead.lastName());
+        entity.setFullName(lead.fullName());
         entity.setConvertedAt(lead.convertedAt());
         return toDomain(jpaRepository.save(entity));
     }
@@ -47,8 +46,7 @@ public class OnboardingLeadRepositoryAdapter implements OnboardingLeadRepository
         return new OnboardingLead(
                 OnboardingLeadId.of(entity.getId()),
                 EmailVO.of(entity.getEmail()),
-                entity.getFirstName(),
-                entity.getLastName(),
+                entity.getFullName(),
                 entity.getConvertedAt());
     }
 }

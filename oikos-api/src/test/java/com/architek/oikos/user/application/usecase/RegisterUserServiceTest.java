@@ -61,7 +61,7 @@ class RegisterUserServiceTest {
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), null, null, null, null);
+                "Jane Doe", EmailVO.of("new@oikos.com"), "+212612345678", RawPassword.of("password123"), null, null, null, null);
 
         newService().register(command);
 
@@ -71,11 +71,43 @@ class RegisterUserServiceTest {
     }
 
     @Test
+    void the_phone_given_at_registration_lands_on_the_account() {
+        when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RegisterUserCommand command = new RegisterUserCommand(
+                "Jane Doe", EmailVO.of("new@oikos.com"), "+212612345678", RawPassword.of("password123"), null, null, null, null);
+
+        newService().register(command);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getPhone()).isEqualTo("+212612345678");
+    }
+
+    @Test
+    void an_account_created_without_a_phone_stays_valid() {
+        // Le formulaire l'exige, l'API non : les comptes déjà en base n'en ont pas,
+        // et les invitations en créent sans jamais en demander.
+        when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RegisterUserCommand command = new RegisterUserCommand(
+                "Jane Doe", EmailVO.of("new@oikos.com"), null, RawPassword.of("password123"), null, null, null, null);
+
+        newService().register(command);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getPhone()).isNull();
+    }
+
+    @Test
     void registering_an_already_used_email_is_rejected() {
         when(userRepository.existsByEmail("existing@oikos.com")).thenReturn(true);
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("existing@oikos.com"), RawPassword.of("password123"), null, null, null, null);
+                "Jane Doe", EmailVO.of("existing@oikos.com"), "+212612345678", RawPassword.of("password123"), null, null, null, null);
 
         assertThatThrownBy(() -> newService().register(command)).isInstanceOf(EmailAlreadyUsedException.class);
     }
@@ -86,7 +118,7 @@ class RegisterUserServiceTest {
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), null, null, null, null);
+                "Jane Doe", EmailVO.of("new@oikos.com"), "+212612345678", RawPassword.of("password123"), null, null, null, null);
 
         newService().register(command);
 
@@ -101,7 +133,7 @@ class RegisterUserServiceTest {
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), Role.ROLE_USER, null, null, null);
+                "Jane Doe", EmailVO.of("new@oikos.com"), "+212612345678", RawPassword.of("password123"), Role.ROLE_USER, null, null, null);
 
         newService().register(command);
 
@@ -113,7 +145,7 @@ class RegisterUserServiceTest {
     @Test
     void a_privileged_role_cannot_be_self_assigned_at_registration() {
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), Role.ROLE_ADMIN, null, null, null);
+                "Jane Doe", EmailVO.of("new@oikos.com"), "+212612345678", RawPassword.of("password123"), Role.ROLE_ADMIN, null, null, null);
 
         assertThatThrownBy(() -> newService().register(command)).isInstanceOf(RoleNotAllowedException.class);
     }
@@ -124,7 +156,7 @@ class RegisterUserServiceTest {
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand(
-                "Jane Doe", EmailVO.of("new@oikos.com"), RawPassword.of("password123"), null, null, null, null);
+                "Jane Doe", EmailVO.of("new@oikos.com"), "+212612345678", RawPassword.of("password123"), null, null, null, null);
 
         newService().register(command);
 
@@ -139,7 +171,7 @@ class RegisterUserServiceTest {
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand("Jane Doe", EmailVO.of("new@oikos.com"),
-                RawPassword.of("password123"), null, "/invitations?token=abc&unitId=def", null, null);
+                "+212612345678", RawPassword.of("password123"), null, "/invitations?token=abc&unitId=def", null, null);
 
         newService().register(command);
 
@@ -154,7 +186,7 @@ class RegisterUserServiceTest {
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterUserCommand command = new RegisterUserCommand("Jane Doe", EmailVO.of("new@oikos.com"),
-                RawPassword.of("password123"), null, "//evil.com", null, null);
+                "+212612345678", RawPassword.of("password123"), null, "//evil.com", null, null);
 
         newService().register(command);
 
@@ -170,7 +202,7 @@ class RegisterUserServiceTest {
         EntityId unitId = EntityId.newId();
 
         RegisterUserCommand command = new RegisterUserCommand("Jane Doe", EmailVO.of("new@oikos.com"),
-                RawPassword.of("password123"), null, null, "inv-token", unitId);
+                "+212612345678", RawPassword.of("password123"), null, null, "inv-token", unitId);
 
         newService().register(command);
 
@@ -189,7 +221,7 @@ class RegisterUserServiceTest {
                 .when(membershipRequestSubmissionPort).submit(any(), any(), any());
 
         RegisterUserCommand command = new RegisterUserCommand("Jane Doe", EmailVO.of("new@oikos.com"),
-                RawPassword.of("password123"), null, null, "inv-token", EntityId.newId());
+                "+212612345678", RawPassword.of("password123"), null, null, "inv-token", EntityId.newId());
 
         assertThatThrownBy(() -> newService().register(command)).isInstanceOf(IllegalArgumentException.class);
 

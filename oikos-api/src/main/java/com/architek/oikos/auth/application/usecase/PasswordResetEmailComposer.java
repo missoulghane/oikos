@@ -17,13 +17,13 @@ class PasswordResetEmailComposer {
     }
 
     String subject() {
-        return "OIKOS - Réinitialisation de votre mot de passe";
+        return "Daba Syndic - Réinitialisation de votre mot de passe";
     }
 
     String htmlBody(String token) {
         String link = passwordResetBaseUrl + "?token=" + token;
         return """
-                <p>Vous avez demandé la réinitialisation de votre mot de passe OIKOS.</p>
+                <p>Vous avez demandé la réinitialisation de votre mot de passe Daba Syndic.</p>
                 <p>Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe :</p>
                 <p><a href="%s">Réinitialiser mon mot de passe</a></p>
                 <p>Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>

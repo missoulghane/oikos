@@ -18,6 +18,7 @@ import com.architek.oikos.shared.exception.BusinessException;
 import com.architek.oikos.shared.exception.ConflictException;
 import com.architek.oikos.shared.exception.ResourceNotFoundException;
 import com.architek.oikos.shared.exception.UnauthorizedException;
+import com.architek.oikos.shared.exception.WhatsAppDeliveryException;
 
 /**
  * Central mapping from exceptions to standardized HTTP error responses,
@@ -78,6 +79,19 @@ public class GlobalExceptionHandler {
         log.warn("Data integrity violation: {}", ex.getMessage());
         return build(HttpStatus.CONFLICT,
                 "This resource cannot be deleted or modified because it is still referenced by other data.", request);
+    }
+
+    /**
+     * 502 plutôt que 500 : l'échec vient du fournisseur, pas de nous, et son motif
+     * est renvoyé tel quel. C'est presque toujours un point de configuration
+     * (expéditeur, fenêtre de 24 h, numéro non inscrit) que l'appelant peut
+     * corriger - le masquer derrière « une erreur inattendue » obligeait à ouvrir
+     * les logs du serveur pour l'apprendre.
+     */
+    @ExceptionHandler(WhatsAppDeliveryException.class)
+    public ResponseEntity<ErrorResponse> handleWhatsAppDelivery(WhatsAppDeliveryException ex, HttpServletRequest request) {
+        log.error("WhatsApp delivery failed", ex);
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

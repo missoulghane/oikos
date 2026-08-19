@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { BrandLogo } from '@/shared/components/BrandLogo/BrandLogo';
 import { useSidebar } from '@/shared/context/SidebarContext';
 import { UserDropdown } from '@/shared/layouts/UserDropdown';
 import { NotificationBell } from '@/features/messaging';
@@ -47,8 +48,8 @@ export function AppHeader() {
             )}
           </button>
 
-          <Link to="/" className="text-base font-semibold text-gray-900 dark:text-white/90 lg:hidden">
-            Oikos
+          <Link to="/" className="text-base text-gray-900 dark:text-white/90 lg:hidden">
+            <BrandLogo size="sm" wordmarkClassName="text-base" />
           </Link>
         </div>
 

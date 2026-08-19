@@ -17,14 +17,14 @@ class PartyInvitationEmailComposer {
     }
 
     String subject() {
-        return "OIKOS - Invitation à accéder à votre espace copropriétaire";
+        return "Daba Syndic - Invitation à accéder à votre espace copropriétaire";
     }
 
     String htmlBody(String fullName, String token) {
         String link = partyInvitationBaseUrl + "?token=" + token;
         return """
                 <p>Bonjour %s,</p>
-                <p>Vous avez été rattaché(e) comme copropriétaire dans OIKOS.</p>
+                <p>Vous avez été rattaché(e) comme copropriétaire dans Daba Syndic.</p>
                 <p>Cliquez sur le lien ci-dessous pour accéder à votre espace :</p>
                 <p><a href="%s">Accéder à mon espace</a></p>
                 <p>Ce lien expire dans 7 jours. Si vous n'attendiez pas cet email, ignorez-le.</p>

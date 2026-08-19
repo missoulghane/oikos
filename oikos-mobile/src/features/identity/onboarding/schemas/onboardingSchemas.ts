@@ -11,8 +11,7 @@ export const PASSWORD_MIN_LENGTH = 10;
 
 export const accountStepSchema = refinePasswordsMatch(
   z.object({
-    firstName: z.string().trim().min(1, 'Le prénom est requis').max(100, '100 caractères maximum'),
-    lastName: z.string().trim().min(1, 'Le nom est requis').max(100, '100 caractères maximum'),
+    fullName: z.string().trim().min(1, 'Le nom complet est requis').max(200, '200 caractères maximum'),
     email: z.string().trim().min(1, "L'email est requis").email('Email invalide').max(150, '150 caractères maximum'),
     password: z.string().min(PASSWORD_MIN_LENGTH, `Au moins ${PASSWORD_MIN_LENGTH} caractères`),
     confirmPassword: z.string().min(1, 'La confirmation est requise'),

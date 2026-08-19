@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "oikos-mobile",
+    "name": "Daba Syndic",
     "slug": "oikos-mobile",
     "version": "1.0.0",
     "scheme": "oikos",
@@ -16,7 +16,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#465fff",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -36,7 +36,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Oikos a besoin d'accéder à vos photos pour changer votre avatar."
+          "photosPermission": "Daba Syndic a besoin d'accéder à vos photos pour changer votre avatar."
         }
       ],
       "expo-font"

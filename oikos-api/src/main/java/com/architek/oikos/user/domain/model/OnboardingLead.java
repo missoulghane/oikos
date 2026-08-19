@@ -15,25 +15,24 @@ import com.architek.oikos.user.domain.valueobject.OnboardingLeadId;
  * follow-up only ever targets leads that never became accounts.
  * Immutable: converting returns a new instance.
  */
-public record OnboardingLead(OnboardingLeadId id, EmailVO email, String firstName, String lastName,
-                              Instant convertedAt) {
+public record OnboardingLead(OnboardingLeadId id, EmailVO email, String fullName, Instant convertedAt) {
 
     public OnboardingLead {
         Objects.requireNonNull(id, "id must not be null");
         Objects.requireNonNull(email, "email must not be null");
     }
 
-    public static OnboardingLead capture(EmailVO email, String firstName, String lastName) {
-        return new OnboardingLead(OnboardingLeadId.newId(), email, firstName, lastName, null);
+    public static OnboardingLead capture(EmailVO email, String fullName) {
+        return new OnboardingLead(OnboardingLeadId.newId(), email, fullName, null);
     }
 
-    /** Re-typing the same address updates the names rather than creating a second lead. */
-    public OnboardingLead withNames(String newFirstName, String newLastName) {
-        return new OnboardingLead(id, email, newFirstName, newLastName, convertedAt);
+    /** Re-typing the same address updates the name rather than creating a second lead. */
+    public OnboardingLead withFullName(String newFullName) {
+        return new OnboardingLead(id, email, newFullName, convertedAt);
     }
 
     public OnboardingLead convertedAt(Instant instant) {
-        return new OnboardingLead(id, email, firstName, lastName, instant);
+        return new OnboardingLead(id, email, fullName, instant);
     }
 
     public boolean isConverted() {

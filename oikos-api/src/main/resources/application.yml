@@ -45,9 +45,9 @@ oikos:
       max-units: 500
   mail:
     # Set to false to skip real SMTP sending and log the email content instead
-    # (see GmailEmailAdapter / LoggingEmailAdapter). Overridden to false in dev.
+    # (see SmtpEmailAdapter / LoggingEmailAdapter). Overridden to false in dev.
     enabled: ${MAIL_ENABLED:true}
-    from: ${MAIL_FROM:no-reply@oikos.ma}
+    from: ${MAIL_FROM:no-reply@daba-syndic.com}
     # ORIGINE PUBLIQUE D'oikos-web pour cet environnement. C'est LA variable à
     # définir hors du poste de développement : toutes les URL ci-dessous en
     # dérivent, et chaque lien envoyé à un copropriétaire (email, PDF de
@@ -86,6 +86,21 @@ oikos:
   avatar:
     max-file-size-bytes: ${AVATAR_MAX_FILE_SIZE_BYTES:5242880}
     allowed-content-types: ${AVATAR_ALLOWED_CONTENT_TYPES:image/png,image/jpeg,image/webp}
+  whatsapp:
+    # Envoi WhatsApp via l'API Messages de Vonage (voir VonageWhatsAppAdapter).
+    # Défaut OFF comme oikos.push, et pour la même raison : aucun compte WhatsApp
+    # Business n'est rattaché pour l'instant, donc l'adaptateur réel se demande
+    # explicitement. À true, les trois valeurs ci-dessous deviennent obligatoires
+    # et l'application refuse de démarrer sans elles (silence coûteux sinon).
+    enabled: ${WHATSAPP_ENABLED:false}
+    # Clé/secret du compte Vonage : authentification Basic, la seconde option
+    # admise par l'API Messages à côté du JWT.
+    api-key: ${VONAGE_API_KEY:}
+    api-secret: ${VONAGE_API_SECRET:}
+    # Numéro de l'expéditeur WhatsApp (WABA), format international sans '+'.
+    from: ${WHATSAPP_FROM:}
+    # Région de l'API Vonage : api (par défaut), api-eu, api-us, api-ap.
+    messages-url: ${VONAGE_MESSAGES_URL:https://api.nexmo.com/v1/messages}
   push:
     # Unlike oikos.mail (defaults on, a working SMTP setup is assumed in
     # production), this defaults OFF: no EAS/Expo project with push

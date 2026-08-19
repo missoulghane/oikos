@@ -10,7 +10,7 @@ export function RegisterPropertyManagerAdminPage() {
   const { mutate, isPending, isSuccess, error } = useRegisterPropertyManagerAdmin();
 
   function handleSubmit({ confirmPassword: _confirmPassword, ...values }: RegisterPropertyAdminFormValues) {
-    mutate({ ...values, phone: values.phone || undefined });
+    mutate(values);
   }
 
   if (isSuccess) {

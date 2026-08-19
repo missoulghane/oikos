@@ -173,7 +173,10 @@ Contextes métier existants sous `src/main/java/com/architek/oikos/` :
   configuration de la copropriété (`dues_calculation_mode` : forfait → une
   voix par lot, tantièmes → au prorata) et est snapshoté sur la convocation.
 - `shared` — briques transverses : pagination, gestion des exceptions,
-  audit, envoi d'email, configuration, ainsi que les VO génériques utilisées
+  audit, envoi d'email et de messages WhatsApp (`EmailSenderPort` /
+  `WhatsAppSenderPort`, chacun avec son adaptateur réel — SMTP, API Messages
+  de Vonage — et son adaptateur de log activé par `oikos.mail.enabled` /
+  `oikos.whatsapp.enabled`), configuration, ainsi que les VO génériques utilisées
   au-delà d'un seul module (`EntityId`, `Amount` — montant strictement
   positif, utilisée par `Movement`/`Installment`/`Allocation` dans `accounting`
   et `installment`).
@@ -272,7 +275,9 @@ pour la suite du développement) :
 
 Variables d'environnement utiles (voir `application.yml` /
 `application-dev.yml`) : `JWT_SECRET`, `MAIL_HOST`, `MAIL_PORT`,
-`MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`, et surtout
+`MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`, `WHATSAPP_ENABLED`
+(faux par défaut ; à vrai, `VONAGE_API_KEY`, `VONAGE_API_SECRET` et
+`WHATSAPP_FROM` deviennent obligatoires au démarrage), et surtout
 `APP_PUBLIC_BASE_URL` — l'origine publique d'oikos-web, dont **tous** les
 liens envoyés aux utilisateurs dérivent (emails, lien de confirmation des
 convocations et son QR code). Les variables par lien

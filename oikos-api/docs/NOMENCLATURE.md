@@ -32,6 +32,13 @@ acteur juridique (personne physique ou société), pas seulement une personne
 physique. `nom`/`prénom` sont fusionnés en un seul champ `fullName`, et un
 nouveau discriminant `partyType` distingue les deux natures.
 
+Cette règle vaut pour toute personne du produit, pas seulement pour une
+`Party` : `app_user.full_name`, `party_invitation_token.full_name`, et depuis
+la migration `V2`, `onboarding_lead.full_name` — cette dernière table était la
+seule à couper le nom en deux, parce que le formulaire de l'étape 1 du wizard
+demandait « Prénom » et « Nom ». Côté clients, tout écran de saisie d'un nom
+affiche donc un unique champ « Nom complet », borné à 200 caractères.
+
 | Terme FR (SFD)                    | Nom dans le code (EN)         | Notes |
 |------------------------------------|--------------------------------|-------|
 | Partie / acteur juridique           | `Party`                        | Anciennement `Contact` (module `contact` → `party`, table `contact` → `party`). |

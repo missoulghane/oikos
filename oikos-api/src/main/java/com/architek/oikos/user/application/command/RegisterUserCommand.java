@@ -16,6 +16,6 @@ import com.architek.oikos.user.domain.model.Role;
  * membership request as part of this same registration, atomically - see its
  * Javadoc for why.
  */
-public record RegisterUserCommand(String fullName, EmailVO email, RawPassword password, Role role, String returnTo,
-                                   String invitationToken, EntityId unitId) {
+public record RegisterUserCommand(String fullName, EmailVO email, String phone, RawPassword password, Role role,
+                                   String returnTo, String invitationToken, EntityId unitId) {
 }

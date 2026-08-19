@@ -28,7 +28,7 @@ export function AcceptInvitationForm({ onSubmit, isSubmitting, errorMessage }: A
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {errorMessage && <Alert message={errorMessage} />}
       <p className="text-sm text-gray-500 dark:text-gray-400">
-        Si vous avez déjà un compte Oikos, laissez ce champ vide. Sinon, choisissez un mot de passe pour créer votre
+        Si vous avez déjà un compte Daba Syndic, laissez ce champ vide. Sinon, choisissez un mot de passe pour créer votre
         compte.
       </p>
       <Input

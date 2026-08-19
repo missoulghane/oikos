@@ -1,6 +1,7 @@
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/shared/components/Input/Input';
+import { PhoneField } from '@/shared/components/PhoneField/PhoneField';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
 import {
@@ -23,6 +24,7 @@ export function RegisterPropertyAdminForm({
 }: RegisterPropertyAdminFormProps) {
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<RegisterPropertyAdminFormValues>({ resolver: zodResolver(registerPropertyAdminSchema) });
@@ -45,7 +47,21 @@ export function RegisterPropertyAdminForm({
           {...register('email')}
           errorMessage={errors.email?.message}
         />
-        <Input label="Téléphone" autoComplete="tel" {...register('phone')} errorMessage={errors.phone?.message} />
+        <Controller
+          control={control}
+          name="phone"
+          defaultValue=""
+          render={({ field }) => (
+            <PhoneField
+              label="Téléphone"
+              name={field.name}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              errorMessage={errors.phone?.message}
+            />
+          )}
+        />
         <Input
           label="Mot de passe"
           type="password"

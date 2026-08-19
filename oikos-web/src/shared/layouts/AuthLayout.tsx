@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import { ThemeToggleButton } from '@/shared/components/ThemeToggleButton/ThemeToggleButton';
+import { BrandLogo } from '@/shared/components/BrandLogo/BrandLogo';
 
 function GridShape() {
   return (
@@ -30,7 +31,9 @@ export function AuthLayout({ children, wide = false }: PropsWithChildren<AuthLay
         <div className="flex w-full flex-1 flex-col justify-center">
           <div className={`mx-auto flex w-full justify-center ${wide ? 'max-w-2xl px-4' : 'max-w-sm'}`}>
             <div className="w-full">
-              <h1 className="mb-6 text-center text-xl font-semibold text-gray-900 dark:text-white/90">Oikos</h1>
+              <h1 className="mb-6 flex justify-center text-gray-900 dark:text-white/90">
+                <BrandLogo size="lg" wordmarkClassName="text-2xl" />
+              </h1>
               {children}
             </div>
           </div>
@@ -41,7 +44,7 @@ export function AuthLayout({ children, wide = false }: PropsWithChildren<AuthLay
           <div className="relative z-1 flex items-center justify-center">
             <GridShape />
             <div className="flex max-w-xs flex-col items-center">
-              <span className="mb-4 block text-2xl font-semibold text-white">Oikos</span>
+              <BrandLogo size="lg" onDark wordmarkClassName="text-2xl" className="mb-4 text-white" />
               <p className="text-center text-gray-400 dark:text-gray-500">Gestion de copropriété simplifiée</p>
             </div>
           </div>

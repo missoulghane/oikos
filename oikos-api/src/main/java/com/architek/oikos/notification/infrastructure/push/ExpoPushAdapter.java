@@ -13,7 +13,7 @@ import com.architek.oikos.notification.application.port.out.PushNotificationPort
 /**
  * Real Expo Push API adapter (https://exp.host/--/api/v2/push/send).
  * Disabled by default (oikos.push.enabled=false, unlike
- * GmailEmailAdapter/LoggingEmailAdapter which default the real adapter on):
+ * SmtpEmailAdapter/LoggingEmailAdapter which default the real adapter on):
  * mail has a working SMTP setup assumed in production, push does not yet -
  * no EAS project with push credentials is configured (see PLAN.md). Batches
  * at 100 tokens per request per the Expo API's own limit.

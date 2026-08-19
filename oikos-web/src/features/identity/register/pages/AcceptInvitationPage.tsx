@@ -21,7 +21,7 @@ export function AcceptInvitationPage() {
   return (
     <AuthLayout>
       <Card>
-        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white/90">Invitation à rejoindre Oikos</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white/90">Invitation à rejoindre Daba Syndic</h2>
         {!token && <Alert message="Ce lien d'invitation est invalide." />}
         {token && isSuccess && (
           <p className="text-sm text-gray-600 dark:text-gray-400">

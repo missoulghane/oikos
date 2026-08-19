@@ -4,6 +4,7 @@ import { AuthLayout } from '@/shared/layouts/AuthLayout';
 import { Card } from '@/shared/components/Card/Card';
 import { Button } from '@/shared/components/Button/Button';
 import { LoginForm } from '@/features/identity/auth/components/LoginForm';
+import { BrandMark } from '@/shared/components/BrandMark/BrandMark';
 import { useLogin } from '@/features/identity/auth/hooks/useLogin';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { colors } from '@/shared/theme/colors';
@@ -24,7 +25,8 @@ export function LoginScreen({ navigation }: Props) {
 
   return (
     <AuthLayout>
-      <Text style={styles.title}>Oikos</Text>
+      <BrandMark size={64} />
+      <Text style={styles.title}>Daba Syndic</Text>
       <Card style={styles.card}>
         <LoginForm onSubmit={handleSubmit} isSubmitting={isPending} errorMessage={error ? getErrorMessage(error) : undefined} />
         <Button variant="secondary" onPress={() => navigation.navigate('ForgotPassword')} style={styles.linkButton}>
@@ -40,6 +42,7 @@ export function LoginScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   title: {
+    marginTop: 16,
     marginBottom: 24,
     textAlign: 'center',
     fontSize: 28,

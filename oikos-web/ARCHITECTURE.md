@@ -286,6 +286,20 @@ secondaire en `dark:text-gray-400`.
 liens concurrents sur l'écran de connexion obligeaient le visiteur à connaître
 le vocabulaire métier avant d'avoir vu le produit.
 
+Le jeton d'onboarding renvoyé à l'étape 2 est posé explicitement sur l'appel de
+finalisation, et `httpClient` ne l'écrase pas par le jeton de session
+éventuellement présent dans le `localStorage` : ce dernier ne vaut rien sur
+`/properties/{id}/configuration`, et une session périmée d'un autre onglet
+suffisait à faire échouer la dernière étape en 401. Son échéance est stockée
+avec le brouillon — passé le délai on n'envoie plus rien, la session prend le
+relais (`canConfigureOnboarding` l'accepte) et l'écran explique la marche à
+suivre plutôt que d'afficher le message brut de l'API.
+
+Les trois parcours demandent le téléphone, obligatoire côté formulaire et saisi
+via `PhoneField` (sélecteur d'indicatif + numéro national, recomposés en un seul
+numéro international). Il reste facultatif côté API : les comptes déjà créés
+n'en ont pas, et l'acceptation d'une invitation en crée sans jamais en demander.
+
 `/register/board-admin/*` est un wizard en 7 étapes
 (`features/identity/onboarding`), une URL par étape — d'où le lien profond, le
 bouton « Modifier » du récapitulatif et le retour navigateur gratuits.
@@ -317,8 +331,9 @@ reprendre à un syndic dont la copropriété n'a encore aucun bâtiment.
 
 L'étape 4 est conditionnelle : montants par type au forfait, budget
 prévisionnel en tantièmes (les tantièmes eux-mêmes se saisissent lot par lot
-ensuite). Les quatre champs d'adresse sont recomposés en une seule chaîne, seul
-format que l'API stocke (250 caractères, validés sur la concaténation).
+ensuite). Les deux champs d'adresse (voie et ville) sont recomposés en une
+seule chaîne, seul format que l'API stocke (250 caractères, validés sur la
+concaténation).
 
 ## 10. Limites connues de cette v1 (à traiter dans une itération suivante)
 

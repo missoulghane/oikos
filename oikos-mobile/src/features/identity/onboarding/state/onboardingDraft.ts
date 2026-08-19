@@ -17,8 +17,7 @@ export const UNIT_TYPE_CHOICES = [
 export type UnitTypeName = (typeof UNIT_TYPE_CHOICES)[number]['name'];
 
 export interface OnboardingAccount {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
 }
 
@@ -67,7 +66,7 @@ export function emptyBuilding(index: number): OnboardingBuilding {
 
 export function initialDraft(): OnboardingDraft {
   return {
-    account: { firstName: '', lastName: '', email: '' },
+    account: { fullName: '', email: '' },
     property: { name: '', address: '', addressComplement: '', postalCode: '', city: '' },
     // Forfait par défaut, comme demandé - et c'est aussi le défaut du domaine.
     duesCalculationMode: 'FLAT_RATE',
@@ -120,9 +119,6 @@ export function totalUnitCount(draft: OnboardingDraft): number {
   );
 }
 
-export function fullName(account: OnboardingAccount): string {
-  return `${account.firstName} ${account.lastName}`.trim();
-}
 
 /**
  * L'API ne stocke qu'une adresse en un seul champ (250 caractères) : les quatre
