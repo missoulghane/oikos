@@ -280,6 +280,12 @@ secondaire en `dark:text-gray-400`.
 
 ## 9. Inscription du syndic bénévole (wizard)
 
+`/login` n'expose qu'une porte d'entrée, « Créer un compte » → `/register`
+(`RegisterChoicePage`), qui aiguille vers l'un des trois parcours
+(`/register/board-admin`, `/register/manager-admin`, `/register/user`) — trois
+liens concurrents sur l'écran de connexion obligeaient le visiteur à connaître
+le vocabulaire métier avant d'avoir vu le produit.
+
 `/register/board-admin/*` est un wizard en 7 étapes
 (`features/identity/onboarding`), une URL par étape — d'où le lien profond, le
 bouton « Modifier » du récapitulatif et le retour navigateur gratuits.

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/Button/Button';
 import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingContext';
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
-import { SelectableCard } from '@/features/identity/onboarding/components/SelectableCard';
+import { SelectableCard } from '@/shared/components/SelectableCard/SelectableCard';
 import { nextStepPath, previousStepPath } from '@/features/identity/onboarding/constants/steps';
 import type { DuesCalculationMode } from '@/features/property-mngt/properties/types/property.types';
 

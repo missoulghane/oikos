@@ -4,7 +4,7 @@ import { Input } from '@/shared/components/Input/Input';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingContext';
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
-import { SelectableCard } from '@/features/identity/onboarding/components/SelectableCard';
+import { SelectableCard } from '@/shared/components/SelectableCard/SelectableCard';
 import { nextStepPath, previousStepPath } from '@/features/identity/onboarding/constants/steps';
 import { UNIT_TYPE_CHOICES } from '@/features/identity/onboarding/state/onboardingDraft';
 

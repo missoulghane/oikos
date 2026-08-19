@@ -1,3 +1,4 @@
+export { RegisterChoicePage } from '@/features/identity/register/pages/RegisterChoicePage';
 export { RegisterUserPage } from '@/features/identity/register/pages/RegisterUserPage';
 export { RegisterPropertyManagerAdminPage } from '@/features/identity/register/pages/RegisterPropertyManagerAdminPage';
 export { VerifyEmailPage } from '@/features/identity/register/pages/VerifyEmailPage';

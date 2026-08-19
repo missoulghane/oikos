@@ -29,26 +29,12 @@ export function LoginPage() {
           isSubmitting={isPending}
           errorMessage={error ? getErrorMessage(error) : undefined}
         />
-        <div className="mt-4 flex flex-col items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-          <span>
-            Pas encore de compte ?{' '}
-            <Link to="/register/user" className="font-medium text-gray-900 dark:text-white/90 underline">
-              Créer un compte
-            </Link>
-          </span>
-          <span>
-            Vous gérez votre propre copropriété ?{' '}
-            <Link to="/register/board-admin" className="font-medium text-gray-900 dark:text-white/90 underline">
-              Créer un compte syndic bénévole
-            </Link>
-          </span>
-          <span>
-            Vous êtes un cabinet professionnel ?{' '}
-            <Link to="/register/manager-admin" className="font-medium text-gray-900 dark:text-white/90 underline">
-              Créer un compte cabinet de syndic
-            </Link>
-          </span>
-        </div>
+        <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+          Pas encore de compte ?{' '}
+          <Link to="/register" className="font-medium text-gray-900 dark:text-white/90 underline">
+            Créer un compte
+          </Link>
+        </p>
       </Card>
     </AuthLayout>
   );

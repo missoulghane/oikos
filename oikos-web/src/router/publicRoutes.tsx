@@ -3,6 +3,9 @@ import type { RouteObject } from 'react-router-dom';
 import { Loader } from '@/shared/components/Loader/Loader';
 
 const LoginPage = lazy(() => import('@/features/identity/auth').then((m) => ({ default: m.LoginPage })));
+const RegisterChoicePage = lazy(() =>
+  import('@/features/identity/register').then((m) => ({ default: m.RegisterChoicePage })),
+);
 const RegisterUserPage = lazy(() => import('@/features/identity/register').then((m) => ({ default: m.RegisterUserPage })));
 const OnboardingWizardPage = lazy(() =>
   import('@/features/identity/onboarding').then((m) => ({ default: m.OnboardingWizardPage })),
@@ -30,6 +33,16 @@ export const publicRoutes: RouteObject[] = [
     element: (
       <Suspense fallback={<Loader />}>
         <LoginPage />
+      </Suspense>
+    ),
+  },
+  {
+    // Aiguillage : une seule porte d'entrée « Créer un compte » depuis le login,
+    // qui oriente ensuite vers le parcours d'inscription correspondant.
+    path: '/register',
+    element: (
+      <Suspense fallback={<Loader />}>
+        <RegisterChoicePage />
       </Suspense>
     ),
   },
