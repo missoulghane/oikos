@@ -30,6 +30,11 @@ export function LoginPage() {
           errorMessage={error ? getErrorMessage(error) : undefined}
         />
         <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+          <Link to="/forgot-password" className="font-medium text-gray-900 dark:text-white/90 underline">
+            Mot de passe oublié ?
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
           Pas encore de compte ?{' '}
           <Link to="/register" className="font-medium text-gray-900 dark:text-white/90 underline">
             Créer un compte

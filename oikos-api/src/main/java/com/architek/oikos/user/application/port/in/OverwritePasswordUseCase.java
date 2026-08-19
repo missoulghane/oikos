@@ -8,6 +8,10 @@ import com.architek.oikos.user.domain.valueobject.UserId;
  * user's password without checking the previous one - the caller must already have
  * validated a one-time reset token. Cross-feature access must go through this
  * port-in use case, never through the user repository directly.
+ *
+ * <p>Marks the account verified along the way: holding the token means holding the
+ * mailbox, which is all the email verification ever asked for (see
+ * OverwritePasswordService).
  */
 public interface OverwritePasswordUseCase {
 

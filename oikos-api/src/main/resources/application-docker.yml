@@ -1,3 +1,16 @@
+# Derrière Caddy (voir Caddyfile), l'adresse vue par l'application est celle du
+# proxy : sans cette bascule, tous les visiteurs partageraient un seul compteur
+# anti-abus, et le premier à atteindre un plafond bloquerait tout le monde.
+# `framework` fait réécrire l'adresse d'appel depuis X-Forwarded-For, que
+# reverse_proxy pose lui-même.
+#
+# Ce réglage n'est PAS dans application.yml, et c'est délibéré : croire cet
+# en-tête n'est sûr que si le proxy est le seul chemin d'entrée. C'est le cas
+# ici (docker-compose.staging.yml ne publie aucun port pour l'API), ce ne l'est
+# pas pour une API lancée à même un poste.
+server:
+  forward-headers-strategy: framework
+
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL}

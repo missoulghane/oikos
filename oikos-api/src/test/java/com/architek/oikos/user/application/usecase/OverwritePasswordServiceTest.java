@@ -42,6 +42,24 @@ class OverwritePasswordServiceTest {
     }
 
     @Test
+    void an_unverified_account_comes_out_verified() {
+        // Suivre le lien reçu par email prouve la détention de l'adresse : sans
+        // cela, la réinitialisation réussissait et le login refusait quand même
+        // (403 sur compte non vérifié), sans rien pour l'expliquer.
+        UserId userId = UserId.newId();
+        User user = User.register(userId, EmailVO.of("jane@doe.com"), "Jane Doe", HashedPassword.of("old-hash"));
+        assertThat(user.isVerified()).isFalse();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        new OverwritePasswordService(userRepository).overwritePassword(userId, HashedPassword.of("new-hash"));
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().isVerified()).isTrue();
+    }
+
+    @Test
     void unknown_user_is_rejected() {
         UserId userId = UserId.newId();
         when(userRepository.findById(userId)).thenReturn(Optional.empty());

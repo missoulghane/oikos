@@ -16,8 +16,11 @@ Livrable volontairement réduit : le parcours **création d'une copropriété**.
 
 Hors périmètre pour cette version (voir `oikos-api/README.md` pour la
 vision produit complète) : gestion des immeubles/lots au-delà de la
-création initiale, copropriétaires, membres du syndic, inscription de
-compte, mot de passe oublié.
+création initiale, copropriétaires, membres du syndic.
+
+L'inscription de compte et la récupération de mot de passe
+(`/forgot-password`, `/reset-password`) ont depuis été livrées ; cette
+section décrit le périmètre d'origine et n'a pas suivi le reste.
 
 ## 2. Stack technique
 

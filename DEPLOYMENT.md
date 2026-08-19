@@ -184,6 +184,63 @@ curl -I https://<domaine>
 curl -I https://<domaine>/swagger-ui.html
 ```
 
+### 1.8 Inspecter et réparer les migrations
+
+Le service `flyway` porte sa connexion dans son environnement (voir
+`docker-compose.yml`) : toute sous-commande se lance donc seule, sans avoir à
+retaper l'URL ni les identifiants.
+
+```bash
+docker compose run --rm flyway info      # état de chaque migration
+docker compose run --rm flyway repair    # réaligne l'historique
+docker compose run --rm flyway migrate   # applique ce qui est en attente
+```
+
+`info` liste chaque version avec son état : `Success`, `Pending`, ou `Failed`.
+C'est ce tableau qui distingue les trois pannes courantes.
+
+**`Migration checksum mismatch`** — un fichier déjà appliqué a été modifié
+depuis. Flyway compare l'empreinte du fichier à celle enregistrée le jour de
+l'application. `repair` réécrit l'empreinte dans l'historique sans rejouer la
+migration ; c'est le bon geste quand la modification était cosmétique (un
+commentaire, une reformulation). Si elle changeait le SQL, il faut au
+contraire écrire une nouvelle migration : la base, elle, ne rejouera jamais
+l'ancienne.
+
+**`Detected applied migration not resolved locally`** — l'historique porte
+une version dont le fichier n'existe plus, typiquement une base antérieure au
+squash des migrations. `repair` la retire de l'historique.
+
+**Une migration en `Failed`** — elle s'est interrompue en cours. `repair`
+efface la ligne d'échec ; il reste à vérifier à la main ce qu'elle avait déjà
+écrit avant de relancer `migrate`.
+
+**Une base antérieure à un squash de migrations** — le cas le plus déroutant,
+parce que `info` affiche « Success » partout. Les migrations ont été
+refondues en un seul `V1__baseline.sql` à deux reprises (commits `e11c281` et
+`bfb0226`) : une base migrée avant garde dans son historique des versions
+2, 3, … dont les fichiers n'existent plus, et dont les numéros sont désormais
+repris par d'autres migrations. Celles du dépôt ne s'appliqueront donc
+jamais — Flyway les croit déjà passées.
+
+Le signe qui ne trompe pas : la colonne `Description` de `info` ne
+correspond pas au nom des fichiers présents dans `db/migration/`.
+
+- **En local** : recréer le volume, c'est la seule issue raisonnable.
+  `docker compose down -v && docker compose up -d` — les données de dev sont
+  reséedées depuis `db/dev/dev.sql`. Attention, `-v` détruit aussi
+  `api-storage` (les documents téléversés en local).
+- **Sur un environnement dont les données comptent** : ne rien détruire.
+  Comparer d'abord le schéma réel à celui que produit `V1__baseline.sql`,
+  puis renuméroter les migrations en attente au-dessus du dernier numéro
+  déjà consommé par l'historique. C'est une décision à prendre au cas par
+  cas, pas une commande à recopier.
+
+> Ne pas passer `-url`/`-user` à la main dans ces commandes : ces valeurs
+> viennent du `.env` racine, que Compose lit, mais que le shell ne connaît
+> pas. Elles arriveraient vides, et Flyway se plaindrait d'un « user name
+> not specified » qui ressemble à tort à un problème de base de données.
+
 ## 2. Travailler depuis un autre ordinateur (même compte GitHub)
 
 Rien à refaire côté GitHub : repo, Actions, Secrets sont attachés au
@@ -251,6 +308,50 @@ Desktop, JDK 25 (le `mvnw` du repo télécharge Maven lui-même), Node 22.
 **La clé CI (`oikos_deploy_key`)** n'a pas besoin d'exister sur cette
 nouvelle machine — elle vit uniquement dans le secret GitHub `VPS_SSH_KEY`,
 utilisée par les runners GitHub Actions, jamais par vous en local.
+
+## 2 bis. Liens universels (ouvrir l'app mobile depuis un email)
+
+Les emails du produit (vérification, activation, invitation, mot de passe
+oublié) portent des URL `https` vers le web. Sur un téléphone où l'app est
+installée, le système peut les ouvrir dans l'app plutôt que dans le
+navigateur — à condition de trouver, sur le domaine, un fichier qui le lui
+autorise.
+
+Ces deux fichiers sont servis par `oikos-web` sous `/.well-known/` et
+versionnés dans `oikos-web/public/.well-known/`. Chacun attend **une valeur
+qu'il faut aller chercher** :
+
+| Fichier | Valeur à remplir | Où la trouver |
+| --- | --- | --- |
+| `apple-app-site-association` | `REMPLACER_PAR_APPLE_TEAM_ID` | Apple Developer → Membership → Team ID (10 caractères) |
+| `assetlinks.json` | `REMPLACER_PAR_EMPREINTE_SHA256_DU_CERTIFICAT` | `eas credentials` → Android → le SHA-256 du certificat de **signature de l'app publiée** (celui de Play App Signing, pas celui d'upload) |
+
+Tant qu'elles ne sont pas remplies, rien ne casse : les liens s'ouvrent dans
+le navigateur, exactement comme aujourd'hui.
+
+**Vérifier après déploiement** — les deux fichiers doivent répondre en 200,
+en `application/json`, sans redirection :
+
+```bash
+curl -sI https://<domaine>/.well-known/apple-app-site-association | head -3
+curl -sI https://<domaine>/.well-known/assetlinks.json | head -3
+```
+
+Un `content-type: text/html` ou un corps qui commence par `<!doctype html>`
+signale que le repli SPA a répondu à la place du fichier : Apple et Google
+lisent alors une page web comme une association valide mais illisible, et
+échouent en silence.
+
+**Côté application**, les mêmes domaines sont déclarés dans
+`oikos-mobile/app.json` (`ios.associatedDomains`, `android.intentFilters`) et
+dans `RootNavigator.tsx` (`WEB_ORIGINS`). Ajouter un domaine, c'est éditer
+les trois, puis reconstruire l'app : ces déclarations partent dans le binaire,
+une mise à jour du serveur seule ne suffit pas.
+
+**Ce qui n'ouvre volontairement pas l'app** : la confirmation de convocation
+(`/convocations/confirmation`). Elle existe pour les copropriétaires qui n'ont
+pas de compte et n'auront pas l'app ; l'ouvrir dans l'app enverrait sur un
+écran de connexion exactement ceux qui n'en ont pas.
 
 ## 3. Passage en production (une fois validé en recette)
 

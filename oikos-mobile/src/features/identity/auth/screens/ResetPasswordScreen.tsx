@@ -19,7 +19,9 @@ export function ResetPasswordScreen({ route, navigation }: Props) {
 
   function handleSubmit(values: ResetPasswordFormValues) {
     if (token) {
-      mutate({ token, newPassword: values.newPassword });
+      // Le formulaire nomme ses champs password / confirmPassword (pour réutiliser
+      // la vérification de concordance) ; l'API attend newPassword.
+      mutate({ token, newPassword: values.password });
     }
   }
 
@@ -30,7 +32,8 @@ export function ResetPasswordScreen({ route, navigation }: Props) {
         {!token && <Alert message="Ce lien de réinitialisation est invalide." />}
         {token && isSuccess && (
           <Text style={styles.body}>
-            Votre mot de passe a bien été réinitialisé. Vous pouvez maintenant vous connecter.
+            Votre mot de passe a bien été réinitialisé. Vos autres appareils ont été déconnectés ; vous pouvez
+            maintenant vous connecter.
           </Text>
         )}
         {token && !isSuccess && (

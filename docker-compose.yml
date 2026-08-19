@@ -24,7 +24,22 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: -url=jdbc:postgresql://postgres:5432/${POSTGRES_DB} -user=${POSTGRES_USER} -password=${POSTGRES_PASSWORD} -locations=filesystem:/flyway/sql migrate
+    # Connexion passée par l'environnement plutôt qu'en arguments : Compose
+    # interpole ces valeurs depuis le .env racine, alors qu'une commande tapée à
+    # la main (`docker compose run --rm flyway ...`) est d'abord évaluée par le
+    # shell, où ces variables n'existent pas. Le symptôme est déroutant - Flyway
+    # se plaint d'un utilisateur vide et d'une URL sans base, comme si le .env
+    # était mal lu.
+    #
+    # Avec ces variables, toute sous-commande se lance seule :
+    #   docker compose run --rm flyway info
+    #   docker compose run --rm flyway repair
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      FLYWAY_USER: ${POSTGRES_USER}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD}
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+    command: migrate
     volumes:
       - ./oikos-api/src/main/resources/db/migration:/flyway/sql:ro
 

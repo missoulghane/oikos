@@ -4,6 +4,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import com.architek.oikos.shared.exception.BusinessException;
 import com.architek.oikos.shared.exception.ConflictException;
 import com.architek.oikos.shared.exception.ResourceNotFoundException;
+import com.architek.oikos.shared.exception.TooManyRequestsException;
 import com.architek.oikos.shared.exception.UnauthorizedException;
 import com.architek.oikos.shared.exception.WhatsAppDeliveryException;
 
@@ -36,6 +38,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex, HttpServletRequest request) {
         return build(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+
+    /**
+     * 429 plutôt que 400 : la requête est valide, elle arrive seulement trop tôt.
+     * Retry-After dit combien de temps patienter - sans lui, un client qui
+     * réessaie en boucle est le comportement le plus naturel du monde.
+     */
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ErrorResponse> handleTooManyRequests(TooManyRequestsException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, ex.retryAfter().toSeconds())))
+                .body(ErrorResponse.of(HttpStatus.TOO_MANY_REQUESTS.value(),
+                        HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase(), ex.getMessage(), request.getRequestURI()));
     }
 
     @ExceptionHandler(BusinessException.class)

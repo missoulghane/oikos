@@ -22,7 +22,7 @@ export function ResetPasswordForm({ onSubmit, isSubmitting, errorMessage }: Rese
     formState: { errors },
   } = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
-    defaultValues: { newPassword: '' },
+    defaultValues: { password: '', confirmPassword: '' },
   });
 
   return (
@@ -30,12 +30,21 @@ export function ResetPasswordForm({ onSubmit, isSubmitting, errorMessage }: Rese
       {errorMessage && <Alert message={errorMessage} />}
       <ControlledInput
         control={control}
-        name="newPassword"
+        name="password"
         label="Nouveau mot de passe"
         autoComplete="new-password"
         autoCapitalize="none"
         secureTextEntry
-        errorMessage={errors.newPassword?.message}
+        errorMessage={errors.password?.message}
+      />
+      <ControlledInput
+        control={control}
+        name="confirmPassword"
+        label="Confirmation du mot de passe"
+        autoComplete="new-password"
+        autoCapitalize="none"
+        secureTextEntry
+        errorMessage={errors.confirmPassword?.message}
       />
       <Button onPress={handleSubmit(onSubmit)} isLoading={isSubmitting} style={styles.submitButton}>
         Réinitialiser le mot de passe

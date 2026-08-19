@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
+import com.architek.oikos.shared.application.port.out.EmailSendQuotaPort;
 import com.architek.oikos.user.application.command.ResendVerificationCommand;
 import com.architek.oikos.user.application.port.in.ResendVerificationUseCase;
 import com.architek.oikos.user.domain.model.User;
@@ -31,6 +32,7 @@ public class ResendVerificationService implements ResendVerificationUseCase {
     private final UserRepository userRepository;
     private final VerificationTokenRepository verificationTokenRepository;
     private final EmailSenderPort emailSenderPort;
+    private final EmailSendQuotaPort emailSendQuotaPort;
     private final VerificationTokenGenerator tokenGenerator;
     private final VerificationEmailComposer emailComposer;
     private final Clock clock;
@@ -39,6 +41,7 @@ public class ResendVerificationService implements ResendVerificationUseCase {
     public ResendVerificationService(UserRepository userRepository,
                                       VerificationTokenRepository verificationTokenRepository,
                                       EmailSenderPort emailSenderPort,
+                                      EmailSendQuotaPort emailSendQuotaPort,
                                       VerificationTokenGenerator tokenGenerator,
                                       VerificationEmailComposer emailComposer,
                                       Clock clock,
@@ -46,6 +49,7 @@ public class ResendVerificationService implements ResendVerificationUseCase {
         this.userRepository = userRepository;
         this.verificationTokenRepository = verificationTokenRepository;
         this.emailSenderPort = emailSenderPort;
+        this.emailSendQuotaPort = emailSendQuotaPort;
         this.tokenGenerator = tokenGenerator;
         this.emailComposer = emailComposer;
         this.clock = clock;
@@ -55,6 +59,10 @@ public class ResendVerificationService implements ResendVerificationUseCase {
     @Override
     @Transactional
     public void resend(ResendVerificationCommand command) {
+        // Avant toute lecture, comme pour la réinitialisation de mot de passe :
+        // un plafond qui ne frapperait que les adresses connues dirait lesquelles
+        // le sont.
+        emailSendQuotaPort.requireQuota(command.email().value());
         // Split from the old single filter+ifPresent so the two silent causes can be
         // told apart in the logs: an address nobody owns, versus an account that is
         // already verified and therefore needs nothing resent.

@@ -40,6 +40,11 @@ public class RefreshTokenRepositoryAdapter implements RefreshTokenRepository {
         return jpaRepository.findByTokenHash(tokenHash).map(this::toDomain);
     }
 
+    @Override
+    public void deleteByUserId(EntityId userId) {
+        jpaRepository.deleteByUserId(userId.value());
+    }
+
     private RefreshToken toDomain(RefreshTokenEntity entity) {
         return new RefreshToken(
                 RefreshTokenId.of(entity.getId()),

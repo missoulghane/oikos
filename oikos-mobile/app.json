@@ -10,6 +10,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.issoulghane.oikosmobile",
+      "associatedDomains": [
+        "applinks:daba-syndic.com",
+        "applinks:oikos-staging.tech"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -25,7 +29,26 @@
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.issoulghane.oikosmobile"
+      "package": "com.issoulghane.oikosmobile",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": [
+            { "scheme": "https", "host": "daba-syndic.com", "pathPrefix": "/reset-password" },
+            { "scheme": "https", "host": "daba-syndic.com", "pathPrefix": "/verify-email" },
+            { "scheme": "https", "host": "daba-syndic.com", "pathPrefix": "/activate-account" },
+            { "scheme": "https", "host": "daba-syndic.com", "pathPrefix": "/accept-invitation" },
+            { "scheme": "https", "host": "daba-syndic.com", "pathPrefix": "/invitations" },
+            { "scheme": "https", "host": "oikos-staging.tech", "pathPrefix": "/reset-password" },
+            { "scheme": "https", "host": "oikos-staging.tech", "pathPrefix": "/verify-email" },
+            { "scheme": "https", "host": "oikos-staging.tech", "pathPrefix": "/activate-account" },
+            { "scheme": "https", "host": "oikos-staging.tech", "pathPrefix": "/accept-invitation" },
+            { "scheme": "https", "host": "oikos-staging.tech", "pathPrefix": "/invitations" }
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

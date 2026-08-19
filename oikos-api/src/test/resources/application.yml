@@ -25,6 +25,18 @@ oikos:
       refresh-token-ttl-seconds: 1209600
     cors:
       allowed-origins: http://localhost:*,http://127.0.0.1:*
+    # Désactivé pour la suite : les plafonds sont partagés entre les cas d'un même
+    # contexte Spring, et le 42e appel de la journée échouerait pour une raison
+    # sans rapport avec ce que le test vérifie. Les tests dédiés (RateLimiterTest,
+    # RateLimitFilterTest) instancient le limiteur eux-mêmes.
+    rate-limit:
+      enabled: false
+      window: 5m
+      login-per-ip: 30
+      email-send-per-ip: 10
+      token-attempt-per-ip: 20
+      registration-per-ip: 10
+      email-send-per-address: 3
   property:
     configure:
       max-units: 500

@@ -17,6 +17,7 @@ import com.architek.oikos.auth.domain.model.PasswordResetToken;
 import com.architek.oikos.auth.domain.repository.PasswordResetTokenRepository;
 import com.architek.oikos.auth.domain.service.PasswordResetTokenGenerator;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
+import com.architek.oikos.shared.application.port.out.EmailSendQuotaPort;
 
 /**
  * Intentionally silent to the *caller* when no account matches the email: the web
@@ -33,6 +34,7 @@ public class RequestPasswordResetService implements RequestPasswordResetUseCase 
     private final UserAccountPort userAccountPort;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailSenderPort emailSenderPort;
+    private final EmailSendQuotaPort emailSendQuotaPort;
     private final PasswordResetTokenGenerator tokenGenerator;
     private final PasswordResetEmailComposer emailComposer;
     private final Clock clock;
@@ -41,6 +43,7 @@ public class RequestPasswordResetService implements RequestPasswordResetUseCase 
     public RequestPasswordResetService(UserAccountPort userAccountPort,
                                         PasswordResetTokenRepository passwordResetTokenRepository,
                                         EmailSenderPort emailSenderPort,
+                                        EmailSendQuotaPort emailSendQuotaPort,
                                         PasswordResetTokenGenerator tokenGenerator,
                                         PasswordResetEmailComposer emailComposer,
                                         Clock clock,
@@ -48,6 +51,7 @@ public class RequestPasswordResetService implements RequestPasswordResetUseCase 
         this.userAccountPort = userAccountPort;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.emailSenderPort = emailSenderPort;
+        this.emailSendQuotaPort = emailSendQuotaPort;
         this.tokenGenerator = tokenGenerator;
         this.emailComposer = emailComposer;
         this.clock = clock;
@@ -57,11 +61,17 @@ public class RequestPasswordResetService implements RequestPasswordResetUseCase 
     @Override
     @Transactional
     public void requestReset(RequestPasswordResetCommand command) {
+        // Before the lookup, never after: a quota applied only to the addresses
+        // that exist would answer, by its very refusal, the question this endpoint
+        // spends the rest of its code refusing to answer.
+        emailSendQuotaPort.requireQuota(command.email().value());
         userAccountPort.findIdByEmail(command.email()).ifPresentOrElse(userId -> {
             passwordResetTokenRepository.deleteByUserId(userId);
             String rawToken = tokenGenerator.generate();
             Instant expiresAt = clock.instant().plus(passwordResetTokenTtl);
-            PasswordResetToken resetToken = PasswordResetToken.issue(userId, rawToken, expiresAt);
+            // Only the hash is stored; rawToken exists from here to the email and
+            // nowhere else - it is the one copy the recipient will ever hold.
+            PasswordResetToken resetToken = PasswordResetToken.issue(userId, tokenGenerator.hash(rawToken), expiresAt);
             passwordResetTokenRepository.save(resetToken);
             emailSenderPort.send(command.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken));
         },

@@ -9,3 +9,12 @@ export interface AuthTokens {
   tokenType: string;
   expiresIn: number;
 }
+
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  newPassword: string;
+}

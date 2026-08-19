@@ -6,6 +6,21 @@ import { MainNavigator, type MainStackParamList } from '@/app/navigation/MainNav
 import { Loader } from '@/shared/components/Loader/Loader';
 
 /**
+ * Les deux origines web du produit, celles que portent les liens envoyés par
+ * email. Déclarées ici pour que React Navigation résolve une URL https en écran,
+ * et déclarées une seconde fois côté natif (app.json : ios.associatedDomains et
+ * android.intentFilters) pour que le système ouvre l'app plutôt que le
+ * navigateur. Il faut les deux : la première sans la seconde ne sert jamais, la
+ * seconde sans la première ouvrirait l'app sur son écran d'accueil, en perdant
+ * le jeton en route.
+ *
+ * Les deux origines cohabitent dans un seul binaire : un lien de recette comme
+ * un lien de production ouvre l'app installée. C'est voulu tant qu'un même
+ * téléphone sert à tester les deux environnements.
+ */
+const WEB_ORIGINS = ['https://oikos-staging.tech', 'https://daba-syndic.com'];
+
+/**
  * Email links (verify-email, activate-account, accept-invitation,
  * reset-password) all carry a `token` query param and are meant to be tapped
  * before/without being logged in, so they only need to resolve against
@@ -17,7 +32,7 @@ import { Loader } from '@/shared/components/Loader/Loader';
  * needs handling, e.g. an already-logged-in user re-tapping an invite link).
  */
 const linking: LinkingOptions<AuthStackParamList & MainStackParamList> = {
-  prefixes: [Linking.createURL('/'), 'oikos://'],
+  prefixes: [Linking.createURL('/'), 'oikos://', ...WEB_ORIGINS],
   config: {
     screens: {
       Login: 'login',

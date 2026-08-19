@@ -25,15 +25,15 @@ public class PasswordResetTokenRepositoryAdapter implements PasswordResetTokenRe
         PasswordResetTokenEntity entity = new PasswordResetTokenEntity();
         entity.setId(token.id().asUuid());
         entity.setUserId(token.userId().value());
-        entity.setToken(token.token());
+        entity.setTokenHash(token.tokenHash());
         entity.setExpiresAt(token.expiresAt());
         PasswordResetTokenEntity saved = jpaRepository.save(entity);
         return toDomain(saved);
     }
 
     @Override
-    public Optional<PasswordResetToken> findByToken(String tokenValue) {
-        return jpaRepository.findByToken(tokenValue).map(this::toDomain);
+    public Optional<PasswordResetToken> findByTokenHash(String tokenHash) {
+        return jpaRepository.findByTokenHash(tokenHash).map(this::toDomain);
     }
 
     @Override
@@ -45,7 +45,7 @@ public class PasswordResetTokenRepositoryAdapter implements PasswordResetTokenRe
         return new PasswordResetToken(
                 PasswordResetTokenId.of(entity.getId()),
                 EntityId.of(entity.getUserId()),
-                entity.getToken(),
+                entity.getTokenHash(),
                 entity.getExpiresAt());
     }
 }

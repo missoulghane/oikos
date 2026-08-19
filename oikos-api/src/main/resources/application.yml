@@ -35,6 +35,31 @@ oikos:
       # Volunteer-syndic wizard: covers steps 3 to 7 in one sitting. Past that the
       # visitor verifies their email and finishes as an ordinary board admin.
       onboarding-token-ttl-seconds: 7200
+    # Anti-abus des endpoints publics : ils sont ouverts à tout l'internet, et
+    # chacun d'eux devine un identifiant, envoie un email ou écrit en base sur
+    # commande de l'appelant. Compteurs en mémoire, donc par instance : deux
+    # conteneurs API derrière le proxy accorderaient chacun le plafond complet
+    # (voir RateLimiter). Le déploiement n'en fait tourner qu'un.
+    rate-limit:
+      enabled: ${RATE_LIMIT_ENABLED:true}
+      # Une seule fenêtre pour tous les plafonds ci-dessous.
+      window: 5m
+      # Tentatives de mot de passe. Assez large pour un cabinet entier derrière
+      # une seule IP publique, assez étroit pour qu'une attaque par dictionnaire
+      # n'ait aucun intérêt.
+      login-per-ip: 30
+      # Endpoints qui font partir un email (mot de passe oublié, renvoi de
+      # vérification) : ce qui est plafonné ici, c'est le coût d'envoi.
+      email-send-per-ip: 10
+      # Endpoints qui consomment un jeton reçu par email : autant de devinettes.
+      token-attempt-per-ip: 20
+      # Inscriptions et prospects du wizard : des lignes en base créées sans
+      # qu'aucun compte n'existe encore.
+      registration-per-ip: 10
+      # Le seul plafond qui protège quelqu'un d'autre que le serveur : trois
+      # emails par adresse et par fenêtre, quelle que soit l'IP qui les demande.
+      # Inonder une boîte demande alors autant de patience que de machines.
+      email-send-per-address: 3
     cors:
       # Dev default covers the Vite/Expo/native dev servers on any local port.
       # Recette/prod must override with the real public origin(s) of oikos-web

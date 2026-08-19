@@ -23,27 +23,27 @@ class PasswordResetTokenRepositoryAdapterDataJpaTest {
     private PasswordResetTokenRepositoryAdapter adapter;
 
     @Test
-    void saves_and_finds_a_token_by_its_value() {
-        PasswordResetToken token = PasswordResetToken.issue(EntityId.newId(), "opaque-token", Instant.now().plusSeconds(3600));
+    void saves_and_finds_a_token_by_its_hash() {
+        PasswordResetToken token = PasswordResetToken.issue(EntityId.newId(), "token-hash", Instant.now().plusSeconds(3600));
 
         adapter.save(token);
 
-        assertThat(adapter.findByToken("opaque-token")).isPresent()
+        assertThat(adapter.findByTokenHash("token-hash")).isPresent()
                 .get().extracting(PasswordResetToken::userId).isEqualTo(token.userId());
     }
 
     @Test
     void deleteByUserId_removes_all_tokens_for_that_user() {
         EntityId userId = EntityId.newId();
-        adapter.save(PasswordResetToken.issue(userId, "token-1", Instant.now().plusSeconds(3600)));
+        adapter.save(PasswordResetToken.issue(userId, "hash-1", Instant.now().plusSeconds(3600)));
 
         adapter.deleteByUserId(userId);
 
-        assertThat(adapter.findByToken("token-1")).isEmpty();
+        assertThat(adapter.findByTokenHash("hash-1")).isEmpty();
     }
 
     @Test
     void unknown_token_returns_empty() {
-        assertThat(adapter.findByToken("does-not-exist")).isEmpty();
+        assertThat(adapter.findByTokenHash("does-not-exist")).isEmpty();
     }
 }

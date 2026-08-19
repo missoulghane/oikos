@@ -9,7 +9,7 @@ public interface PasswordResetTokenRepository {
 
     PasswordResetToken save(PasswordResetToken token);
 
-    Optional<PasswordResetToken> findByToken(String token);
+    Optional<PasswordResetToken> findByTokenHash(String tokenHash);
 
     void deleteByUserId(EntityId userId);
 }

@@ -3,6 +3,8 @@ import type { RouteObject } from 'react-router-dom';
 import { Loader } from '@/shared/components/Loader/Loader';
 
 const LoginPage = lazy(() => import('@/features/identity/auth').then((m) => ({ default: m.LoginPage })));
+const ForgotPasswordPage = lazy(() => import('@/features/identity/auth').then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import('@/features/identity/auth').then((m) => ({ default: m.ResetPasswordPage })));
 const RegisterChoicePage = lazy(() =>
   import('@/features/identity/register').then((m) => ({ default: m.RegisterChoicePage })),
 );
@@ -33,6 +35,24 @@ export const publicRoutes: RouteObject[] = [
     element: (
       <Suspense fallback={<Loader />}>
         <LoginPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/forgot-password',
+    element: (
+      <Suspense fallback={<Loader />}>
+        <ForgotPasswordPage />
+      </Suspense>
+    ),
+  },
+  {
+    // Cible du lien envoyé par email : l'API construit l'URL sur
+    // `oikos.mail.password-reset-base-url`, dont le défaut est cette route.
+    path: '/reset-password',
+    element: (
+      <Suspense fallback={<Loader />}>
+        <ResetPasswordPage />
       </Suspense>
     ),
   },

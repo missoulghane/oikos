@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["REMPLACER_PAR_APPLE_TEAM_ID.com.issoulghane.oikosmobile"],
+        "components": [
+          { "/": "/reset-password*", "comment": "Lien de reinitialisation du mot de passe" },
+          { "/": "/verify-email*", "comment": "Lien de verification de l'adresse email" },
+          { "/": "/activate-account*", "comment": "Lien d'activation d'un compte cree par un administrateur" },
+          { "/": "/accept-invitation*", "comment": "Invitation d'un coproprietaire a rejoindre son espace" },
+          { "/": "/invitations*", "comment": "Page d'atterrissage d'une invitation" },
+          { "/": "*", "exclude": true, "comment": "Tout le reste reste dans le navigateur, la confirmation de convocation en particulier" }
+        ]
+      }
+    ]
+  }
+}
