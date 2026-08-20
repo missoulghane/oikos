@@ -25,6 +25,7 @@ const property: Property = {
   id: 'property-1',
   name: 'Résidence Al Amal',
   address: '',
+  city: 'Casablanca',
   duesCalculationMode: 'FLAT_RATE',
   projectedBudget: null,
 };
@@ -129,23 +130,23 @@ describe('RecipientPicker', () => {
   it('does not offer "Le bureau" when the sender is not staff on this property', () => {
     renderPicker([], { canBoardPrivate: false });
 
-    expect(screen.queryByRole('button', { name: 'Écrire au bureau (fil privé)' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Écrire au conseil (fil privé)' })).not.toBeInTheDocument();
   });
 
   it('selecting "Le bureau" sets it as the sole recipient and hides the search field', async () => {
     const user = userEvent.setup();
     const { onChange } = renderPicker([], { canBoardPrivate: true });
 
-    await user.click(screen.getByRole('button', { name: 'Écrire au bureau (fil privé)' }));
+    await user.click(screen.getByRole('button', { name: 'Écrire au conseil (fil privé)' }));
 
     expect(onChange).toHaveBeenCalledWith([
-      { userId: '__board__', fullName: 'Le bureau de syndic', roleLabel: 'Fil privé', unitNumbers: [], isStaff: true },
+      { userId: '__board__', fullName: 'Le conseil syndical', roleLabel: 'Fil privé', unitNumbers: [], isStaff: true },
     ]);
   });
 
   it('hides the search field once "Le bureau" is the selected recipient', () => {
     renderPicker(
-      [{ userId: '__board__', fullName: 'Le bureau de syndic', roleLabel: 'Fil privé', unitNumbers: [], isStaff: true }],
+      [{ userId: '__board__', fullName: 'Le conseil syndical', roleLabel: 'Fil privé', unitNumbers: [], isStaff: true }],
       { canBoardPrivate: true },
     );
 

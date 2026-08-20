@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useUnitInstallments } from '@/features/property-mngt/installments/hooks/useUnitInstallments';
-import { isNotYetDue } from '@/features/property-ownership/installments/utils/installmentTotals';
+import { hasFallenDue } from '@/features/property-ownership/installments/utils/installmentTotals';
 import { useUnitPayments } from '@/features/property-mngt/installments/hooks/useUnitPayments';
 import {
   INSTALLMENT_STATUS_BADGE_COLORS,
@@ -28,11 +28,14 @@ const TOP_COUNT = 5;
 export function LastUnitInstallments({ unitId }: { unitId: string }) {
   const installments = useUnitInstallments(unitId);
 
-  // Echeances not yet fallen due are left out, as on Mes échéances: sorted by
-  // date descending they would otherwise monopolise the five slots with lines
-  // the owner does not owe yet, pushing the ones actually to pay out of sight.
+  // Echeances not yet fallen due are left out, settled or not: sorted by date
+  // descending they would otherwise monopolise the five slots with lines the
+  // owner does not owe yet, pushing the ones actually to pay out of sight. The
+  // status is not part of the test - a future echeance a payment happened to
+  // settle in advance is no more "what has happened so far" than an unpaid one,
+  // and neither weighs on the balance shown above this block.
   const latest = (installments.data ?? [])
-    .filter((installment) => !isNotYetDue(installment))
+    .filter((installment) => hasFallenDue(installment))
     .sort((a, b) => b.dueDate.localeCompare(a.dueDate))
     .slice(0, TOP_COUNT);
 

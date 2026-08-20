@@ -35,7 +35,7 @@ class UpdatePropertyServiceTest {
         when(propertyRepository.findById(id)).thenReturn(Optional.of(property));
         when(propertyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var command = new UpdatePropertyCommand(id, "Copro Renamed", "New address");
+        var command = new UpdatePropertyCommand(id, "Copro Renamed", "New address", "Rabat");
         var view = newService().update(command);
 
         assertThat(view.name()).isEqualTo("Copro Renamed");
@@ -47,7 +47,7 @@ class UpdatePropertyServiceTest {
         PropertyId id = PropertyId.newId();
         when(propertyRepository.findById(id)).thenReturn(Optional.empty());
 
-        var command = new UpdatePropertyCommand(id, "Copro Renamed", "New address");
+        var command = new UpdatePropertyCommand(id, "Copro Renamed", "New address", "Rabat");
 
         assertThatThrownBy(() -> newService().update(command)).isInstanceOf(PropertyNotFoundException.class);
     }

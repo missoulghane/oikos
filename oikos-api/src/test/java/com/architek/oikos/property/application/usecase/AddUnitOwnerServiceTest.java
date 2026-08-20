@@ -3,6 +3,7 @@ package com.architek.oikos.property.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -68,7 +69,7 @@ class AddUnitOwnerServiceTest {
         when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
 
         newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"),
-                null, new BigDecimal("50")));
+                null, new BigDecimal("50"), true));
 
         verify(partyDirectoryPort, never()).createParty(any(), any());
         ArgumentCaptor<AddUnitOwnershipCommand> captor = ArgumentCaptor.forClass(AddUnitOwnershipCommand.class);
@@ -87,7 +88,7 @@ class AddUnitOwnerServiceTest {
         when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
 
         newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"),
-                null, new BigDecimal("50")));
+                null, new BigDecimal("50"), true));
 
         ArgumentCaptor<PartyDetails> partyCaptor = ArgumentCaptor.forClass(PartyDetails.class);
         verify(partyDirectoryPort).createParty(partyCaptor.capture(), any());
@@ -105,11 +106,62 @@ class AddUnitOwnerServiceTest {
         when(unitRepository.findById(unitId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL,
-                EmailVO.of("jane.doe@example.com"), null, BigDecimal.TEN)))
+                EmailVO.of("jane.doe@example.com"), null, BigDecimal.TEN, true)))
                 .isInstanceOf(UnitNotFoundException.class);
 
         verify(partyDirectoryPort, never()).findIdByEmail(any(), any());
         verify(partyDirectoryPort, never()).createParty(any(), any());
         verify(addUnitOwnershipUseCase, never()).add(any());
+    }
+
+    @Test
+    void an_unknown_email_but_a_known_phone_still_reuses_the_existing_party() {
+        // Le syndic ressaisit la même personne avec une autre adresse : sans ce
+        // second filet, la copropriété se retrouve avec deux fiches pour un seul
+        // copropriétaire, et deux convocations à la prochaine AG.
+        UnitId unitId = UnitId.newId();
+        EntityId existingPartyId = EntityId.newId();
+        when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
+        when(partyDirectoryPort.findIdByEmail(any(), any())).thenReturn(Optional.empty());
+        when(partyDirectoryPort.findIdByPhone(eq("+212612345678"), any())).thenReturn(Optional.of(existingPartyId));
+        when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
+
+        newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL,
+                EmailVO.of("autre.adresse@example.com"), "+212612345678", new BigDecimal("50"), true));
+
+        verify(partyDirectoryPort, never()).createParty(any(), any());
+        ArgumentCaptor<AddUnitOwnershipCommand> captor = ArgumentCaptor.forClass(AddUnitOwnershipCommand.class);
+        verify(addUnitOwnershipUseCase).add(captor.capture());
+        assertThat(captor.getValue().partyId()).isEqualTo(existingPartyId);
+    }
+
+    @Test
+    void the_invitation_goes_out_when_it_is_asked_for() {
+        UnitId unitId = UnitId.newId();
+        EntityId partyId = EntityId.newId();
+        when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
+        when(partyDirectoryPort.findIdByEmail(any(), any())).thenReturn(Optional.of(partyId));
+        when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
+
+        newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL,
+                EmailVO.of("jane.doe@example.com"), null, new BigDecimal("50"), true));
+
+        verify(accountLinkingPort).inviteOwnerIfUnlinked(eq(partyId), any(), eq("Jane Doe"));
+    }
+
+    @Test
+    void nothing_is_sent_when_the_syndic_only_records_who_owns_what() {
+        // Case décochée : le rattachement est un acte de gestion, pas une
+        // sollicitation. L'invitation partait autrefois sans que personne ne
+        // l'ait demandée, et le destinataire la découvrait dans sa boîte.
+        UnitId unitId = UnitId.newId();
+        when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
+        when(partyDirectoryPort.findIdByEmail(any(), any())).thenReturn(Optional.of(EntityId.newId()));
+        when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
+
+        newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL,
+                EmailVO.of("jane.doe@example.com"), null, new BigDecimal("50"), false));
+
+        verify(accountLinkingPort, never()).inviteOwnerIfUnlinked(any(), any(), any());
     }
 }

@@ -27,11 +27,11 @@ export function NotYetDueToggle({ checked, hiddenCount = 0, onChange }: NotYetDu
     // Same label/control stack as Select, so the cell shares the row's baseline
     // instead of floating against taller neighbours.
     <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Échéances à échoir</span>
+      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Échéances à venir</span>
       <button
         type="button"
         aria-pressed={checked}
-        aria-label="Échéances à échoir"
+        aria-label="Échéances à venir"
         onClick={() => onChange(!checked)}
         title={
           checked

@@ -42,7 +42,7 @@ public class MessagingPropertyMemberDirectoryAdapter implements PropertyMemberDi
 
     private static final int PAGE_SIZE = 100;
     private static final String OWNER_ROLE_LABEL = "Copropriétaire";
-    private static final String BOARD_ROLE_LABEL = "Bureau de syndic";
+    private static final String BOARD_ROLE_LABEL = "Conseil syndical";
 
     private final GetPropertyUseCase getPropertyUseCase;
     private final ListContactsByPropertyUseCase listContactsByPropertyUseCase;

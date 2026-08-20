@@ -103,7 +103,7 @@ describe('DashboardPage (board space)', () => {
   });
 
   it('opens the tracking list on exactly the set it counted', () => {
-    // "à échoir" is this screen's default-off, so the link only has to name the status -
+    // "à venir" is this screen's default-off, so the link only has to name the status -
     // and the 7 it announces is the number of rows that come up.
     renderDashboard();
 
@@ -113,17 +113,46 @@ describe('DashboardPage (board space)', () => {
     expect(screen.getByText(/7 échéances non soldées et échues/)).toBeInTheDocument();
   });
 
+  // Le nom accessible du lien porte désormais son sous-titre (« Appel de fonds,
+  // règlement… ») : la recherche se fait donc sur le début du libellé.
   it('offers the two entries a syndic makes daily', () => {
     renderDashboard();
 
-    expect(screen.getByRole('link', { name: 'Saisir une recette' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Saisir une recette/ })).toHaveAttribute(
       'href',
       '/property-mngt/properties/property-1/accounting/receipts/new',
     );
-    expect(screen.getByRole('link', { name: 'Saisir une dépense' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Saisir une dépense/ })).toHaveAttribute(
       'href',
       '/property-mngt/properties/property-1/accounting/supplier-payments/new',
     );
+  });
+
+  it('nomme l’espace conseil syndical sous la salutation', () => {
+    // Le même compte peut être copropriétaire d'un côté et au conseil de
+    // l'autre : « Bonjour X » seul ne disait pas où l'on venait d'arriver.
+    renderDashboard();
+
+    expect(screen.getByText('Bienvenue dans votre espace conseil syndical')).toBeInTheDocument();
+  });
+
+  it('annonce ce qu’on va saisir, pas seulement le geste', () => {
+    // Ce que la carte apporte sur le bouton : la place d'un sous-titre.
+    renderDashboard();
+
+    expect(screen.getByText('Appel de fonds, règlement…')).toBeInTheDocument();
+    expect(screen.getByText('Facture, fournisseur, paiement…')).toBeInTheDocument();
+  });
+
+  it('place les deux saisies avant les chiffres qu’elles alimentent', () => {
+    // Elles étaient sous les soldes, c'est-à-dire après ce qu'elles servent à
+    // remplir : on les cherchait. L'ordre du DOM est ce qui se lit en premier.
+    renderDashboard();
+
+    const receipt = screen.getByRole('link', { name: /Saisir une recette/ });
+    const collection = screen.getByText('À collecter');
+
+    expect(receipt.compareDocumentPosition(collection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('hides both entries from whoever may not write the accounts', () => {
@@ -131,8 +160,8 @@ describe('DashboardPage (board space)', () => {
     canWrite = false;
     renderDashboard();
 
-    expect(screen.queryByRole('link', { name: 'Saisir une recette' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Saisir une dépense' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Saisir une recette/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Saisir une dépense/ })).not.toBeInTheDocument();
   });
 
   it('offers the way back to the owner space only to a syndic who owns a lot', () => {

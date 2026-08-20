@@ -54,7 +54,7 @@ export function MyGeneralMeetingDetailPage() {
           to="/property-ownership/general-meetings"
           className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
         >
-          ← Retour à mes assemblées
+          ← Retour aux assemblées générales
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">{meeting.data.title}</h1>

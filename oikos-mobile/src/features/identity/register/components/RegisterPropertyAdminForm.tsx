@@ -68,6 +68,7 @@ export function RegisterPropertyAdminForm({
         <Text style={styles.legend}>Votre copropriété</Text>
         <ControlledInput control={control} name="propertyName" label="Nom de la copropriété" errorMessage={errors.propertyName?.message} />
         <ControlledInput control={control} name="propertyAddress" label="Adresse" errorMessage={errors.propertyAddress?.message} />
+        <ControlledInput control={control} name="propertyCity" label="Ville" errorMessage={errors.propertyCity?.message} />
       </View>
       <Button onPress={handleSubmit(onSubmit)} isLoading={isSubmitting} style={styles.submitButton}>
         {submitLabel}

@@ -34,6 +34,7 @@ export function SummaryStepPage() {
       }),
       buildings: draft.buildings.map((building) => ({
         name: building.name.trim() || undefined,
+        floorCount: building.floorCount,
         unitTypes: draft.selectedUnitTypes.map((unitTypeName) => ({
           unitTypeName,
           count: unitCountOf(building, unitTypeName),

@@ -2,14 +2,16 @@ import { Link, useParams } from 'react-router-dom';
 import { useUnit } from '@/features/property-mngt/properties/hooks/useUnit';
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import { useUnitInstallments } from '@/features/property-mngt/installments/hooks/useUnitInstallments';
+import { useUnitPayments } from '@/features/property-mngt/installments/hooks/useUnitPayments';
 import { UnitOwnersSection } from '@/features/property-mngt/properties/components/UnitOwnersSection';
 import {
   LastUnitInstallments,
   LastUnitPayments,
 } from '@/features/property-ownership/units/components/LastUnitOperations';
-import { getOutstandingColorClass } from '@/features/property-ownership/units/utils/unitBalance';
-import { isDueBy, outstandingTotal } from '@/features/property-ownership/installments/utils/installmentTotals';
+import { UnitBalanceSummary } from '@/features/property-ownership/units/components/UnitBalanceSummary';
+import { unitAccountBalance, unitDueCount, unitStatementLink } from '@/features/property-ownership/units/utils/unitBalance';
 import { Card } from '@/shared/components/Card/Card';
+import { CardLink } from '@/shared/components/Card/CardLink';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
@@ -31,6 +33,9 @@ export function MyUnitDetailPage() {
   // request - it reads the very rows that block lists, which is also why the
   // two can never disagree.
   const installments = useUnitInstallments(id);
+  // Idem : même clé que LastUnitPayments plus bas. Le solde est un compte
+  // courant, il lui faut les versements autant que les appels.
+  const payments = useUnitPayments(id);
   // The lot payload has no building or résidence name (nor propertyId); those
   // only exist on GET /users/me/units.
   const myUnits = useMyUnits();
@@ -48,10 +53,8 @@ export function MyUnitDetailPage() {
   }
 
   const ownedUnit = (myUnits.data ?? []).find((candidate) => candidate.unitId === id);
-  const outstanding = outstandingTotal(installments.data ?? []);
-  // Counted on the same rule as the amount above, or the two would disagree:
-  // "3 échéances à régler" beside a balance that ignores two of them.
-  const dueCount = (installments.data ?? []).filter((installment) => isDueBy(installment)).length;
+  const balance = unitAccountBalance(installments.data ?? [], payments.data ?? [], id);
+  const dueCount = unitDueCount(installments.data ?? [], id);
 
   return (
     <div className="flex flex-col gap-6">
@@ -73,30 +76,20 @@ export function MyUnitDetailPage() {
 
       {/* Above the two "dernières opérations" blocks: what the lot still owes is
           the figure the page exists to answer. */}
-      {installments.isLoading ? (
+      {installments.isLoading || payments.isLoading ? (
         <Card>
           <Loader label="Chargement du solde…" />
         </Card>
       ) : (
-        // Opens the echeance list already narrowed to this lot's unpaid rows -
-        // the point of a balance is to lead to what makes it up, and filtering on
-        // the status alone would show other lots' echeances beside a figure that
-        // does not include them.
-        <Link
-          to={`/property-ownership/installments?status=DUE&unitId=${id}`}
-          className="flex flex-col gap-1 rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs transition hover:border-brand-500 hover:shadow-theme-md sm:p-6 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-brand-500"
-        >
-          <span className="text-sm text-gray-500 dark:text-gray-400">Solde à régler</span>
-          <span className={`text-2xl font-semibold ${getOutstandingColorClass(outstanding)}`}>
-            {/* Signed like an account statement, as on the lot cards. */}
-            {outstanding > 0 ? `-${outstanding.toLocaleString('fr-FR')}` : '0'} MAD
-          </span>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {dueCount === 0
-              ? 'Aucune échéance à régler'
-              : `${dueCount} échéance${dueCount > 1 ? 's' : ''} à régler`}
-          </span>
-        </Link>
+        // Mène au relevé du lot : le chiffre s'y décompose ligne à ligne, et le
+        // total du relevé est exactement celui affiché ici.
+        //
+        // CardLink plutôt que la carte réécrite à la main qu'il y avait ici :
+        // elle bleuissait sa bordure au survol, seule de toute l'application à
+        // le faire. Une carte cliquable prend l'ombre, rien d'autre.
+        <CardLink to={unitStatementLink(propertyId ?? '', id)}>
+          <UnitBalanceSummary balance={balance} dueCount={dueCount} />
+        </CardLink>
       )}
 
       <Card className="flex flex-col gap-3">

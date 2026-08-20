@@ -66,30 +66,30 @@ describe('MyInstallmentsPage', () => {
     // 'd' is unsettled but not owed yet, so it stays out of a list read as
     // "what do I have to pay" - and out of the 1 200 MAD total above.
     expect(bodyRowCount()).toBe(3);
-    expect(screen.queryByText('à échoir')).not.toBeInTheDocument();
+    expect(screen.queryByText('à venir')).not.toBeInTheDocument();
   });
 
   it('announces on the toggle how many echeances it is hiding', () => {
     renderPage();
 
-    const toggle = screen.getByRole('button', { name: /Échéances à échoir/ });
+    const toggle = screen.getByRole('button', { name: /Échéances à venir/ });
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
     expect(toggle).toHaveTextContent('1');
   });
 
   it('brings the not-yet-due echeances back, marked, when the toggle is pressed', async () => {
     renderPage();
-    await userEvent.click(screen.getByRole('button', { name: /Échéances à échoir/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Échéances à venir/ }));
 
     expect(bodyRowCount()).toBe(4);
-    expect(screen.getByText('à échoir')).toBeInTheDocument();
+    expect(screen.getByText('à venir')).toBeInTheDocument();
     // The total keeps ignoring it: showing a row is not owing it.
     expect(screen.getByRole('button', { name: /Total à régler/ })).toHaveTextContent('1 200 MAD');
   });
 
   it('hides them again when the toggle is pressed a second time', async () => {
     renderPage();
-    const toggle = screen.getByRole('button', { name: /Échéances à échoir/ });
+    const toggle = screen.getByRole('button', { name: /Échéances à venir/ });
     await userEvent.click(toggle);
     await userEvent.click(toggle);
 
@@ -98,7 +98,7 @@ describe('MyInstallmentsPage', () => {
 
   it('counts the not-yet-due toggle among the active filters', async () => {
     renderPage();
-    await userEvent.click(screen.getByRole('button', { name: /Échéances à échoir/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Échéances à venir/ }));
 
     // It sits inside the panel, which is folded by default: without the badge,
     // showing them would leave no trace on screen.
@@ -107,11 +107,11 @@ describe('MyInstallmentsPage', () => {
 
   it('puts the not-yet-due echeances back out of sight on "Réinitialiser"', async () => {
     renderPage();
-    await userEvent.click(screen.getByRole('button', { name: /Échéances à échoir/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Échéances à venir/ }));
     await userEvent.click(screen.getByRole('button', { name: /Réinitialiser/ }));
 
     expect(bodyRowCount()).toBe(3);
-    expect(screen.getByRole('button', { name: /Échéances à échoir/ })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: /Échéances à venir/ })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('narrows the table to what is still owed when the total badge is clicked', async () => {

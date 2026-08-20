@@ -1,6 +1,7 @@
 package com.architek.oikos.accounting.infrastructure.adapter;
 
 import java.time.YearMonth;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Component;
@@ -39,5 +40,12 @@ public class PeriodRepositoryAdapter implements PeriodRepository {
     @Override
     public Optional<Period> findByExerciseIdAndYearMonth(AccountingExerciseId exerciseId, YearMonth yearMonth) {
         return jpaRepository.findByExerciseIdAndYearMonth(exerciseId.asUuid(), yearMonth.atDay(1)).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Period> findAllByExerciseId(AccountingExerciseId exerciseId) {
+        return jpaRepository.findAllByExerciseIdOrderByYearMonthAsc(exerciseId.asUuid()).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 }

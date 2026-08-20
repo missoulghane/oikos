@@ -36,7 +36,7 @@ export const EVERYONE_RECIPIENT: RecipientCandidate = {
 // though this pseudo-candidate never changes.
 export const BOARD_RECIPIENT: RecipientCandidate = {
   userId: '__board__',
-  fullName: 'Le bureau de syndic',
+  fullName: 'Le conseil syndical',
   roleLabel: 'Fil privé',
   unitNumbers: [],
   isStaff: true,
@@ -176,7 +176,7 @@ export function RecipientPicker({
               onClick={selectBoard}
               className="inline-flex min-h-8 items-center self-start rounded-full border border-dashed border-gray-300 dark:border-gray-700 px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-brand-300 hover:text-brand-600 dark:hover:text-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Écrire au bureau (fil privé)
+              Écrire au conseil (fil privé)
             </button>
           )}
         </div>

@@ -110,7 +110,7 @@ class InstallmentControllerWebMvcTest {
 
     @Test
     void includes_the_period_of_an_installment_raised_from_an_installment_call() throws Exception {
-        InstallmentView view = new InstallmentView(InstallmentId.newId(), EntityId.newId(),
+        InstallmentView view = new InstallmentView(InstallmentId.newId(), EntityId.newId(), "A12",
                 LocalDate.of(2026, 8, 1), new BigDecimal("150"), new BigDecimal("150"),
                 InstallmentStatus.NOT_SETTLED, YearMonth.of(2026, 8));
         when(listInstallmentsByPropertyUseCase.listInstallments(any())).thenReturn(Page.of(List.of(view), 0, 20, 1));
@@ -118,14 +118,15 @@ class InstallmentControllerWebMvcTest {
         mockMvc.perform(get("/api/v1/properties/" + EntityId.newId() + "/installments")
                         .header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].period").value("2026-08"));
+                .andExpect(jsonPath("$.content[0].period").value("2026-08"))
+                .andExpect(jsonPath("$.content[0].unitNumber").value("A12"));
     }
 
     @Test
     void gets_an_installment_by_id() throws Exception {
         InstallmentId id = InstallmentId.newId();
         when(getInstallmentUseCase.getInstallment(any())).thenReturn(new InstallmentView(id,
-                EntityId.newId(), LocalDate.of(2027, 1, 1), new BigDecimal("250"), new BigDecimal("250"),
+                EntityId.newId(), null, LocalDate.of(2027, 1, 1), new BigDecimal("250"), new BigDecimal("250"),
                 InstallmentStatus.NOT_SETTLED, null));
 
         mockMvc.perform(get("/api/v1/installments/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))

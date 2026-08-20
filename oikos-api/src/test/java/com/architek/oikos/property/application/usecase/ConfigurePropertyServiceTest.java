@@ -60,7 +60,7 @@ class ConfigurePropertyServiceTest {
         when(unitTypeDefinitionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(unitRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ConfigurePropertyCommand command = new ConfigurePropertyCommand("My Property", "123 Main St", List.of(
+        ConfigurePropertyCommand command = new ConfigurePropertyCommand("My Property", "123 Main St", "Casablanca", List.of(
                 new BuildingConfiguration("Building A", 5, List.of(
                         new UnitTypeConfiguration("Appartement", 3),
                         new UnitTypeConfiguration("Box", 2)))));
@@ -93,7 +93,7 @@ class ConfigurePropertyServiceTest {
         when(propertyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(unitTypeDefinitionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ConfigurePropertyCommand command = new ConfigurePropertyCommand("My Property", "123 Main St", List.of());
+        ConfigurePropertyCommand command = new ConfigurePropertyCommand("My Property", "123 Main St", "Casablanca", List.of());
 
         newService(500).configure(command);
 
@@ -102,7 +102,7 @@ class ConfigurePropertyServiceTest {
 
     @Test
     void configuring_a_property_beyond_the_max_units_limit_is_rejected_without_persisting_anything() {
-        ConfigurePropertyCommand command = new ConfigurePropertyCommand("My Property", "123 Main St", List.of(
+        ConfigurePropertyCommand command = new ConfigurePropertyCommand("My Property", "123 Main St", "Casablanca", List.of(
                 new BuildingConfiguration("Building A", 5, List.of(
                         new UnitTypeConfiguration("Appartement", 10)))));
 

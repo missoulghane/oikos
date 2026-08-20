@@ -11,6 +11,8 @@ export interface RegisterPropertyAdminPayload extends RegisterUserPayload {
   phone?: string;
   propertyName: string;
   propertyAddress: string;
+  /** Facultative côté API ; le wizard la renseigne toujours. */
+  propertyCity?: string;
 }
 
 export interface VerifyAccountPayload {

@@ -1,1 +1,1 @@
-export { PropertyConfigurationPage } from '@/features/property-mngt/pricing/pages/PropertyConfigurationPage';
+export { InstallmentsConfigurationTab } from '@/features/property-mngt/pricing/pages/InstallmentsConfigurationTab';

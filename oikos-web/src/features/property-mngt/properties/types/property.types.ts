@@ -7,6 +7,8 @@ export interface Property {
   id: string;
   name: string;
   address: string;
+  /** Nulle sur les copropriétés créées avant que le champ existe (voir V4 côté API). */
+  city: string | null;
   duesCalculationMode: DuesCalculationMode;
   projectedBudget: number | null;
 }
@@ -16,6 +18,7 @@ export type PagedProperties = Paged<Property>;
 export interface CreatePropertyPayload {
   name: string;
   address: string;
+  city?: string;
 }
 
 export interface AddBuildingPayload {
@@ -23,9 +26,15 @@ export interface AddBuildingPayload {
   floorCount: number;
 }
 
+export interface UpdateBuildingPayload {
+  name: string;
+  floorCount: number;
+}
+
 export interface UpdatePropertyPayload {
   name: string;
   address: string;
+  city?: string;
 }
 
 export interface Building {
@@ -99,21 +108,20 @@ export interface UnitOwnership {
   partyId: string;
   partyFullName: string;
   partyType: PartyType;
-  partyEmail: string;
+  /** Nul pour un contact qui n'a qu'un téléphone (voir Party côté API). */
+  partyEmail: string | null;
   ownershipShare: number;
 }
 
 export interface AddUnitOwnerPayload {
   fullName: string;
   partyType: PartyType;
-  email: string;
+  /** Facultatif : sans adresse, aucune invitation ne part. */
+  email?: string;
   phone?: string;
   ownershipShare: number;
-}
-
-export interface AddUnitOwnershipPayload {
-  partyId: string;
-  ownershipShare: number;
+  /** Envoyer le lien de création de compte. Absent, l'API invite (compatibilité). */
+  invite: boolean;
 }
 
 export interface PropertyContact {
@@ -121,7 +129,7 @@ export interface PropertyContact {
   partyId: string;
   partyFullName: string;
   partyType: PartyType;
-  partyEmail: string;
+  partyEmail: string | null;
   partyPhone: string | null;
   unitId: string;
   unitNumber: string;

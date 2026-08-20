@@ -90,7 +90,7 @@ class PartyRepositoryAdapterDataJpaTest {
         Party party = newParty();
         adapter.save(party);
 
-        adapter.save(party.withPartyInfo("Janet Smith", PartyType.COMPANY, party.getEmail(), "0700000000"));
+        adapter.save(party.withPartyInfo("Janet Smith", PartyType.COMPANY, party.getEmail().orElse(null), "0700000000"));
 
         Party reloaded = adapter.findById(party.getId()).orElseThrow();
         assertThat(reloaded.getFullName()).isEqualTo("Janet Smith");

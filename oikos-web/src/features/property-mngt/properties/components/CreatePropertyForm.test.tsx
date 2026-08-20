@@ -21,14 +21,16 @@ describe('CreatePropertyForm', () => {
     render(<CreatePropertyForm onSubmit={onSubmit} isSubmitting={false} />);
 
     await user.type(screen.getByLabelText('Nom de la copropriété'), 'Résidence Les Oliviers');
-    await user.type(screen.getByLabelText('Adresse'), '12 rue de la Paix, Casablanca');
+    await user.type(screen.getByLabelText('Adresse'), '12 rue de la Paix');
+    await user.type(screen.getByLabelText('Ville'), 'Casablanca');
     await user.click(screen.getByRole('button', { name: /créer la copropriété/i }));
 
     await waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith(
         {
           name: 'Résidence Les Oliviers',
-          address: '12 rue de la Paix, Casablanca',
+          address: '12 rue de la Paix',
+          city: 'Casablanca',
         },
         expect.anything(),
       ),

@@ -14,5 +14,12 @@ public enum AccountRole {
     BANK,
     CASH,
     SUPPLIER,
-    STAFF_PAYABLE
+    STAFF_PAYABLE,
+    /**
+     * Compte de bilan où la clôture d'exercice déverse le résultat, une fois
+     * les classes 6 et 7 soldées. Une copropriété n'en a qu'un, créé au
+     * premier exercice clôturé plutôt qu'à la création de la copropriété : tant
+     * qu'aucun exercice n'est clos, il n'aurait rien à porter.
+     */
+    RESULT
 }

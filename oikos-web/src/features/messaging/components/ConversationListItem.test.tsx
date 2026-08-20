@@ -74,7 +74,7 @@ describe('ConversationListItem', () => {
     expect(screen.getByText('Résidence Les Oliviers')).toBeInTheDocument();
   });
 
-  it('shows a "Privé · bureau" chip for a BOARD_PRIVATE conversation, keeping its own subject as the title', () => {
+  it('shows a "Privé · conseil" chip for a BOARD_PRIVATE conversation, keeping its own subject as the title', () => {
     renderItem({
       ...baseConversation,
       type: 'BOARD_PRIVATE',
@@ -83,7 +83,7 @@ describe('ConversationListItem', () => {
     });
 
     expect(screen.getByText('Devis ascenseur')).toBeInTheDocument();
-    expect(screen.getByText('Privé · bureau')).toBeInTheDocument();
+    expect(screen.getByText('Privé · conseil')).toBeInTheDocument();
   });
 
   it('shows a "Concerne" chip when the conversation has a concernsUnit', () => {

@@ -33,9 +33,6 @@ const PropertyContactsTab = lazy(() =>
 const PropertyInvitationsTab = lazy(() =>
   import('@/features/property-mngt/invitations').then((m) => ({ default: m.PropertyInvitationsTab })),
 );
-const PropertyBoardTab = lazy(() =>
-  import('@/features/property-mngt/board-members').then((m) => ({ default: m.PropertyBoardTab })),
-);
 const PropertyDocumentsTab = lazy(() =>
   import('@/features/property-mngt/documents').then((m) => ({ default: m.PropertyDocumentsTab })),
 );
@@ -90,8 +87,8 @@ const InstallmentsListTab = lazy(() =>
 const InstallmentCallsTab = lazy(() =>
   import('@/features/property-mngt/installments').then((m) => ({ default: m.InstallmentCallsTab })),
 );
-const InstallmentsOtherTab = lazy(() =>
-  import('@/features/property-mngt/installments').then((m) => ({ default: m.InstallmentsOtherTab })),
+const InstallmentsConfigurationTab = lazy(() =>
+  import('@/features/property-mngt/pricing').then((m) => ({ default: m.InstallmentsConfigurationTab })),
 );
 const AccountingSectionLayout = lazy(() =>
   import('@/features/property-mngt/accounting').then((m) => ({ default: m.AccountingSectionLayout })),
@@ -141,8 +138,8 @@ const CreateBankChargePage = lazy(() =>
 const RecordOwnerPaymentPage = lazy(() =>
   import('@/features/property-mngt/installments').then((m) => ({ default: m.RecordOwnerPaymentPage })),
 );
-const PropertyConfigurationPage = lazy(() =>
-  import('@/features/property-mngt/pricing').then((m) => ({ default: m.PropertyConfigurationPage })),
+const PropertyUnitTypesTab = lazy(() =>
+  import('@/features/property-mngt/properties').then((m) => ({ default: m.PropertyUnitTypesTab })),
 );
 const PartiesPage = lazy(() =>
   import('@/features/property-mngt/parties').then((m) => ({ default: m.PartiesPage })),
@@ -152,6 +149,9 @@ const PartyDetailPage = lazy(() =>
 );
 const MyUnitDetailPage = lazy(() =>
   import('@/features/property-ownership/units').then((m) => ({ default: m.MyUnitDetailPage })),
+);
+const MyUnitStatementPage = lazy(() =>
+  import('@/features/property-ownership/units').then((m) => ({ default: m.MyUnitStatementPage })),
 );
 const ProfilePage = lazy(() => import('@/features/identity/me').then((m) => ({ default: m.ProfilePage })));
 const MyInstallmentsPage = lazy(() =>
@@ -378,12 +378,13 @@ export const privateRoutes: RouteObject[] = [
                     ),
                   },
                   {
+                    // L'onglet Bureau a fusionné avec les informations générales,
+                    // où le conseil syndical est désormais un bloc. Redirection
+                    // plutôt que 404 : l'adresse est en favori chez des syndics
+                    // qui l'ouvrent chaque semaine, et une page introuvable se
+                    // lit comme une panne, pas comme un déménagement.
                     path: 'board',
-                    element: (
-                      <Suspense fallback={<Loader />}>
-                        <PropertyBoardTab />
-                      </Suspense>
-                    ),
+                    element: <Navigate to=".." replace relative="path" />,
                   },
                   {
                     path: 'documents',
@@ -397,7 +398,7 @@ export const privateRoutes: RouteObject[] = [
                     path: 'configuration',
                     element: (
                       <Suspense fallback={<Loader />}>
-                        <PropertyConfigurationPage />
+                        <PropertyUnitTypesTab />
                       </Suspense>
                     ),
                   },
@@ -523,10 +524,10 @@ export const privateRoutes: RouteObject[] = [
                     ),
                   },
                   {
-                    path: 'other',
+                    path: 'configuration',
                     element: (
                       <Suspense fallback={<Loader />}>
-                        <InstallmentsOtherTab />
+                        <InstallmentsConfigurationTab />
                       </Suspense>
                     ),
                   },
@@ -720,6 +721,16 @@ export const privateRoutes: RouteObject[] = [
             element: (
               <Suspense fallback={<Loader />}>
                 <MyUnitDetailPage />
+              </Suspense>
+            ),
+          },
+          {
+            // Le relevé de compte du lot - ce que le badge de solde ouvre,
+            // depuis le tableau de bord comme depuis la fiche.
+            path: 'units/:propertyId/:unitId/statement',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <MyUnitStatementPage />
               </Suspense>
             ),
           },

@@ -18,6 +18,7 @@ public interface PropertyPersistenceMapper {
         entity.setId(property.getId().asUuid());
         entity.setName(property.getName());
         entity.setAddress(property.getAddress());
+        entity.setCity(property.getCity().orElse(null));
         entity.setDuesCalculationMode(property.getDuesCalculationMode());
         entity.setProjectedBudget(property.getProjectedBudget().map(ProjectedBudget::value).orElse(null));
         return entity;
@@ -25,7 +26,7 @@ public interface PropertyPersistenceMapper {
 
     default Property toDomain(PropertyEntity entity) {
         return Property.reconstruct(PropertyId.of(entity.getId()), entity.getName(), entity.getAddress(),
-                entity.getDuesCalculationMode(),
+                entity.getCity(), entity.getDuesCalculationMode(),
                 entity.getProjectedBudget() != null ? ProjectedBudget.of(entity.getProjectedBudget()) : null);
     }
 }

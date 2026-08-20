@@ -17,6 +17,7 @@ const rows = [
   {
     id: 'i1',
     unitId: 'u1',
+    unitNumber: 'A12',
     dueDate: '2026-01-15',
     amount: 1000,
     outstandingAmount: 1000,
@@ -93,7 +94,7 @@ describe('InstallmentsListTab', () => {
     await waitFor(() => expect(getPropertyInstallmentsSpy).toHaveBeenCalled());
     const callsBefore = getPropertyInstallmentsSpy.mock.calls.length;
 
-    await userEvent.click(screen.getByRole('button', { name: 'Échéances à échoir' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Échéances à venir' }));
 
     // The regression: the query key used to enumerate the filters one by one and
     // missed this one, so the cached page was served until something else moved
@@ -107,18 +108,26 @@ describe('InstallmentsListTab', () => {
 
     expect(screen.getByRole('button', { name: 'Filtres' })).not.toHaveTextContent('1');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Échéances à échoir' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Échéances à venir' }));
 
     expect(screen.getByRole('button', { name: 'Filtres' })).toHaveTextContent('1');
   });
 
   it('puts them back out of sight on "Réinitialiser"', async () => {
     renderTab();
-    await userEvent.click(screen.getByRole('button', { name: 'Échéances à échoir' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Échéances à venir' }));
     await userEvent.click(screen.getByRole('button', { name: /Réinitialiser/ }));
 
     await waitFor(() => expect(lastQuery().excludeNotYetDue).toBe(true));
     expect(lastQuery().sortDirection).toBe('DESC');
+  });
+
+  it('names the lot each echeance belongs to', async () => {
+    renderTab();
+
+    // The list spans the whole copropriete: without the lot, a row says how much
+    // is owed without saying by whom.
+    expect(await screen.findByText('A12')).toBeInTheDocument();
   });
 
   it('sorts on a column header instead of a "Trier par" field', async () => {

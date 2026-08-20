@@ -96,7 +96,7 @@ export function ConversationListItem({ conversation, box, isActive = false, spac
           )}
           {conversation.type === 'BOARD_PRIVATE' && (
             <span className="shrink-0 rounded-full bg-warning-50 px-2 py-0.5 text-[11px] font-medium text-warning-700 dark:bg-warning-500/15 dark:text-warning-400">
-              Privé · bureau
+              Privé · conseil
             </span>
           )}
           {conversation.concernsUnit && (

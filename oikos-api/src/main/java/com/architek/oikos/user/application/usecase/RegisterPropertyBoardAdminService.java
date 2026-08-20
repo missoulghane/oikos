@@ -89,7 +89,7 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
             throw new EmailAlreadyUsedException(command.email().value());
         }
         EntityId propertyId = propertyProvisioningPort.provisionProperty(
-                new PropertyProvisioningDetails(command.propertyName(), command.propertyAddress()));
+                new PropertyProvisioningDetails(command.propertyName(), command.propertyAddress(), command.propertyCity()));
         EntityId partyId = partyProvisioningPort.createParty(
                 new PartyProvisioningDetails(command.fullName(), command.email(), command.phone(), propertyId));
         propertyProvisioningPort.assignPropertyManager(propertyId, partyId);

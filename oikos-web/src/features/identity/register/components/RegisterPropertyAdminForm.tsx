@@ -89,6 +89,7 @@ export function RegisterPropertyAdminForm({
           {...register('propertyAddress')}
           errorMessage={errors.propertyAddress?.message}
         />
+        <Input label="Ville" {...register('propertyCity')} errorMessage={errors.propertyCity?.message} />
       </fieldset>
       <Button type="submit" isLoading={isSubmitting} className="mt-2">
         {submitLabel}

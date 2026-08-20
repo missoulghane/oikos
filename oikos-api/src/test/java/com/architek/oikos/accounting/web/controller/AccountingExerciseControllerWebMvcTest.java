@@ -19,6 +19,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.accounting.application.dto.AccountingExerciseView;
+import com.architek.oikos.accounting.application.port.in.CloseAccountingExerciseUseCase;
 import com.architek.oikos.accounting.application.port.in.GetOpenAccountingExerciseUseCase;
 import com.architek.oikos.accounting.application.port.in.OpenAccountingExerciseUseCase;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
@@ -42,6 +43,9 @@ class AccountingExerciseControllerWebMvcTest {
 
     @MockitoBean
     private GetOpenAccountingExerciseUseCase getOpenAccountingExerciseUseCase;
+
+    @MockitoBean
+    private CloseAccountingExerciseUseCase closeAccountingExerciseUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));

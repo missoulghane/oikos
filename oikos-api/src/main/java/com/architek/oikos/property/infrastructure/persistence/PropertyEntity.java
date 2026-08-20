@@ -31,6 +31,10 @@ public class PropertyEntity extends AuditableEntity {
     @Column(nullable = false)
     private String address;
 
+    /** Facultative : les coproprietes anterieures a ce champ n'en ont pas. */
+    @Column(length = 100)
+    private String city;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "dues_calculation_mode", nullable = false)
     private DuesCalculationMode duesCalculationMode;

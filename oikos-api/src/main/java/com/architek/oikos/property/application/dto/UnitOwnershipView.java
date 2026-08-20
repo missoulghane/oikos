@@ -14,7 +14,8 @@ public record UnitOwnershipView(UnitOwnershipId id, UnitId unitId, EntityId part
 
     public static UnitOwnershipView from(UnitOwnership unitOwnership, PartyDetails partyDetails) {
         return new UnitOwnershipView(unitOwnership.getId(), unitOwnership.getUnitId(), unitOwnership.getPartyId(),
-                partyDetails.fullName(), partyDetails.partyType(), partyDetails.email().value(),
+                partyDetails.fullName(), partyDetails.partyType(),
+                partyDetails.email() != null ? partyDetails.email().value() : null,
                 unitOwnership.getOwnershipShare().value());
     }
 }

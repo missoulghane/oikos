@@ -61,6 +61,7 @@ export function BuildingsStepScreen({ navigation }: Props) {
                 building={draft.buildings[0]}
                 selectedUnitTypes={draft.selectedUnitTypes}
                 onNameChange={(name) => patchBuilding(0, { name })}
+                onFloorCountChange={(floorCount) => patchBuilding(0, { floorCount })}
                 onUnitCountChange={(unitTypeName, count) => setUnitCount(0, unitTypeName, count)}
               />
             </View>
@@ -93,6 +94,7 @@ export function BuildingsStepScreen({ navigation }: Props) {
                           building={building}
                           selectedUnitTypes={draft.selectedUnitTypes}
                           onNameChange={(name) => patchBuilding(index, { name })}
+                          onFloorCountChange={(floorCount) => patchBuilding(index, { floorCount })}
                           onUnitCountChange={(unitTypeName, count) => setUnitCount(index, unitTypeName, count)}
                         />
                       </View>
@@ -114,13 +116,23 @@ interface BuildingFieldsProps {
   building: OnboardingBuilding;
   selectedUnitTypes: string[];
   onNameChange: (name: string) => void;
+  onFloorCountChange: (floorCount: number) => void;
   onUnitCountChange: (unitTypeName: string, count: number) => void;
 }
 
-function BuildingFields({ building, selectedUnitTypes, onNameChange, onUnitCountChange }: BuildingFieldsProps) {
+function BuildingFields({
+  building,
+  selectedUnitTypes,
+  onNameChange,
+  onFloorCountChange,
+  onUnitCountChange,
+}: BuildingFieldsProps) {
   return (
     <>
       <Input label="Nom du bâtiment (optionnel)" placeholder="Bâtiment principal" value={building.name} onChangeText={onNameChange} />
+      {/* Zéro est une réponse valable : une villa ou un local de plain-pied n'a
+          pas d'étage, et le compteur démarre donc là plutôt qu'à 1. */}
+      <Stepper label="Nombre d'étages" value={building.floorCount} onChange={onFloorCountChange} min={0} max={50} />
       <View style={styles.unitCounts}>
         <Text style={styles.sectionTitle}>Nombre de lots</Text>
         {/* Exactement les types cochés à l'étape précédente : un type peut être à

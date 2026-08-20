@@ -38,7 +38,7 @@ class CreatePropertyServiceTest {
     void creating_a_property_persists_it() {
         when(propertyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CreatePropertyCommand command = new CreatePropertyCommand("Copro Laumiere", "33 Avenue de Laumiere");
+        CreatePropertyCommand command = new CreatePropertyCommand("Copro Laumiere", "33 Avenue de Laumiere", "Casablanca");
 
         newService().create(command);
 
@@ -51,7 +51,7 @@ class CreatePropertyServiceTest {
     void creating_a_property_always_seeds_a_default_others_unit_type() {
         when(propertyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CreatePropertyCommand command = new CreatePropertyCommand("Copro Laumiere", "33 Avenue de Laumiere");
+        CreatePropertyCommand command = new CreatePropertyCommand("Copro Laumiere", "33 Avenue de Laumiere", "Casablanca");
 
         newService().create(command);
 
@@ -62,7 +62,7 @@ class CreatePropertyServiceTest {
     void creating_a_property_provisions_its_cash_ledger_account() {
         when(propertyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CreatePropertyCommand command = new CreatePropertyCommand("Copro Laumiere", "33 Avenue de Laumiere");
+        CreatePropertyCommand command = new CreatePropertyCommand("Copro Laumiere", "33 Avenue de Laumiere", "Casablanca");
 
         newService().create(command);
 

@@ -45,7 +45,8 @@ public class PartyEntity extends AuditableEntity {
     @Column(name = "party_type", nullable = false)
     private PartyType partyType;
 
-    @Column(nullable = false)
+    /** Facultatif : un contact peut n'avoir qu'un téléphone (voir Party). */
+    @Column
     private String email;
 
     @Column

@@ -123,4 +123,43 @@ class AddBoardMemberServiceTest {
                 new AddBoardMemberCommand(propertyId, null, null, null, null, BoardRole.PRESIDENT)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void a_member_known_only_by_phone_is_not_duplicated() {
+        // Le trou que le rattachement d'un lot venait de refermer : sans ce second
+        // filet, la copropriété se retrouvait avec deux fiches pour une personne
+        // déjà enregistrée, et deux convocations à la prochaine AG.
+        PropertyId propertyId = PropertyId.newId();
+        EntityId existingPartyId = EntityId.newId();
+        when(propertyRepository.findById(propertyId))
+                .thenReturn(Optional.of(Property.create(propertyId, "Copro", "Address")));
+        when(partyDirectoryPort.findIdByPhone(eq("+212612345678"), any())).thenReturn(Optional.of(existingPartyId));
+        when(boardMemberRepository.existsByPropertyIdAndPartyIdAndBoardRole(any(), any(), any())).thenReturn(false);
+        when(boardMemberRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        newService().add(new AddBoardMemberCommand(propertyId, null, "Jane Doe", null, "+212612345678",
+                BoardRole.TREASURER));
+
+        verify(partyDirectoryPort, never()).createParty(any(), any());
+    }
+
+    @Test
+    void a_member_without_an_email_is_recorded_instead_of_crashing() {
+        // Le formulaire annonce « Email (optionnel) » : la fiche se crée sans
+        // adresse, là où Party la refusait et l'appel remontait en 500.
+        PropertyId propertyId = PropertyId.newId();
+        EntityId newPartyId = EntityId.newId();
+        when(propertyRepository.findById(propertyId))
+                .thenReturn(Optional.of(Property.create(propertyId, "Copro", "Address")));
+        when(partyDirectoryPort.findIdByPhone(any(), any())).thenReturn(Optional.empty());
+        when(partyDirectoryPort.createParty(any(), any())).thenReturn(newPartyId);
+        when(boardMemberRepository.existsByPropertyIdAndPartyIdAndBoardRole(any(), any(), any())).thenReturn(false);
+        when(boardMemberRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        newService().add(new AddBoardMemberCommand(propertyId, null, "Jane Doe", null, "+212612345678",
+                BoardRole.TREASURER));
+
+        verify(partyDirectoryPort).createParty(
+                new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, null, "+212612345678"), propertyId.value());
+    }
 }

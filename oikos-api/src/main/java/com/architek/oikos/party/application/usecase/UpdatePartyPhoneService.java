@@ -36,7 +36,7 @@ public class UpdatePartyPhoneService implements UpdatePartyPhoneUseCase {
             throw new PhoneAlreadyUsedException(command.phone());
         }
         Party updated = partyRepository.save(
-                party.withPartyInfo(party.getFullName(), party.getPartyType(), party.getEmail(), command.phone()));
+                party.withPartyInfo(party.getFullName(), party.getPartyType(), party.getEmail().orElse(null), command.phone()));
         return PartyView.from(updated);
     }
 }

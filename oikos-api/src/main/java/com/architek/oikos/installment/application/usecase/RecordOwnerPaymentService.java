@@ -36,6 +36,10 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * and Installment - rather than pushed back through accounting's
  * UpdateInstallmentSettlementUseCase in-port (reserved for a future
  * accounting-triggered lettrage path, e.g. P10 reversing a payment).
+ * Only the installments already fallen due at the payment's value date are
+ * imputed (spec &sect;4.2, "appels echus") - see PaymentAllocationCalculator,
+ * which enforces the cutoff; whatever is left goes to UNIT_ADVANCE and is taken
+ * up later by RegularizeUnitInstallmentsService.
  * Note: this posts one aggregate CREDIT line per (unit, imputed-total) and
  * one per (unit, advance-total) rather than one line per settled
  * Installment - the generic journal_entry_line-to-journal_entry_line
@@ -86,7 +90,11 @@ public class RecordOwnerPaymentService implements RecordOwnerPaymentUseCase {
                         EntityId.of(installment.getId().asUuid()), installment.getDueDate(),
                         installment.getOutstandingAmount()))
                 .toList();
-        PaymentAllocationCalculator.Result allocationResult = PaymentAllocationCalculator.allocate(command.amount(), unsettled);
+        // Cutoff = the payment's value date, not today's: a règlement backdated to
+        // December must impute exactly what was owed then, as the accounting entry
+        // it produces is dated the same day.
+        PaymentAllocationCalculator.Result allocationResult = PaymentAllocationCalculator.allocate(command.amount(),
+                unsettled, command.valueDate());
 
         BigDecimal imputedTotal = allocationResult.allocations().stream()
                 .map(PaymentAllocationCalculator.InstallmentAllocation::amount)

@@ -16,7 +16,9 @@ public record PropertyContactView(UnitOwnershipId id, EntityId partyId, String p
     public static PropertyContactView from(UnitOwnership unitOwnership, PartyDetails partyDetails,
                                             String unitNumber, String buildingName, boolean hasLinkedAccount) {
         return new PropertyContactView(unitOwnership.getId(), unitOwnership.getPartyId(), partyDetails.fullName(),
-                partyDetails.partyType(), partyDetails.email().value(), partyDetails.phone(), unitOwnership.getUnitId(),
+                partyDetails.partyType(),
+                partyDetails.email() != null ? partyDetails.email().value() : null,
+                partyDetails.phone(), unitOwnership.getUnitId(),
                 unitNumber, buildingName, unitOwnership.getOwnershipShare().value(), hasLinkedAccount);
     }
 }

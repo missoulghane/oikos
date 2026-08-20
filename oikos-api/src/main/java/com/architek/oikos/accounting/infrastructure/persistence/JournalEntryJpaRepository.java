@@ -80,6 +80,23 @@ public interface JournalEntryJpaRepository extends JpaRepository<JournalEntryEnt
     List<AuxiliaryUnitBalanceProjection> sumNetAmountGroupedByAuxiliaryUnit(@Param("propertyId") UUID propertyId,
                                                                              @Param("accountId") UUID accountId);
 
+    /** Ce que la copropriété a mouvementé sur l'exercice, compte par compte. */
+    @Query("""
+            select l.ledgerAccountId as accountId,
+                   sum(case when l.direction = 'CREDIT' then l.amount else -l.amount end) as amount
+            from JournalEntryLineEntity l join l.journalEntry j
+            where j.propertyId = :propertyId and j.exerciseId = :exerciseId and j.status = 'POSTED'
+            group by l.ledgerAccountId
+            """)
+    List<AccountNetAmountProjection> sumNetAmountByAccountForExercise(@Param("propertyId") UUID propertyId,
+                                                                       @Param("exerciseId") UUID exerciseId);
+
+    interface AccountNetAmountProjection {
+        UUID getAccountId();
+
+        BigDecimal getAmount();
+    }
+
     interface AuxiliaryUnitBalanceProjection {
         UUID getUnitId();
 

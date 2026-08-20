@@ -1,1 +1,1 @@
-export { PropertyBoardTab } from '@/features/property-mngt/board-members/pages/PropertyBoardTab';
+export { BoardSection } from '@/features/property-mngt/board-members/components/BoardSection';

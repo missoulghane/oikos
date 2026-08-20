@@ -128,7 +128,7 @@ describe('MessageComposer', () => {
     const user = userEvent.setup();
     renderComposer({ identityChoiceNeeded: true, defaultIdentity: 'BOARD' });
 
-    expect(screen.getByRole('button', { name: 'Membre du bureau' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Membre du conseil' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Copropriétaire' })).toHaveAttribute('aria-pressed', 'false');
 
     await user.click(screen.getByRole('button', { name: 'Copropriétaire' }));

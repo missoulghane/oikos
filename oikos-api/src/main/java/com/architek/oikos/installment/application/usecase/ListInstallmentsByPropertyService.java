@@ -39,16 +39,21 @@ public class ListInstallmentsByPropertyService implements ListInstallmentsByProp
     @Override
     @Transactional(readOnly = true)
     public Page<InstallmentView> listInstallments(ListInstallmentsByPropertyQuery query) {
-        List<EntityId> unitIds = propertyUnitDirectoryPort.listUnitIds(query.propertyId(), query.search());
-        if (unitIds.isEmpty()) {
+        // Lot numbers come along with the unit ids: the list is property-wide, so
+        // every row has to say which lot it belongs to, and the property is
+        // walked once either way.
+        Map<EntityId, String> unitNumberById = propertyUnitDirectoryPort.listUnitNumbersById(query.propertyId(), query.search());
+        if (unitNumberById.isEmpty()) {
             return Page.of(List.of(), query.pageRequest().pageNumber(), query.pageRequest().pageSize(), 0);
         }
 
+        List<EntityId> unitIds = List.copyOf(unitNumberById.keySet());
         Page<Installment> page = installmentRepository.findPageByUnitIds(unitIds, query.filter(), query.pageRequest());
         Map<InstallmentCallId, YearMonth> periodByCallId = loadPeriodsByCallId(page.content());
 
         return page.map(installment -> InstallmentViewFactory.build(installment,
-                installment.getInstallmentCallId() != null ? periodByCallId.get(installment.getInstallmentCallId()) : null));
+                installment.getInstallmentCallId() != null ? periodByCallId.get(installment.getInstallmentCallId()) : null,
+                unitNumberById.get(installment.getUnitId())));
     }
 
     private Map<InstallmentCallId, YearMonth> loadPeriodsByCallId(List<Installment> installments) {

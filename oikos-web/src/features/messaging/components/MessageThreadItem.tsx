@@ -43,7 +43,7 @@ export function MessageThreadItem({ message, recipientLabel }: MessageThreadItem
               "en tant que" identity picker in NewConversationPage/MessageComposer. */}
           {message.senderIdentity === 'BOARD' && (
             <span className="shrink-0 rounded-full bg-warning-50 px-2 py-0.5 text-[11px] font-medium text-warning-700 dark:bg-warning-500/15 dark:text-warning-400">
-              Bureau
+              Conseil
             </span>
           )}
         </p>

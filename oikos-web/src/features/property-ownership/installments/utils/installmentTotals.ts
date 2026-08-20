@@ -5,7 +5,7 @@ import type { InstallmentStatus } from '@/features/property-mngt/installments/ty
 // The predicates are shared with the syndic space, which applies the same rule -
 // see property-mngt/installments/utils/installmentDueness. Re-exported here so
 // the owner-side callers keep one import for "what is owed".
-export { isDueBy, isNotYetDue, isUnsettled } from '@/features/property-mngt/installments/utils/installmentDueness';
+export { hasFallenDue, isDueBy, isNotYetDue, isUnsettled } from '@/features/property-mngt/installments/utils/installmentDueness';
 
 type Owed = { status: InstallmentStatus; dueDate: string; outstandingAmount: number };
 

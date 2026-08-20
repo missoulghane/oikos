@@ -51,6 +51,7 @@ export function InstallmentList({ installments, sortBy, sortDirection, onSort }:
             >
               Montant
             </SortableColumnHeader>
+            <th className="px-3 py-2 font-medium">Lot</th>
             <th className="px-3 py-2 text-right font-medium">Reste à payer</th>
             <th className="px-3 py-2 font-medium">Appel de fonds</th>
             <th className="px-3 py-2 font-medium">Statut</th>
@@ -61,14 +62,16 @@ export function InstallmentList({ installments, sortBy, sortDirection, onSort }:
             <tr key={installment.id}>
               <td className="px-3 py-2 text-gray-900 dark:text-white/90">
                 {new Date(installment.dueDate).toLocaleDateString('fr-FR')}
-                {/* Only ever reached with the "à échoir" filter on, since these
+                {/* Only ever reached with the "à venir" filter on, since these
                     rows are left out by default - marked so a line that is not
                     owed yet is not read as arrears. */}
                 {isNotYetDue(installment) && (
-                  <span className="ml-2 text-xs text-warning-600 dark:text-warning-400">à échoir</span>
+                  <span className="ml-2 text-xs text-warning-600 dark:text-warning-400">à venir</span>
                 )}
               </td>
               <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300">{installment.amount} MAD</td>
+              {/* Not sortable: the lot is resolved alongside the page, not a column the API orders on. */}
+              <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{installment.unitNumber ?? '—'}</td>
               <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300">
                 {installment.outstandingAmount} MAD
               </td>

@@ -100,7 +100,7 @@ export function filterInstallments(
 }
 
 /**
- * How many rows the "à échoir" toggle is currently hiding, under the *other*
+ * How many rows the "à venir" toggle is currently hiding, under the *other*
  * filters in force - so the count always matches what turning it on would add.
  * Surfaced on the toggle itself: hiding rows by default is only acceptable if
  * the list says so.

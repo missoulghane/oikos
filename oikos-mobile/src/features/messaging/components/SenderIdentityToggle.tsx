@@ -4,7 +4,7 @@ import type { SenderIdentity } from '@/features/messaging/types/messaging.types'
 
 const OPTIONS: { value: SenderIdentity; label: string }[] = [
   { value: 'OWNER', label: 'Copropriétaire' },
-  { value: 'BOARD', label: 'Membre du bureau' },
+  { value: 'BOARD', label: 'Membre du conseil' },
 ];
 
 interface SenderIdentityToggleProps {

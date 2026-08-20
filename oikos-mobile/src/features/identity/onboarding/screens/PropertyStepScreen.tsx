@@ -10,7 +10,7 @@ import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { useRegisterPropertyBoardAdmin } from '@/features/identity/register/hooks/useRegisterPropertyBoardAdmin';
 import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingContext';
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
-import { formatAddress } from '@/features/identity/onboarding/state/onboardingDraft';
+import { formatStoredAddress } from '@/features/identity/onboarding/state/onboardingDraft';
 import {
   propertyStepSchema,
   PROPERTY_ADDRESS_MAX_LENGTH,
@@ -44,7 +44,7 @@ export function PropertyStepScreen({ navigation }: Props) {
       postalCode: values.postalCode ?? '',
       city: values.city,
     };
-    const address = formatAddress(property);
+    const address = formatStoredAddress(property);
     if (address.length > PROPERTY_ADDRESS_MAX_LENGTH) {
       setError('address', { message: `Adresse complète trop longue (${PROPERTY_ADDRESS_MAX_LENGTH} caractères maximum)` });
       return;
@@ -66,6 +66,7 @@ export function PropertyStepScreen({ navigation }: Props) {
         password,
         propertyName: property.name,
         propertyAddress: address,
+        propertyCity: property.city,
       },
       {
         onSuccess: (registration) => {

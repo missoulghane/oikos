@@ -25,12 +25,16 @@ public interface PeriodPersistenceMapper {
         entity.setStatus(period.getStatus().name());
         entity.setClosedAt(period.getClosedAt());
         entity.setClosedByUserId(period.getClosedByUserId() == null ? null : period.getClosedByUserId().value());
+        entity.setReopenedAt(period.getReopenedAt());
+        entity.setReopenedByUserId(period.getReopenedByUserId() == null ? null : period.getReopenedByUserId().value());
         return entity;
     }
 
     default Period toDomain(PeriodEntity entity) {
         return Period.reconstruct(PeriodId.of(entity.getId()), AccountingExerciseId.of(entity.getExerciseId()),
                 YearMonth.from(entity.getYearMonth()), PeriodStatus.valueOf(entity.getStatus()), entity.getClosedAt(),
-                entity.getClosedByUserId() == null ? null : EntityId.of(entity.getClosedByUserId()));
+                entity.getClosedByUserId() == null ? null : EntityId.of(entity.getClosedByUserId()),
+                entity.getReopenedAt(),
+                entity.getReopenedByUserId() == null ? null : EntityId.of(entity.getReopenedByUserId()));
     }
 }

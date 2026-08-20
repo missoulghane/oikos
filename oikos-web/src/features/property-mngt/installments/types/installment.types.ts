@@ -5,6 +5,8 @@ export type InstallmentStatus = 'NOT_SETTLED' | 'PARTIALLY_SETTLED' | 'SETTLED';
 export interface Installment {
   id: string;
   unitId: string;
+  /** Lot tel qu'imprimé ("A12"). Renseigné par les listes couvrant toute la copropriété, null ailleurs. */
+  unitNumber: string | null;
   dueDate: string;
   amount: number;
   outstandingAmount: number;
@@ -44,7 +46,7 @@ export interface InstallmentListFilters {
 /**
  * The two figures of the dashboard's "à collecter": installments unpaid
  * (nothing received on them) and already due, and what they add up to. The set
- * is exactly what the tracking list shows under "Non soldée" with "à échoir"
+ * is exactly what the tracking list shows under "Non soldée" with "à venir"
  * off, so the badge and the page it opens agree.
  */
 export interface InstallmentCollectionSummary {

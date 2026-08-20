@@ -24,7 +24,7 @@ public class UpdatePropertyService implements UpdatePropertyUseCase {
     public PropertyView update(UpdatePropertyCommand command) {
         Property property = propertyRepository.findById(command.id())
                 .orElseThrow(() -> new PropertyNotFoundException(command.id()));
-        Property updated = propertyRepository.save(property.withDetails(command.name(), command.address()));
+        Property updated = propertyRepository.save(property.withDetails(command.name(), command.address(), command.city()));
         return PropertyView.from(updated);
     }
 }

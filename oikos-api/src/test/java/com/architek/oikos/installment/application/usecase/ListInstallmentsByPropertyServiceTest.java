@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +53,7 @@ class ListInstallmentsByPropertyServiceTest {
     @Test
     void returns_an_empty_page_without_querying_installments_when_the_property_has_no_unit() {
         EntityId propertyId = EntityId.newId();
-        when(propertyUnitDirectoryPort.listUnitIds(propertyId, null)).thenReturn(List.of());
+        when(propertyUnitDirectoryPort.listUnitNumbersById(propertyId, null)).thenReturn(Map.of());
 
         Page<InstallmentView> page = newService().listInstallments(
                 new ListInstallmentsByPropertyQuery(propertyId, InstallmentFilter.defaultFilter(), PageRequest.of(0, 20)));
@@ -66,7 +67,7 @@ class ListInstallmentsByPropertyServiceTest {
     void hands_the_search_term_to_the_property_module_rather_than_to_the_repository() {
         EntityId propertyId = EntityId.newId();
         EntityId unitId = EntityId.newId();
-        when(propertyUnitDirectoryPort.listUnitIds(propertyId, "A12")).thenReturn(List.of(unitId));
+        when(propertyUnitDirectoryPort.listUnitNumbersById(propertyId, "A12")).thenReturn(Map.of(unitId, "A12"));
         when(installmentRepository.findPageByUnitIds(any(), any(), any()))
                 .thenReturn(Page.of(List.of(), 0, 20, 0));
 
@@ -75,7 +76,7 @@ class ListInstallmentsByPropertyServiceTest {
 
         // A lot number, an owner name or a phone: none of them is visible to the
         // installment repository, so the search narrows the units instead.
-        verify(propertyUnitDirectoryPort).listUnitIds(propertyId, "A12");
+        verify(propertyUnitDirectoryPort).listUnitNumbersById(propertyId, "A12");
         verify(installmentRepository).findPageByUnitIds(eq(List.of(unitId)), any(), any());
     }
 
@@ -84,7 +85,7 @@ class ListInstallmentsByPropertyServiceTest {
         EntityId propertyId = EntityId.newId();
         EntityId unitId = EntityId.newId();
         List<EntityId> unitIds = List.of(unitId);
-        when(propertyUnitDirectoryPort.listUnitIds(propertyId, null)).thenReturn(unitIds);
+        when(propertyUnitDirectoryPort.listUnitNumbersById(propertyId, null)).thenReturn(Map.of(unitId, "A12"));
 
         Installment installment = Installment.create(InstallmentId.newId(), unitId,
                 LocalDate.of(2026, 8, 1), Amount.of(new BigDecimal("150")));
@@ -97,6 +98,7 @@ class ListInstallmentsByPropertyServiceTest {
 
         assertThat(page.content()).hasSize(1);
         assertThat(page.content().get(0).id()).isEqualTo(installment.getId());
+        assertThat(page.content().get(0).unitNumber()).isEqualTo("A12");
         assertThat(page.content().get(0).period()).isNull();
         assertThat(page.totalElements()).isEqualTo(1);
         verifyNoInteractions(installmentCallRepository);
@@ -107,7 +109,7 @@ class ListInstallmentsByPropertyServiceTest {
         EntityId propertyId = EntityId.newId();
         EntityId unitId = EntityId.newId();
         List<EntityId> unitIds = List.of(unitId);
-        when(propertyUnitDirectoryPort.listUnitIds(propertyId, null)).thenReturn(unitIds);
+        when(propertyUnitDirectoryPort.listUnitNumbersById(propertyId, null)).thenReturn(Map.of(unitId, "A12"));
 
         InstallmentCallId callId = InstallmentCallId.newId();
         Installment installment = Installment.create(InstallmentId.newId(), unitId,
@@ -130,7 +132,7 @@ class ListInstallmentsByPropertyServiceTest {
         EntityId propertyId = EntityId.newId();
         EntityId unitId = EntityId.newId();
         List<EntityId> unitIds = List.of(unitId);
-        when(propertyUnitDirectoryPort.listUnitIds(propertyId, null)).thenReturn(unitIds);
+        when(propertyUnitDirectoryPort.listUnitNumbersById(propertyId, null)).thenReturn(Map.of(unitId, "A12"));
 
         InstallmentCallId callId = InstallmentCallId.newId();
         InstallmentFilter filter = new InstallmentFilter(null, null, null, null, null, callId);

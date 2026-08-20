@@ -16,6 +16,14 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * part_impute = min(montant_recu, total des appels echus non soldes du lot)
  * part_avance = montant_recu - part_impute
  * </pre>
+ * "Echus" is enforced here rather than left to each caller: an installment
+ * whose due date has not been reached at {@code asOf} is never imputed, and
+ * the money that would have gone to it stays an advance - to be taken up by
+ * the regularization sweep once it does fall due. Without that cutoff a
+ * payment silently settles next year's call, which then shows as a settled
+ * line the owner has no reason to see and leaves the arrears it was meant to
+ * clear untouched.
+ * <p>
  * I8 (never allocated beyond an installment's remaining due) holds by
  * construction: each allocation is capped at min(remaining payment,
  * that installment's own outstanding amount). Pure and stateless, like
@@ -35,8 +43,15 @@ public final class PaymentAllocationCalculator {
     public record Result(List<InstallmentAllocation> allocations, BigDecimal advanceAmount) {
     }
 
-    public static Result allocate(BigDecimal paymentAmount, List<UnsettledInstallment> unsettledInstallments) {
+    /**
+     * @param asOf the date the money is considered received on - a payment's
+     *             value date, or the piece date of a regularization. Anything
+     *             falling due after it is left out of the imputation.
+     */
+    public static Result allocate(BigDecimal paymentAmount, List<UnsettledInstallment> unsettledInstallments,
+                                   LocalDate asOf) {
         List<UnsettledInstallment> fifoOrder = unsettledInstallments.stream()
+                .filter(installment -> !installment.dueDate().isAfter(asOf))
                 .sorted(Comparator.comparing(UnsettledInstallment::dueDate)
                         .thenComparing(installment -> installment.installmentId().value()))
                 .toList();

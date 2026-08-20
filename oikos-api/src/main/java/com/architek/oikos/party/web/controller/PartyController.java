@@ -102,12 +102,17 @@ public class PartyController {
         return PartyResponse.from(getPartyUseCase.getParty(new GetPartyQuery(PartyId.of(id))));
     }
 
+    /** Une adresse vide vaut pas d'adresse : le formulaire envoie l'un ou l'autre. */
+    private static EmailVO emailOrNull(String email) {
+        return email == null || email.isBlank() ? null : EmailVO.of(email);
+    }
+
     @PreAuthorize("@propertyAccess.managesProperty(authentication, #request.propertyId())")
     @PostMapping
     public ResponseEntity<Void> create(@Valid @RequestBody CreatePartyRequest request) {
         PartyId id = createPartyUseCase.create(new CreatePartyCommand(
                 EntityId.of(request.propertyId()), request.fullName(), request.partyType(),
-                EmailVO.of(request.email()), request.phone()));
+                emailOrNull(request.email()), request.phone(), request.inviteOrDefault()));
         return ResponseEntity.created(URI.create("/api/v1/parties/" + id)).build();
     }
 
@@ -115,7 +120,7 @@ public class PartyController {
     @PutMapping("/{id}")
     public PartyResponse update(@PathVariable String id, @Valid @RequestBody UpdatePartyRequest request) {
         UpdatePartyCommand command = new UpdatePartyCommand(
-                PartyId.of(id), request.fullName(), request.partyType(), EmailVO.of(request.email()), request.phone());
+                PartyId.of(id), request.fullName(), request.partyType(), emailOrNull(request.email()), request.phone());
         return PartyResponse.from(updatePartyUseCase.update(command));
     }
 

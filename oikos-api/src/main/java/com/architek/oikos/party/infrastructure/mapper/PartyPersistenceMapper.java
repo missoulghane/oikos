@@ -32,7 +32,7 @@ public interface PartyPersistenceMapper {
         entity.setPropertyId(party.getPropertyId().value());
         entity.setFullName(party.getFullName());
         entity.setPartyType(party.getPartyType());
-        entity.setEmail(party.getEmail().value());
+        entity.setEmail(party.getEmail().map(EmailVO::value).orElse(null));
         entity.setPhone(party.getPhone());
         return entity;
     }
@@ -43,7 +43,7 @@ public interface PartyPersistenceMapper {
                 EntityId.of(entity.getPropertyId()),
                 entity.getFullName(),
                 entity.getPartyType(),
-                EmailVO.of(entity.getEmail()),
+                entity.getEmail() != null ? EmailVO.of(entity.getEmail()) : null,
                 entity.getPhone());
     }
 }

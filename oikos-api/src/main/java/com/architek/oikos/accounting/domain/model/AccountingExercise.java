@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Objects;
 
+import com.architek.oikos.accounting.domain.exception.AccountingExerciseClosedException;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
 import com.architek.oikos.accounting.domain.valueobject.ExerciseStatus;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -64,6 +65,19 @@ public final class AccountingExercise {
             throw new IllegalArgumentException(fieldName + " must not be blank");
         }
         return value;
+    }
+
+    /**
+     * Scelle l'exercice. Le calcul du résultat et l'écriture qui solde les
+     * classes 6 et 7 sont faits avant, par le use case : l'agrégat ne fait que
+     * constater, il n'orchestre pas.
+     */
+    public AccountingExercise close(Instant closedAt, EntityId closedByUserId) {
+        if (status == ExerciseStatus.CLOSED) {
+            throw new AccountingExerciseClosedException(id);
+        }
+        return new AccountingExercise(id, propertyId, label, startDate, endDate, ExerciseStatus.CLOSED, closedAt,
+                closedByUserId, comment);
     }
 
     public boolean isOpen() {

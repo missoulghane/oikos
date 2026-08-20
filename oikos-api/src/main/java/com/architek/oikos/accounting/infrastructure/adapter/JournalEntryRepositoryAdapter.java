@@ -8,6 +8,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.architek.oikos.accounting.domain.model.AccountNetAmount;
 import com.architek.oikos.accounting.domain.model.AuxiliaryUnitBalance;
 import com.architek.oikos.accounting.domain.model.JournalEntry;
 import com.architek.oikos.accounting.domain.repository.JournalEntryRepository;
@@ -137,6 +138,13 @@ public class JournalEntryRepositoryAdapter implements JournalEntryRepository {
     public List<AuxiliaryUnitBalance> sumNetAmountGroupedByAuxiliaryUnit(EntityId propertyId, LedgerAccountId accountId) {
         return jpaRepository.sumNetAmountGroupedByAuxiliaryUnit(propertyId.value(), accountId.asUuid()).stream()
                 .map(row -> new AuxiliaryUnitBalance(EntityId.of(row.getUnitId()), row.getAmount()))
+                .toList();
+    }
+
+    @Override
+    public List<AccountNetAmount> sumNetAmountByAccountForExercise(EntityId propertyId, AccountingExerciseId exerciseId) {
+        return jpaRepository.sumNetAmountByAccountForExercise(propertyId.value(), exerciseId.asUuid()).stream()
+                .map(row -> new AccountNetAmount(LedgerAccountId.of(row.getAccountId()), row.getAmount()))
                 .toList();
     }
 }

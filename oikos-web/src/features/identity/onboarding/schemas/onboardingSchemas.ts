@@ -22,14 +22,13 @@ export const accountStepSchema = refinePasswordsMatch(
 
 export type AccountStepValues = z.infer<typeof accountStepSchema>;
 
-// L'API ne stocke qu'un champ adresse de 250 caractères : la contrainte porte
-// donc sur la concaténation, vérifiée à la soumission (voir PropertyStepPage).
+// Adresse et ville partent maintenant dans deux champs distincts, chacun avec
+// sa propre limite côté API (250 et 100) : plus rien à vérifier sur une
+// concaténation, et l'adresse récupère la marge que la ville lui prenait.
 export const propertyStepSchema = z.object({
   name: z.string().trim().min(1, 'Le nom est requis').max(100, '100 caractères maximum'),
-  address: z.string().trim().min(1, "L'adresse est requise").max(150, '150 caractères maximum'),
+  address: z.string().trim().min(1, "L'adresse est requise").max(250, '250 caractères maximum'),
   city: z.string().trim().min(1, 'La ville est requise').max(100, '100 caractères maximum'),
 });
 
 export type PropertyStepValues = z.infer<typeof propertyStepSchema>;
-
-export const PROPERTY_ADDRESS_MAX_LENGTH = 250;

@@ -146,7 +146,7 @@ public class PropertyController {
     public ResponseEntity<Void> create(@Valid @RequestBody CreatePropertyRequest request, Authentication authentication) {
         UserId userId = currentUserId(authentication);
         PropertyRole roleToGrant = resolveRoleToGrant(userId);
-        PropertyId id = createPropertyUseCase.create(new CreatePropertyCommand(request.name(), request.address()));
+        PropertyId id = createPropertyUseCase.create(new CreatePropertyCommand(request.name(), request.address(), request.city()));
         grantCreatorAsManagerUseCase.grant(
                 new GrantCreatorAsManagerCommand(userId, EntityId.of(id.asUuid()), roleToGrant));
         return ResponseEntity.created(URI.create("/api/v1/properties/" + id)).build();
@@ -156,7 +156,7 @@ public class PropertyController {
     @PutMapping("/{id}")
     public PropertyResponse update(@PathVariable String id, @Valid @RequestBody UpdatePropertyRequest request) {
         return PropertyResponse.from(updatePropertyUseCase.update(
-                new UpdatePropertyCommand(PropertyId.of(id), request.name(), request.address())));
+                new UpdatePropertyCommand(PropertyId.of(id), request.name(), request.address(), request.city())));
     }
 
     @PreAuthorize("@propertyAccess.managesProperty(authentication, #id)")
@@ -242,7 +242,8 @@ public class PropertyController {
         List<BuildingConfiguration> buildings = request.property().buildings().stream()
                 .map(PropertyController::toBuildingConfiguration)
                 .toList();
-        return new ConfigurePropertyCommand(request.property().name(), request.property().address(), buildings);
+        return new ConfigurePropertyCommand(request.property().name(), request.property().address(),
+                request.property().city(), buildings);
     }
 
     private static BuildingConfiguration toBuildingConfiguration(BuildingConfigurationRequest request) {

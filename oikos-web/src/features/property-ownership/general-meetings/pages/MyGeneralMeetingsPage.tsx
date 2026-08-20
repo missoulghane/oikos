@@ -17,9 +17,9 @@ import { Loader } from '@/shared/components/Loader/Loader';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 
 /**
- * "Mes assemblées": one card per lot owned and per meeting it is convoked to.
- * A copropriétaire answers per lot, because it is the lot that carries the
- * voice - two lots in the same AG mean two answers.
+ * "Assemblées générales" (owner space): one row per lot owned and per meeting
+ * it is convoked to. A copropriétaire answers per lot, because it is the lot
+ * that carries the voice - two lots in the same AG mean two answers.
  */
 export function MyGeneralMeetingsPage() {
   const convocations = useMyConvocations();
@@ -36,9 +36,12 @@ export function MyGeneralMeetingsPage() {
   const rows = convocations.data ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
+    // Same shell as every other list of the app (see GeneralMeetingsListTab):
+    // one Card holding the heading and the rows, rather than a bare heading
+    // over free-floating cards.
+    <Card className="flex flex-col gap-4">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Mes assemblées générales</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Assemblées générales</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Indiquez votre présence pour chacun de vos lots, et consultez les procès-verbaux publiés.
         </p>
@@ -52,10 +55,10 @@ export function MyGeneralMeetingsPage() {
         </EmptyState>
       )}
 
-      <ul className="flex flex-col gap-4">
+      <ul className="flex flex-col gap-3">
         {rows.map((convocation) => (
           <li key={convocation.id}>
-            <Card className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
               <div className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
@@ -105,10 +108,10 @@ export function MyGeneralMeetingsPage() {
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
           </li>
         ))}
       </ul>
-    </div>
+    </Card>
   );
 }

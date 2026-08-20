@@ -2,6 +2,7 @@ package com.architek.oikos.installment.infrastructure.adapter;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -95,6 +96,17 @@ public class InstallmentPropertyDirectoryAdapter implements PropertyUnitDirector
             }
         }
         return unitIds;
+    }
+
+    @Override
+    public Map<EntityId, String> listUnitNumbersById(EntityId propertyId, String search) {
+        Map<EntityId, String> unitNumberById = new LinkedHashMap<>();
+        for (BuildingView building : listAllBuildings(new PropertyId(propertyId))) {
+            for (UnitView unit : listAllUnits(building.id(), search)) {
+                unitNumberById.put(unit.id().value(), unit.unitNumber());
+            }
+        }
+        return unitNumberById;
     }
 
     @Override

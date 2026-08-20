@@ -18,12 +18,10 @@ import {
   PlugInIcon,
   TimeIcon,
   PaperPlaneIcon,
-  MoreDotIcon,
   FolderIcon,
   ArrowDownIcon,
   ListIcon,
   MailIcon,
-  UserCircleIcon,
   EnvelopeIcon,
   PencilIcon,
   LockIcon,
@@ -51,7 +49,6 @@ const PROPERTY_INFO_TABS = [
   { name: 'Lots', path: '/lots', icon: <BoxIconLine /> },
   { name: 'Contacts', path: '/contacts', icon: <GroupIcon /> },
   { name: 'Invitations', path: '/invitations', icon: <MailIcon /> },
-  { name: 'Bureau', path: '/board', icon: <UserCircleIcon /> },
   { name: 'Documents', path: '/documents', icon: <DocsIcon /> },
   { name: 'Configuration', path: '/configuration', icon: <PlugInIcon /> },
 ];
@@ -59,7 +56,7 @@ const PROPERTY_INFO_TABS = [
 const INSTALLMENT_TABS = [
   { name: 'Appels de fonds', path: '/calls', icon: <PaperPlaneIcon /> },
   { name: 'Échéances', path: '', icon: <TimeIcon /> },
-  { name: 'Autres', path: '/other', icon: <MoreDotIcon /> },
+  { name: 'Configuration', path: '/configuration', icon: <PlugInIcon /> },
 ];
 
 // Paths are relative to /property-mngt/properties/:id, like the other groups.
@@ -288,7 +285,7 @@ export function AppSidebar() {
       : []),
     // Convocations, answers and published minutes - the owner's whole AG surface.
     ...(isOwnerSpace
-      ? [{ name: 'Mes assemblées', path: '/property-ownership/general-meetings', icon: <CalenderIcon /> }]
+      ? [{ name: 'Assemblées générales', path: '/property-ownership/general-meetings', icon: <CalenderIcon /> }]
       : []),
   ];
 

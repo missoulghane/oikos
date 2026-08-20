@@ -37,4 +37,11 @@ public class PeriodEntity extends AuditableEntity {
 
     @Column(name = "closed_by_user_id")
     private UUID closedByUserId;
+
+    /** Trace de la dernière réouverture : le statut ne la garderait pas. */
+    @Column(name = "reopened_at")
+    private Instant reopenedAt;
+
+    @Column(name = "reopened_by_user_id")
+    private UUID reopenedByUserId;
 }

@@ -1,5 +1,7 @@
 package com.architek.oikos.property.application.usecase;
 
+import java.util.Optional;
+
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,10 +52,16 @@ public class AddBoardMemberService implements AddBoardMemberUseCase {
     }
 
     /**
-     * partyId already existing takes precedence; otherwise a new party is
-     * created inline from fullName/email/phone - reusing an existing party by
-     * email when one matches, same de-duplication rule as
-     * AcceptInvitationService.resolveParty for the owner invite flow.
+     * partyId already existing takes precedence; otherwise the party is resolved
+     * from the coordinates given - email first, then phone - and only created
+     * when neither matches. Same chain as AddUnitOwnerService: a syndic often
+     * knows one coordinate without the other, and matching on email alone
+     * created a second fiche for someone already on file, paid for later in
+     * duplicate convocations and dues calls.
+     *
+     * <p>Both coordinates may be absent: a conseil syndical member with neither
+     * is recorded on their name alone. Nothing can be de-duplicated then, and
+     * nothing can be sent to them either - which is exactly what was asked for.
      */
     private EntityId resolveParty(AddBoardMemberCommand command) {
         if (command.partyId() != null) {
@@ -62,15 +70,15 @@ public class AddBoardMemberService implements AddBoardMemberUseCase {
         if (command.fullName() == null || command.fullName().isBlank()) {
             throw new IllegalArgumentException("fullName is required when partyId is not provided");
         }
+        EntityId propertyId = command.propertyId().value();
         EmailVO email = command.email() != null && !command.email().isBlank() ? EmailVO.of(command.email()) : null;
-        if (email != null) {
-            return partyDirectoryPort.findIdByEmail(email, command.propertyId().value())
-                    .orElseGet(() -> partyDirectoryPort.createParty(
-                            new PartyDetails(command.fullName(), PartyType.INDIVIDUAL, email, command.phone()),
-                            command.propertyId().value()));
-        }
-        return partyDirectoryPort.createParty(
-                new PartyDetails(command.fullName(), PartyType.INDIVIDUAL, null, command.phone()),
-                command.propertyId().value());
+        Optional<EntityId> byEmail = email != null
+                ? partyDirectoryPort.findIdByEmail(email, propertyId)
+                : Optional.empty();
+        return byEmail
+                .or(() -> partyDirectoryPort.findIdByPhone(command.phone(), propertyId))
+                .orElseGet(() -> partyDirectoryPort.createParty(
+                        new PartyDetails(command.fullName(), PartyType.INDIVIDUAL, email, command.phone()),
+                        propertyId));
     }
 }

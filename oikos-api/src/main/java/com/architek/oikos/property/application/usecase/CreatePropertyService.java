@@ -38,7 +38,7 @@ public class CreatePropertyService implements CreatePropertyUseCase {
     @Override
     @Transactional
     public PropertyId create(CreatePropertyCommand command) {
-        Property property = Property.create(PropertyId.newId(), command.name(), command.address());
+        Property property = Property.create(PropertyId.newId(), command.name(), command.address(), command.city());
         Property saved = propertyRepository.save(property);
 
         unitTypeDefinitionRepository.save(UnitTypeDefinition.create(UnitTypeDefinitionId.newId(), saved.getId(),

@@ -136,7 +136,7 @@ describe('OnboardingWizardPage', () => {
     expect(await screen.findByText('Au moins 10 caractères')).toBeInTheDocument();
   });
 
-  it('creates the account at the end of step 2, with the address recomposed into a single field', async () => {
+  it("creates the account at the end of step 2, with the city sent beside the address", async () => {
     const user = userEvent.setup();
     renderWizard();
 
@@ -155,7 +155,10 @@ describe('OnboardingWizardPage', () => {
         // pas en format international, c'est PhoneField qui l'écarte.
         phone: '+212612345678',
         propertyName: 'Résidence Exemple',
-        propertyAddress: '12 rue Exemple, Casablanca',
+        // Deux champs distincts et non plus une concaténation : la fiche
+        // copropriété doit pouvoir afficher et corriger l'un sans l'autre.
+        propertyAddress: '12 rue Exemple',
+        propertyCity: 'Casablanca',
       }),
     );
   });
@@ -211,8 +214,11 @@ describe('OnboardingWizardPage', () => {
     // Types de lots : Appartement seul, à 50.
     await user.type(await screen.findByLabelText('Appartement'), '50');
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
-    // Bâtiments : 12 appartements dans l'unique bâtiment.
-    const apartmentCount = await screen.findByRole('spinbutton', { name: 'Appartement' });
+    // Bâtiments : 12 appartements dans l'unique bâtiment, sur 3 étages.
+    const floorCount = await screen.findByRole('spinbutton', { name: "Nombre d'étages" });
+    await user.clear(floorCount);
+    await user.type(floorCount, '3');
+    const apartmentCount = screen.getByRole('spinbutton', { name: 'Appartement' });
     await user.clear(apartmentCount);
     await user.type(apartmentCount, '12');
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
@@ -230,7 +236,9 @@ describe('OnboardingWizardPage', () => {
         duesCalculationMode: 'FLAT_RATE',
         projectedBudget: undefined,
         unitTypes: [{ name: 'Appartement', price: 50 }],
-        buildings: [{ name: 'Bâtiment principal', unitTypes: [{ unitTypeName: 'Appartement', count: 12 }] }],
+        buildings: [
+          { name: 'Bâtiment principal', floorCount: 3, unitTypes: [{ unitTypeName: 'Appartement', count: 12 }] },
+        ],
         bankAccounts: [],
       },
     });

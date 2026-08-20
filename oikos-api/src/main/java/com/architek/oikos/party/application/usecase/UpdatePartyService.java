@@ -1,5 +1,7 @@
 package com.architek.oikos.party.application.usecase;
 
+import java.util.Objects;
+
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +28,9 @@ public class UpdatePartyService implements UpdatePartyUseCase {
     public PartyView update(UpdatePartyCommand command) {
         Party party = partyRepository.findById(command.id())
                 .orElseThrow(() -> new PartyNotFoundException(command.id()));
-        if (!party.getEmail().equals(command.email())
+        // Objects.equals : les deux côtés peuvent être nuls depuis que l'email est
+        // facultatif, et l'unicité ne se vérifie que sur une adresse réellement saisie.
+        if (command.email() != null && !Objects.equals(party.getEmail().orElse(null), command.email())
                 && partyRepository.existsByPropertyIdAndEmail(party.getPropertyId(), command.email())) {
             throw new EmailAlreadyUsedException(command.email().value());
         }

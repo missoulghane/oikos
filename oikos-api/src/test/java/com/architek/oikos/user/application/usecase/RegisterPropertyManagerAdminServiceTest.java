@@ -71,7 +71,7 @@ class RegisterPropertyManagerAdminServiceTest {
 
         RegisterPropertyManagerAdminCommand command = new RegisterPropertyManagerAdminCommand(
                 "Jane Doe", EmailVO.of("manager-admin@oikos.com"), null, RawPassword.of("password123"),
-                "Residence A", "1 rue de Paris");
+                "Residence A", "1 rue de Paris", "Casablanca");
 
         newService().register(command);
 

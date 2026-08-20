@@ -104,7 +104,7 @@ class PropertyControllerWebMvcTest {
     void admin_can_get_a_property_by_id() throws Exception {
         PropertyId id = PropertyId.newId();
         when(getPropertyUseCase.getProperty(any()))
-                .thenReturn(new PropertyView(id, "Copro", "Address", DuesCalculationMode.FLAT_RATE, null));
+                .thenReturn(new PropertyView(id, "Copro", "Address", null, DuesCalculationMode.FLAT_RATE, null));
 
         mockMvc.perform(get("/api/v1/properties/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
@@ -180,7 +180,7 @@ class PropertyControllerWebMvcTest {
     void admin_can_update_a_property_name_and_address() throws Exception {
         PropertyId id = PropertyId.newId();
         when(updatePropertyUseCase.update(any()))
-                .thenReturn(new PropertyView(id, "Copro Renamed", "New address", DuesCalculationMode.FLAT_RATE, null));
+                .thenReturn(new PropertyView(id, "Copro Renamed", "New address", null, DuesCalculationMode.FLAT_RATE, null));
 
         mockMvc.perform(put("/api/v1/properties/" + id)
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
@@ -206,7 +206,7 @@ class PropertyControllerWebMvcTest {
     void admin_can_switch_the_dues_calculation_mode_to_shares() throws Exception {
         PropertyId id = PropertyId.newId();
         when(updateDuesCalculationModeUseCase.updateMode(any()))
-                .thenReturn(new PropertyView(id, "Copro", "Address", DuesCalculationMode.SHARES, null));
+                .thenReturn(new PropertyView(id, "Copro", "Address", null, DuesCalculationMode.SHARES, null));
 
         mockMvc.perform(put("/api/v1/properties/" + id + "/dues-calculation-mode")
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
@@ -221,7 +221,7 @@ class PropertyControllerWebMvcTest {
     void admin_can_set_the_projected_budget() throws Exception {
         PropertyId id = PropertyId.newId();
         when(setProjectedBudgetUseCase.setProjectedBudget(any()))
-                .thenReturn(new PropertyView(id, "Copro", "Address", DuesCalculationMode.SHARES, new java.math.BigDecimal("1000")));
+                .thenReturn(new PropertyView(id, "Copro", "Address", null, DuesCalculationMode.SHARES, new java.math.BigDecimal("1000")));
 
         mockMvc.perform(put("/api/v1/properties/" + id + "/projected-budget")
                         .header("Authorization", bearerToken("ROLE_ADMIN"))

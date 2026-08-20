@@ -5,7 +5,8 @@ export interface Party {
   id: string;
   fullName: string;
   partyType: PartyType;
-  email: string;
+  /** Nul pour un contact qui n'a qu'un téléphone (voir Party côté API). */
+  email: string | null;
   phone: string | null;
 }
 
@@ -30,8 +31,11 @@ export interface CreatePartyPayload {
   propertyId: string;
   fullName: string;
   partyType: PartyType;
-  email: string;
+  /** Facultatif : sans adresse, aucune invitation ne part. */
+  email?: string;
   phone?: string;
+  /** Envoyer le lien de création de compte. Absent, l'API invite (compatibilité). */
+  invite: boolean;
 }
 
 export interface CreatePartyResult {

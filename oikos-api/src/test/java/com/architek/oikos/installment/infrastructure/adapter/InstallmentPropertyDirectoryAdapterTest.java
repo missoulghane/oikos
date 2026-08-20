@@ -1,10 +1,12 @@
 package com.architek.oikos.installment.infrastructure.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,7 +66,7 @@ class InstallmentPropertyDirectoryAdapterTest {
         EntityId propertyId = EntityId.newId();
         PropertyId propertyIdValue = new PropertyId(propertyId);
         when(getPropertyUseCase.getProperty(new GetPropertyQuery(propertyIdValue)))
-                .thenReturn(new PropertyView(propertyIdValue, "Residence", "1 rue Test",
+                .thenReturn(new PropertyView(propertyIdValue, "Residence", "1 rue Test", "Casablanca",
                         com.architek.oikos.property.domain.valueobject.DuesCalculationMode.FLAT_RATE, null));
 
         boolean exists = newAdapter().exists(propertyId);
@@ -77,7 +79,7 @@ class InstallmentPropertyDirectoryAdapterTest {
         EntityId propertyId = EntityId.newId();
         PropertyId propertyIdValue = new PropertyId(propertyId);
         when(getPropertyUseCase.getProperty(new GetPropertyQuery(propertyIdValue)))
-                .thenReturn(new PropertyView(propertyIdValue, "Residence", "1 rue Test",
+                .thenReturn(new PropertyView(propertyIdValue, "Residence", "1 rue Test", "Casablanca",
                         com.architek.oikos.property.domain.valueobject.DuesCalculationMode.SHARES, new BigDecimal("1000")));
 
         PropertyDuesConfigurationView view = newAdapter().getDuesConfiguration(propertyId);
@@ -147,6 +149,28 @@ class InstallmentPropertyDirectoryAdapterTest {
         List<EntityId> unitIds = newAdapter().listUnitIds(propertyId);
 
         assertThat(unitIds).containsExactlyInAnyOrder(unitA1.value(), unitB1.value());
+    }
+
+    @Test
+    void maps_every_unit_of_the_property_to_its_lot_number() {
+        EntityId propertyId = EntityId.newId();
+        PropertyId propertyIdValue = new PropertyId(propertyId);
+        BuildingId buildingA = BuildingId.newId();
+        UnitId unitA1 = UnitId.newId();
+
+        when(listBuildingsByPropertyUseCase.listBuildings(new ListBuildingsByPropertyQuery(propertyIdValue,
+                PageRequest.of(0, 100))))
+                .thenReturn(Page.of(List.of(new BuildingView(buildingA, propertyIdValue, "A", 3)), 0, 100, 1));
+
+        when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingA,
+                PageRequest.of(0, 100), "A1")))
+                .thenReturn(Page.of(List.of(
+                        new UnitView(unitA1, buildingA, propertyIdValue, "A1", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
+                                OwnershipStatus.AFFECTED, List.of())), 0, 100, 1));
+
+        Map<EntityId, String> unitNumberById = newAdapter().listUnitNumbersById(propertyId, "A1");
+
+        assertThat(unitNumberById).containsExactly(entry(unitA1.value(), "A1"));
     }
 
     @Test

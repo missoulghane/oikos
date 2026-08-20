@@ -2,7 +2,9 @@ import type { InstallmentStatus } from '@/features/property-mngt/installments/ty
 import { todayIsoDate } from '@/shared/utils/todayIsoDate';
 
 type Unsettled = { status: InstallmentStatus };
-type Dated = Unsettled & { dueDate: string };
+/** Only a due date: enough for hasFallenDue, which is blind to the settlement. */
+type Scheduled = { dueDate: string };
+type Dated = Unsettled & Scheduled;
 
 /**
  * Whether an installment is owed, and since when. Lives in property-mngt rather
@@ -12,7 +14,7 @@ type Dated = Unsettled & { dueDate: string };
  *
  * The syndic list applies the rule server-side (see InstallmentFilter's
  * hideNotYetDueAsOf): these helpers cover the client-side lists and the "à
- * échoir" marker.
+ * venir" marker.
  */
 
 /**
@@ -33,6 +35,17 @@ export function isUnsettled(installment: Unsettled): boolean {
  */
 export function isDueBy(installment: Dated, asOf: string = todayIsoDate()): boolean {
   return isUnsettled(installment) && installment.dueDate <= asOf;
+}
+
+/**
+ * The due date is reached, whatever has been paid on the line. Deliberately
+ * blind to the status, unlike isNotYetDue below: an echeance dated next
+ * December that a payment happened to settle in advance has not fallen due
+ * either, and a list of what has happened so far has to leave it out just the
+ * same.
+ */
+export function hasFallenDue(installment: Scheduled, asOf: string = todayIsoDate()): boolean {
+  return installment.dueDate <= asOf;
 }
 
 /**

@@ -39,7 +39,7 @@ export function MessageThreadItem({ message, recipientLabel }: MessageThreadItem
             {/* OWNER is the unmarked default; only BOARD is called out. */}
             {message.senderIdentity === 'BOARD' && (
               <View style={styles.boardChip}>
-                <Text style={styles.boardChipText}>Bureau</Text>
+                <Text style={styles.boardChipText}>Conseil</Text>
               </View>
             )}
           </View>

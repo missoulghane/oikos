@@ -20,6 +20,7 @@ export interface ConfiguredUnitType {
 
 export interface ConfiguredBuilding {
   name?: string;
+  floorCount?: number;
   unitTypes: { unitTypeName: string; count: number }[];
 }
 

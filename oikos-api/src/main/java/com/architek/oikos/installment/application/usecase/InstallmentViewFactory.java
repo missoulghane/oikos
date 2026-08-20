@@ -17,14 +17,14 @@ final class InstallmentViewFactory {
     }
 
     static InstallmentView build(Installment installment) {
-        return build(installment, null);
+        return build(installment, null, null);
     }
 
-    static InstallmentView build(Installment installment, YearMonth period) {
+    static InstallmentView build(Installment installment, YearMonth period, String unitNumber) {
         InstallmentStatus status = InstallmentStatusCalculator.compute(installment.getAmount().value(),
                 installment.getOutstandingAmount());
 
-        return new InstallmentView(installment.getId(), installment.getUnitId(),
+        return new InstallmentView(installment.getId(), installment.getUnitId(), unitNumber,
                 installment.getDueDate(), installment.getAmount().value(), installment.getOutstandingAmount(), status,
                 period);
     }

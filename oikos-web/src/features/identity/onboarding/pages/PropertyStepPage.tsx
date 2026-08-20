@@ -9,12 +9,7 @@ import { useRegisterPropertyBoardAdmin } from '@/features/identity/register/hook
 import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingContext';
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
 import { nextStepPath, previousStepPath } from '@/features/identity/onboarding/constants/steps';
-import { formatAddress } from '@/features/identity/onboarding/state/onboardingDraft';
-import {
-  propertyStepSchema,
-  PROPERTY_ADDRESS_MAX_LENGTH,
-  type PropertyStepValues,
-} from '@/features/identity/onboarding/schemas/onboardingSchemas';
+import { propertyStepSchema, type PropertyStepValues } from '@/features/identity/onboarding/schemas/onboardingSchemas';
 
 export function PropertyStepPage() {
   const navigate = useNavigate();
@@ -24,7 +19,6 @@ export function PropertyStepPage() {
   const {
     register,
     handleSubmit,
-    setError,
     formState: { errors },
   } = useForm<PropertyStepValues>({
     resolver: zodResolver(propertyStepSchema),
@@ -35,11 +29,6 @@ export function PropertyStepPage() {
 
   function onSubmit(values: PropertyStepValues) {
     const property = { name: values.name, address: values.address, city: values.city };
-    const address = formatAddress(property);
-    if (address.length > PROPERTY_ADDRESS_MAX_LENGTH) {
-      setError('address', { message: `Adresse complète trop longue (${PROPERTY_ADDRESS_MAX_LENGTH} caractères maximum)` });
-      return;
-    }
     update({ property });
 
     // Le compte est créé ici, et pas à l'étape 1 : la party qui relie le compte à
@@ -57,7 +46,11 @@ export function PropertyStepPage() {
         phone: draft.account.phone,
         password,
         propertyName: property.name,
-        propertyAddress: address,
+        // L'adresse et la ville partent séparément depuis que la copropriété
+        // porte les deux : les recoller ici les aurait rendues inséparables sur
+        // la fiche, où le syndic doit pouvoir corriger l'une sans l'autre.
+        propertyAddress: property.address,
+        propertyCity: property.city,
       },
       {
         onSuccess: (registration) => {

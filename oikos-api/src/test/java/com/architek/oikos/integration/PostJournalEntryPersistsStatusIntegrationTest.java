@@ -67,7 +67,7 @@ class PostJournalEntryPersistsStatusIntegrationTest {
 
     @Test
     void posting_an_entry_with_several_lines_actually_persists_POSTED_status_and_updated_balances() {
-        PropertyId propertyId = createPropertyUseCase.create(new CreatePropertyCommand("Journal Post Test Property", "1 rue Test"));
+        PropertyId propertyId = createPropertyUseCase.create(new CreatePropertyCommand("Journal Post Test Property", "1 rue Test", "Casablanca"));
         EntityId propertyEntityId = EntityId.of(propertyId.asUuid());
         openAccountingExerciseUseCase.open(new OpenAccountingExerciseCommand(propertyEntityId, "Exercice test",
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null));

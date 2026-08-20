@@ -28,6 +28,8 @@ export interface LedgerAccount {
   role: AccountRole | null;
   active: boolean;
   balance: number;
+  /** RIB/IBAN saisi à la création - renseigné pour les comptes de banque uniquement (jamais pour la caisse). */
+  bankAccountNumber: string | null;
 }
 
 export interface AccountingExercise {
@@ -49,6 +51,15 @@ export interface Period {
   status: PeriodStatus;
   closedAt: string | null;
   closedByUserId: string | null;
+  /** Dernière réouverture, s'il y en a eu une. Conservée même après une nouvelle clôture. */
+  reopenedAt: string | null;
+}
+
+export interface ExerciseClosing {
+  exercise: AccountingExercise;
+  netResult: number;
+  /** Nul quand l'exercice n'avait ni produit ni charge à solder. */
+  closingEntryId: string | null;
 }
 
 export interface JournalEntryLine {

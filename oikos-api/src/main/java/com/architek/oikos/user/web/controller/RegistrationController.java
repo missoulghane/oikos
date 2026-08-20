@@ -124,7 +124,7 @@ public class RegistrationController {
                 request.phone(),
                 RawPassword.of(request.password()),
                 request.propertyName(),
-                request.propertyAddress());
+                request.propertyAddress(), request.propertyCity());
         RegisteredBoardAdminView registration = registerPropertyBoardAdminUseCase.register(command);
         String onboardingToken = jwtTokenPort.generateOnboardingToken(
                 EntityId.of(registration.userId().asUuid()), registration.propertyId());
@@ -142,7 +142,7 @@ public class RegistrationController {
                 request.phone(),
                 RawPassword.of(request.password()),
                 request.propertyName(),
-                request.propertyAddress());
+                request.propertyAddress(), request.propertyCity());
         UserId userId = registerPropertyManagerAdminUseCase.register(command);
         return ResponseEntity.created(URI.create("/api/v1/users/" + userId)).build();
     }

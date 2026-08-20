@@ -132,7 +132,7 @@ export function MyInstallmentsPage() {
             {(installments.data ?? []).length === 0
               ? "Vous n'avez aucune échéance pour le moment."
               : hiddenNotYetDue > 0
-                ? `Aucune échéance exigible ne correspond à ces filtres. ${hiddenNotYetDue} échéance${hiddenNotYetDue > 1 ? 's' : ''} à échoir ${hiddenNotYetDue > 1 ? 'sont masquées' : 'est masquée'}.`
+                ? `Aucune échéance exigible ne correspond à ces filtres. ${hiddenNotYetDue} échéance${hiddenNotYetDue > 1 ? 's' : ''} à venir ${hiddenNotYetDue > 1 ? 'sont masquées' : 'est masquée'}.`
                 : 'Aucune échéance ne correspond à ces filtres.'}
           </EmptyState>
         )}

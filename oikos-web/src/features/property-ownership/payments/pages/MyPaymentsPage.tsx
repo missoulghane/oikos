@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMyPayments } from '@/features/property-ownership/payments/hooks/useMyPayments';
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import { formatUnitLabel } from '@/features/property-ownership/units/utils/formatUnitLabel';
@@ -28,7 +29,14 @@ const SORT_KEYS = ['sortBy', 'sortDirection'] as const;
 export function MyPaymentsPage() {
   const payments = useMyPayments();
   const units = useMyUnits();
-  const [filters, setFilters] = useState<MyPaymentFiltersValue>(DEFAULT_MY_PAYMENT_FILTERS);
+  const [searchParams] = useSearchParams();
+  // Seeded once from the URL rather than kept in sync with it, comme sur Mes
+  // échéances : le solde d'un lot ouvre cet écran sur ses versements, et les
+  // filtres redeviennent ceux de l'utilisateur dès qu'il y touche.
+  const [filters, setFilters] = useState<MyPaymentFiltersValue>(() => ({
+    ...DEFAULT_MY_PAYMENT_FILTERS,
+    unitId: searchParams.get('unitId') ?? DEFAULT_MY_PAYMENT_FILTERS.unitId,
+  }));
   const [page, setPage] = useState(0);
 
   const isLoading = payments.isLoading || units.isLoading;

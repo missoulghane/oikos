@@ -95,7 +95,7 @@ export function MessageComposer({ conversationId, identityChoiceNeeded = false, 
                     : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.05]'
                 }`}
               >
-                {identity === 'OWNER' ? 'Copropriétaire' : 'Membre du bureau'}
+                {identity === 'OWNER' ? 'Copropriétaire' : 'Membre du conseil'}
               </button>
             ))}
           </div>

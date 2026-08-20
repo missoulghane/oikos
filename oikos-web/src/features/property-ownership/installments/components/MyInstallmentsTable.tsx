@@ -63,12 +63,12 @@ export function MyInstallmentsTable({
               >
                 <td className="py-2 pr-4 text-gray-700 dark:text-gray-300">
                   {new Date(installment.dueDate).toLocaleDateString('fr-FR')}
-                  {/* Only ever reached with the "Échéances à échoir" toggle on,
+                  {/* Only ever reached with the "Échéances à venir" toggle on,
                       since the list hides these rows by default. Still marked:
                       the footer total ignores them, so without this the visible
                       lines add up to more than the total. */}
                   {isNotYetDue(installment) && (
-                    <span className="ml-2 text-xs text-warning-600 dark:text-warning-400">à échoir</span>
+                    <span className="ml-2 text-xs text-warning-600 dark:text-warning-400">à venir</span>
                   )}
                 </td>
                 <td className="py-2 pr-4 text-gray-500 dark:text-gray-400">{unit ? formatUnitLabel(unit) : '—'}</td>

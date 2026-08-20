@@ -70,7 +70,7 @@ export function ConversationListItem({ conversation, onPress }: { conversation: 
         <View style={styles.chipsRow}>
           {conversation.type === 'BOARD_PRIVATE' && (
             <View style={styles.warningChip}>
-              <Text style={styles.warningChipText}>Privé · bureau</Text>
+              <Text style={styles.warningChipText}>Privé · conseil</Text>
             </View>
           )}
           {conversation.concernsUnit && (

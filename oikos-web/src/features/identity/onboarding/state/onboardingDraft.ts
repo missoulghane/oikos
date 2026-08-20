@@ -3,14 +3,14 @@ import type { DuesCalculationMode } from '@/features/property-mngt/properties/ty
 /**
  * Types de lots proposés par le wizard. Le libellé sert tel quel de nom de type
  * côté API (find-or-create par nom), d'où le pluriel séparé pour les résumés.
+ *
+ * <p>Réexportés depuis property-mngt et non redéfinis ici : l'onglet
+ * Configuration d'une copropriété offre exactement la même liste, et deux
+ * copies auraient divergé au premier type ajouté d'un seul côté.
  */
-export const UNIT_TYPE_CHOICES = [
-  { name: 'Appartement', plural: 'appartements' },
-  { name: 'Box', plural: 'box' },
-  { name: 'Bureau', plural: 'bureaux' },
-] as const;
+import { UNIT_TYPE_CHOICES } from '@/features/property-mngt/properties/constants/unitTypeChoices';
 
-export type UnitTypeName = (typeof UNIT_TYPE_CHOICES)[number]['name'];
+export { UNIT_TYPE_CHOICES, type UnitTypeName } from '@/features/property-mngt/properties/constants/unitTypeChoices';
 
 export interface OnboardingAccount {
   fullName: string;
@@ -27,6 +27,8 @@ export interface OnboardingProperty {
 
 export interface OnboardingBuilding {
   name: string;
+  /** Nombre d'étages, 0 pour un bâtiment de plain-pied (villa, local commercial). */
+  floorCount: number;
   /** Nombre de lots par nom de type ; un type non présent dans ce bâtiment vaut 0. */
   unitCounts: Record<string, number>;
 }
@@ -75,7 +77,7 @@ export interface OnboardingDraft {
 export const DEFAULT_BUILDING_UNIT_COUNT = 0;
 
 export function emptyBuilding(index: number): OnboardingBuilding {
-  return { name: index === 0 ? 'Bâtiment principal' : `Bâtiment ${index + 1}`, unitCounts: {} };
+  return { name: index === 0 ? 'Bâtiment principal' : `Bâtiment ${index + 1}`, floorCount: 0, unitCounts: {} };
 }
 
 export function initialDraft(): OnboardingDraft {
@@ -106,6 +108,18 @@ export function initialDraft(): OnboardingDraft {
  * brouillon tronqué (onglet fermé pendant l'écriture, quota atteint) ferait
  * échouer le premier `.map` bien plus loin, sans rien qui désigne la cause.
  */
+/**
+ * Un bâtiment relu d'un brouillon écrit avant l'ajout d'un champ n'a pas ce
+ * champ : même cause que la fusion en profondeur ci-dessus, une strate plus bas.
+ */
+function normalizeBuilding(building: OnboardingBuilding): OnboardingBuilding {
+  return {
+    name: building?.name ?? '',
+    floorCount: typeof building?.floorCount === 'number' ? building.floorCount : 0,
+    unitCounts: building?.unitCounts ?? {},
+  };
+}
+
 export function mergeStoredDraft(stored: Partial<OnboardingDraft> | null | undefined): OnboardingDraft {
   const base = initialDraft();
   if (!stored || typeof stored !== 'object') {
@@ -118,7 +132,7 @@ export function mergeStoredDraft(stored: Partial<OnboardingDraft> | null | undef
     property: { ...base.property, ...stored.property },
     unitTypePrices: { ...base.unitTypePrices, ...stored.unitTypePrices },
     selectedUnitTypes: Array.isArray(stored.selectedUnitTypes) ? stored.selectedUnitTypes : base.selectedUnitTypes,
-    buildings: Array.isArray(stored.buildings) ? stored.buildings : base.buildings,
+    buildings: Array.isArray(stored.buildings) ? stored.buildings.map(normalizeBuilding) : base.buildings,
     bankAccounts: Array.isArray(stored.bankAccounts) ? stored.bankAccounts : base.bankAccounts,
   };
 }

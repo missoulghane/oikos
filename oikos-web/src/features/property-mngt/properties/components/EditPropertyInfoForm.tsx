@@ -24,7 +24,7 @@ export function EditPropertyInfoForm({ property, onSuccess, onCancel }: EditProp
     formState: { errors },
   } = useForm<UpdatePropertyFormValues>({
     resolver: zodResolver(updatePropertySchema),
-    defaultValues: { name: property.name, address: property.address },
+    defaultValues: { name: property.name, address: property.address, city: property.city ?? '' },
   });
   const { mutate, isPending, error } = useUpdateProperty(property.id);
 
@@ -37,6 +37,7 @@ export function EditPropertyInfoForm({ property, onSuccess, onCancel }: EditProp
       {error && <Alert message={getErrorMessage(error)} />}
       <Input label="Nom de la copropriété" {...register('name')} errorMessage={errors.name?.message} />
       <Input label="Adresse" {...register('address')} errorMessage={errors.address?.message} />
+      <Input label="Ville" {...register('city')} errorMessage={errors.city?.message} />
       <div className="flex gap-2">
         <Button type="submit" isLoading={isPending}>
           Enregistrer

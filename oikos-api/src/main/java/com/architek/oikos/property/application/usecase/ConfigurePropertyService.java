@@ -79,7 +79,7 @@ public class ConfigurePropertyService implements ConfigurePropertyUseCase {
         }
 
         Property savedProperty = propertyRepository.save(
-                Property.create(PropertyId.newId(), command.name(), command.address()));
+                Property.create(PropertyId.newId(), command.name(), command.address(), command.city()));
         ledgerAccountProvisioningPort.provisionPropertyCashAccount(savedProperty.getId().value());
 
         UnitTypeDefinition defaultUnitType = unitTypeDefinitionRepository.save(UnitTypeDefinition.create(

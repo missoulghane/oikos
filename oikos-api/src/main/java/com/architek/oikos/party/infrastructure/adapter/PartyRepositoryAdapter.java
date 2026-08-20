@@ -48,6 +48,9 @@ public class PartyRepositoryAdapter implements PartyRepository {
 
     @Override
     public Optional<Party> findByPropertyIdAndEmail(EntityId propertyId, EmailVO email) {
+        if (email == null) {
+            return Optional.empty();
+        }
         return jpaRepository.findByPropertyIdAndEmail(propertyId.value(), email.value()).map(mapper::toDomain);
     }
 
@@ -58,7 +61,9 @@ public class PartyRepositoryAdapter implements PartyRepository {
 
     @Override
     public boolean existsByPropertyIdAndEmail(EntityId propertyId, EmailVO email) {
-        return jpaRepository.existsByPropertyIdAndEmail(propertyId.value(), email.value());
+        // Sans email, rien à comparer : plusieurs contacts d'une même copropriété
+        // peuvent en être dépourvus, la contrainte d'unicité les laisse cohabiter.
+        return email != null && jpaRepository.existsByPropertyIdAndEmail(propertyId.value(), email.value());
     }
 
     @Override

@@ -33,7 +33,7 @@ public class InvitationPartyDirectoryAdapter implements PartyDirectoryPort {
     @Override
     public EntityId createParty(PartyDetails details, EntityId propertyId) {
         PartyId id = createPartyUseCase.create(new CreatePartyCommand(
-                propertyId, details.fullName(), details.partyType(), details.email(), details.phone()));
+                propertyId, details.fullName(), details.partyType(), details.email(), details.phone(), false));
         return EntityId.of(id.asUuid());
     }
 

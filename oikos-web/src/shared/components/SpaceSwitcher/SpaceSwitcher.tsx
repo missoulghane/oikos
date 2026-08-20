@@ -15,8 +15,8 @@ interface SpaceEntry {
 }
 
 const BOARD_ROLE_LABELS: Partial<Record<PropertyRoleName, string>> = {
-  PROPERTY_BOARD_ADMIN: 'Administrateur du bureau',
-  PROPERTY_BOARD_MEMBER: 'Membre du bureau',
+  PROPERTY_BOARD_ADMIN: 'Administrateur du conseil',
+  PROPERTY_BOARD_MEMBER: 'Membre du conseil',
 };
 
 function boardRoleLabel(user: CurrentUser, propertyId: string): string {

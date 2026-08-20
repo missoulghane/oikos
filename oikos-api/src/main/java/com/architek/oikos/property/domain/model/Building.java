@@ -35,6 +35,16 @@ public final class Building {
         return new Building(id, propertyId, name, floorCount);
     }
 
+    /**
+     * Renomme le batiment et corrige son nombre d'etages. La copropriete
+     * d'appartenance, elle, ne bouge pas : deplacer un batiment d'une copropriete
+     * a une autre emporterait ses lots, leurs proprietaires et leurs appels de
+     * charges - ce n'est pas une modification de fiche.
+     */
+    public Building withDetails(String newName, Integer newFloorCount) {
+        return new Building(id, propertyId, newName, newFloorCount);
+    }
+
     private static String requireNonBlank(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " must not be blank");

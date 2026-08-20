@@ -26,7 +26,7 @@ export const EVERYONE_RECIPIENT: RecipientCandidate = {
 // server-side from the property's *current* staff roster at read time.
 export const BOARD_RECIPIENT: RecipientCandidate = {
   userId: '__board__',
-  fullName: 'Le bureau de syndic',
+  fullName: 'Le conseil syndical',
   roleLabel: 'Fil privé',
   unitNumbers: [],
   isStaff: true,
@@ -136,7 +136,7 @@ export function RecipientPicker({
           )}
           {canBoardPrivate && (
             <Pressable disabled={disabled} onPress={selectBoard} style={styles.pseudoButton}>
-              <Text style={styles.pseudoButtonText}>Écrire au bureau (fil privé)</Text>
+              <Text style={styles.pseudoButtonText}>Écrire au conseil (fil privé)</Text>
             </Pressable>
           )}
         </View>

@@ -5,11 +5,8 @@ import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { useUnitOwners } from '@/features/property-mngt/properties/hooks/useUnitOwners';
 import { AddUnitOwnerForm } from '@/features/property-mngt/properties/components/AddUnitOwnerForm';
-import { AddExistingUnitOwnerForm } from '@/features/property-mngt/properties/components/AddExistingUnitOwnerForm';
 import { PARTY_TYPE_LABELS } from '@/features/property-mngt/properties/constants/partyTypeLabels';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
-
-type AddMode = 'none' | 'existing' | 'new';
 
 interface UnitOwnersSectionProps {
   unitId: string;
@@ -19,39 +16,35 @@ interface UnitOwnersSectionProps {
 }
 
 export function UnitOwnersSection({ unitId, propertyId, canManage = true }: UnitOwnersSectionProps) {
-  const [addMode, setAddMode] = useState<AddMode>('none');
+  const [isAttaching, setIsAttaching] = useState(false);
   const { data, isLoading, isError, error } = useUnitOwners(unitId);
 
   function close() {
-    setAddMode('none');
+    setIsAttaching(false);
   }
 
   return (
     <div className="flex flex-col gap-2 border-t border-gray-100 dark:border-gray-800 pt-2">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Propriétaires</p>
-        {canManage && addMode === 'none' && (
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={() => setAddMode('existing')}>
-              Rattacher à un contact
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => setAddMode('new')}>
-              Nouveau contact
-            </Button>
-          </div>
+        {/* Un seul bouton : le formulaire reconnaît lui-même un contact déjà
+            enregistré à son email ou à son téléphone, et propose de le
+            rattacher. Deux boutons demandaient au syndic de savoir d'avance ce
+            que la recherche établit mieux que lui. */}
+        {canManage && !isAttaching && (
+          <Button type="button" variant="secondary" onClick={() => setIsAttaching(true)}>
+            Rattacher à un contact
+          </Button>
         )}
       </div>
 
-      {canManage && addMode === 'existing' && (
-        <AddExistingUnitOwnerForm unitId={unitId} propertyId={propertyId} onSuccess={close} onCancel={close} />
-      )}
-      {canManage && addMode === 'new' && (
+      {canManage && isAttaching && (
         <AddUnitOwnerForm unitId={unitId} propertyId={propertyId} onSuccess={close} onCancel={close} />
       )}
 
       {isLoading && <Loader label="Chargement des propriétaires…" />}
       {isError && <Alert message={getErrorMessage(error)} />}
-      {data && data.length === 0 && addMode === 'none' && (
+      {data && data.length === 0 && !isAttaching && (
         <p className="text-sm text-gray-400 dark:text-gray-500">Aucun propriétaire pour le moment.</p>
       )}
       {data && data.length > 0 && (

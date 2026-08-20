@@ -26,6 +26,7 @@ export function CreatePropertyForm({ onSubmit, isSubmitting, errorMessage }: Cre
       {errorMessage && <Alert message={errorMessage} />}
       <Input label="Nom de la copropriété" {...register('name')} errorMessage={errors.name?.message} />
       <Input label="Adresse" {...register('address')} errorMessage={errors.address?.message} />
+      <Input label="Ville" {...register('city')} errorMessage={errors.city?.message} />
       <Button type="submit" isLoading={isSubmitting} className="mt-2">
         Créer la copropriété
       </Button>

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import com.architek.oikos.accounting.domain.model.AccountNetAmount;
 import com.architek.oikos.accounting.domain.model.AuxiliaryUnitBalance;
 import com.architek.oikos.accounting.domain.model.JournalEntry;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
@@ -45,4 +46,12 @@ public interface JournalEntryRepository {
      * strictly positive one on this account - the property-wide regularisation sweep's starting
      * point (only units with something to reconcile are returned). */
     List<AuxiliaryUnitBalance> sumNetAmountGroupedByAuxiliaryUnit(EntityId propertyId, LedgerAccountId accountId);
+
+    /**
+     * Solde net (crédits moins débits, écritures comptabilisées) de chaque compte
+     * mouvementé par une copropriété sur un exercice - ce que la clôture doit
+     * solder, et que le solde du compte ne dit pas puisqu'il totalise toutes les
+     * copropriétés pour les comptes partagés.
+     */
+    List<AccountNetAmount> sumNetAmountByAccountForExercise(EntityId propertyId, AccountingExerciseId exerciseId);
 }

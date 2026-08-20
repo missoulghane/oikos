@@ -154,6 +154,39 @@ class RecordOwnerPaymentServiceTest {
         assertThat(result.allocations().get(0).installmentId()).isEqualTo(EntityId.of(older.getId().asUuid()));
     }
 
+    // Spec §4.2 imputes on the "appels echus" only. Before this cutoff a payment
+    // silently settled a call the owner did not owe yet, which then showed as a
+    // settled future line on their space while the money never became an advance.
+    @Test
+    void a_payment_never_settles_an_installment_that_has_not_fallen_due_yet() {
+        EntityId propertyId = EntityId.newId();
+        EntityId unitId = EntityId.newId();
+        stubDirectories(propertyId, unitId);
+
+        Installment due = Installment.create(InstallmentId.newId(), unitId, LocalDate.of(2026, 2, 5),
+                Amount.of(new BigDecimal("300.00")));
+        Installment notYetDue = Installment.create(InstallmentId.newId(), unitId, LocalDate.of(2026, 8, 1),
+                Amount.of(new BigDecimal("300.00")));
+        when(installmentRepository.findAllByUnitId(unitId)).thenReturn(List.of(due, notYetDue));
+        when(ownerPaymentJournalEntryPort.postOwnerPaymentEntry(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(EntityId.newId());
+        when(paymentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RecordOwnerPaymentCommand command = new RecordOwnerPaymentCommand(propertyId, unitId, PaymentMode.CASH,
+                EntityId.newId(), LocalDate.of(2026, 2, 10), new BigDecimal("500.00"), EntityId.newId());
+
+        RecordOwnerPaymentResult result = newService().record(command);
+
+        assertThat(result.allocations()).hasSize(1);
+        assertThat(result.allocations().get(0).installmentId()).isEqualTo(EntityId.of(due.getId().asUuid()));
+        // The 200 left over becomes an advance instead of eating into August's call.
+        assertThat(result.advanceAmount()).isEqualByComparingTo("200.00");
+
+        ArgumentCaptor<Installment> savedCaptor = ArgumentCaptor.forClass(Installment.class);
+        verify(installmentRepository).save(savedCaptor.capture());
+        assertThat(savedCaptor.getValue().getId()).isEqualTo(due.getId());
+    }
+
     @Test
     void a_payment_for_a_missing_property_is_rejected() {
         EntityId propertyId = EntityId.newId();

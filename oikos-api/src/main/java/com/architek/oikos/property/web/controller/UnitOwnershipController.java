@@ -68,12 +68,18 @@ public class UnitOwnershipController {
         return ResponseEntity.created(URI.create("/api/v1/units/" + unitId + "/owners/" + id)).build();
     }
 
+    /** Une adresse vide vaut pas d'adresse : le formulaire envoie l'un ou l'autre. */
+    private static EmailVO emailOrNull(String email) {
+        return email == null || email.isBlank() ? null : EmailVO.of(email);
+    }
+
     @PreAuthorize("@propertyAccess.managesUnit(authentication, #unitId)")
     @PostMapping("/units/{unitId}/owners/new-party")
     public ResponseEntity<Void> addWithNewParty(@PathVariable String unitId,
                                                     @Valid @RequestBody AddUnitOwnerRequest request) {
         UnitOwnershipId id = addUnitOwnerUseCase.add(new AddUnitOwnerCommand(UnitId.of(unitId), request.fullName(),
-                request.partyType(), EmailVO.of(request.email()), request.phone(), request.ownershipShare()));
+                request.partyType(), emailOrNull(request.email()), request.phone(), request.ownershipShare(),
+                request.inviteOrDefault()));
         return ResponseEntity.created(URI.create("/api/v1/units/" + unitId + "/owners/" + id)).build();
     }
 

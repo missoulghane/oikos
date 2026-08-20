@@ -7,9 +7,15 @@ export type DuesCalculationMode = (typeof DUES_CALCULATION_MODES)[number];
 /**
  * Types de lots proposés par le wizard. Le libellé sert tel quel de nom de type
  * côté API (find-or-create par nom), d'où le pluriel séparé pour les résumés.
+ *
+ * <p>Copie assumée de oikos-web (properties/constants/unitTypeChoices.ts), qui
+ * fait référence : les deux apps sont des clones architecturaux, pas un paquet
+ * partagé. Ajouter un type ici sans l'y ajouter ferait diverger les deux
+ * parcours d'inscription pour la même copropriété.
  */
 export const UNIT_TYPE_CHOICES = [
   { name: 'Appartement', plural: 'appartements' },
+  { name: 'Parking', plural: 'parkings' },
   { name: 'Box', plural: 'box' },
   { name: 'Bureau', plural: 'bureaux' },
 ] as const;
@@ -31,6 +37,8 @@ export interface OnboardingProperty {
 
 export interface OnboardingBuilding {
   name: string;
+  /** Nombre d'étages, 0 pour un bâtiment de plain-pied (villa, local commercial). */
+  floorCount: number;
   /** Nombre de lots par nom de type ; un type non présent dans ce bâtiment vaut 0. */
   unitCounts: Record<string, number>;
 }
@@ -61,7 +69,7 @@ export interface OnboardingDraft {
 export const DEFAULT_BUILDING_UNIT_COUNT = 0;
 
 export function emptyBuilding(index: number): OnboardingBuilding {
-  return { name: index === 0 ? 'Bâtiment principal' : `Bâtiment ${index + 1}`, unitCounts: {} };
+  return { name: index === 0 ? 'Bâtiment principal' : `Bâtiment ${index + 1}`, floorCount: 0, unitCounts: {} };
 }
 
 export function initialDraft(): OnboardingDraft {
@@ -127,6 +135,22 @@ export function totalUnitCount(draft: OnboardingDraft): number {
  */
 export function formatAddress(property: OnboardingProperty): string {
   return [property.address, property.addressComplement, [property.postalCode, property.city].filter(Boolean).join(' ')]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(', ');
+}
+
+/**
+ * L'adresse telle que l'API la stocke, ville exclue : celle-ci part maintenant
+ * dans son propre champ (voir Property côté oikos-api), et la laisser aussi dans
+ * l'adresse l'afficherait deux fois sur la fiche copropriété.
+ *
+ * <p>Le complément et le code postal, eux, restent dans l'adresse : l'API n'a
+ * pas de champ pour eux, et les perdre coûterait plus cher que la petite
+ * concaténation qui les garde.
+ */
+export function formatStoredAddress(property: OnboardingProperty): string {
+  return [property.address, property.addressComplement, property.postalCode]
     .map((part) => part.trim())
     .filter(Boolean)
     .join(', ');

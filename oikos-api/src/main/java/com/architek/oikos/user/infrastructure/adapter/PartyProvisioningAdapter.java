@@ -28,7 +28,7 @@ public class PartyProvisioningAdapter implements PartyProvisioningPort {
     @Override
     public EntityId createParty(PartyProvisioningDetails details) {
         PartyId id = createPartyUseCase.create(new CreatePartyCommand(
-                details.propertyId(), details.fullName(), PartyType.INDIVIDUAL, details.email(), details.phone()));
+                details.propertyId(), details.fullName(), PartyType.INDIVIDUAL, details.email(), details.phone(), false));
         return EntityId.of(id.asUuid());
     }
 }

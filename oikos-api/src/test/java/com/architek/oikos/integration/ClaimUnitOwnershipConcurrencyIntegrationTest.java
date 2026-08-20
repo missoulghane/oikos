@@ -69,7 +69,7 @@ class ClaimUnitOwnershipConcurrencyIntegrationTest {
 
     @Test
     void two_concurrent_claims_on_the_same_unit_leave_exactly_one_winner() throws Exception {
-        PropertyId propertyId = createPropertyUseCase.create(new CreatePropertyCommand("Concurrency Test Property", "1 rue Test"));
+        PropertyId propertyId = createPropertyUseCase.create(new CreatePropertyCommand("Concurrency Test Property", "1 rue Test", "Casablanca"));
         BuildingId buildingId = addBuildingUseCase.add(new AddBuildingCommand(propertyId, "Bâtiment A", 3));
         UnitTypeDefinitionId unitTypeId =
                 addUnitTypeDefinitionUseCase.add(new AddUnitTypeDefinitionCommand(propertyId, "Appartement"));
@@ -77,9 +77,9 @@ class ClaimUnitOwnershipConcurrencyIntegrationTest {
 
         EntityId propertyEntityId = EntityId.of(propertyId.asUuid());
         PartyId partyOne = createPartyUseCase.create(new CreatePartyCommand(
-                propertyEntityId, "Party One", PartyType.INDIVIDUAL, EmailVO.of("party-one@example.com"), null));
+                propertyEntityId, "Party One", PartyType.INDIVIDUAL, EmailVO.of("party-one@example.com"), null, false));
         PartyId partyTwo = createPartyUseCase.create(new CreatePartyCommand(
-                propertyEntityId, "Party Two", PartyType.INDIVIDUAL, EmailVO.of("party-two@example.com"), null));
+                propertyEntityId, "Party Two", PartyType.INDIVIDUAL, EmailVO.of("party-two@example.com"), null, false));
 
         CountDownLatch bothReady = new CountDownLatch(2);
         CountDownLatch go = new CountDownLatch(1);

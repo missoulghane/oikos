@@ -29,6 +29,9 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * is the unit's own already-recorded, still-unclaimed advance instead of a
  * fresh payment - so a fund call generated after an advance was booked can
  * still be settled from it, one click, without waiting for a new payment.
+ * Same due-date cutoff as a payment, on the piece date: this is the mechanism
+ * that eventually imputes an advance onto a call left out at payment time, once
+ * that call has actually fallen due.
  * REQUIRES_NEW: RegularizePropertyInstallmentsService's sweep calls this
  * once per unit and catches NothingToRegularizeException to skip units with
  * nothing to do, but a plain @Transactional here would still mark the
@@ -85,8 +88,11 @@ public class RegularizeUnitInstallmentsService implements RegularizeUnitInstallm
             throw new NothingToRegularizeException(command.unitId());
         }
 
+        // Same cutoff as an owner payment, on the piece date of the regularization:
+        // an advance is precisely what has not been imputed yet, and consuming it
+        // on a call not yet due would only move the problem forward.
         PaymentAllocationCalculator.Result allocationResult = PaymentAllocationCalculator.allocate(availableAdvance,
-                unsettled);
+                unsettled, command.pieceDate());
         BigDecimal imputedTotal = allocationResult.allocations().stream()
                 .map(PaymentAllocationCalculator.InstallmentAllocation::amount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);

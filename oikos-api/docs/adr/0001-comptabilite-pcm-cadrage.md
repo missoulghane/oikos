@@ -540,7 +540,9 @@ P1 — un use case métier qui résout des comptes par `AccountRole`.
 - **`installment.RecordOwnerPaymentUseCase`/`Service`** (P2+P3 réunis en
   un seul use case, décision de périmètre) : calcule la ventilation FIFO
   via `PaymentAllocationCalculator` (déjà prêt depuis la Phase 4) sur les
-  `Installment` non soldés du lot (`outstandingAmount > 0`), poste
+  `Installment` non soldés du lot (`outstandingAmount > 0`) — **et échus à
+  la date de valeur du règlement**, cf. la correction documentée plus bas
+  (« Correction — imputation limitée aux échéances échues ») ; poste
   l'écriture via le port cross-module, puis met à jour
   `Installment.outstandingAmount` **directement via `InstallmentRepository`**
   — pas via le port-in `UpdateInstallmentSettlementUseCase` existant
@@ -787,6 +789,49 @@ d'un compte `BANK` (bloque désormais la vérification manuelle complète de
 P2/P3, P5 *et* P7 - devient le gap le plus rentable à combler), exposer
 `status`/`journalEntryId` sur les vues `InstallmentCall`, filtres complets
 de `GET /ecritures`, rôles de sécurité fins (§9), idempotency-key.
+
+## Correction — imputation limitée aux échéances échues
+
+Signalé depuis l'espace copropriétaire : des échéances **à venir et déjà
+soldées** apparaissaient dans « Dernières échéances » sur la fiche d'un lot.
+La cause n'était pas l'affichage mais l'imputation.
+
+- **L'écart** : `RecordOwnerPaymentService` (et, du même patron,
+  `RegularizeUnitInstallmentsService`) passait à
+  `PaymentAllocationCalculator` **tous** les `Installment` non soldés du
+  lot, sans filtrer sur la date d'échéance — alors que la spec §4.2, citée
+  mot pour mot dans le javadoc du calculateur, parle du « total des appels
+  **échus** non soldés du lot ». Un règlement de 500 MAD sur 300 MAD dus
+  soldait donc l'appel du mois suivant au lieu de laisser 200 MAD en
+  avance.
+- **Conséquences observées** : une ligne future affichée « Soldée » côté
+  copropriétaire, sans qu'il ait rien à payer ; une avance qui n'apparaît
+  jamais au crédit de `UNIT_ADVANCE` ; et un solde « à régler » (qui, lui,
+  n'a jamais compté les échéances non échues) qui ne correspondait plus à
+  ce que le règlement avait réellement mouvementé.
+- **La correction** : le seuil vit dans le domaine, pas chez l'appelant.
+  `PaymentAllocationCalculator.allocate(montant, nonSoldés, asOf)` écarte
+  lui-même tout ce qui échoit après `asOf` avant le FIFO — un troisième
+  appelant ne peut pas oublier la règle. La borne est inclusive : une
+  échéance est due le jour de sa date d'échéance.
+- **`asOf` par appelant** : la **date de valeur** pour un règlement (une
+  saisie antidatée impute ce qui était dû ce jour-là, comme l'écriture
+  qu'elle produit), la **date de pièce** pour une régularisation d'avance.
+- **Le reliquat n'est pas perdu** : il part en avance sur `UNIT_ADVANCE`,
+  et « Régulariser les avances » (`RegularizeUnitInstallmentsService`,
+  même seuil) l'impute sur l'appel concerné une fois celui-ci échu. C'est
+  d'ailleurs le rôle de ce mécanisme, jusqu'ici court-circuité par
+  l'imputation anticipée.
+- **Aucune migration de données** : la correction ne vaut que pour les
+  règlements futurs. Les imputations déjà passées sur des échéances alors
+  non échues restent telles quelles — les échéances concernées sont
+  aujourd'hui échues pour la plupart, et défaire des écritures postées
+  demanderait une contre-passation (P10, pas encore câblée), pas une
+  migration.
+- **Côté web**, la fiche du lot exclut désormais de « Dernières échéances »
+  toute échéance non échue **quel que soit son statut** (`hasFallenDue`,
+  la date seule) : le prédicat précédent (`isNotYetDue`) exigeait
+  « non soldée » et laissait donc passer exactement le cas ci-dessus.
 
 ## Questions ouvertes
 

@@ -58,6 +58,7 @@ export function BuildingsStepPage() {
               index={0}
               selectedUnitTypes={draft.selectedUnitTypes}
               onNameChange={(name) => patchBuilding(0, { name })}
+              onFloorCountChange={(floorCount) => patchBuilding(0, { floorCount })}
               onUnitCountChange={(unitTypeName, count) => setUnitCount(0, unitTypeName, count)}
             />
           </section>
@@ -95,6 +96,7 @@ export function BuildingsStepPage() {
                         index={index}
                         selectedUnitTypes={draft.selectedUnitTypes}
                         onNameChange={(name) => patchBuilding(index, { name })}
+                        onFloorCountChange={(floorCount) => patchBuilding(index, { floorCount })}
                         onUnitCountChange={(unitTypeName, count) => setUnitCount(index, unitTypeName, count)}
                       />
                     </div>
@@ -118,10 +120,18 @@ interface BuildingFieldsProps {
   index: number;
   selectedUnitTypes: string[];
   onNameChange: (name: string) => void;
+  onFloorCountChange: (floorCount: number) => void;
   onUnitCountChange: (unitTypeName: string, count: number) => void;
 }
 
-function BuildingFields({ building, index, selectedUnitTypes, onNameChange, onUnitCountChange }: BuildingFieldsProps) {
+function BuildingFields({
+  building,
+  index,
+  selectedUnitTypes,
+  onNameChange,
+  onFloorCountChange,
+  onUnitCountChange,
+}: BuildingFieldsProps) {
   return (
     <>
       <Input
@@ -130,6 +140,15 @@ function BuildingFields({ building, index, selectedUnitTypes, onNameChange, onUn
         placeholder="Bâtiment principal"
         value={building.name}
         onChange={(event) => onNameChange(event.target.value)}
+      />
+      {/* Zéro est une réponse valable : une villa ou un local de plain-pied n'a
+          pas d'étage, et le compteur démarre donc là plutôt qu'à 1. */}
+      <Stepper
+        label="Nombre d'étages"
+        value={building.floorCount}
+        onChange={onFloorCountChange}
+        min={0}
+        max={50}
       />
       <div className="flex flex-col gap-3">
         <h3 className="text-sm font-medium text-gray-900 dark:text-white/90">Nombre de lots</h3>

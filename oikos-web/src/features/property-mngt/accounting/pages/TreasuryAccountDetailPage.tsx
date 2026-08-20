@@ -85,6 +85,10 @@ export function TreasuryAccountDetailPage() {
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">
             {account.accountNumber} — {account.label}
           </h1>
+          {/* RIB/IBAN : porté par les comptes de banque seulement, la caisse n'en a pas. */}
+          {account.bankAccountNumber && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">N° de compte : {account.bankAccountNumber}</p>
+          )}
           <p className={`text-2xl font-semibold ${getTreasuryBalanceColorClass(account.balance)}`}>
             {account.balance.toLocaleString('fr-FR')} MAD
           </p>

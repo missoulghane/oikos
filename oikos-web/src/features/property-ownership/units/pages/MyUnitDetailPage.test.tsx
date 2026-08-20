@@ -34,14 +34,23 @@ const installmentsByUnit: Record<string, unknown[]> = {
     { id: 'i7', unitId: THIS_LOT, dueDate: '2026-01-05', amount: 800, outstandingAmount: 0, status: 'SETTLED', period: null },
     // Latest date of all, so it would head the top-5 if it were not excluded.
     { id: 'i8', unitId: THIS_LOT, dueDate: NOT_YET_DUE, amount: 9500, outstandingAmount: 9500, status: 'NOT_SETTLED', period: null },
+    // Not due either, and already settled - a payment landed on it in advance.
+    // Its date is what keeps it out, not its status.
+    { id: 'i9', unitId: THIS_LOT, dueDate: NOT_YET_DUE, amount: 7700, outstandingAmount: 0, status: 'SETTLED', period: null },
   ],
   'unit-2': [
     { id: 'other', unitId: 'unit-2', dueDate: '2026-02-02', amount: 4242, outstandingAmount: 4242, status: 'NOT_SETTLED', period: null },
   ],
 };
 
+// 4 300 versés au total sur ce lot, contre 5 500 appelés et échus : le solde du
+// compte vaut -1 200, soit exactement ce qui reste dû sur i1 et i2. Une avance
+// se lirait pareil en positif - c'est la même soustraction.
 const paymentsByUnit: Record<string, unknown[]> = {
-  [THIS_LOT]: [{ id: 'p1', propertyId: 'p1', unitId: THIS_LOT, mode: 'CHECK', valueDate: '2026-02-01', amount: 300, journalEntryId: 'j1' }],
+  [THIS_LOT]: [
+    { id: 'p1', propertyId: 'p1', unitId: THIS_LOT, mode: 'CHECK', valueDate: '2026-02-01', amount: 300, journalEntryId: 'j1' },
+    { id: 'p2', propertyId: 'p1', unitId: THIS_LOT, mode: 'BANK_TRANSFER', valueDate: '2026-06-05', amount: 4000, journalEntryId: 'j3' },
+  ],
   'unit-2': [{ id: 'pother', propertyId: 'p1', unitId: 'unit-2', mode: 'CASH', valueDate: '2026-02-05', amount: 9999, journalEntryId: 'j2' }],
 };
 
@@ -103,9 +112,6 @@ vi.mock('@/features/identity/me', () => ({
 vi.mock('@/features/property-mngt/properties/components/AddUnitOwnerForm', () => ({
   AddUnitOwnerForm: () => null,
 }));
-vi.mock('@/features/property-mngt/properties/components/AddExistingUnitOwnerForm', () => ({
-  AddExistingUnitOwnerForm: () => null,
-}));
 
 const { MyUnitDetailPage } = await import('@/features/property-ownership/units/pages/MyUnitDetailPage');
 
@@ -120,10 +126,10 @@ function renderPage() {
 }
 
 describe('MyUnitDetailPage', () => {
-  it('shows what the lot owes as a signed balance, and how many echeances that covers', () => {
+  it('shows the balance of the lot account, and how many echeances are left to pay', () => {
     renderPage();
 
-    // 1000 + 200; the settled one contributes nothing
+    // 4 300 versés - 5 500 appelés et échus
     expect(screen.getByText('-1 200 MAD')).toBeInTheDocument();
     expect(screen.getByText('2 échéances à régler')).toBeInTheDocument();
   });
@@ -134,14 +140,14 @@ describe('MyUnitDetailPage', () => {
     expect(screen.getByText('-1 200 MAD').className).toMatch(/error/);
   });
 
-  // A balance should lead to what makes it up - and to this lot's share of it,
-  // not to every lot's echeances beside a figure that excludes them.
-  it('opens the unpaid echeances of this lot from the balance', () => {
+  // A balance should lead to what makes it up - the statement carries both
+  // sides of the account, where a filtered list only ever shows one.
+  it('opens the statement of this lot from the balance', () => {
     renderPage();
 
-    expect(screen.getByRole('link', { name: /Solde à régler/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Solde du compte/ })).toHaveAttribute(
       'href',
-      `/property-ownership/installments?status=DUE&unitId=${THIS_LOT}`,
+      `/property-ownership/units/p1/${THIS_LOT}/statement`,
     );
   });
 
@@ -189,6 +195,16 @@ describe('MyUnitDetailPage', () => {
     expect(screen.queryByText(/9 500/)).not.toBeInTheDocument();
     expect(screen.getByText('-1 200 MAD')).toBeInTheDocument();
     expect(screen.getByText('2 échéances à régler')).toBeInTheDocument();
+  });
+
+  // Settled changes nothing: a call falling due next year that a payment
+  // happened to cover in advance is not part of what has happened so far, and
+  // it weighs nothing on the balance either.
+  it('keeps a settled echeance out too, as long as its date is not reached', () => {
+    renderPage();
+
+    expect(screen.queryByText(/7 700/)).not.toBeInTheDocument();
+    expect(screen.getByText('-1 200 MAD')).toBeInTheDocument();
   });
 
   it('shows both recent-operation blocks at once, no tabs to switch', () => {

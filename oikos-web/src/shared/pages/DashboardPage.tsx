@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { ArrowDownIcon, ArrowRightIcon, ArrowUpIcon } from '@/shared/icons';
 import { useCurrentUser, boardPropertyIds, canWriteAccounting, hasCopro } from '@/features/identity/me';
 import { useEffectiveSpace } from '@/shared/hooks/useEffectiveSpace';
 import { useMandateProperties } from '@/shared/hooks/useMandateProperties';
@@ -13,6 +15,7 @@ import { MyUnitsList } from '@/features/property-ownership/units/components/MyUn
 import { ResumeOnboardingBanner } from '@/features/identity/onboarding/components/ResumeOnboardingBanner';
 import { SpaceLinkCard } from '@/shared/components/SpaceLinkCard/SpaceLinkCard';
 import { Card } from '@/shared/components/Card/Card';
+import { CardLink } from '@/shared/components/Card/CardLink';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
@@ -70,20 +73,15 @@ function PropertyIdentityCard({ property, propertyId }: { property: Property; pr
   const unitCount = usePropertyUnitCount(propertyId);
 
   return (
-    <Link
-      to={`/property-mngt/properties/${propertyId}/property`}
-      className="block transition-shadow hover:shadow-theme-md"
-    >
-      <Card className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">{property.name}</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{property.address}</p>
-        {/* Le compte se charge après le reste : la carte s'affiche sans l'attendre plutôt
-            que de retenir le nom et l'adresse, déjà connus. */}
-        <p className="text-sm text-gray-400 dark:text-gray-500">
-          {unitCount.data === undefined ? '—' : `${unitCount.data} lot${unitCount.data > 1 ? 's' : ''}`}
-        </p>
-      </Card>
-    </Link>
+    <CardLink to={`/property-mngt/properties/${propertyId}/property`} className="flex flex-col gap-1">
+      <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">{property.name}</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400">{property.address}</p>
+      {/* Le compte se charge après le reste : la carte s'affiche sans l'attendre plutôt
+          que de retenir le nom et l'adresse, déjà connus. */}
+      <p className="text-sm text-gray-400 dark:text-gray-500">
+        {unitCount.data === undefined ? '—' : `${unitCount.data} lot${unitCount.data > 1 ? 's' : ''}`}
+      </p>
+    </CardLink>
   );
 }
 
@@ -118,35 +116,94 @@ function TreasuryBalances({ propertyId }: { propertyId: string }) {
 /**
  * Ce qu'il reste à encaisser : les échéances non soldées et déjà échues. Le
  * lien ouvre exactement l'ensemble compté - filtre « Non soldée », et « à
- * échoir » resté à false, qui est le défaut de cet écran.
+ * venir » resté à false, qui est le défaut de cet écran.
  */
 function CollectionCard({ propertyId }: { propertyId: string }) {
   const summary = useInstallmentCollectionSummary(propertyId);
 
   return (
-    <Link
+    <CardLink
       to={`/property-mngt/properties/${propertyId}/installments?status=NOT_SETTLED`}
-      className="block transition-shadow hover:shadow-theme-md"
+      className="flex flex-col gap-1"
     >
-      <Card className="flex flex-col gap-1">
-        <p className="text-sm text-gray-500 dark:text-gray-400">À collecter</p>
-        {summary.isError ? (
-          <Alert message={getErrorMessage(summary.error)} />
-        ) : (
-          <>
-            <p className="text-2xl font-semibold text-gray-900 dark:text-white/90">
-              {summary.data ? `${summary.data.amount.toLocaleString('fr-FR')} MAD` : '—'}
-            </p>
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              {summary.data
-                ? `${summary.data.count} échéance${summary.data.count > 1 ? 's' : ''} non soldée${
-                    summary.data.count > 1 ? 's' : ''
-                  } et échue${summary.data.count > 1 ? 's' : ''}`
-                : 'Chargement…'}
-            </p>
-          </>
-        )}
-      </Card>
+      <p className="text-sm text-gray-500 dark:text-gray-400">À collecter</p>
+      {summary.isError ? (
+        <Alert message={getErrorMessage(summary.error)} />
+      ) : (
+        <>
+          <p className="text-2xl font-semibold text-gray-900 dark:text-white/90">
+            {summary.data ? `${summary.data.amount.toLocaleString('fr-FR')} MAD` : '—'}
+          </p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">
+            {summary.data
+              ? `${summary.data.count} échéance${summary.data.count > 1 ? 's' : ''} non soldée${
+                  summary.data.count > 1 ? 's' : ''
+                } et échue${summary.data.count > 1 ? 's' : ''}`
+              : 'Chargement…'}
+          </p>
+        </>
+      )}
+    </CardLink>
+  );
+}
+
+/**
+ * Les deux gestes que le syndic vient faire le plus souvent : encaisser et
+ * payer. Ils étaient sous les soldes, en boutons discrets, c'est-à-dire après
+ * les chiffres qu'ils servent justement à alimenter - on les cherchait.
+ *
+ * <p>Deux cartes plutôt que deux boutons : à cette place, en tête d'écran, la
+ * surface tient lieu d'emphase, et la place gagnée porte ce que le bouton seul
+ * ne disait pas - ce qu'on va y saisir. La flèche annonce qu'on change de page,
+ * là où un bouton laisse croire à une action immédiate.
+ */
+function AccountingEntryActions({ propertyId }: { propertyId: string }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <EntryActionCard
+        to={`/property-mngt/properties/${propertyId}/accounting/receipts/new`}
+        icon={<ArrowDownIcon className="size-5" />}
+        title="Saisir une recette"
+        subtitle="Appel de fonds, règlement…"
+      />
+      <EntryActionCard
+        to={`/property-mngt/properties/${propertyId}/accounting/supplier-payments/new`}
+        icon={<ArrowUpIcon className="size-5" />}
+        title="Saisir une dépense"
+        subtitle="Facture, fournisseur, paiement…"
+      />
+    </div>
+  );
+}
+
+interface EntryActionCardProps {
+  to: string;
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+}
+
+/**
+ * Le survol soulève la carte d'un pixel : assez pour qu'elle se signale comme
+ * cliquable, trop peu pour bouger la page. La bordure fonce en même temps, pour
+ * ceux qui ne perçoivent pas ce déplacement.
+ */
+function EntryActionCard({ to, icon, title, subtitle }: EntryActionCardProps) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs transition duration-200 hover:-translate-y-px hover:border-gray-300 hover:shadow-theme-md dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-gray-700"
+    >
+      <span className="flex min-w-0 items-center gap-4">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-700 dark:bg-white/[0.06] dark:text-gray-300">
+          {icon}
+        </span>
+        <span className="min-w-0">
+          <span className="block text-base font-semibold text-gray-900 dark:text-white/90">{title}</span>
+          <span className="block truncate text-sm text-gray-500 dark:text-gray-400">{subtitle}</span>
+        </span>
+      </span>
+      <ArrowRightIcon className="size-5 shrink-0 text-gray-400 dark:text-gray-500" />
     </Link>
   );
 }
@@ -176,29 +233,14 @@ function BoardDashboard({ propertyId, mandateIds }: { propertyId: string; mandat
       <ResumeOnboardingBanner propertyId={propertyId} />
       {mandateIds.length > 1 && <MandatesStrip mandateIds={mandateIds} currentPropertyId={propertyId} />}
 
+      {canWrite && <AccountingEntryActions propertyId={propertyId} />}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <PropertyIdentityCard property={property.data} propertyId={propertyId} />
         <CollectionCard propertyId={propertyId} />
       </div>
 
       <TreasuryBalances propertyId={propertyId} />
-
-      {canWrite && (
-        <div className="flex flex-wrap gap-3">
-          <Link
-            to={`/property-mngt/properties/${propertyId}/accounting/receipts/new`}
-            className="inline-flex min-h-11 items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-          >
-            Saisir une recette
-          </Link>
-          <Link
-            to={`/property-mngt/properties/${propertyId}/accounting/supplier-payments/new`}
-            className="inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-400 shadow-theme-xs ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
-          >
-            Saisir une dépense
-          </Link>
-        </div>
-      )}
 
       {ownsHere && (
         <SpaceLinkCard
@@ -246,10 +288,14 @@ function ManagerDashboard() {
  * The owner's dashboard IS their lots - "Mes lots" was folded in here rather
  * than living as a separate screen, so the landing page opens on something
  * actionable instead of a summary of numbers found one click away anyway.
+ *
+ * <p>« Mes lots » a quitté le titre de la page, qui nomme désormais l'espace,
+ * et redevient ce qu'il est : l'intitulé de la liste qui suit.
  */
 function OwnerDashboard({ mandateIds }: { mandateIds: string[] }) {
   return (
     <>
+      <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Mes lots</h2>
       <MyUnitsList />
       {mandateIds.length > 0 && <MandateCard mandateIds={mandateIds} />}
     </>
@@ -266,10 +312,22 @@ function MandateCard({ mandateIds }: { mandateIds: string[] }) {
       to={`/dashboard?space=board&propertyId=${mandateIds[0]}`}
       tone="board"
       title={mandateIds.length > 1 ? `${mandateIds.length} mandats au bureau` : `Mandat au bureau — ${first?.name ?? ''}`}
-      subtitle="Accéder à l'espace bureau de syndic"
+      subtitle="Accéder à l'espace conseil syndical"
     />
   );
 }
+
+/**
+ * Le nom de l'espace où l'on vient d'arriver. « Conseil syndical » et non
+ * « bureau », comme partout ailleurs dans le produit depuis le renommage ; et
+ * « gestion » pour le cabinet, qui administre des copropriétés sans siéger dans
+ * aucune.
+ */
+const SPACE_WELCOME: Record<'owner' | 'board' | 'manager', string> = {
+  owner: 'Bienvenue dans votre espace copropriétaire',
+  board: 'Bienvenue dans votre espace conseil syndical',
+  manager: 'Bienvenue dans votre espace gestion',
+};
 
 export function DashboardPage() {
   const currentUser = useCurrentUser();
@@ -294,13 +352,20 @@ export function DashboardPage() {
     );
 
   const firstName = currentUser.data ? getFirstName(currentUser.data.fullName) : '';
-  // The owner dashboard is the lot list, so it is titled after what it shows.
-  // The board/manager dashboards are still summaries, and keep the greeting.
-  const title = effectiveSpace.kind === 'owner' ? 'Mes lots' : `${getGreeting()} ${firstName}`;
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">{title}</h1>
+      {/* La salutation dit à qui on parle, la ligne dessous depuis où : un même
+          compte peut être copropriétaire ici et au conseil syndical là, et
+          l'écran change entièrement d'un espace à l'autre. Le titre ne portait
+          que « Mes lots » côté copropriétaire, ce qui nommait le contenu sans
+          jamais nommer l'espace. */}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">
+          {getGreeting()} {firstName}
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{SPACE_WELCOME[effectiveSpace.kind]}</p>
+      </div>
       {content}
     </div>
   );

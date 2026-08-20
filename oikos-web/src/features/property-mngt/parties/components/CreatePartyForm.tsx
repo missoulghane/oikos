@@ -1,7 +1,9 @@
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Input } from '@/shared/components/Input/Input';
-import { Select } from '@/shared/components/Select/Select';
+import { PhoneField } from '@/shared/components/PhoneField/PhoneField';
+import { RadioGroup } from '@/shared/components/RadioGroup/RadioGroup';
+import { Checkbox } from '@/shared/components/Checkbox/Checkbox';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
@@ -28,34 +30,74 @@ interface CreatePartyFormProps {
  * form's submit behave unpredictably. Submission is triggered directly via
  * handleSubmit() on the button's onClick instead of an onSubmit handler.
  */
+const PARTY_TYPE_OPTIONS = PARTY_TYPES.map((type) => ({ value: type, label: PARTY_TYPE_LABELS[type] }));
+
 export function CreatePartyForm({ propertyId, onSuccess, onCancel }: CreatePartyFormProps) {
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
-  } = useForm<CreatePartyFormValues>({ resolver: zodResolver(createPartySchema) });
+  } = useForm<CreatePartyFormValues>({
+    resolver: zodResolver(createPartySchema),
+    // Particulier par défaut : c'est le cas de l'écrasante majorité des
+    // contacts, et un type non pré-rempli est un champ de plus à chaque saisie.
+    defaultValues: { partyType: 'INDIVIDUAL', phone: '', invite: true },
+  });
+  // useWatch plutôt que watch() : ce dernier renvoie une fonction que le
+  // compilateur React ne peut pas mémoriser, et la règle de lint le refuse.
+  const invite = useWatch({ control, name: 'invite' });
+  const email = useWatch({ control, name: 'email' });
   const { mutate, isPending, error } = useCreateParty(propertyId);
 
   function onSubmit(values: CreatePartyFormValues) {
-    mutate(values, { onSuccess: (result) => onSuccess(result.id, values.fullName) });
+    // Une adresse vide part absente : l'API distingue « pas d'email » de « email
+    // vide », et c'est la première qui décrit un contact sans adresse.
+    mutate(
+      { ...values, email: values.email || undefined },
+      { onSuccess: (result) => onSuccess(result.id, values.fullName) },
+    );
   }
 
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
       {error && <Alert message={getErrorMessage(error)} />}
       <Input label="Nom complet" {...register('fullName')} errorMessage={errors.fullName?.message} />
-      <Select label="Type" {...register('partyType')} errorMessage={errors.partyType?.message} defaultValue="">
-        <option value="" disabled>
-          Sélectionner un type
-        </option>
-        {PARTY_TYPES.map((type) => (
-          <option key={type} value={type}>
-            {PARTY_TYPE_LABELS[type]}
-          </option>
-        ))}
-      </Select>
-      <Input label="Email" type="email" {...register('email')} errorMessage={errors.email?.message} />
-      <Input label="Téléphone" {...register('phone')} errorMessage={errors.phone?.message} />
+      <RadioGroup
+        label="Type"
+        options={PARTY_TYPE_OPTIONS}
+        {...register('partyType')}
+        errorMessage={errors.partyType?.message}
+      />
+      <Input label="Email (optionnel)" type="email" {...register('email')} errorMessage={errors.email?.message} />
+      <Controller
+        control={control}
+        name="phone"
+        defaultValue=""
+        render={({ field }) => (
+          <PhoneField
+            label="Téléphone"
+            name={field.name}
+            value={field.value ?? ''}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            errorMessage={errors.phone?.message}
+          />
+        )}
+      />
+      <Checkbox
+        label="Inviter à créer un compte"
+        // Sans adresse, l'invitation n'a nulle part où aller.
+        disabled={!email}
+        hint={
+          !email
+            ? "Renseignez un email pour pouvoir envoyer une invitation."
+            : invite
+              ? 'Un lien sera envoyé à cette adresse pour créer un compte.'
+              : "Aucun email ne partira : la fiche reste interne au syndic."
+        }
+        {...register('invite')}
+      />
       <div className="flex gap-2">
         <Button type="button" isLoading={isPending} onClick={handleSubmit(onSubmit)}>
           Créer le contact

@@ -8,7 +8,12 @@ import com.architek.oikos.installment.domain.valueobject.InstallmentId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentStatus;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
-public record InstallmentView(InstallmentId id, EntityId unitId, LocalDate dueDate,
+/**
+ * unitNumber is the lot as printed ("A12"), resolved by the read use cases that
+ * list across a whole property - null on the reads scoped to a single unit,
+ * where the caller already knows which lot it asked for.
+ */
+public record InstallmentView(InstallmentId id, EntityId unitId, String unitNumber, LocalDate dueDate,
                                   BigDecimal amount, BigDecimal outstandingAmount, InstallmentStatus status,
                                   YearMonth period) {
 }

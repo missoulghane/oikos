@@ -23,7 +23,7 @@ class PartyTest {
 
         assertThat(party.getFullName()).isEqualTo("Jane Doe");
         assertThat(party.getPartyType()).isEqualTo(PartyType.INDIVIDUAL);
-        assertThat(party.getEmail()).isEqualTo(EmailVO.of("jane@doe.com"));
+        assertThat(party.getEmail()).contains(EmailVO.of("jane@doe.com"));
         assertThat(party.getPhone()).isEqualTo("0600000000");
     }
 
@@ -43,6 +43,18 @@ class PartyTest {
     }
 
     @Test
+    void a_party_can_exist_with_a_phone_and_no_email() {
+        // Un membre du conseil syndical ou un copropriétaire qui n'utilise que son
+        // mobile : la fiche existe, aucune invitation ne part, et elle reste
+        // reconnaissable à son numéro.
+        Party party = Party.create(PartyId.newId(), EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, null,
+                "+212612345678");
+
+        assertThat(party.getEmail()).isEmpty();
+        assertThat(party.getPhone()).isEqualTo("+212612345678");
+    }
+
+    @Test
     void withPartyInfo_returns_a_new_instance_with_updated_fields_and_same_identity_and_property() {
         Party party = newParty();
 
@@ -50,7 +62,7 @@ class PartyTest {
 
         assertThat(updated.getFullName()).isEqualTo("Janet Smith");
         assertThat(updated.getPartyType()).isEqualTo(PartyType.COMPANY);
-        assertThat(updated.getEmail()).isEqualTo(EmailVO.of("janet@smith.com"));
+        assertThat(updated.getEmail()).contains(EmailVO.of("janet@smith.com"));
         assertThat(updated.getPhone()).isEqualTo("0700000000");
         assertThat(updated.getPropertyId()).isEqualTo(party.getPropertyId());
         assertThat(updated).isEqualTo(party);

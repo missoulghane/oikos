@@ -84,7 +84,7 @@ class PaymentReceiptGenerationIntegrationTest {
     @BeforeEach
     void stubDirectories() {
         when(getPropertyUseCase.getProperty(any())).thenReturn(new PropertyView(PropertyId.newId(),
-                "Résidence Al Amal", "12 rue Exemple", DuesCalculationMode.FLAT_RATE, null));
+                "Résidence Al Amal", "12 rue Exemple", null, DuesCalculationMode.FLAT_RATE, null));
         when(getUnitUseCase.getUnit(any())).thenReturn(new UnitView(UnitId.newId(), BuildingId.newId(),
                 PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(), "Appartement", new BigDecimal("120.00"),
                 OwnershipStatus.AFFECTED, List.of()));

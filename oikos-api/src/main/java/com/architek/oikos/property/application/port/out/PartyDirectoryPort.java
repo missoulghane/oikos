@@ -18,5 +18,12 @@ public interface PartyDirectoryPort {
 
     Optional<EntityId> findIdByEmail(EmailVO email, EntityId propertyId);
 
+    /**
+     * Second filet du flux « retrouver ou créer » : deux fiches pour la même
+     * personne se paient plus tard en convocations et appels de charges en
+     * double, et le téléphone est souvent la coordonnée que le syndic a d'abord.
+     */
+    Optional<EntityId> findIdByPhone(String phone, EntityId propertyId);
+
     PartyDetails getPartyById(EntityId partyId);
 }

@@ -36,19 +36,27 @@ export function AddBankAccountForm({ propertyId, onCreated }: AddBankAccountForm
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
+      {/* Les largeurs sont portées par des conteneurs : Input passe son className
+          au champ lui-même, déjà en w-full, et non à la colonne qui l'entoure.
+          Le numéro de compte est le plus large des deux - un RIB fait 24
+          caractères, un IBAN davantage, là où un nom de banque tient en un mot. */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <Input
-          label="Nom de la banque"
-          placeholder="Attijariwafa Bank"
-          {...register('label')}
-          errorMessage={errors.label?.message}
-        />
-        <Input
-          label="Numéro de compte (optionnel)"
-          placeholder="RIB ou IBAN"
-          {...register('bankAccountNumber')}
-          errorMessage={errors.bankAccountNumber?.message}
-        />
+        <div className="sm:flex-1">
+          <Input
+            label="Nom de la banque"
+            placeholder="Attijariwafa Bank"
+            {...register('label')}
+            errorMessage={errors.label?.message}
+          />
+        </div>
+        <div className="sm:flex-[2]">
+          <Input
+            label="Numéro de compte"
+            placeholder="RIB ou IBAN"
+            {...register('bankAccountNumber')}
+            errorMessage={errors.bankAccountNumber?.message}
+          />
+        </div>
         <Button type="submit" isLoading={isPending}>
           Ajouter le compte bancaire
         </Button>

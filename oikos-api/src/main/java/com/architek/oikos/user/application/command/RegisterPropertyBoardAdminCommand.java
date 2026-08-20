@@ -5,5 +5,5 @@ import com.architek.oikos.shared.domain.valueobject.RawPassword;
 
 public record RegisterPropertyBoardAdminCommand(String fullName, EmailVO email, String phone,
                                                  RawPassword password, String propertyName,
-                                                 String propertyAddress) {
+                                                 String propertyAddress, String propertyCity) {
 }

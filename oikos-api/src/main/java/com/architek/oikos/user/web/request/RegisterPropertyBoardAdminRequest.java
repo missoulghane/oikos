@@ -11,5 +11,8 @@ public record RegisterPropertyBoardAdminRequest(
         @Size(max = 20) String phone,
         @NotBlank @Size(min = RawPassword.MIN_LENGTH) String password,
         @NotBlank @Size(max = 100) String propertyName,
-        @NotBlank @Size(max = 250) String propertyAddress) {
+        @NotBlank @Size(max = 250) String propertyAddress,
+        // Facultative comme partout ailleurs : le wizard la demande, le
+        // formulaire court d'un cabinet ne s'en occupe pas encore.
+        @Size(max = 100) String propertyCity) {
 }

@@ -18,7 +18,7 @@ const STATUS_LABELS: Record<'DUE' | 'SETTLED', string> = {
 interface MyInstallmentFiltersProps {
   value: MyInstallmentFiltersValue;
   onChange: (value: MyInstallmentFiltersValue) => void;
-  /** Rows the "à échoir" toggle is currently withholding. */
+  /** Rows the "à venir" toggle is currently withholding. */
   hiddenNotYetDue: number;
 }
 
