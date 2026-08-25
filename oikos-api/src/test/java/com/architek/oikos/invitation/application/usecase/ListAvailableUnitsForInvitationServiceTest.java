@@ -47,7 +47,7 @@ class ListAvailableUnitsForInvitationServiceTest {
         EntityId propertyId = EntityId.newId();
         Invitation invitation = Invitation.issue(InvitationId.newId(), propertyId, InvitationType.PRIVATE,
                 "PROPERTY_OWNER", EmailVO.of("jane.doe@example.com"), "tok", CLOCK.instant().plus(Duration.ofDays(1)),
-                EntityId.newId(), null);
+                EntityId.newId(), null, null, null);
         when(invitationRepository.findByToken("tok")).thenReturn(Optional.of(invitation));
         when(unitDirectoryPort.listAvailable(propertyId, PageRequest.of(0, 20)))
                 .thenReturn(Page.of(List.of(new AvailableUnitInfo(EntityId.newId(), "A1", "Appartement")), 0, 20, 1));

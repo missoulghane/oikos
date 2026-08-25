@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.architek.oikos.property.application.command.AddUnitOwnerCommand;
 import com.architek.oikos.property.application.command.AddUnitOwnershipCommand;
 import com.architek.oikos.property.application.port.in.AddUnitOwnershipUseCase;
+import com.architek.oikos.property.application.port.out.AccountDirectoryPort;
 import com.architek.oikos.property.application.port.out.AccountLinkingPort;
 import com.architek.oikos.property.application.port.out.PartyDetails;
 import com.architek.oikos.property.application.port.out.PartyDirectoryPort;
@@ -51,8 +52,12 @@ class AddUnitOwnerServiceTest {
     @Mock
     private AccountLinkingPort accountLinkingPort;
 
+    @Mock
+    private AccountDirectoryPort accountDirectoryPort;
+
     private AddUnitOwnerService newService() {
-        return new AddUnitOwnerService(unitRepository, partyDirectoryPort, addUnitOwnershipUseCase, accountLinkingPort);
+        return new AddUnitOwnerService(unitRepository, partyDirectoryPort, addUnitOwnershipUseCase, accountLinkingPort,
+                accountDirectoryPort);
     }
 
     private static Unit existingUnit(UnitId id) {

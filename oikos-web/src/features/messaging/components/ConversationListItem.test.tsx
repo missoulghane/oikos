@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConversationListItem } from '@/features/messaging/components/ConversationListItem';
 import type { ConversationSummary } from '@/features/messaging/types/messaging.types';
 
@@ -18,13 +19,18 @@ const baseConversation: ConversationSummary = {
   messageCount: 1,
 };
 
+// La ligne porte désormais le bouton « Lu / Non lu », donc une mutation, donc
+// un QueryClient.
 function renderItem(conversation: ConversationSummary, box: 'RECEIVED' | 'SENT' = 'RECEIVED') {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter>
-      <ul>
-        <ConversationListItem conversation={conversation} box={box} />
-      </ul>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ul>
+          <ConversationListItem conversation={conversation} box={box} />
+        </ul>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -122,6 +128,20 @@ describe('ConversationListItem', () => {
     renderItem({ ...baseConversation, messageCount: 4 });
 
     expect(screen.getByText('(4 messages)')).toBeInTheDocument();
+  });
+
+  // Marquer lu/non lu se fait depuis la liste, sans ouvrir la conversation :
+  // le bouton est donc hors du lien, et il nomme le geste, pas l'état.
+  it('offers to mark an unread conversation as read, and a read one as unread', () => {
+    renderItem({ ...baseConversation, unreadCount: 2 });
+
+    expect(screen.getByRole('button', { name: /Marquer .* comme lu/ })).toBeInTheDocument();
+  });
+
+  it('offers the opposite once nothing is unread', () => {
+    renderItem(baseConversation);
+
+    expect(screen.getByRole('button', { name: /Marquer .* comme non lu/ })).toBeInTheDocument();
   });
 
   it('links to the conversation under whichever box (Réception/Envoyé) it was opened from', () => {

@@ -11,6 +11,7 @@ import { useCreateParty } from '@/features/property-mngt/parties/hooks/useCreate
 import { createPartySchema, type CreatePartyFormValues } from '@/features/property-mngt/parties/schemas/createPartySchema';
 import { PARTY_TYPE_LABELS } from '@/features/property-mngt/properties/constants/partyTypeLabels';
 import { PARTY_TYPES } from '@/features/property-mngt/properties/types/property.types';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 interface CreatePartyFormProps {
   propertyId: string;
@@ -62,14 +63,16 @@ export function CreatePartyForm({ propertyId, onSuccess, onCancel }: CreateParty
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
       {error && <Alert message={getErrorMessage(error)} />}
-      <Input label="Nom complet" {...register('fullName')} errorMessage={errors.fullName?.message} />
+      <RequiredFieldsHint />
+      <Input label="Nom complet" required {...register('fullName')} errorMessage={errors.fullName?.message} />
       <RadioGroup
         label="Type"
+        required
         options={PARTY_TYPE_OPTIONS}
         {...register('partyType')}
         errorMessage={errors.partyType?.message}
       />
-      <Input label="Email (optionnel)" type="email" {...register('email')} errorMessage={errors.email?.message} />
+      <Input label="Email" type="email" {...register('email')} errorMessage={errors.email?.message} />
       <Controller
         control={control}
         name="phone"

@@ -10,5 +10,8 @@ public interface NotificationJpaRepository extends JpaRepository<NotificationEnt
 
     Page<NotificationEntity> findByUserIdOrderByCreatedDateDesc(UUID userId, Pageable pageable);
 
+    /** readAt null = jamais ouverte, la même définition que countByUserIdAndReadAtIsNull. */
+    Page<NotificationEntity> findByUserIdAndReadAtIsNullOrderByCreatedDateDesc(UUID userId, Pageable pageable);
+
     long countByUserIdAndReadAtIsNull(UUID userId);
 }

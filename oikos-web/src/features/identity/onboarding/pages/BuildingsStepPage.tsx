@@ -135,7 +135,7 @@ function BuildingFields({
   return (
     <>
       <Input
-        label="Nom du bâtiment (optionnel)"
+        label="Nom du bâtiment"
         name={`building-name-${index}`}
         placeholder="Bâtiment principal"
         value={building.name}

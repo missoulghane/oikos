@@ -9,6 +9,7 @@ import {
   addBankAccountSchema,
   type AddBankAccountFormValues,
 } from '@/features/property-mngt/accounting/schemas/addBankAccountSchema';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 interface AddBankAccountFormProps {
   propertyId: string;
@@ -36,6 +37,7 @@ export function AddBankAccountForm({ propertyId, onCreated }: AddBankAccountForm
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
+      <RequiredFieldsHint />
       {/* Les largeurs sont portées par des conteneurs : Input passe son className
           au champ lui-même, déjà en w-full, et non à la colonne qui l'entoure.
           Le numéro de compte est le plus large des deux - un RIB fait 24
@@ -44,6 +46,7 @@ export function AddBankAccountForm({ propertyId, onCreated }: AddBankAccountForm
         <div className="sm:flex-1">
           <Input
             label="Nom de la banque"
+            required
             placeholder="Attijariwafa Bank"
             {...register('label')}
             errorMessage={errors.label?.message}

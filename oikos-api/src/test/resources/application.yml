@@ -40,6 +40,14 @@ oikos:
   property:
     configure:
       max-units: 500
+  installment:
+    # Le balayage d'imputation (DueInstallmentRegularizationScheduler) n'a rien à
+    # faire dans la suite : aucun test ne dépend de son déclenchement, et le
+    # défaut de production pourrait tomber pendant un run. Calé sur une date que
+    # les tests n'atteignent pas. La clé reste obligatoire côté code (pas de
+    # défaut dans l'annotation) : une expression absente doit se voir au
+    # démarrage, pas se traduire par un balayage qui ne tourne jamais.
+    regularization-cron: "0 0 3 1 1 *"
   mail:
     from: no-reply@daba-syndic.com
     # Mêmes placeholders que application.yml, délibérément : figer les URL en dur

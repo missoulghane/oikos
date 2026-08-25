@@ -6,5 +6,6 @@ export { PropertyUnitTypesTab } from '@/features/property-mngt/properties/pages/
 export { PropertyGeneralInfoTab } from '@/features/property-mngt/properties/pages/PropertyGeneralInfoTab';
 export { PropertyLotsTab } from '@/features/property-mngt/properties/pages/PropertyLotsTab';
 export { PropertyContactsTab } from '@/features/property-mngt/properties/pages/PropertyContactsTab';
+export { AddBuildingPage } from '@/features/property-mngt/properties/pages/AddBuildingPage';
 export { UnitDetailPage } from '@/features/property-mngt/properties/pages/UnitDetailPage';
 export { UnitPicker } from '@/features/property-mngt/properties/components/UnitPicker';

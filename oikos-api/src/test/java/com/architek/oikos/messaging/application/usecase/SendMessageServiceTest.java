@@ -104,7 +104,7 @@ class SendMessageServiceTest {
         EntityId propertyId = EntityId.newId();
         EntityId creator = EntityId.newId();
         ConversationId conversationId = ConversationId.newId();
-        Conversation conversation = Conversation.createBroadcast(conversationId, propertyId, creator);
+        Conversation conversation = Conversation.createBroadcast(conversationId, propertyId, creator, ConversationSubject.of("Annonce"));
         when(conversationRepository.findById(conversationId)).thenReturn(Optional.of(conversation));
         when(userAccessPort.canBroadcast(creator, propertyId)).thenReturn(true);
         when(messageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -122,7 +122,7 @@ class SendMessageServiceTest {
         EntityId creator = EntityId.newId();
         EntityId plainOwner = EntityId.newId();
         ConversationId conversationId = ConversationId.newId();
-        Conversation conversation = Conversation.createBroadcast(conversationId, propertyId, creator);
+        Conversation conversation = Conversation.createBroadcast(conversationId, propertyId, creator, ConversationSubject.of("Annonce"));
         when(conversationRepository.findById(conversationId)).thenReturn(Optional.of(conversation));
         when(userAccessPort.canBroadcast(plainOwner, propertyId)).thenReturn(false);
 

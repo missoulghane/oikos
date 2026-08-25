@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
 import { Dropdown } from '@/shared/components/Dropdown/Dropdown';
 import { Badge } from '@/shared/components/Badge/Badge';
@@ -17,9 +17,12 @@ const RECENT_PAGE_SIZE = 5;
 // no producer creates a Notification yet (see NotificationType's javadoc,
 // backend) - this is real, wired infrastructure sitting ahead of that work.
 export function NotificationsBell() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const unreadCount = useUnreadNotificationCount();
-  const recent = useMyNotifications(0, RECENT_PAGE_SIZE);
+  // Non lues seulement : la cloche montre ce que sa pastille compte. Une
+  // notification lue - ouverte ici, ou depuis la liste - en disparaît.
+  const recent = useMyNotifications(0, RECENT_PAGE_SIZE, true);
   const markRead = useMarkNotificationRead();
   const totalUnread = unreadCount.data?.unreadCount ?? 0;
   // Carried onto "Voir toutes les notifications" so opening the inbox from
@@ -52,17 +55,33 @@ export function NotificationsBell() {
         </div>
         <ul className="flex max-h-[360px] flex-col overflow-y-auto">
           {(recent.data?.content.length ?? 0) === 0 && (
-            <li className="px-1 py-6 text-center text-sm text-gray-500 dark:text-gray-400">Aucune notification.</li>
+            <li className="px-1 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+              Aucune notification non lue.
+            </li>
           )}
           {recent.data?.content.map((notification) => (
             <li key={notification.id}>
               <button
                 type="button"
                 onClick={() => {
+                  // Ouvrir vaut lire : la ligne quitte la cloche et la pastille
+                  // se décrémente. Le garde-fou sur `read` reste, la liste
+                  // pourrait revenir du cache juste avant l'invalidation.
                   if (!notification.read) {
                     markRead.mutate(notification.id);
                   }
                   closeDropdown();
+                  // Et ouvrir vaut aller voir : la cloche marquait comme lu
+                  // puis ne menait nulle part, ce qui laissait au lecteur le
+                  // soin de retrouver seul l'écran concerné - exactement ce que
+                  // le producteur de la notification a déjà pris la peine
+                  // d'indiquer. Même comportement que la liste complète (voir
+                  // NotificationsListPage). Le chemin reste un simple indice
+                  // d'affichage, jamais validé contre la table de routage : une
+                  // notification sans lien ne fait que se refermer.
+                  if (notification.linkPath) {
+                    navigate(notification.linkPath);
+                  }
                 }}
                 className="flex w-full flex-col gap-0.5 rounded-lg border-b border-gray-100 dark:border-gray-800 px-3 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-white/[0.05]"
               >

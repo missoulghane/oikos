@@ -164,12 +164,12 @@ describe('DashboardPage (board space)', () => {
     expect(screen.queryByRole('link', { name: /Saisir une dépense/ })).not.toBeInTheDocument();
   });
 
-  it('offers the way back to the owner space only to a syndic who owns a lot', () => {
-    renderDashboard();
-    expect(screen.queryByText(/espace copropriétaire/i)).not.toBeInTheDocument();
-
+  // La bascule d'espace appartient au sélecteur de l'en-tête (SpaceSwitcher),
+  // présent sur tous les écrans : le tableau de bord n'en porte plus de copie.
+  it('carries no space switch of its own, even for a syndic who owns a lot here', () => {
     ownsAlso = true;
     renderDashboard();
-    expect(screen.getAllByText(/Revenir à l'espace copropriétaire/i).length).toBeGreaterThan(0);
+
+    expect(screen.queryByText(/espace copropriétaire/i)).not.toBeInTheDocument();
   });
 });

@@ -86,14 +86,20 @@ export const queryKeys = {
       ['parties', 'list', propertyId, page, size, filters] as const,
     detail: (id: string) => ['parties', 'detail', id] as const,
     lots: (id: string) => ['parties', id, 'lots'] as const,
+    /** « Qui se connecte avec cette adresse ? » - interrogé au fil de la frappe, d'où la clé par email. */
+    byAccountEmail: (propertyId: string, email: string) =>
+      ['parties', propertyId, 'by-account-email', email] as const,
   },
   invitations: {
     preview: (token: string) => ['invitations', 'preview', token] as const,
     availableUnits: (token: string) => ['invitations', token, 'available-units'] as const,
     list: (propertyId: string, page: number, size: number) =>
       ['invitations', propertyId, 'list', page, size] as const,
-    membershipRequests: (propertyId: string, page: number, size: number) =>
-      ['invitations', propertyId, 'membership-requests', page, size] as const,
+    detail: (id: string) => ['invitations', 'detail', id] as const,
+    /** Le lien public de la copropriété : unique et permanent, donc pas de page ni de filtre. */
+    publicLink: (propertyId: string) => ['invitations', propertyId, 'public-link'] as const,
+    membershipRequests: (propertyId: string, page: number, size: number, filters: object) =>
+      ['invitations', propertyId, 'membership-requests', page, size, filters] as const,
   },
   boardMembers: {
     list: (propertyId: string) => ['board-members', propertyId, 'list'] as const,
@@ -103,9 +109,15 @@ export const queryKeys = {
       ['documents', ownerType, ownerId, 'list', page, size] as const,
   },
   messaging: {
-    conversations: (page: number, size: number, search: string | undefined, box: 'RECEIVED' | 'SENT') =>
-      ['messaging', 'conversations', page, size, search, box] as const,
+    conversations: (
+      page: number,
+      size: number,
+      search: string | undefined,
+      box: 'RECEIVED' | 'SENT',
+      readState?: 'READ' | 'UNREAD',
+    ) => ['messaging', 'conversations', page, size, search, box, readState] as const,
     unreadSummary: () => ['messaging', 'unread-summary'] as const,
+    recipientGroups: (propertyId: string) => ['messaging', 'recipient-groups', propertyId] as const,
     messages: (conversationId: string) => ['messaging', 'conversations', conversationId, 'messages'] as const,
     recipients: (propertyId: string, search: string | undefined) =>
       ['messaging', 'recipients', propertyId, search] as const,
@@ -138,7 +150,8 @@ export const queryKeys = {
     myConvocations: () => ['me', 'convocations'] as const,
   },
   notifications: {
-    list: (page: number, size: number) => ['notifications', 'list', page, size] as const,
+    list: (page: number, size: number, unreadOnly: boolean) =>
+      ['notifications', 'list', page, size, unreadOnly] as const,
     unreadCount: () => ['notifications', 'unread-count'] as const,
   },
 };

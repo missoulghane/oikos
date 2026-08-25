@@ -7,16 +7,29 @@ interface DropdownProps {
   className?: string;
 }
 
+/**
+ * Un panneau flottant, fermé dès qu'on clique en dehors de lui.
+ *
+ * <p>« En dehors » se mesure sur le conteneur positionné qui l'entoure, et non
+ * sur le panneau seul : chaque appelant écrit
+ * {@code <div className="relative"><button className="dropdown-toggle"/><Dropdown/></div>},
+ * donc ce conteneur porte exactement le panneau et le bouton qui l'ouvre. Un
+ * clic sur son propre bouton n'est donc pas « dehors » - c'est le onClick du
+ * bouton qui referme, sans quoi les deux se battraient et le panneau
+ * rouvrirait aussitôt.
+ *
+ * <p>La version précédente exemptait <em>tous</em> les {@code .dropdown-toggle}
+ * de la page, pas seulement le sien : cliquer sur la cloche des messages
+ * pendant que celle des notifications était ouverte laissait les deux panneaux
+ * superposés. C'est la régression que ce périmètre corrige.
+ */
 export function Dropdown({ isOpen, onClose, children, className = '' }: DropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        !(event.target as HTMLElement).closest('.dropdown-toggle')
-      ) {
+      const group = dropdownRef.current?.parentElement;
+      if (group && !group.contains(event.target as Node)) {
         onClose();
       }
     }

@@ -265,7 +265,7 @@ public class PropertyAccessEvaluator {
     }
 
     /** Gates write access to the accounting module (opening an exercise, recording expenses/
-     * transfers/payments/regularizations). */
+     * transfers/payments). */
     public boolean canWriteAccounting(Authentication authentication, String propertyId) {
         return hasPermission(authentication, propertyId, Permission.ACCOUNTING_WRITE);
     }
@@ -394,11 +394,10 @@ public class PropertyAccessEvaluator {
      * isConversationParticipant which also gates read-only access (list messages, mark read):
      * true for ADMIN, or if the caller is one of the GROUP conversation's participants (any
      * participant may reply), or - for BROADCAST - only if the caller holds
-     * Permission.MESSAGING_BROADCAST on the conversation's property, or - for BOARD_PRIVATE - only
-     * if the caller currently holds a staff role on it (same population allowed to read it, unlike
-     * BROADCAST where reading and replying have different populations). A plain owner must not be
-     * able to post into either just because the generic "send a message" endpoint doesn't
-     * otherwise know which conversation type it's posting into. */
+     * for BOARD_PRIVATE - only if the caller currently holds a staff role on it. Never for
+     * BROADCAST, whoever asks: un envoi groupé ne se répond pas, on en émet un autre. A plain
+     * owner must not be able to post into either just because the generic "send a message"
+     * endpoint doesn't otherwise know which conversation type it's posting into. */
     public boolean canSendToConversation(Authentication authentication, String conversationId) {
         if (isAdminAuthority(authentication)) {
             return true;
@@ -414,7 +413,10 @@ public class PropertyAccessEvaluator {
         if (conversation.type() == ConversationType.BOARD_PRIVATE) {
             return managesProperty(authentication, conversation.propertyId().toString());
         }
-        return canBroadcastOnProperty(authentication, conversation.propertyId().toString());
+        // BROADCAST : personne, pas même l'émetteur. Un envoi groupé est un
+        // message adressé à toute la copropriété, pas un fil - le suivant est
+        // un nouvel envoi, avec son propre objet (voir SendBroadcastMessageService).
+        return false;
     }
 
     /** Gates every message-draft endpoint scoped by draft id (update/get/delete/send): true for

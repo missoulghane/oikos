@@ -12,7 +12,7 @@ import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 
 public record UnitView(UnitId id, BuildingId buildingId, PropertyId propertyId, String unitNumber,
                        UnitTypeDefinitionId unitTypeId, String unitTypeName, BigDecimal shares,
-                       OwnershipStatus ownershipStatus, List<String> ownerFullNames) {
+                       OwnershipStatus ownershipStatus, List<String> ownerFullNames, Integer floor) {
 
     /**
      * hasCoproprietaires vient de l'appelant (RG-LOT-01): un unit sans aucun
@@ -32,6 +32,6 @@ public record UnitView(UnitId id, BuildingId buildingId, PropertyId propertyId, 
     public static UnitView from(Unit unit, boolean hasCoproprietaires, String unitTypeName, List<String> ownerFullNames) {
         OwnershipStatus statut = hasCoproprietaires ? OwnershipStatus.AFFECTED : OwnershipStatus.NOT_AFFECTED;
         return new UnitView(unit.getId(), unit.getBuildingId(), unit.getPropertyId(), unit.getUnitNumber(),
-                unit.getUnitTypeId(), unitTypeName, unit.getShares().value(), statut, ownerFullNames);
+                unit.getUnitTypeId(), unitTypeName, unit.getShares().value(), statut, ownerFullNames, unit.getFloor());
     }
 }

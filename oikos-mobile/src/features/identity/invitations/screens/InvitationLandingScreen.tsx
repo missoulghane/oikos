@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthLayout } from '@/shared/layouts/AuthLayout';
 import { Card } from '@/shared/components/Card/Card';
@@ -43,7 +43,15 @@ type AutoConfirmStatus = 'idle' | 'pending' | 'success' | 'error';
 export function InvitationLandingScreen({ route, navigation }: Props) {
   const { token: routeToken, unitId: initialUnitId } = route.params ?? {};
   const token = routeToken ?? null;
-  const [unitId, setUnitId] = useState<string | null>(initialUnitId ?? null);
+  const [chosenUnitId, setChosenUnitId] = useState<string | null>(initialUnitId ?? null);
+  // Posé par « ce n'est pas votre lot ? » : un syndic se trompe de ligne, et
+  // le lot désigné n'engage personne tant que la demande n'est pas validée.
+  const [isChoosingOwnLot, setIsChoosingOwnLot] = useState(false);
+  // Un lien public circule : QR code dans le hall, groupe de voisins, capture
+  // d'écran. N'importe qui peut donc désigner n'importe quel lot libre. La
+  // déclaration ne vérifie rien à elle seule - c'est le syndic qui valide -
+  // mais elle fait porter la désignation par son auteur, et rien ne part avant.
+  const [isCertified, setIsCertified] = useState(false);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setPendingInvitation = usePendingInvitationStore((state) => state.setPending);
 
@@ -52,8 +60,21 @@ export function InvitationLandingScreen({ route, navigation }: Props) {
 
   const acceptMutation = useAcceptInvitation();
   const submitMutation = useSubmitMembershipRequest();
-  const isPublic = preview?.type === 'PUBLIC';
-  const mutation = isPublic ? submitMutation : acceptMutation;
+
+  const isBoardSeat = Boolean(preview?.boardRole);
+  // Le lot désigné ne s'impose que tant que l'invité ne l'a pas récusé.
+  const designatedUnitId = isChoosingOwnLot ? null : (preview?.targetUnitId ?? null);
+  const unitId = chosenUnitId ?? designatedUnitId;
+  const showUnitPicker = !isBoardSeat && designatedUnitId === null;
+
+  // Un siège au conseil s'accepte encore directement : il n'attribue rien, la
+  // validation par un administrateur vient ensuite. Tout le reste - lien
+  // public comme lien privé - dépose une demande d'adhésion que le syndic
+  // valide, et c'est la même route pour les deux.
+  const mutation = isBoardSeat ? acceptMutation : submitMutation;
+
+  // La certification n'a de sens que sur un lot : elle porte sur lui.
+  const canProceed = isBoardSeat || (unitId !== null && isCertified);
 
   const mutationRef = useRef(mutation);
   useEffect(() => {
@@ -68,7 +89,7 @@ export function InvitationLandingScreen({ route, navigation }: Props) {
   // authenticated) - see the module doc above for why "went away and came
   // back authenticated" goes through pendingInvitationStore instead.
   useEffect(() => {
-    if (isAuthenticated && token && unitId && preview?.usable && !hasAutoConfirmed.current) {
+    if (isAuthenticated && token && canProceed && preview?.usable && !hasAutoConfirmed.current) {
       hasAutoConfirmed.current = true;
       setAutoConfirmStatus('pending');
       mutationRef.current.mutateAsync({ token, unitId }).then(
@@ -79,7 +100,7 @@ export function InvitationLandingScreen({ route, navigation }: Props) {
         },
       );
     }
-  }, [isAuthenticated, token, unitId, preview?.usable]);
+  }, [isAuthenticated, token, unitId, canProceed, preview?.usable]);
 
   useEffect(() => {
     if (autoConfirmStatus === 'success') {
@@ -91,25 +112,25 @@ export function InvitationLandingScreen({ route, navigation }: Props) {
   }, [autoConfirmStatus, navigation]);
 
   function handleCreateAccount() {
-    if (!token || !unitId) {
+    if (!token) {
       return;
     }
-    if (isPublic) {
-      // PUBLIC invitations are consumed by RegisterUserService as part of
-      // account creation itself - nothing left to confirm once the new
-      // account verifies its email and logs in.
+    if (!isBoardSeat && unitId) {
+      // La demande d'adhésion est déposée par RegisterUserService en même temps
+      // que le compte - rien à confirmer une fois l'email vérifié et la
+      // connexion faite. Vaut pour les deux liens de copropriétaire.
       navigation.navigate('RegisterUser', { invitationToken: token, unitId });
     } else {
-      setPendingInvitation({ token, unitId, type: 'PRIVATE' });
+      setPendingInvitation({ token, unitId, isBoardSeat });
       navigation.navigate('RegisterUser', {});
     }
   }
 
   function handleExistingAccount() {
-    if (!token || !unitId || !preview) {
+    if (!token || !preview) {
       return;
     }
-    setPendingInvitation({ token, unitId, type: preview.type });
+    setPendingInvitation({ token, unitId, isBoardSeat });
     navigation.navigate('Login');
   }
 
@@ -164,14 +185,106 @@ export function InvitationLandingScreen({ route, navigation }: Props) {
         <Text style={styles.title}>{preview.propertyName}</Text>
         <Text style={styles.address}>{preview.propertyAddress}</Text>
 
-        <View style={styles.step}>
-          <Text style={styles.stepLabel}>1. Choisissez votre lot</Text>
-          <UnitPicker units={availableUnits?.content ?? []} value={unitId} onChange={setUnitId} />
-        </View>
+        {/* Un siège au conseil ne se valide pas comme une adhésion : rien à
+            promettre ici sur un lot ou une demande à examiner. Le parcours
+            copropriétaire, lui, est détaillé en trois temps parce que la
+            validation du syndic s'y intercale : sans la nommer, l'attente qui
+            suit se lit comme une panne. Même texte que sur le web. */}
+        {isBoardSeat ? (
+          <Text style={styles.introText}>
+            Connectez-vous ou créez votre compte pour rejoindre le conseil syndical de cette copropriété.
+          </Text>
+        ) : (
+          <View style={styles.intro}>
+            <Text style={styles.introText}>Pour rejoindre vos voisins et finaliser votre accès, c'est très simple :</Text>
+            <Text style={styles.introText}>
+              {designatedUnitId
+                ? '• Confirmez le lot que le syndic vous a attribué, ci-dessous.'
+                : '• Sélectionnez votre lot (appartement, parking, box…) dans la liste ci-dessous.'}
+            </Text>
+            <Text style={styles.introText}>• Le syndic prend le relais : il valide votre demande pour sécuriser l'accès.</Text>
+            <Text style={styles.introText}>
+              • Une fois votre demande validée, vous recevrez une notification et votre espace de gestion sera
+              entièrement à vous ! 🎉
+            </Text>
+          </View>
+        )}
 
-        {unitId && (
+        {!isBoardSeat && (
           <View style={styles.step}>
-            <Text style={styles.stepLabel}>2. Connectez-vous ou créez un compte</Text>
+            <Text style={styles.stepLabel}>
+              {designatedUnitId ? '1. Confirmez votre lot' : '1. Choisissez votre lot'}
+            </Text>
+
+            {/* Le lot désigné est annoncé, pas caché dans un sélecteur
+                pré-rempli : c'est l'information à vérifier en premier. */}
+            {designatedUnitId && (
+              <View style={styles.designatedLot}>
+                <Text style={styles.designatedLotLabel}>VOTRE LOT</Text>
+                <Text style={styles.designatedLotValue}>
+                  {preview.targetUnitTypeName
+                    ? `${preview.targetUnitNumber} — ${preview.targetUnitTypeName}`
+                    : preview.targetUnitNumber}
+                </Text>
+              </View>
+            )}
+
+            {showUnitPicker && (
+              <UnitPicker
+                units={availableUnits?.content ?? []}
+                value={unitId}
+                onChange={(nextUnitId) => {
+                  setChosenUnitId(nextUnitId);
+                  // Changer de lot rouvre la question : la déclaration porte
+                  // sur « ce lot », pas sur l'écran.
+                  setIsCertified(false);
+                }}
+              />
+            )}
+
+            {preview.targetUnitId && (
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: isChoosingOwnLot }}
+                onPress={() => {
+                  // Dans les deux sens on repart du lot proposé : cocher ouvre
+                  // un sélecteur vide, décocher revient au lot du syndic.
+                  setIsChoosingOwnLot((value) => !value);
+                  setChosenUnitId(null);
+                  setIsCertified(false);
+                }}
+                style={styles.certification}
+              >
+                <View style={[styles.checkbox, isChoosingOwnLot && styles.checkboxChecked]}>
+                  {isChoosingOwnLot && <Text style={styles.checkboxMark}>✓</Text>}
+                </View>
+                <Text style={styles.certificationLabel}>Ce n'est pas votre lot ? Choisir un autre lot</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+
+        {!isBoardSeat && unitId && (
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: isCertified }}
+            onPress={() => setIsCertified((value) => !value)}
+            style={styles.certification}
+          >
+            <View style={[styles.checkbox, isCertified && styles.checkboxChecked]}>
+              {isCertified && <Text style={styles.checkboxMark}>✓</Text>}
+            </View>
+            <Text style={styles.certificationLabel}>
+              Je certifie être le propriétaire ou le mandataire pour ce lot.
+            </Text>
+          </Pressable>
+        )}
+
+        {canProceed && (
+          <View style={styles.step}>
+            <Text style={styles.stepLabel}>
+              {isBoardSeat ? 'Connectez-vous ou créez un compte' : '2. Connectez-vous ou créez un compte'}
+            </Text>
             {isAuthenticated ? (
               <>
                 {autoConfirmStatus === 'pending' && <Loader label="Finalisation…" />}
@@ -205,6 +318,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.gray[500],
     marginBottom: 8,
+  },
+  intro: {
+    gap: 4,
+    marginBottom: 8,
+  },
+  introText: {
+    fontSize: 14,
+    color: colors.gray[500],
+  },
+  designatedLot: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.brand[300],
+    backgroundColor: colors.brand[50],
+    padding: 12,
+  },
+  designatedLotLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    color: colors.brand[600],
+  },
+  designatedLotValue: {
+    marginTop: 2,
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.gray[900],
+  },
+  certification: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingVertical: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.brand[500],
+    borderColor: colors.brand[500],
+  },
+  checkboxMark: {
+    fontSize: 13,
+    lineHeight: 16,
+    color: colors.white,
+  },
+  certificationLabel: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.gray[800],
   },
   step: {
     gap: 8,

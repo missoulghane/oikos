@@ -18,6 +18,7 @@ import com.architek.oikos.messaging.application.dto.ConversationParticipantView;
 import com.architek.oikos.messaging.application.dto.ConversationSummaryView;
 import com.architek.oikos.messaging.application.port.out.PropertyMemberDirectoryPort;
 import com.architek.oikos.messaging.application.query.ConversationBox;
+import com.architek.oikos.messaging.application.query.ConversationReadState;
 import com.architek.oikos.messaging.application.port.out.UserAccessPort;
 import com.architek.oikos.messaging.domain.model.Conversation;
 import com.architek.oikos.messaging.domain.model.ConversationReadMarker;
@@ -70,7 +71,7 @@ class ConversationAggregatorTest {
         ConversationId groupId = ConversationId.newId();
         Conversation group = Conversation.createGroup(groupId, propertyId, caller, Set.of(caller, other), SUBJECT, null);
         ConversationId broadcastId = ConversationId.newId();
-        Conversation broadcast = Conversation.createBroadcast(broadcastId, propertyId, other);
+        Conversation broadcast = Conversation.createBroadcast(broadcastId, propertyId, other, ConversationSubject.of("Annonce"));
         ConversationId emptyGroupId = ConversationId.newId();
         EntityId other2 = EntityId.newId();
         Conversation emptyGroup = Conversation.createGroup(emptyGroupId, propertyId, caller, Set.of(caller, other2), SUBJECT, null);
@@ -113,7 +114,7 @@ class ConversationAggregatorTest {
 
         ConversationSummaryView broadcastView = views.get(0);
         assertThat(broadcastView.type()).isEqualTo(ConversationType.BROADCAST);
-        assertThat(broadcastView.subject()).isNull();
+        assertThat(broadcastView.subject()).isEqualTo("Annonce");
         assertThat(broadcastView.participants()).isEmpty();
         assertThat(broadcastView.unreadCount()).isEqualTo(3L);
     }
@@ -161,6 +162,59 @@ class ConversationAggregatorTest {
 
         assertThat(newAggregator().listAll(caller, "dupont")).hasSize(1);
         assertThat(newAggregator().listAll(caller, "nomatch")).isEmpty();
+    }
+
+    // Chercher « A12 » doit ramener le fil ouvert avec le propriétaire de ce lot,
+    // pas seulement celui dont l'objet cite le numéro.
+    @Test
+    void filters_by_search_on_a_participant_s_unit_number() {
+        EntityId caller = EntityId.newId();
+        EntityId propertyId = EntityId.newId();
+        EntityId other = EntityId.newId();
+        ConversationId groupId = ConversationId.newId();
+        Conversation group = Conversation.createGroup(groupId, propertyId, caller, Set.of(caller, other), SUBJECT, null);
+
+        when(conversationRepository.findAllGroupByParticipant(caller)).thenReturn(List.of(group));
+        when(userAccessPort.memberPropertyIds(caller)).thenReturn(Set.of());
+        when(conversationRepository.findAllByPropertyIdsAndType(Set.of(), ConversationType.BROADCAST)).thenReturn(List.of());
+        when(propertyMemberDirectoryPort.getPropertyName(propertyId)).thenReturn("Résidence Alpha");
+        when(memberDisplayNameResolver.namesByUserId(propertyId)).thenReturn(Map.of(other, "Jean Dupont"));
+        when(memberDisplayNameResolver.unitNumbersByUserId(propertyId)).thenReturn(Map.of(other, List.of("A12")));
+        when(messageRepository.findLastMessage(groupId)).thenReturn(Optional.empty());
+        when(readMarkerRepository.findByConversationIdAndUserId(groupId, caller)).thenReturn(Optional.empty());
+        when(messageRepository.countUnread(groupId, null)).thenReturn(0L);
+
+        assertThat(newAggregator().listAll(caller, "a12")).hasSize(1);
+        assertThat(newAggregator().listAll(caller, "b7")).isEmpty();
+    }
+
+    @Test
+    void read_state_filters_to_the_conversations_holding_unread_messages_or_none() {
+        EntityId caller = EntityId.newId();
+        EntityId propertyId = EntityId.newId();
+        EntityId other = EntityId.newId();
+
+        ConversationId unreadId = ConversationId.newId();
+        Conversation unread = Conversation.createGroup(unreadId, propertyId, caller, Set.of(caller, other), SUBJECT, null);
+        ConversationId readId = ConversationId.newId();
+        Conversation read = Conversation.createGroup(readId, propertyId, caller, Set.of(caller, other), SUBJECT, null);
+
+        when(conversationRepository.findAllGroupByParticipant(caller)).thenReturn(List.of(unread, read));
+        when(userAccessPort.memberPropertyIds(caller)).thenReturn(Set.of());
+        when(conversationRepository.findAllByPropertyIdsAndType(Set.of(), ConversationType.BROADCAST)).thenReturn(List.of());
+        when(propertyMemberDirectoryPort.getPropertyName(propertyId)).thenReturn("Résidence Alpha");
+        when(memberDisplayNameResolver.namesByUserId(propertyId)).thenReturn(Map.of(other, "Jean Dupont"));
+        when(messageRepository.findLastMessage(unreadId)).thenReturn(Optional.empty());
+        when(messageRepository.findLastMessage(readId)).thenReturn(Optional.empty());
+        when(readMarkerRepository.findByConversationIdAndUserId(unreadId, caller)).thenReturn(Optional.empty());
+        when(readMarkerRepository.findByConversationIdAndUserId(readId, caller)).thenReturn(Optional.empty());
+        when(messageRepository.countUnread(unreadId, null)).thenReturn(2L);
+        when(messageRepository.countUnread(readId, null)).thenReturn(0L);
+
+        assertThat(newAggregator().listAll(caller, null, null, ConversationReadState.UNREAD))
+                .extracting(ConversationSummaryView::id).containsExactly(unreadId);
+        assertThat(newAggregator().listAll(caller, null, null, ConversationReadState.READ))
+                .extracting(ConversationSummaryView::id).containsExactly(readId);
     }
 
     @Test

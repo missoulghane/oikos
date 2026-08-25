@@ -27,7 +27,9 @@ import com.architek.oikos.invitation.application.dto.InvitationView;
 import com.architek.oikos.invitation.application.port.in.CreateBoardInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.CreateInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.DisableInvitationUseCase;
+import com.architek.oikos.invitation.application.port.in.EnableInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.GetInvitationUseCase;
+import com.architek.oikos.invitation.application.port.in.GetPublicInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.ListInvitationsUseCase;
 import com.architek.oikos.invitation.domain.model.InvitationStatus;
 import com.architek.oikos.invitation.domain.model.InvitationType;
@@ -65,7 +67,13 @@ class InvitationControllerWebMvcTest {
     private GetInvitationUseCase getInvitationUseCase;
 
     @MockitoBean
+    private GetPublicInvitationUseCase getPublicInvitationUseCase;
+
+    @MockitoBean
     private DisableInvitationUseCase disableInvitationUseCase;
+
+    @MockitoBean
+    private EnableInvitationUseCase enableInvitationUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
@@ -139,5 +147,38 @@ class InvitationControllerWebMvcTest {
         mockMvc.perform(patch("/api/v1/invitations/" + view.id() + "/disable")
                         .header("Authorization", bearerToken("PROPERTY_MANAGER_ADMIN")))
                 .andExpect(status().isNoContent());
+    }
+
+    /** Le lien public se rouvre : c'est la seule façon de le remettre en service, il ne se recrée jamais. */
+    @Test
+    void a_manager_with_the_invitation_manage_permission_can_re_enable_an_invitation() throws Exception {
+        String propertyId = UUID.randomUUID().toString();
+        InvitationView view = sampleView(propertyId);
+        when(getInvitationUseCase.getInvitation(any())).thenReturn(view);
+        when(getUserAccessUseCase.getAccess(any())).thenReturn(new UserAccessView(
+                Set.of(), Map.of(), Map.of(propertyId, Set.of(Permission.INVITATION_MANAGE)), Set.of(), Set.of()));
+
+        mockMvc.perform(patch("/api/v1/invitations/" + view.id() + "/enable")
+                        .header("Authorization", bearerToken("PROPERTY_MANAGER_ADMIN")))
+                .andExpect(status().isNoContent());
+    }
+
+    /**
+     * Une copropriété sans lien public répond 200 avec un lien nul, pas 404 :
+     * c'est l'état normal d'une copropriété qui n'en a pas encore créé, et
+     * l'écran doit pouvoir l'afficher comme tel.
+     */
+    @Test
+    void a_property_without_a_public_link_answers_with_a_null_invitation() throws Exception {
+        String propertyId = UUID.randomUUID().toString();
+        when(getUserAccessUseCase.getAccess(any())).thenReturn(new UserAccessView(
+                Set.of(), Map.of(), Map.of(propertyId, Set.of(Permission.INVITATION_MANAGE)), Set.of(), Set.of()));
+        when(getPublicInvitationUseCase.getPublicInvitation(any())).thenReturn(java.util.Optional.empty());
+
+        mockMvc.perform(get("/api/v1/properties/" + propertyId + "/public-invitation")
+                        .header("Authorization", bearerToken("PROPERTY_MANAGER_ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.invitation").doesNotExist());
     }
 }

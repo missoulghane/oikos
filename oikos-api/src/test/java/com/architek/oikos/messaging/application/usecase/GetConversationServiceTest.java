@@ -15,6 +15,7 @@ import com.architek.oikos.messaging.application.dto.ConversationView;
 import com.architek.oikos.messaging.application.query.GetConversationQuery;
 import com.architek.oikos.messaging.domain.exception.ConversationNotFoundException;
 import com.architek.oikos.messaging.domain.model.Conversation;
+import com.architek.oikos.messaging.domain.valueobject.ConversationSubject;
 import com.architek.oikos.messaging.domain.repository.ConversationRepository;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -34,7 +35,7 @@ class GetConversationServiceTest {
         ConversationId id = ConversationId.newId();
         EntityId propertyId = EntityId.newId();
         EntityId creator = EntityId.newId();
-        Conversation conversation = Conversation.createBroadcast(id, propertyId, creator);
+        Conversation conversation = Conversation.createBroadcast(id, propertyId, creator, ConversationSubject.of("Annonce"));
         when(conversationRepository.findById(id)).thenReturn(Optional.of(conversation));
 
         ConversationView view = newService().getConversation(new GetConversationQuery(id));

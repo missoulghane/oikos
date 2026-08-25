@@ -4,6 +4,7 @@ import { Card } from '@/shared/components/Card/Card';
 import { Button } from '@/shared/components/Button/Button';
 import { EditPropertyInfoForm } from '@/features/property-mngt/properties/components/EditPropertyInfoForm';
 import { BoardSection } from '@/features/property-mngt/board-members';
+import { PublicInvitationSection } from '@/features/property-mngt/invitations';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
 
 export function PropertyGeneralInfoTab() {
@@ -51,6 +52,12 @@ export function PropertyGeneralInfoTab() {
       {/* Le conseil syndical occupait un onglet à lui seul : deux écrans pour
           lire qui gère la copropriété et laquelle. */}
       <BoardSection propertyId={property.id} />
+
+      {/* Le lien public d'adhésion appartient à la copropriété au même titre
+          que son nom et son adresse : il vivait dans un écran « Invitations »
+          où personne n'allait le chercher, entre des demandes d'adhésion et
+          des invitations nominatives qui n'ont rien à voir avec lui. */}
+      <PublicInvitationSection propertyId={property.id} />
     </div>
   );
 }

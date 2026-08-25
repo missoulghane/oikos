@@ -60,9 +60,10 @@ public class NotificationController {
     @GetMapping("/users/me/notifications")
     public PagedNotificationResponse listMyNotifications(@RequestParam(defaultValue = "0") int page,
                                                            @RequestParam(defaultValue = "20") int size,
+                                                           @RequestParam(defaultValue = "false") boolean unreadOnly,
                                                            Authentication authentication) {
         return PagedNotificationResponse.from(listMyNotificationsUseCase.listNotifications(
-                new ListMyNotificationsQuery(currentUserId(authentication), PageRequest.of(page, size))));
+                new ListMyNotificationsQuery(currentUserId(authentication), unreadOnly, PageRequest.of(page, size))));
     }
 
     @GetMapping("/users/me/notifications/unread-count")

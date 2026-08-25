@@ -12,6 +12,7 @@ import {
   recordBankChargeSchema,
   type RecordBankChargeFormValues,
 } from '@/features/property-mngt/accounting/schemas/recordBankChargeSchema';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 export function RecordBankChargeForm({ propertyId }: { propertyId: string }) {
   const navigate = useNavigate();
@@ -35,7 +36,8 @@ export function RecordBankChargeForm({ propertyId }: { propertyId: string }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
-      <Select label="Compte de charge" {...register('ledgerAccountId')} errorMessage={errors.ledgerAccountId?.message}>
+      <RequiredFieldsHint />
+      <Select label="Compte de charge" required {...register('ledgerAccountId')} errorMessage={errors.ledgerAccountId?.message}>
         <option value="">Sélectionner…</option>
         {chargeAccounts.map((account) => (
           <option key={account.id} value={account.id}>
@@ -43,7 +45,7 @@ export function RecordBankChargeForm({ propertyId }: { propertyId: string }) {
           </option>
         ))}
       </Select>
-      <Select label="Compte bancaire" {...register('bankAccountId')} errorMessage={errors.bankAccountId?.message}>
+      <Select label="Compte bancaire" required {...register('bankAccountId')} errorMessage={errors.bankAccountId?.message}>
         <option value="">Sélectionner…</option>
         {bankAccounts.map((account) => (
           <option key={account.id} value={account.id}>
@@ -51,9 +53,10 @@ export function RecordBankChargeForm({ propertyId }: { propertyId: string }) {
           </option>
         ))}
       </Select>
-      <Input label="Date" type="date" {...register('pieceDate')} errorMessage={errors.pieceDate?.message} />
+      <Input label="Date" required type="date" {...register('pieceDate')} errorMessage={errors.pieceDate?.message} />
       <Input
         label="Montant"
+        required
         type="number"
         min={0}
         step="any"

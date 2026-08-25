@@ -27,16 +27,3 @@ export interface RecordOwnerPaymentPayload {
   valueDate: string;
   amount: number;
 }
-
-export interface RegularizeUnitInstallmentsResult {
-  unitId: string;
-  journalEntryId: string;
-  amountApplied: number;
-  allocations: InstallmentAllocation[];
-}
-
-export interface RegularizePropertyInstallmentsResult {
-  unitsRegularized: number;
-  totalAmountApplied: number;
-  regularizedUnits: RegularizeUnitInstallmentsResult[];
-}

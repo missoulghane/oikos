@@ -18,18 +18,23 @@ import com.architek.oikos.auth.infrastructure.security.UserPrincipal;
 import com.architek.oikos.invitation.application.command.CreateBoardInvitationCommand;
 import com.architek.oikos.invitation.application.command.CreateInvitationCommand;
 import com.architek.oikos.invitation.application.command.DisableInvitationCommand;
+import com.architek.oikos.invitation.application.command.EnableInvitationCommand;
 import com.architek.oikos.invitation.application.port.in.CreateBoardInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.CreateInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.DisableInvitationUseCase;
+import com.architek.oikos.invitation.application.port.in.EnableInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.GetInvitationUseCase;
+import com.architek.oikos.invitation.application.port.in.GetPublicInvitationUseCase;
 import com.architek.oikos.invitation.application.port.in.ListInvitationsUseCase;
 import com.architek.oikos.invitation.application.query.GetInvitationQuery;
+import com.architek.oikos.invitation.application.query.GetPublicInvitationQuery;
 import com.architek.oikos.invitation.application.query.ListInvitationsQuery;
 import com.architek.oikos.invitation.domain.valueobject.InvitationId;
 import com.architek.oikos.invitation.web.request.CreateBoardInvitationRequest;
 import com.architek.oikos.invitation.web.request.CreateInvitationRequest;
 import com.architek.oikos.invitation.web.response.InvitationResponse;
 import com.architek.oikos.invitation.web.response.PagedInvitationResponse;
+import com.architek.oikos.invitation.web.response.PublicInvitationResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -41,17 +46,24 @@ public class InvitationController {
     private final CreateBoardInvitationUseCase createBoardInvitationUseCase;
     private final ListInvitationsUseCase listInvitationsUseCase;
     private final GetInvitationUseCase getInvitationUseCase;
+    private final GetPublicInvitationUseCase getPublicInvitationUseCase;
     private final DisableInvitationUseCase disableInvitationUseCase;
+    private final EnableInvitationUseCase enableInvitationUseCase;
 
     public InvitationController(CreateInvitationUseCase createInvitationUseCase,
                                  CreateBoardInvitationUseCase createBoardInvitationUseCase,
                                  ListInvitationsUseCase listInvitationsUseCase,
-                                 GetInvitationUseCase getInvitationUseCase, DisableInvitationUseCase disableInvitationUseCase) {
+                                 GetInvitationUseCase getInvitationUseCase,
+                                 GetPublicInvitationUseCase getPublicInvitationUseCase,
+                                 DisableInvitationUseCase disableInvitationUseCase,
+                                 EnableInvitationUseCase enableInvitationUseCase) {
         this.createInvitationUseCase = createInvitationUseCase;
         this.createBoardInvitationUseCase = createBoardInvitationUseCase;
         this.listInvitationsUseCase = listInvitationsUseCase;
         this.getInvitationUseCase = getInvitationUseCase;
+        this.getPublicInvitationUseCase = getPublicInvitationUseCase;
         this.disableInvitationUseCase = disableInvitationUseCase;
+        this.enableInvitationUseCase = enableInvitationUseCase;
     }
 
     @PreAuthorize("@propertyAccess.canManageInvitations(authentication, #propertyId)")
@@ -60,7 +72,8 @@ public class InvitationController {
                                         Authentication authentication) {
         InvitationId id = createInvitationUseCase.create(new CreateInvitationCommand(
                 EntityId.of(propertyId), request.type(),
-                request.targetEmail() != null ? EmailVO.of(request.targetEmail()) : null,
+                request.partyId() != null ? EntityId.of(request.partyId()) : null,
+                request.unitId() != null ? EntityId.of(request.unitId()) : null,
                 currentUserId(authentication)));
         return ResponseEntity.created(URI.create("/api/v1/invitations/" + id)).build();
     }
@@ -85,6 +98,19 @@ public class InvitationController {
                 new ListInvitationsQuery(EntityId.of(propertyId), PageRequest.of(page, size))));
     }
 
+    /**
+     * Le lien public de la copropriété, unique et permanent - piloté depuis
+     * « Ma copropriété / Informations générales », pas depuis la liste des
+     * demandes d'adhésion. Corps toujours 200, avec un invitation nul tant
+     * qu'aucun lien n'existe (voir PublicInvitationResponse).
+     */
+    @PreAuthorize("@propertyAccess.canManageInvitations(authentication, #propertyId)")
+    @GetMapping("/properties/{propertyId}/public-invitation")
+    public PublicInvitationResponse getPublicInvitation(@PathVariable String propertyId) {
+        return PublicInvitationResponse.from(
+                getPublicInvitationUseCase.getPublicInvitation(new GetPublicInvitationQuery(EntityId.of(propertyId))));
+    }
+
     @PreAuthorize("@propertyAccess.canManageInvitation(authentication, #id)")
     @GetMapping("/invitations/{id}")
     public InvitationResponse getById(@PathVariable String id) {
@@ -95,6 +121,13 @@ public class InvitationController {
     @PatchMapping("/invitations/{id}/disable")
     public ResponseEntity<Void> disable(@PathVariable String id) {
         disableInvitationUseCase.disable(new DisableInvitationCommand(InvitationId.of(id)));
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("@propertyAccess.canManageInvitation(authentication, #id)")
+    @PatchMapping("/invitations/{id}/enable")
+    public ResponseEntity<Void> enable(@PathVariable String id) {
+        enableInvitationUseCase.enable(new EnableInvitationCommand(InvitationId.of(id)));
         return ResponseEntity.noContent().build();
     }
 

@@ -79,8 +79,10 @@ class ConfigurePropertyServiceTest {
         ArgumentCaptor<Unit> unitCaptor = ArgumentCaptor.forClass(Unit.class);
         verify(unitRepository, org.mockito.Mockito.times(5)).save(unitCaptor.capture());
         List<Unit> units = unitCaptor.getAllValues();
+        // Le type n'est plus recopie dans le numero (il s'affiche en suffixe a cote):
+        // une suite "N° {n}" qui repart de 1 pour chaque type du batiment.
         assertThat(units).extracting(Unit::getUnitNumber)
-                .containsExactly("Appartement 1", "Appartement 2", "Appartement 3", "Box 1", "Box 2");
+                .containsExactly("N° 1", "N° 2", "N° 3", "N° 1", "N° 2");
         assertThat(units).allMatch(unit -> unit.getBuildingId().equals(buildingCaptor.getValue().getId()));
         assertThat(units).allMatch(unit -> unit.getShares().value().compareTo(BigDecimal.ZERO) == 0);
 

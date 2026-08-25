@@ -29,6 +29,6 @@ public interface MembershipRequestPersistenceMapper {
                 EntityId.of(entity.getPropertyId()), EntityId.of(entity.getUnitId()), EntityId.of(entity.getPartyId()),
                 EntityId.of(entity.getUserId()), entity.getStatus(), entity.getDecidedAt(),
                 entity.getDecidedByUserId() != null ? EntityId.of(entity.getDecidedByUserId()) : null,
-                entity.getRejectionReason());
+                entity.getRejectionReason(), entity.getCreatedDate());
     }
 }

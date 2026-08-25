@@ -53,7 +53,7 @@ export function DraftsListPage() {
       <div className="border-b border-gray-200 dark:border-gray-800 p-3">
         <Input
           label="Rechercher"
-          placeholder="Titre, contenu…"
+          placeholder="Objet, contenu…"
           value={searchInput}
           onChange={(e) => {
             setSearchInput(e.target.value);

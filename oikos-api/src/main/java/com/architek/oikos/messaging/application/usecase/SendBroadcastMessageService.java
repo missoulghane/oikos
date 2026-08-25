@@ -16,11 +16,14 @@ import com.architek.oikos.messaging.domain.valueobject.ConversationId;
 import com.architek.oikos.messaging.domain.valueobject.MessageId;
 
 /**
- * Find-or-create the property's single persistent BROADCAST channel (unique
- * index on property_id where type = 'BROADCAST', see V17__messaging.sql),
- * then posts the message - never a one-off message detached from a
- * conversation, consistent with "reprendre une conversation existante".
- * Authorization (canBroadcastOnProperty, i.e. Permission.MESSAGING_BROADCAST)
+ * Un envoi à toute la copropriété crée sa propre conversation, à chaque fois -
+ * jamais une reprise du canal existant, comme c'était le cas jusqu'ici
+ * (find-or-create sur l'unique BROADCAST de la copropriété). Un envoi groupé
+ * n'est pas un fil de discussion : deux annonces sans rapport se retrouvaient
+ * bout à bout sous un même titre, et l'objet de chacune n'existait nulle part.
+ * Même sémantique « nouveau message » que GROUP et BOARD_PRIVATE désormais.
+ *
+ * <p>Authorization (canBroadcastOnProperty, i.e. Permission.MESSAGING_BROADCAST)
  * is enforced upstream by @PreAuthorize; this service trusts its caller.
  */
 @Component
@@ -40,9 +43,8 @@ public class SendBroadcastMessageService implements SendBroadcastMessageUseCase 
     @Override
     @Transactional
     public ConversationId send(SendBroadcastMessageCommand command) {
-        Conversation conversation = conversationRepository.findBroadcastConversation(command.propertyId())
-                .orElseGet(() -> conversationRepository.save(
-                        Conversation.createBroadcast(ConversationId.newId(), command.propertyId(), command.senderId())));
+        Conversation conversation = conversationRepository.save(Conversation.createBroadcast(
+                ConversationId.newId(), command.propertyId(), command.senderId(), command.subject()));
 
         Message message = Message.post(MessageId.newId(), conversation.getId(), command.senderId(), SenderIdentity.BOARD,
                 command.body(), clock.instant());

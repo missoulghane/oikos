@@ -90,7 +90,7 @@ describe('RecipientPicker', () => {
     await user.type(screen.getByLabelText('Ajouter un destinataire'), 'Jean');
 
     await waitFor(() => expect(mockedListRecipientCandidates).toHaveBeenCalled());
-    expect(await screen.findByText('Jean Dupont - Lot 12B')).toBeInTheDocument();
+    expect(await screen.findByText('Jean Dupont - 12B')).toBeInTheDocument();
     expect(await screen.findByText('Résidence Al Amal - Copropriétaire')).toBeInTheDocument();
     // Marie owns no unit here (board/manager seat) - no "- Lot" suffix.
     expect(await screen.findByText('Marie Curie')).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('RecipientPicker', () => {
     const { onChange } = renderPicker([]);
 
     await user.type(screen.getByLabelText('Ajouter un destinataire'), 'Jean');
-    await user.click(await screen.findByText('Jean Dupont - Lot 12B'));
+    await user.click(await screen.findByText('Jean Dupont - 12B'));
 
     expect(onChange).toHaveBeenCalledWith([jean]);
   });
@@ -115,7 +115,7 @@ describe('RecipientPicker', () => {
     await waitFor(() => expect(mockedListRecipientCandidates).toHaveBeenCalled());
     expect(await screen.findByText('Marie Curie')).toBeInTheDocument();
     // Jean Dupont should render exactly once - as the chip, not again in the results list.
-    expect(screen.getAllByText('Jean Dupont - Lot 12B')).toHaveLength(1);
+    expect(screen.getAllByText('Jean Dupont - 12B')).toHaveLength(1);
   });
 
   it('removes a recipient when its chip × button is clicked', async () => {

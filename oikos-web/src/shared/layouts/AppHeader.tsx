@@ -4,11 +4,19 @@ import { useSidebar } from '@/shared/context/SidebarContext';
 import { UserDropdown } from '@/shared/layouts/UserDropdown';
 import { NotificationBell } from '@/features/messaging';
 import { NotificationsBell } from '@/features/notifications';
+import { useCurrentUser, hasNoPropertyAccess } from '@/features/identity/me';
 import { ThemeToggleButton } from '@/shared/components/ThemeToggleButton/ThemeToggleButton';
 import { SpaceSwitcher } from '@/shared/components/SpaceSwitcher/SpaceSwitcher';
 
 export function AppHeader() {
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
+  const currentUser = useCurrentUser();
+  // Même règle que la sidebar (voir hasNoPropertyAccess) : tant que la demande
+  // d'adhésion n'est pas validée, le compte n'appartient à aucune copropriété.
+  // Il n'a donc ni boîte à lettres ni notification à recevoir - les deux cloches
+  // n'ouvriraient que du vide, et interrogeraient le serveur pour rien. Le
+  // thème et le menu du profil, eux, restent : ils ne dépendent d'aucun lot.
+  const noPropertyAccess = currentUser.data ? hasNoPropertyAccess(currentUser.data) : false;
 
   function handleToggle() {
     if (window.innerWidth >= 1024) {
@@ -57,8 +65,12 @@ export function AppHeader() {
 
         <div className="flex w-full items-center justify-end gap-4 px-5 py-4 lg:w-auto lg:px-0">
           <ThemeToggleButton />
-          <NotificationsBell />
-          <NotificationBell />
+          {!noPropertyAccess && (
+            <>
+              <NotificationsBell />
+              <NotificationBell />
+            </>
+          )}
           <UserDropdown />
         </div>
       </div>

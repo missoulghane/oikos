@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { useInstallment } from '@/features/property-ownership/installments/hooks/useInstallment';
+import { useInstallment } from '@/features/property-mngt/installments/hooks/useInstallment';
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import { formatUnitLabel } from '@/features/property-ownership/units/utils/formatUnitLabel';
 import { formatPeriod } from '@/features/property-mngt/installments/utils/formatPeriod';

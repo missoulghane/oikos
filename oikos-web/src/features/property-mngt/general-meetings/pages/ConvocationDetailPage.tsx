@@ -35,6 +35,7 @@ import { Input } from '@/shared/components/Input/Input';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Select } from '@/shared/components/Select/Select';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 const DATE_TIME = new Intl.DateTimeFormat('fr-FR', {
   dateStyle: 'long',
@@ -351,6 +352,7 @@ export function ConvocationDetailPage() {
         )}
         <div className="flex flex-col gap-3 border-t border-gray-100 dark:border-gray-800 pt-4">
           <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">Enregistrer une remise</h5>
+          <RequiredFieldsHint />
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="sm:max-w-xs sm:flex-1">
               {/* No default: a channel picked by the form rather than by the syndic is the
@@ -358,6 +360,7 @@ export function ConvocationDetailPage() {
                   what order, is settled on recordableChannels above. */}
               <Select
                 label="Canal"
+                required
                 name="deliveryChannel"
                 value={channelCode}
                 onChange={(event) => setChannelCode(event.target.value)}
@@ -372,7 +375,7 @@ export function ConvocationDetailPage() {
             </div>
             <div className="sm:max-w-xs sm:flex-1">
               <Input
-                label="Référence (facultatif)"
+                label="Référence"
                 name="reference"
                 value={reference}
                 placeholder="N° de suivi du recommandé"
@@ -430,12 +433,14 @@ export function ConvocationDetailPage() {
         )}
         <div className="flex flex-col gap-3 border-t border-gray-100 dark:border-gray-800 pt-4">
           <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">Enregistrer une réponse</h5>
+          <RequiredFieldsHint />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {/* Five choices, three fields underneath - see ATTENDANCE_ANSWERS. Offering the
                 combinations that exist beats a reply/mode/proxy triplet the form would then
                 have to stop from producing "absent, sur place". */}
             <Select
               label="Réponse"
+              required
               name="attendanceAnswer"
               value={answer}
               onChange={(event) => setAnswer(event.target.value as AttendanceAnswerValue)}
@@ -451,12 +456,13 @@ export function ConvocationDetailPage() {
             <Input
               type="datetime-local"
               label="Date"
+              required
               name="receivedAt"
               value={receivedAt}
               onChange={(event) => setReceivedAt(event.target.value)}
             />
             <Input
-              label="Précision (facultatif)"
+              label="Précision"
               name="replyNote"
               value={note}
               placeholder="Ex. : a appelé le bureau mardi"

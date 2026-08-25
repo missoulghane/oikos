@@ -24,32 +24,55 @@ export interface Invitation {
 
 export type PagedInvitations = Paged<Invitation>;
 
+/**
+ * Mirrors PublicInvitationResponse (oikos-api) : `invitation` est nul tant
+ * qu'aucun lien public n'a été créé pour la copropriété - un état normal, pas
+ * une absence de ressource.
+ */
+export interface PublicInvitationEnvelope {
+  invitation: Invitation | null;
+}
+
 export interface CreateInvitationPayload {
   propertyId: string;
   type: InvitationType;
-  targetEmail?: string;
+  /**
+   * Le contact destinataire. Obligatoire pour PRIVATE, absent pour PUBLIC -
+   * un lien public ne s'adresse à personne. L'adresse email n'est pas envoyée :
+   * le serveur la lit sur la fiche du contact, une adresse venue du client
+   * pouvant ne pas être la sienne.
+   */
+  partyId?: string;
+  /** Obligatoire pour PRIVATE, absent pour PUBLIC - un lien public ne désigne aucun lot. */
+  unitId?: string;
 }
 
-/**
- * INVITED is synthetic: a still-outstanding PRIVATE invitation nobody has
- * accepted yet, surfaced here for traceability but never a real, persisted
- * request (no unitId/partyId - see targetEmail instead).
- */
-export type MembershipRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'INVITED';
+export type MembershipRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
 
-/** Mirrors MembershipRequestResponse (oikos-api). */
+/** Mirrors MembershipRequestResponse (oikos-api) - identités et lot déjà résolus côté serveur. */
 export interface MembershipRequest {
   id: string;
   invitationId: string;
   propertyId: string;
   unitId: string | null;
   partyId: string | null;
-  /** Only populated for an INVITED entry - the party carries the email once one exists. */
-  targetEmail: string | null;
+  userId: string | null;
+  /** Nuls si le compte ou le lot a disparu depuis le dépôt : la demande reste un fait à afficher. */
+  requesterFullName: string | null;
+  requesterEmail: string | null;
+  /** Faux tant que le demandeur n'a pas confirmé son adresse email (une demande déposée à l'inscription arrive avant). */
+  requesterAccountVerified: boolean;
+  unitNumber: string | null;
+  unitTypeName: string | null;
   status: MembershipRequestStatus;
+  submittedAt: string | null;
   decidedAt: string | null;
   decidedByUserId: string | null;
+  decidedByFullName: string | null;
   rejectionReason: string | null;
 }
 
 export type PagedMembershipRequests = Paged<MembershipRequest>;
+
+export const MEMBERSHIP_REQUEST_SORT_FIELDS = ['SUBMITTED_AT', 'REQUESTER', 'UNIT', 'STATUS'] as const;
+export type MembershipRequestSortField = (typeof MEMBERSHIP_REQUEST_SORT_FIELDS)[number];

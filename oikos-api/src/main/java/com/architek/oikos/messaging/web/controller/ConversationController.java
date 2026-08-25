@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import com.architek.oikos.auth.infrastructure.security.UserPrincipal;
 import com.architek.oikos.messaging.application.command.MarkConversationReadCommand;
+import com.architek.oikos.messaging.application.command.MarkConversationUnreadCommand;
 import com.architek.oikos.messaging.application.command.SendBroadcastMessageCommand;
 import com.architek.oikos.messaging.application.command.SendMessageCommand;
 import com.architek.oikos.messaging.application.command.StartBoardConversationCommand;
@@ -28,11 +29,13 @@ import com.architek.oikos.messaging.application.port.in.ListConversationMessages
 import com.architek.oikos.messaging.application.port.in.ListMyConversationsUseCase;
 import com.architek.oikos.messaging.application.port.in.ListRecipientCandidatesUseCase;
 import com.architek.oikos.messaging.application.port.in.MarkConversationReadUseCase;
+import com.architek.oikos.messaging.application.port.in.MarkConversationUnreadUseCase;
 import com.architek.oikos.messaging.application.port.in.SendBroadcastMessageUseCase;
 import com.architek.oikos.messaging.application.port.in.SendMessageUseCase;
 import com.architek.oikos.messaging.application.port.in.StartBoardConversationUseCase;
 import com.architek.oikos.messaging.application.port.in.StartGroupConversationUseCase;
 import com.architek.oikos.messaging.application.query.ConversationBox;
+import com.architek.oikos.messaging.application.query.ConversationReadState;
 import com.architek.oikos.messaging.application.query.GetUnreadSummaryQuery;
 import com.architek.oikos.messaging.application.query.ListConversationMessagesQuery;
 import com.architek.oikos.messaging.application.query.ListMyConversationsQuery;
@@ -40,6 +43,7 @@ import com.architek.oikos.messaging.application.query.ListRecipientCandidatesQue
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
 import com.architek.oikos.messaging.domain.valueobject.ConversationSubject;
 import com.architek.oikos.messaging.domain.valueobject.MessageBody;
+import com.architek.oikos.messaging.web.request.SendBroadcastMessageRequest;
 import com.architek.oikos.messaging.web.request.SendMessageRequest;
 import com.architek.oikos.messaging.web.request.StartBoardConversationRequest;
 import com.architek.oikos.messaging.web.request.StartConversationRequest;
@@ -63,6 +67,7 @@ public class ConversationController {
     private final ListConversationMessagesUseCase listConversationMessagesUseCase;
     private final SendMessageUseCase sendMessageUseCase;
     private final MarkConversationReadUseCase markConversationReadUseCase;
+    private final MarkConversationUnreadUseCase markConversationUnreadUseCase;
     private final ListRecipientCandidatesUseCase listRecipientCandidatesUseCase;
 
     public ConversationController(StartGroupConversationUseCase startGroupConversationUseCase,
@@ -73,6 +78,7 @@ public class ConversationController {
                                    ListConversationMessagesUseCase listConversationMessagesUseCase,
                                    SendMessageUseCase sendMessageUseCase,
                                    MarkConversationReadUseCase markConversationReadUseCase,
+                                   MarkConversationUnreadUseCase markConversationUnreadUseCase,
                                    ListRecipientCandidatesUseCase listRecipientCandidatesUseCase) {
         this.startGroupConversationUseCase = startGroupConversationUseCase;
         this.startBoardConversationUseCase = startBoardConversationUseCase;
@@ -82,6 +88,7 @@ public class ConversationController {
         this.listConversationMessagesUseCase = listConversationMessagesUseCase;
         this.sendMessageUseCase = sendMessageUseCase;
         this.markConversationReadUseCase = markConversationReadUseCase;
+        this.markConversationUnreadUseCase = markConversationUnreadUseCase;
         this.listRecipientCandidatesUseCase = listRecipientCandidatesUseCase;
     }
 
@@ -112,10 +119,11 @@ public class ConversationController {
     @PreAuthorize("@propertyAccess.canBroadcastOnProperty(authentication, #propertyId)")
     @PostMapping("/properties/{propertyId}/broadcast-messages")
     public ResponseEntity<ConversationReferenceResponse> broadcast(@PathVariable String propertyId,
-                                                                     @Valid @RequestBody SendMessageRequest request,
+                                                                     @Valid @RequestBody SendBroadcastMessageRequest request,
                                                                      Authentication authentication) {
         ConversationId id = sendBroadcastMessageUseCase.send(new SendBroadcastMessageCommand(
-                EntityId.of(propertyId), currentUserId(authentication), MessageBody.of(request.body())));
+                EntityId.of(propertyId), currentUserId(authentication), ConversationSubject.of(request.subject()),
+                MessageBody.of(request.body())));
         return ResponseEntity.status(HttpStatus.CREATED).body(ConversationReferenceResponse.from(id));
     }
 
@@ -124,10 +132,15 @@ public class ConversationController {
                                                                   @RequestParam(defaultValue = "20") int size,
                                                                   @RequestParam(required = false) String search,
                                                                   @RequestParam(required = false) String box,
+                                                                  @RequestParam(required = false) String readState,
                                                                   Authentication authentication) {
         ConversationBox parsedBox = box == null || box.isBlank() ? null : ConversationBox.valueOf(box.toUpperCase(Locale.ROOT));
+        ConversationReadState parsedReadState = readState == null || readState.isBlank()
+                ? null
+                : ConversationReadState.valueOf(readState.toUpperCase(Locale.ROOT));
         return PagedConversationSummaryResponse.from(listMyConversationsUseCase.listConversations(
-                new ListMyConversationsQuery(currentUserId(authentication), PageRequest.of(page, size), search, parsedBox)));
+                new ListMyConversationsQuery(currentUserId(authentication), PageRequest.of(page, size), search, parsedBox,
+                        parsedReadState)));
     }
 
     @GetMapping("/users/me/conversations/unread-summary")
@@ -158,6 +171,13 @@ public class ConversationController {
     @PostMapping("/conversations/{id}/read")
     public ResponseEntity<Void> markRead(@PathVariable String id, Authentication authentication) {
         markConversationReadUseCase.markRead(new MarkConversationReadCommand(ConversationId.of(id), currentUserId(authentication)));
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("@propertyAccess.isConversationParticipant(authentication, #id)")
+    @PostMapping("/conversations/{id}/unread")
+    public ResponseEntity<Void> markUnread(@PathVariable String id, Authentication authentication) {
+        markConversationUnreadUseCase.markUnread(new MarkConversationUnreadCommand(ConversationId.of(id), currentUserId(authentication)));
         return ResponseEntity.noContent().build();
     }
 

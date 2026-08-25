@@ -32,9 +32,11 @@ import type {
   SenderIdentity,
 } from '@/features/messaging/types/messaging.types';
 import { Button } from '@/shared/components/Button/Button';
+import { Card } from '@/shared/components/Card/Card';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 // Outlook-style compose: pick recipients AND write the message body together,
 // one "Envoyer" action - never a two-step "create an empty conversation,
@@ -42,13 +44,16 @@ import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 // conversation" as a concept exposed to the user; it only becomes one later
 // if someone replies (see ConversationListItem's "N messages" indicator).
 //
+// Un envoi à toute la copropriété part avec son propre objet et crée son
+// propre message - il ne rejoint plus le canal unique de la copropriété (voir
+// SendBroadcastMessageService côté API).
 // There is no separate "broadcast" composer: messaging the whole
 // copropriété is just this same form with "Toute la copropriété" picked as
 // the recipient (see RecipientPicker) - board/manager tiers only. Under the
 // hood that still routes to the distinct broadcast endpoint (the backend
-// models BROADCAST as a recipient-less, per-property singleton channel,
-// structurally unlike a GROUP conversation), but that split never surfaces
-// to the user as a different flow.
+// models BROADCAST as a recipient-less send resolved against the property's
+// roster, structurally unlike a GROUP conversation), but that split never
+// surfaces to the user as a different flow.
 //
 // This same form doubles as the draft editor: ?draftId= prefills it (see the
 // prefill effect below) and "Envoyer" then goes through useSendDraft instead
@@ -191,7 +196,7 @@ export function NewConversationPage() {
         : undefined;
   const selectedIdentity = identityOverride ?? defaultIdentity;
 
-  // "Concerne (facultatif)" only makes sense once composing to exactly one
+  // "Concerne" only makes sense once composing to exactly one
   // real recipient (not "toute la copropriété"/"le bureau") who owns more
   // than one lot here - the exact ambiguity it exists to resolve (e.g.
   // contacting a co-owner about Appartement 3 specifically, not their other
@@ -254,7 +259,7 @@ export function NewConversationPage() {
     }
 
     if (isEveryoneSelected) {
-      sendBroadcastMessage.mutate({ body: values.body }, { onSuccess });
+      sendBroadcastMessage.mutate({ subject: values.subject, body: values.body }, { onSuccess });
       return;
     }
 
@@ -294,7 +299,10 @@ export function NewConversationPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    // Hauteur bornée, comme la boîte de réception et le centre de notifications
+    // (h-[calc(100vh-160px)]) : sans plafond, « prendre la place restante » ne
+    // veut rien dire et l'éditeur retombe sur sa hauteur minimale.
+    <div className="flex h-[calc(100vh-160px)] flex-col gap-6">
       <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">Nouveau message</h1>
 
       {!effectivePropertyId && (
@@ -323,7 +331,7 @@ export function NewConversationPage() {
       )}
 
       {effectivePropertyId && (
-        <div className="flex flex-col gap-6">
+        <div className="flex min-h-0 flex-1 flex-col gap-6">
           {propertyIds.length > 1 && !currentDraftId && (
             <Button
               type="button"
@@ -338,146 +346,169 @@ export function NewConversationPage() {
             </Button>
           )}
 
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            // Enter inside the recipient search field must not submit the
-            // whole compose form (only the "Envoyer" button should) - the
-            // message editor is unaffected, Enter there just inserts a
-            // newline/paragraph break (via Quill's contenteditable) and
-            // never submits a form on its own.
-            onKeyDown={(e) => {
-              const target = e.target as HTMLElement;
-              if (e.key === 'Enter' && target.tagName !== 'TEXTAREA' && !target.closest('.ql-editor')) {
-                e.preventDefault();
-              }
-            }}
-            className="flex flex-col gap-4"
-            noValidate
-          >
-            {sendError && <Alert message={getErrorMessage(sendError)} />}
-            {saveDraftError && <Alert message={getErrorMessage(saveDraftError)} />}
+          {/* La carte, comme partout ailleurs : l'écran de rédaction posait ses
+              champs à même la page, sans fond ni bordure - seul de son espèce. */}
+          <Card className="flex min-h-0 flex-1 flex-col gap-4">
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              // Enter inside the recipient search field must not submit the
+              // whole compose form (only the "Envoyer" button should) - the
+              // message editor is unaffected, Enter there just inserts a
+              // newline/paragraph break (via Quill's contenteditable) and
+              // never submits a form on its own.
+              onKeyDown={(e) => {
+                const target = e.target as HTMLElement;
+                if (e.key === 'Enter' && target.tagName !== 'TEXTAREA' && !target.closest('.ql-editor')) {
+                  e.preventDefault();
+                }
+              }}
+              // min-h-0 + flex-1 tout au long de la chaîne depuis la page :
+              // un enfant flex refuse sinon de descendre sous la hauteur de son
+              // contenu, et l'éditeur ne récupère rien. Le défilement, lui, est
+              // confié à la zone des champs juste en dessous.
+              className="flex min-h-0 flex-1 flex-col gap-4"
+              noValidate
+            >
+              {/* Zone défilante : ce sont les champs qui défilent quand la
+                  fenêtre est basse, jamais la barre d'actions - « Envoyer » et
+                  « Enregistrer comme brouillon » restent posés au bas de la
+                  carte, toujours visibles. */}
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+                {sendError && <Alert message={getErrorMessage(sendError)} />}
+                {saveDraftError && <Alert message={getErrorMessage(saveDraftError)} />}
 
-            <RecipientPicker
-              propertyId={effectivePropertyId}
-              value={selectedRecipients}
-              onChange={setSelectedRecipients}
-              disabled={isSending || isSavingDraft}
-              canBroadcast={canBroadcast}
-              canBoardPrivate={canBoardPrivate}
-            />
+                <RequiredFieldsHint />
 
-            {identityChoiceNeeded && (
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Envoyer en tant que</span>
-                <div
-                  role="group"
-                  aria-label="Envoyer en tant que"
-                  className="flex w-fit rounded-lg border border-gray-200 p-0.5 dark:border-gray-800"
-                >
-                  {(['OWNER', 'BOARD'] as const).map((identity) => (
-                    <button
-                      key={identity}
-                      type="button"
-                      disabled={isSending || isSavingDraft}
-                      aria-pressed={selectedIdentity === identity}
-                      onClick={() => setIdentityOverride(identity)}
-                      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                        selectedIdentity === identity
-                          ? 'bg-brand-500 text-white'
-                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.05]'
-                      }`}
+                <RecipientPicker
+                  propertyId={effectivePropertyId}
+                  value={selectedRecipients}
+                  onChange={setSelectedRecipients}
+                  disabled={isSending || isSavingDraft}
+                  canBroadcast={canBroadcast}
+                  canBoardPrivate={canBoardPrivate}
+                />
+
+                {identityChoiceNeeded && (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Envoyer en tant que</span>
+                    <div
+                      role="group"
+                      aria-label="Envoyer en tant que"
+                      className="flex w-fit rounded-lg border border-gray-200 p-0.5 dark:border-gray-800"
                     >
-                      {identity === 'OWNER' ? 'Copropriétaire' : 'Membre du conseil'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+                      {(['OWNER', 'BOARD'] as const).map((identity) => (
+                        <button
+                          key={identity}
+                          type="button"
+                          disabled={isSending || isSavingDraft}
+                          aria-pressed={selectedIdentity === identity}
+                          onClick={() => setIdentityOverride(identity)}
+                          className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                            selectedIdentity === identity
+                              ? 'bg-brand-500 text-white'
+                              : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.05]'
+                          }`}
+                        >
+                          {identity === 'OWNER' ? 'Copropriétaire' : 'Membre du conseil'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {concernsUnitChoiceAvailable && (
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Concerne (facultatif)</span>
-                <div role="group" aria-label="Concerne" className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
+                {concernsUnitChoiceAvailable && (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Concerne</span>
+                    <div role="group" aria-label="Concerne" className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={isSending || isSavingDraft}
+                        aria-pressed={effectiveConcernsUnit === null}
+                        onClick={() => setConcernsUnit(null)}
+                        className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                          effectiveConcernsUnit === null
+                            ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/[0.12] dark:text-brand-400'
+                            : 'border-gray-300 text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-400 dark:hover:text-brand-400'
+                        }`}
+                      >
+                        Aucun lot
+                      </button>
+                      {soleRecipient!.unitNumbers.map((unitNumber) => (
+                        <button
+                          key={unitNumber}
+                          type="button"
+                          disabled={isSending || isSavingDraft}
+                          aria-pressed={effectiveConcernsUnit === unitNumber}
+                          onClick={() => setConcernsUnit(unitNumber)}
+                          className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                            effectiveConcernsUnit === unitNumber
+                              ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/[0.12] dark:text-brand-400'
+                              : 'border-gray-300 text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-400 dark:hover:text-brand-400'
+                          }`}
+                        >
+                          {unitNumber}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="new-message-subject" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Objet
+                    {/* Même convention que les champs partagés : l'astérisque marque
+                        l'obligatoire, expliqué une fois par RequiredFieldsHint. */}
+                    <span aria-hidden="true"> *</span>
+                  </label>
+                  <input
+                    id="new-message-subject"
+                    type="text"
+                    placeholder="Objet du message…"
+                    required
                     disabled={isSending || isSavingDraft}
-                    aria-pressed={effectiveConcernsUnit === null}
-                    onClick={() => setConcernsUnit(null)}
-                    className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                      effectiveConcernsUnit === null
-                        ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/[0.12] dark:text-brand-400'
-                        : 'border-gray-300 text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-400 dark:hover:text-brand-400'
-                    }`}
-                  >
-                    Aucun lot
-                  </button>
-                  {soleRecipient!.unitNumbers.map((unitNumber) => (
-                    <button
-                      key={unitNumber}
-                      type="button"
-                      disabled={isSending || isSavingDraft}
-                      aria-pressed={effectiveConcernsUnit === unitNumber}
-                      onClick={() => setConcernsUnit(unitNumber)}
-                      className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                        effectiveConcernsUnit === unitNumber
-                          ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/[0.12] dark:text-brand-400'
-                          : 'border-gray-300 text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-400 dark:hover:text-brand-400'
-                      }`}
-                    >
-                      Lot {unitNumber}
-                    </button>
-                  ))}
+                    className="min-h-11 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-base text-gray-800 dark:text-white/90 shadow-theme-xs placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 disabled:opacity-60"
+                    {...register('subject')}
+                  />
+                  {errors.subject && <p className="text-sm text-error-500 dark:text-error-400">{errors.subject.message}</p>}
                 </div>
+
+                {/* Pas d'intitulé au-dessus de l'éditeur : la barre d'outils et le
+                    texte d'amorce disent déjà ce que c'est, et « Message » sur un
+                    écran intitulé « Nouveau message » ne nommait rien. */}
+                <MessageBodyEditor
+                  ref={editorRef}
+                  control={control}
+                  name="body"
+                  ariaLabel="Message"
+                  placeholder="Écrivez votre message…"
+                  disabled={isSending || isSavingDraft}
+                  error={errors.body?.message}
+                  fill
+                  minHeight={200}
+                />
               </div>
-            )}
 
-            <div className="flex flex-col gap-1">
-              <label htmlFor="new-message-subject" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Titre
-              </label>
-              <input
-                id="new-message-subject"
-                type="text"
-                placeholder="Objet du message…"
-                disabled={isSending || isSavingDraft}
-                className="min-h-11 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-base text-gray-800 dark:text-white/90 shadow-theme-xs placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 disabled:opacity-60"
-                {...register('subject')}
-              />
-              {errors.subject && <p className="text-sm text-error-500 dark:text-error-400">{errors.subject.message}</p>}
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Message</span>
-              <MessageBodyEditor
-                ref={editorRef}
-                control={control}
-                name="body"
-                ariaLabel="Message"
-                placeholder="Écrivez votre message…"
-                disabled={isSending || isSavingDraft}
-                error={errors.body?.message}
-                minHeight={140}
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button type="submit" disabled={selectedRecipients.length === 0} isLoading={isSending}>
-                Envoyer
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                // Un brouillon "bureau" n'existe pas encore côté serveur (le
-                // fil privé est toujours envoyé directement, jamais mis en
-                // attente) - voir SendMessageDraftService.
-                disabled={isSending || isBoardSelected}
-                isLoading={isSavingDraft}
-                onClick={onSaveDraft}
-              >
-                Enregistrer comme brouillon
-              </Button>
-            </div>
-          </form>
+              {/* shrink-0 : la barre d'actions garde sa hauteur quoi qu'il arrive -
+                  c'est l'éditeur qui cède la place, jamais les boutons. */}
+              <div className="flex shrink-0 items-center gap-2">
+                <Button type="submit" disabled={selectedRecipients.length === 0} isLoading={isSending}>
+                  Envoyer
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  // Un brouillon "bureau" n'existe pas encore côté serveur (le
+                  // fil privé est toujours envoyé directement, jamais mis en
+                  // attente) - voir SendMessageDraftService.
+                  disabled={isSending || isBoardSelected}
+                  isLoading={isSavingDraft}
+                  onClick={onSaveDraft}
+                >
+                  Enregistrer comme brouillon
+                </Button>
+              </div>
+            </form>
+          </Card>
         </div>
       )}
     </div>

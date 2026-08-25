@@ -22,7 +22,10 @@ export function usePendingInvitationConsumer() {
       return;
     }
     hasConsumed.current = true;
-    const mutation = pending.type === 'PUBLIC' ? submitMembershipRequest : acceptInvitation;
+    // Un siège au conseil s'accepte directement (il n'attribue rien, un
+    // administrateur valide ensuite) ; tout le reste dépose une demande
+    // d'adhésion que le syndic valide - lien public comme lien privé.
+    const mutation = pending.isBoardSeat ? acceptInvitation : submitMembershipRequest;
     mutation.mutate(
       { token: pending.token, unitId: pending.unitId },
       {

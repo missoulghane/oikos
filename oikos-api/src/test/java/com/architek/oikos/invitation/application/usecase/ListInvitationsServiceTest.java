@@ -39,7 +39,7 @@ class ListInvitationsServiceTest {
     void listing_invitations_of_a_property_maps_each_to_a_view_with_a_link() {
         EntityId propertyId = EntityId.newId();
         Invitation invitation = Invitation.issue(InvitationId.newId(), propertyId, InvitationType.PUBLIC, "PROPERTY_OWNER",
-                null, "tok", Instant.EPOCH.plus(Duration.ofDays(30)), EntityId.newId(), null);
+                null, "tok", Instant.EPOCH.plus(Duration.ofDays(30)), EntityId.newId(), null, null, null);
         when(invitationRepository.findAllByPropertyId(propertyId, PageRequest.of(0, 20)))
                 .thenReturn(Page.of(List.of(invitation), 0, 20, 1));
         when(linkComposer.link("tok")).thenReturn("http://localhost/invitations?token=tok");

@@ -9,5 +9,7 @@ public interface PartyInvitationTokenJpaRepository extends JpaRepository<PartyIn
 
     Optional<PartyInvitationTokenEntity> findByToken(String token);
 
+    Optional<PartyInvitationTokenEntity> findByPartyId(UUID partyId);
+
     void deleteByPartyId(UUID partyId);
 }

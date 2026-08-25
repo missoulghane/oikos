@@ -99,9 +99,6 @@ vi.mock('@/features/property-mngt/properties/hooks/useUnitOwners', () => ({
     error: null,
   }),
 }));
-vi.mock('@/features/property-mngt/installments/hooks/useRegularizeUnitInstallments', () => ({
-  useRegularizeUnitInstallments: () => ({ mutate: vi.fn(), isPending: false, isError: false, isSuccess: false }),
-}));
 vi.mock('@/features/identity/me', () => ({
   useCurrentUser: () => ({ data: { id: 'user-5' } }),
   canWriteAccounting: () => false,

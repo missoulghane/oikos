@@ -10,12 +10,16 @@ package com.architek.oikos.notification.domain.model;
  * GENERAL_MEETING_CALLED (an AG is convened), RELAUNCH_TO_VALIDATE (a board
  * member's relaunch letter is queued for admin approval), REQUEST_RECEIVED
  * (a membership request/invitation acceptance lands on a manager's desk).
- * GENERAL is the catch-all for anything that doesn't fit those four.
+ * REQUEST_DECIDED is its counterpart, fired once a manager has ruled on such
+ * a request: to the requester (their access is granted or refused) and to the
+ * rest of the board (so two managers don't review the same request twice).
+ * GENERAL is the catch-all for anything that doesn't fit those five.
  */
 public enum NotificationType {
     INSTALLMENT_OVERDUE,
     GENERAL_MEETING_CALLED,
     RELAUNCH_TO_VALIDATE,
     REQUEST_RECEIVED,
+    REQUEST_DECIDED,
     GENERAL
 }

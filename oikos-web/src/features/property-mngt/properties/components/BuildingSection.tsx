@@ -48,8 +48,7 @@ export function BuildingSection({ building, showShares }: BuildingSectionProps) 
       </div>
       {isAddingUnit && (
         <AddUnitForm
-          propertyId={building.propertyId}
-          buildingId={building.id}
+          building={building}
           showShares={showShares}
           onSuccess={() => setIsAddingUnit(false)}
           onCancel={() => setIsAddingUnit(false)}

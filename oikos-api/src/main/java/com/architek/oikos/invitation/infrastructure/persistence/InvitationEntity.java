@@ -57,4 +57,10 @@ public class InvitationEntity extends AuditableEntity {
 
     @Column(name = "target_board_role")
     private String targetBoardRole;
+
+    @Column(name = "target_unit_id")
+    private UUID targetUnitId;
+
+    @Column(name = "target_party_id")
+    private UUID targetPartyId;
 }

@@ -3,6 +3,7 @@ package com.architek.oikos.party.web.response;
 import com.architek.oikos.party.application.dto.PartyView;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
 
+/** Le contact tel qu'il apparait dans une liste. La fiche, elle, repond un {@link PartyDetailResponse}. */
 public record PartyResponse(String id, String fullName, PartyType partyType, String email, String phone) {
 
     public static PartyResponse from(PartyView view) {

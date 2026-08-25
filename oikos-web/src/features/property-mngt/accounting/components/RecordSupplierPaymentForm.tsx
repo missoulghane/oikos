@@ -12,6 +12,7 @@ import {
   type RecordSupplierPaymentFormValues,
 } from '@/features/property-mngt/accounting/schemas/recordSupplierPaymentSchema';
 import type { Expense } from '@/features/property-mngt/accounting/types/accounting.types';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 interface RecordSupplierPaymentFormProps {
   propertyId: string;
@@ -50,7 +51,8 @@ export function RecordSupplierPaymentForm({
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
       {isSuccess && <Alert variant="success" message="Règlement enregistré." />}
-      <Select label="Compte de charge" {...register('ledgerAccountId')} errorMessage={errors.ledgerAccountId?.message}>
+      <RequiredFieldsHint />
+      <Select label="Compte de charge" required {...register('ledgerAccountId')} errorMessage={errors.ledgerAccountId?.message}>
         <option value="">Sélectionner…</option>
         {chargeAccounts.map((account) => (
           <option key={account.id} value={account.id}>
@@ -63,6 +65,7 @@ export function RecordSupplierPaymentForm({
       ) : (
         <Select
           label="Compte impacté"
+          required
           {...register('treasuryAccountId')}
           errorMessage={errors.treasuryAccountId?.message}
         >
@@ -74,9 +77,10 @@ export function RecordSupplierPaymentForm({
           ))}
         </Select>
       )}
-      <Input label="Date" type="date" {...register('pieceDate')} errorMessage={errors.pieceDate?.message} />
+      <Input label="Date" required type="date" {...register('pieceDate')} errorMessage={errors.pieceDate?.message} />
       <Input
         label="Montant"
+        required
         type="number"
         min={0}
         step="any"

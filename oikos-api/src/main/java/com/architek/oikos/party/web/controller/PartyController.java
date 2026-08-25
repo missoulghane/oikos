@@ -38,13 +38,16 @@ import com.architek.oikos.party.web.request.CreatePartyRequest;
 import com.architek.oikos.party.web.request.UpdatePartyPhoneRequest;
 import com.architek.oikos.party.web.request.UpdatePartyRequest;
 import com.architek.oikos.party.web.response.InvitePartyResponse;
+import com.architek.oikos.party.web.response.PartyDetailResponse;
 import com.architek.oikos.party.web.response.PartyResponse;
 import com.architek.oikos.party.web.response.PagedPartyResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.pagination.SortDirection;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
+import com.architek.oikos.shared.domain.valueobject.PartyAccountStatus;
 import com.architek.oikos.user.application.command.InvitePartyCommand;
+import com.architek.oikos.user.application.port.in.GetPartyAccountStatusUseCase;
 import com.architek.oikos.user.application.port.in.InvitePartyUseCase;
 
 /**
@@ -66,6 +69,7 @@ public class PartyController {
     private final ListPartiesUseCase listPartiesUseCase;
     private final DeletePartyUseCase deletePartyUseCase;
     private final InvitePartyUseCase invitePartyUseCase;
+    private final GetPartyAccountStatusUseCase getPartyAccountStatusUseCase;
 
     public PartyController(CreatePartyUseCase createPartyUseCase,
                               GetPartyUseCase getPartyUseCase,
@@ -73,7 +77,8 @@ public class PartyController {
                               UpdatePartyPhoneUseCase updatePartyPhoneUseCase,
                               ListPartiesUseCase listPartiesUseCase,
                               DeletePartyUseCase deletePartyUseCase,
-                              InvitePartyUseCase invitePartyUseCase) {
+                              InvitePartyUseCase invitePartyUseCase,
+                              GetPartyAccountStatusUseCase getPartyAccountStatusUseCase) {
         this.createPartyUseCase = createPartyUseCase;
         this.getPartyUseCase = getPartyUseCase;
         this.updatePartyUseCase = updatePartyUseCase;
@@ -81,6 +86,17 @@ public class PartyController {
         this.listPartiesUseCase = listPartiesUseCase;
         this.deletePartyUseCase = deletePartyUseCase;
         this.invitePartyUseCase = invitePartyUseCase;
+        this.getPartyAccountStatusUseCase = getPartyAccountStatusUseCase;
+    }
+
+    /**
+     * Le rapport du contact aux comptes de la plateforme, relu a chaque reponse
+     * unitaire plutot que porte par PartyView : une modification peut le laisser
+     * inchange (nom) comme le rendre caduc (email d'une invitation en cours), et
+     * l'ecran a besoin du statut d'apres, pas de celui d'avant.
+     */
+    private PartyAccountStatus accountStatusOf(String partyId) {
+        return getPartyAccountStatusUseCase.statusOf(EntityId.of(partyId));
     }
 
     @PreAuthorize("@propertyAccess.managesProperty(authentication, #propertyId)")
@@ -98,8 +114,8 @@ public class PartyController {
 
     @PreAuthorize("@propertyAccess.managesParty(authentication, #id) or @propertyAccess.ownsParty(authentication, #id)")
     @GetMapping("/{id}")
-    public PartyResponse getById(@PathVariable String id) {
-        return PartyResponse.from(getPartyUseCase.getParty(new GetPartyQuery(PartyId.of(id))));
+    public PartyDetailResponse getById(@PathVariable String id) {
+        return PartyDetailResponse.from(getPartyUseCase.getParty(new GetPartyQuery(PartyId.of(id))), accountStatusOf(id));
     }
 
     /** Une adresse vide vaut pas d'adresse : le formulaire envoie l'un ou l'autre. */
@@ -118,10 +134,10 @@ public class PartyController {
 
     @PreAuthorize("@propertyAccess.managesParty(authentication, #id)")
     @PutMapping("/{id}")
-    public PartyResponse update(@PathVariable String id, @Valid @RequestBody UpdatePartyRequest request) {
+    public PartyDetailResponse update(@PathVariable String id, @Valid @RequestBody UpdatePartyRequest request) {
         UpdatePartyCommand command = new UpdatePartyCommand(
                 PartyId.of(id), request.fullName(), request.partyType(), emailOrNull(request.email()), request.phone());
-        return PartyResponse.from(updatePartyUseCase.update(command));
+        return PartyDetailResponse.from(updatePartyUseCase.update(command), accountStatusOf(id));
     }
 
     /**
@@ -131,9 +147,9 @@ public class PartyController {
      */
     @PreAuthorize("@propertyAccess.managesParty(authentication, #id) or @propertyAccess.ownsParty(authentication, #id)")
     @PatchMapping("/{id}/phone")
-    public PartyResponse updatePhone(@PathVariable String id, @Valid @RequestBody UpdatePartyPhoneRequest request) {
+    public PartyDetailResponse updatePhone(@PathVariable String id, @Valid @RequestBody UpdatePartyPhoneRequest request) {
         UpdatePartyPhoneCommand command = new UpdatePartyPhoneCommand(PartyId.of(id), request.phone());
-        return PartyResponse.from(updatePartyPhoneUseCase.updatePhone(command));
+        return PartyDetailResponse.from(updatePartyPhoneUseCase.updatePhone(command), accountStatusOf(id));
     }
 
     @PreAuthorize("@propertyAccess.managesParty(authentication, #id)")

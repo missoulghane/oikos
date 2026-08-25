@@ -318,7 +318,7 @@ export function NewConversationScreen({ route, navigation }: Props) {
                       onPress={() => setConcernsUnit(unitNumber)}
                       style={styles.chipButton}
                     >
-                      {`Lot ${unitNumber}`}
+                      {unitNumber}
                     </Button>
                   ))}
                 </View>

@@ -11,5 +11,12 @@ public interface PartyInvitationTokenRepository {
 
     Optional<PartyInvitationToken> findByToken(String token);
 
+    /**
+     * L'invitation en cours pour ce contact, s'il y en a une - au plus une a la
+     * fois, chaque envoi supprimant la precedente (voir InvitePartyService).
+     * Peut etre expiree : c'est a l'appelant de le regarder.
+     */
+    Optional<PartyInvitationToken> findByPartyId(EntityId partyId);
+
     void deleteByPartyId(EntityId partyId);
 }

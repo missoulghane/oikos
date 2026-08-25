@@ -25,7 +25,7 @@ export function MyUnitCard({ unit, balance, dueCount = 0 }: MyUnitCardProps) {
       <div className="flex flex-col gap-1">
         <h2 className="font-medium text-gray-900 dark:text-white/90">{unit.propertyName}</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {unit.buildingName} — Lot {unit.unitNumber}
+          {unit.buildingName} — {unit.unitNumber}
         </p>
       </div>
       {/* Le même bloc que sur la fiche du lot, au même format : c'est le même

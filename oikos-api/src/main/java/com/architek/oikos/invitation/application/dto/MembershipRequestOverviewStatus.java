@@ -1,17 +1,17 @@
 package com.architek.oikos.invitation.application.dto;
 
 /**
- * Application-layer status for the manager's unified membership-request
- * overview - distinct from the persisted domain enum MembershipRequestStatus
- * (PENDING/ACCEPTED/REJECTED only). INVITED is synthetic and never stored:
- * it represents a still-outstanding PRIVATE invitation nobody has accepted
- * yet (see MembershipRequestOverviewView.fromInvitation), derived at read
- * time rather than persisted, since a PRIVATE invitation has no unit/party/
- * user to attach a real MembershipRequest row to until it's actually accepted.
+ * Statut applicatif de l'écran « Demandes d'adhésion » du syndic. Il reflète
+ * désormais exactement l'énumération persistée MembershipRequestStatus.
+ *
+ * <p>INVITED a disparu : cet écran mélangeait les demandes d'adhésion avec les
+ * invitations privées encore en attente d'acceptation, deux objets qui n'ont
+ * ni les mêmes actions ni le même cycle de vie. Les invitations privées se
+ * pilotent maintenant depuis la fiche du contact concerné (« Inviter à créer
+ * un compte »), là où l'on sait de qui l'on parle.
  */
 public enum MembershipRequestOverviewStatus {
     PENDING,
     ACCEPTED,
-    REJECTED,
-    INVITED
+    REJECTED
 }

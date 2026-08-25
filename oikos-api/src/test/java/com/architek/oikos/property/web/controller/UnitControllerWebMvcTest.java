@@ -95,7 +95,7 @@ class UnitControllerWebMvcTest {
         UnitId id = UnitId.newId();
         when(getUnitUseCase.getUnit(any())).thenReturn(
                 new UnitView(id, buildingId, PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
-                        OwnershipStatus.NOT_AFFECTED, List.of()));
+                        OwnershipStatus.NOT_AFFECTED, List.of(), null));
 
         mockMvc.perform(get("/api/v1/units/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
@@ -120,7 +120,7 @@ class UnitControllerWebMvcTest {
         UnitId id = UnitId.newId();
         when(updateUnitSharesUseCase.updateShares(any())).thenReturn(
                 new UnitView(id, BuildingId.newId(), PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(), "Appartement",
-                        new BigDecimal("150"), OwnershipStatus.NOT_AFFECTED, List.of()));
+                        new BigDecimal("150"), OwnershipStatus.NOT_AFFECTED, List.of(), null));
 
         mockMvc.perform(put("/api/v1/units/" + id + "/shares")
                         .header("Authorization", bearerToken("ROLE_ADMIN"))

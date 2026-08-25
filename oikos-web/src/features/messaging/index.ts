@@ -15,3 +15,4 @@ export type {
   RecipientCandidate,
   SenderIdentity,
 } from '@/features/messaging/types/messaging.types';
+export { RecipientGroupsTab } from '@/features/messaging/pages/RecipientGroupsTab';

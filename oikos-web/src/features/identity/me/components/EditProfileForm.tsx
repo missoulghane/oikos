@@ -10,6 +10,7 @@ import {
   updateProfileSchema,
   type UpdateProfileFormValues,
 } from '@/features/identity/me/schemas/updateProfileSchema';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 export function EditProfileForm({ user }: { user: CurrentUser }) {
   const {
@@ -30,8 +31,9 @@ export function EditProfileForm({ user }: { user: CurrentUser }) {
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {isSuccess && <Alert variant="success" message="Vos informations ont été mises à jour." />}
       {error && <Alert message={getErrorMessage(error)} />}
-      <Input label="Nom complet" {...register('fullName')} errorMessage={errors.fullName?.message} />
-      <Input label="Email" type="email" {...register('email')} errorMessage={errors.email?.message} />
+      <RequiredFieldsHint />
+      <Input label="Nom complet" required {...register('fullName')} errorMessage={errors.fullName?.message} />
+      <Input label="Email" required type="email" {...register('email')} errorMessage={errors.email?.message} />
       <Input label="Téléphone" type="tel" {...register('phone')} errorMessage={errors.phone?.message} />
       <Button type="submit" isLoading={isPending} className="w-fit">
         Enregistrer

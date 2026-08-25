@@ -90,3 +90,20 @@ export function spaceQuerySuffix(space: EffectiveSpace): string {
   }
   return '';
 }
+
+/**
+ * Le même suffixe, pour un lien qui part d'un écran syndic vers une route
+ * transverse scopée à une copropriété précise - typiquement la fiche contact
+ * (/parties/:propertyId/:partyId), ouverte depuis l'onglet Contacts ou depuis
+ * un lot. Cette route est volontairement hors de /property-mngt (un
+ * copropriétaire consulte sa propre fiche par la même adresse), donc rien dans
+ * son chemin ne dit l'espace : sans ce suffixe, useEffectiveSpace retombait sur
+ * son défaut - copropriétaire - et le syndic se retrouvait basculé dans son
+ * espace personnel en cliquant sur un contact.
+ *
+ * <p>« board » couvre les deux tiers syndic (conseil et cabinet), comme dans
+ * useEffectiveSpace : c'est la copropriété qui scope l'espace, pas le rôle.
+ */
+export function boardSpaceQuerySuffix(propertyId: string): string {
+  return spaceQuerySuffix({ kind: 'board', propertyId });
+}

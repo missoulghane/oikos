@@ -14,8 +14,12 @@ public interface NotificationRepository {
 
     Optional<Notification> findById(NotificationId id);
 
-    /** Every notification of the given recipient, most recent first. */
-    Page<Notification> findByRecipientUserId(EntityId recipientUserId, PageRequest pageRequest);
+    /**
+     * Notifications of the given recipient, most recent first. unreadOnly keeps
+     * the ones never opened - what the header bell lists, so that what it shows
+     * and the count on it are the same set.
+     */
+    Page<Notification> findByRecipientUserId(EntityId recipientUserId, boolean unreadOnly, PageRequest pageRequest);
 
     long countUnreadByRecipientUserId(EntityId recipientUserId);
 }

@@ -33,8 +33,9 @@ class MessageRepositoryAdapterDataJpaTest {
                 createdDate));
     }
 
+    // Le fil se lit comme une boîte mail : le dernier message en tête.
     @Test
-    void a_page_of_recent_messages_is_returned_in_ascending_chronological_order() {
+    void a_page_of_recent_messages_is_returned_most_recent_first() {
         ConversationId conversationId = ConversationId.newId();
         EntityId sender = EntityId.newId();
         Message first = post(conversationId, sender, "1", Instant.parse("2026-01-01T10:00:00Z"));
@@ -43,12 +44,12 @@ class MessageRepositoryAdapterDataJpaTest {
 
         Page<Message> page = adapter.findRecentPage(conversationId, PageRequest.of(0, 50));
 
-        assertThat(page.content()).extracting(Message::getId).containsExactly(first.getId(), second.getId(), third.getId());
+        assertThat(page.content()).extracting(Message::getId).containsExactly(third.getId(), second.getId(), first.getId());
         assertThat(page.totalElements()).isEqualTo(3);
     }
 
     @Test
-    void the_second_page_holds_the_next_older_messages_still_ascending() {
+    void the_second_page_holds_the_next_older_messages_in_the_same_order() {
         ConversationId conversationId = ConversationId.newId();
         EntityId sender = EntityId.newId();
         for (int i = 0; i < 5; i++) {
@@ -58,8 +59,8 @@ class MessageRepositoryAdapterDataJpaTest {
         Page<Message> firstPage = adapter.findRecentPage(conversationId, PageRequest.of(0, 3));
         Page<Message> secondPage = adapter.findRecentPage(conversationId, PageRequest.of(1, 3));
 
-        assertThat(firstPage.content()).extracting(m -> m.getBody().value()).containsExactly("msg2", "msg3", "msg4");
-        assertThat(secondPage.content()).extracting(m -> m.getBody().value()).containsExactly("msg0", "msg1");
+        assertThat(firstPage.content()).extracting(m -> m.getBody().value()).containsExactly("msg4", "msg3", "msg2");
+        assertThat(secondPage.content()).extracting(m -> m.getBody().value()).containsExactly("msg1", "msg0");
     }
 
     @Test

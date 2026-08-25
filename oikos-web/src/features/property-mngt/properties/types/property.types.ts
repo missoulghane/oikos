@@ -85,6 +85,8 @@ export interface Unit {
   shares: number;
   ownershipStatus: OwnershipStatus;
   ownerFullNames: string[];
+  /** Nul quand l'étage n'est pas renseigné : c'est le cas de tous les lots générés en masse (voir l'API). */
+  floor: number | null;
 }
 
 export type PagedUnits = Paged<Unit>;
@@ -93,6 +95,8 @@ export interface AddUnitPayload {
   unitNumber: string;
   unitTypeId: string;
   shares: number;
+  /** Facultatif : null vaut « étage non renseigné ». 0 est le rez-de-chaussée. */
+  floor: number | null;
 }
 
 export interface UpdateUnitSharesPayload {

@@ -29,6 +29,7 @@ public class ListMyNotificationsService implements ListMyNotificationsUseCase {
     @Override
     @Transactional(readOnly = true)
     public Page<NotificationView> listNotifications(ListMyNotificationsQuery query) {
-        return notificationRepository.findByRecipientUserId(query.userId(), query.pageRequest()).map(NotificationViewMapper::toView);
+        return notificationRepository.findByRecipientUserId(query.userId(), query.unreadOnly(), query.pageRequest())
+                .map(NotificationViewMapper::toView);
     }
 }

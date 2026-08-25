@@ -18,6 +18,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.architek.oikos.invitation.application.dto.InvitationPreviewView;
 import com.architek.oikos.invitation.application.port.out.PropertyBasicInfo;
 import com.architek.oikos.invitation.application.port.out.PropertyDirectoryPort;
+import com.architek.oikos.invitation.application.port.out.UnitBasicInfo;
+import com.architek.oikos.invitation.application.port.out.UnitDirectoryPort;
 import com.architek.oikos.invitation.application.query.GetInvitationByTokenQuery;
 import com.architek.oikos.invitation.domain.exception.InvalidInvitationTokenException;
 import com.architek.oikos.invitation.domain.model.Invitation;
@@ -38,8 +40,11 @@ class GetInvitationByTokenServiceTest {
     @Mock
     private PropertyDirectoryPort propertyDirectoryPort;
 
+    @Mock
+    private UnitDirectoryPort unitDirectoryPort;
+
     private GetInvitationByTokenService newService() {
-        return new GetInvitationByTokenService(invitationRepository, propertyDirectoryPort, CLOCK);
+        return new GetInvitationByTokenService(invitationRepository, propertyDirectoryPort, unitDirectoryPort, CLOCK);
     }
 
     @Test
@@ -55,7 +60,7 @@ class GetInvitationByTokenServiceTest {
         EntityId propertyId = EntityId.newId();
         Invitation invitation = Invitation.issue(InvitationId.newId(), propertyId, InvitationType.PRIVATE,
                 "PROPERTY_OWNER", EmailVO.of("jane.doe@example.com"), "tok", CLOCK.instant().plus(Duration.ofDays(1)),
-                EntityId.newId(), null);
+                EntityId.newId(), null, null, null);
         when(invitationRepository.findByToken("tok")).thenReturn(Optional.of(invitation));
         when(propertyDirectoryPort.findBasicInfo(propertyId))
                 .thenReturn(Optional.of(new PropertyBasicInfo("Copro Test", "1 rue de la Paix")));
@@ -67,11 +72,58 @@ class GetInvitationByTokenServiceTest {
         assertThat(preview.targetEmail()).isEqualTo(EmailVO.of("jane.doe@example.com"));
     }
 
+    /**
+     * « Votre lot », sans dire lequel, ne se vérifie pas : le destinataire doit
+     * pouvoir repérer une erreur du syndic avant même de se connecter.
+     */
+    @Test
+    void previewing_a_private_invitation_names_the_designated_lot() {
+        EntityId propertyId = EntityId.newId();
+        EntityId unitId = EntityId.newId();
+        Invitation invitation = Invitation.issue(InvitationId.newId(), propertyId, InvitationType.PRIVATE,
+                "PROPERTY_OWNER", EmailVO.of("jane.doe@example.com"), "tok", CLOCK.instant().plus(Duration.ofDays(1)),
+                EntityId.newId(), null, unitId, null);
+        when(invitationRepository.findByToken("tok")).thenReturn(Optional.of(invitation));
+        when(propertyDirectoryPort.findBasicInfo(propertyId))
+                .thenReturn(Optional.of(new PropertyBasicInfo("Copro Test", "1 rue de la Paix")));
+        when(unitDirectoryPort.findBasicInfo(unitId))
+                .thenReturn(Optional.of(new UnitBasicInfo(propertyId, "A-12", "Appartement", false)));
+
+        InvitationPreviewView preview = newService().getPreview(new GetInvitationByTokenQuery("tok"));
+
+        assertThat(preview.targetUnitId()).isEqualTo(unitId);
+        assertThat(preview.targetUnitNumber()).isEqualTo("A-12");
+        assertThat(preview.targetUnitTypeName()).isEqualTo("Appartement");
+    }
+
+    /**
+     * Un lot supprimé depuis l'envoi ne rend pas le lien inutilisable : la page
+     * d'accueil retombe simplement sur le choix libre du lot.
+     */
+    @Test
+    void previewing_a_private_invitation_whose_lot_no_longer_exists_leaves_the_lot_open() {
+        EntityId propertyId = EntityId.newId();
+        EntityId unitId = EntityId.newId();
+        Invitation invitation = Invitation.issue(InvitationId.newId(), propertyId, InvitationType.PRIVATE,
+                "PROPERTY_OWNER", EmailVO.of("jane.doe@example.com"), "tok", CLOCK.instant().plus(Duration.ofDays(1)),
+                EntityId.newId(), null, unitId, null);
+        when(invitationRepository.findByToken("tok")).thenReturn(Optional.of(invitation));
+        when(propertyDirectoryPort.findBasicInfo(propertyId))
+                .thenReturn(Optional.of(new PropertyBasicInfo("Copro Test", "1 rue de la Paix")));
+        when(unitDirectoryPort.findBasicInfo(unitId)).thenReturn(Optional.empty());
+
+        InvitationPreviewView preview = newService().getPreview(new GetInvitationByTokenQuery("tok"));
+
+        assertThat(preview.usable()).isTrue();
+        assertThat(preview.targetUnitId()).isNull();
+        assertThat(preview.targetUnitNumber()).isNull();
+    }
+
     @Test
     void previewing_an_expired_invitation_reports_it_as_unusable() {
         EntityId propertyId = EntityId.newId();
         Invitation invitation = Invitation.issue(InvitationId.newId(), propertyId, InvitationType.PUBLIC,
-                "PROPERTY_OWNER", null, "tok", CLOCK.instant().minus(Duration.ofDays(1)), EntityId.newId(), null);
+                "PROPERTY_OWNER", null, "tok", CLOCK.instant().minus(Duration.ofDays(1)), EntityId.newId(), null, null, null);
         when(invitationRepository.findByToken("tok")).thenReturn(Optional.of(invitation));
         when(propertyDirectoryPort.findBasicInfo(propertyId))
                 .thenReturn(Optional.of(new PropertyBasicInfo("Copro Test", "1 rue de la Paix")));

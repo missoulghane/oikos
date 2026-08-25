@@ -7,5 +7,5 @@ import type { OwnedUnit } from '@/features/property-ownership/units/types/unit.t
  * spelling the template out a fifth time.
  */
 export function formatUnitLabel(unit: OwnedUnit): string {
-  return `${unit.propertyName} — ${unit.buildingName} — Lot ${unit.unitNumber}`;
+  return `${unit.propertyName} — ${unit.buildingName} — ${unit.unitNumber}`;
 }

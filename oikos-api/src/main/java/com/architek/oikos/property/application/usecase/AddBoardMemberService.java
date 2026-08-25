@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.property.application.command.AddBoardMemberCommand;
 import com.architek.oikos.property.application.port.in.AddBoardMemberUseCase;
+import com.architek.oikos.property.application.port.out.AccountDirectoryPort;
 import com.architek.oikos.property.application.port.out.PartyDetails;
 import com.architek.oikos.property.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.property.domain.exception.PartyAlreadyHasRoleException;
@@ -25,12 +26,14 @@ public class AddBoardMemberService implements AddBoardMemberUseCase {
     private final BoardMemberRepository boardMemberRepository;
     private final PropertyRepository propertyRepository;
     private final PartyDirectoryPort partyDirectoryPort;
+    private final AccountDirectoryPort accountDirectoryPort;
 
     public AddBoardMemberService(BoardMemberRepository boardMemberRepository, PropertyRepository propertyRepository,
-                                  PartyDirectoryPort partyDirectoryPort) {
+                                  PartyDirectoryPort partyDirectoryPort, AccountDirectoryPort accountDirectoryPort) {
         this.boardMemberRepository = boardMemberRepository;
         this.propertyRepository = propertyRepository;
         this.partyDirectoryPort = partyDirectoryPort;
+        this.accountDirectoryPort = accountDirectoryPort;
     }
 
     @Override
@@ -53,11 +56,17 @@ public class AddBoardMemberService implements AddBoardMemberUseCase {
 
     /**
      * partyId already existing takes precedence; otherwise the party is resolved
-     * from the coordinates given - email first, then phone - and only created
-     * when neither matches. Same chain as AddUnitOwnerService: a syndic often
-     * knows one coordinate without the other, and matching on email alone
-     * created a second fiche for someone already on file, paid for later in
-     * duplicate convocations and dues calls.
+     * from the coordinates given - email de fiche, puis téléphone, puis email de
+     * compte - et créée seulement quand aucun ne correspond. Same chain as
+     * AddUnitOwnerService: a syndic often knows one coordinate without the
+     * other, and matching on email alone created a second fiche for someone
+     * already on file, paid for later in duplicate convocations and dues calls.
+     *
+     * <p>Le troisième filet vise le cas le plus trompeur : le syndic tape
+     * l'adresse avec laquelle la personne se connecte, qui n'est pas celle
+     * inscrite sur sa fiche. Rien ne correspondait, et un second contact
+     * naissait pour quelqu'un qui possède déjà un lot dans l'immeuble - avec le
+     * nom, parfois approximatif, saisi à ce moment-là.
      *
      * <p>Both coordinates may be absent: a conseil syndical member with neither
      * is recorded on their name alone. Nothing can be de-duplicated then, and
@@ -77,6 +86,7 @@ public class AddBoardMemberService implements AddBoardMemberUseCase {
                 : Optional.empty();
         return byEmail
                 .or(() -> partyDirectoryPort.findIdByPhone(command.phone(), propertyId))
+                .or(() -> email != null ? accountDirectoryPort.findLinkedPartyInProperty(email, propertyId) : Optional.empty())
                 .orElseGet(() -> partyDirectoryPort.createParty(
                         new PartyDetails(command.fullName(), PartyType.INDIVIDUAL, email, command.phone()),
                         propertyId));

@@ -4,10 +4,13 @@ import com.architek.oikos.invitation.application.dto.InvitationPreviewView;
 import com.architek.oikos.invitation.domain.model.InvitationType;
 
 public record InvitationPreviewResponse(InvitationType type, boolean usable, String reason, String propertyName,
-                                         String propertyAddress, String targetEmail, String boardRole) {
+                                         String propertyAddress, String targetEmail, String boardRole,
+                                         String targetUnitId, String targetUnitNumber, String targetUnitTypeName) {
 
     public static InvitationPreviewResponse from(InvitationPreviewView view) {
         return new InvitationPreviewResponse(view.type(), view.usable(), view.reason(), view.propertyName(),
-                view.propertyAddress(), view.targetEmail() != null ? view.targetEmail().value() : null, view.boardRole());
+                view.propertyAddress(), view.targetEmail() != null ? view.targetEmail().value() : null, view.boardRole(),
+                view.targetUnitId() != null ? view.targetUnitId().toString() : null, view.targetUnitNumber(),
+                view.targetUnitTypeName());
     }
 }

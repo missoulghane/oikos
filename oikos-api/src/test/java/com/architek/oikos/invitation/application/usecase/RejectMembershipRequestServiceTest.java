@@ -16,8 +16,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.architek.oikos.invitation.application.command.RejectMembershipRequestCommand;
+import com.architek.oikos.invitation.application.event.MembershipRequestDecidedEvent;
 import com.architek.oikos.invitation.domain.exception.MembershipRequestAlreadyDecidedException;
 import com.architek.oikos.invitation.domain.exception.MembershipRequestNotFoundException;
 import com.architek.oikos.invitation.domain.model.MembershipRequest;
@@ -33,8 +35,11 @@ class RejectMembershipRequestServiceTest {
     @Mock
     private MembershipRequestRepository membershipRequestRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private RejectMembershipRequestService newService() {
-        return new RejectMembershipRequestService(membershipRequestRepository, CLOCK);
+        return new RejectMembershipRequestService(membershipRequestRepository, eventPublisher, CLOCK);
     }
 
     @Test
@@ -52,6 +57,21 @@ class RejectMembershipRequestServiceTest {
         assertThat(captor.getValue().getStatus().name()).isEqualTo("REJECTED");
         assertThat(captor.getValue().getRejectionReason()).isEqualTo("Lot déjà attribué");
         assertThat(captor.getValue().getDecidedByUserId()).isEqualTo(decidedByUserId);
+    }
+
+    /** Un refus silencieux laisse le candidat attendre indéfiniment un accès qui ne viendra pas. */
+    @Test
+    void rejecting_announces_the_decision_with_its_reason() {
+        MembershipRequest request = MembershipRequest.submit(MembershipRequestId.newId(), EntityId.newId(),
+                EntityId.newId(), EntityId.newId(), EntityId.newId(), EntityId.newId());
+        EntityId decidedByUserId = EntityId.newId();
+        when(membershipRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+        when(membershipRequestRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        newService().reject(new RejectMembershipRequestCommand(request.getId(), decidedByUserId, "Lot déjà attribué"));
+
+        verify(eventPublisher).publishEvent(new MembershipRequestDecidedEvent(request.getId(), request.getPropertyId(),
+                request.getUnitId(), request.getUserId(), false, decidedByUserId, "Lot déjà attribué"));
     }
 
     @Test

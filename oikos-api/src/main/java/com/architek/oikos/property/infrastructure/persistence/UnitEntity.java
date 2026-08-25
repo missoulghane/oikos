@@ -36,4 +36,8 @@ public class UnitEntity extends AuditableEntity {
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal shares;
+
+    /** Nullable : l'etage n'est pas connu pour les lots crees avant V9, ni pour ceux generes en masse. */
+    @Column(name = "floor")
+    private Integer floor;
 }

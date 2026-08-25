@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/shared/components/Input/Input';
@@ -8,11 +7,13 @@ import { Checkbox } from '@/shared/components/Checkbox/Checkbox';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { useAddUnitOwner } from '@/features/property-mngt/properties/hooks/useAddUnitOwner';
-import { useParties } from '@/features/property-mngt/parties/hooks/useParties';
+import { useUnitOwners } from '@/features/property-mngt/properties/hooks/useUnitOwners';
+import { contactMatchLabel, useContactMatch } from '@/features/property-mngt/parties/hooks/useContactMatch';
 import { PARTY_TYPE_LABELS } from '@/features/property-mngt/properties/constants/partyTypeLabels';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { PARTY_TYPES } from '@/features/property-mngt/properties/types/property.types';
 import { addUnitOwnerSchema, type AddUnitOwnerFormValues } from '@/features/property-mngt/properties/schemas/addUnitOwnerSchema';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 interface AddUnitOwnerFormProps {
   unitId: string;
@@ -21,21 +22,42 @@ interface AddUnitOwnerFormProps {
   onCancel: () => void;
 }
 
-const SEARCH_DEBOUNCE_MS = 300;
-
 const PARTY_TYPE_OPTIONS = PARTY_TYPES.map((type) => ({ value: type, label: PARTY_TYPE_LABELS[type] }));
 
 /**
+ * Le refus « ce contact détient déjà une part sur ce lot » se voit venir dans
+ * la plupart des cas (voir alreadyOwnerHere) ; il reste atteignable quand le
+ * serveur reconnaît un contact que la recherche de l'écran n'avait pas
+ * rapproché - une adresse saisie ici qui, côté serveur, désigne une fiche déjà
+ * rattachée. Le message de l'API est alors une phrase technique en anglais :
+ * on la remplace par la même explication que celle affichée en amont.
+ *
+ * <p>Reconnu sur son texte, faute de code d'erreur dans les réponses de l'API
+ * (voir ErrorResponse) : le repère est volontairement court et stable, et
+ * l'appel retombe sur le message d'origine s'il ne correspond pas.
+ */
+const ALREADY_OWNER_API_MESSAGE = 'already registered as an owner';
+
+function addUnitOwnerErrorMessage(error: unknown): string {
+  const message = getErrorMessage(error);
+  return message.includes(ALREADY_OWNER_API_MESSAGE)
+    ? "Ce contact détient déjà une part de ce lot. Un même contact n'y figure qu'une fois : vérifiez la liste des propriétaires ci-dessous."
+    : message;
+}
+
+/**
  * Seule porte d'entrée pour rattacher un propriétaire à un lot : on saisit le
- * contact, et si l'email ou le téléphone désignent quelqu'un de déjà enregistré,
- * l'écran le dit et propose de rattacher cette fiche-là plutôt que d'en créer
- * une seconde. L'ancien couple « rattacher un contact existant » / « nouveau
+ * contact, et si l'email, le téléphone ou l'adresse de connexion désignent
+ * quelqu'un de déjà enregistré, l'écran le dit et propose de rattacher cette
+ * fiche-là plutôt que d'en créer une seconde. L'ancien couple « rattacher un contact existant » / « nouveau
  * contact » obligeait le syndic à savoir, avant de commencer, si la personne
  * était déjà connue - ce que la recherche fait bien mieux que lui.
  *
- * <p>Le serveur applique la même règle (AddUnitOwnerService : email, puis
- * téléphone, puis création) : la confirmation ici est une politesse, pas la
- * garantie. Deux fiches ne peuvent pas naître d'un double clic.
+ * <p>Le serveur applique la même règle, dans le même ordre (AddUnitOwnerService :
+ * email de fiche, téléphone, email de compte, puis création) - c'est le même
+ * hook qui l'imite ici et dans AddBoardMemberForm (useContactMatch). La
+ * confirmation ici est une politesse, pas la garantie. Deux fiches ne peuvent
+ * pas naître d'un double clic.
  */
 export function AddUnitOwnerForm({ unitId, propertyId, onSuccess, onCancel }: AddUnitOwnerFormProps) {
   const {
@@ -50,6 +72,11 @@ export function AddUnitOwnerForm({ unitId, propertyId, onSuccess, onCancel }: Ad
     defaultValues: { partyType: 'INDIVIDUAL', ownershipShare: 0, phone: '', invite: true },
   });
   const { mutate, isPending, error } = useAddUnitOwner(unitId);
+  // Les propriétaires déjà rattachés à ce lot : la requête est celle que la
+  // section parente affiche déjà (même clé react-query, donc pas d'appel de
+  // plus), et elle sert ici à ne pas proposer un rattachement que le serveur
+  // refusera.
+  const unitOwners = useUnitOwners(unitId);
 
   // useWatch plutôt que watch() : ce dernier renvoie une fonction que le
   // compilateur React ne peut pas mémoriser, et la règle de lint le refuse.
@@ -57,32 +84,18 @@ export function AddUnitOwnerForm({ unitId, propertyId, onSuccess, onCancel }: Ad
   const phone = useWatch({ control, name: 'phone' });
   const invite = useWatch({ control, name: 'invite' });
 
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  useEffect(() => {
-    const timeout = setTimeout(() => setDebouncedSearch((email ?? '').trim()), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timeout);
-  }, [email]);
+  // Email de fiche, téléphone, puis email de connexion - le même ordre que le
+  // serveur (AddUnitOwnerService).
+  const existingParty = useContactMatch(propertyId, email, phone);
 
-  const [debouncedPhone, setDebouncedPhone] = useState('');
-  useEffect(() => {
-    const timeout = setTimeout(() => setDebouncedPhone((phone ?? '').trim()), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timeout);
-  }, [phone]);
-
-  // Une requête par coordonnée : le serveur cherche sur une chaîne libre, et
-  // envoyer les deux d'un coup ne ramènerait que les contacts qui portent
-  // exactement les deux.
-  const byEmail = useParties(propertyId, 0, { search: debouncedSearch || undefined });
-  const byPhone = useParties(propertyId, 0, { search: debouncedPhone || undefined });
-
-  const existingByEmail = debouncedSearch
-    ? byEmail.data?.content.find((party) => party.email?.toLowerCase() === debouncedSearch.toLowerCase())
+  // Un contact ne peut détenir qu'une seule quote-part sur un même lot (RG côté
+  // API : PartyAlreadyOwnsUnitException). Le dire ici, avant l'envoi, plutôt que
+  // de laisser le serveur répondre en anglais technique une fois le formulaire
+  // rempli - c'est le seul refus que le formulaire peut voir venir, puisque la
+  // liste des propriétaires du lot est déjà chargée.
+  const alreadyOwnerHere = existingParty
+    ? unitOwners.data?.find((owner) => owner.partyId === existingParty.partyId)
     : undefined;
-  const existingByPhone = debouncedPhone
-    ? byPhone.data?.content.find((party) => party.phone === debouncedPhone)
-    : undefined;
-  const existingParty = existingByEmail ?? existingByPhone;
-  const matchedOn = existingByEmail ? 'cet email' : 'ce numéro de téléphone';
 
   function onSubmit(values: AddUnitOwnerFormValues) {
     // Une adresse vide part absente : l'API distingue « pas d'email » de « email
@@ -92,21 +105,32 @@ export function AddUnitOwnerForm({ unitId, propertyId, onSuccess, onCancel }: Ad
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 rounded-lg border border-gray-200 dark:border-gray-800 p-4" noValidate>
-      {error && <Alert message={getErrorMessage(error)} />}
-      {existingParty && (
+      {error && <Alert message={addUnitOwnerErrorMessage(error)} />}
+      {/* Deux états, jamais les deux à la fois : « ce contact existe » invite à
+          confirmer, « il détient déjà une part ici » ferme la porte et dit
+          laquelle. */}
+      {alreadyOwnerHere ? (
         <Alert
-          variant="warning"
-          message={`Un contact existe déjà avec ${matchedOn} : ${existingParty.fullName}. En confirmant, le lot sera rattaché à ce contact — le nom, le type et les coordonnées saisis ici sont ignorés.`}
+          message={`${alreadyOwnerHere.partyFullName} détient déjà ${alreadyOwnerHere.ownershipShare} % de ce lot. Un même contact n'y figure qu'une fois : vérifiez la liste des propriétaires ci-dessous, ou rattachez un autre contact.`}
         />
+      ) : (
+        existingParty && (
+          <Alert
+            variant="warning"
+            message={`${contactMatchLabel(existingParty)}. En confirmant, le lot sera rattaché à ce contact — le nom, le type et les coordonnées saisis ici sont ignorés.`}
+          />
+        )
       )}
-      <Input label="Nom complet" {...register('fullName')} errorMessage={errors.fullName?.message} />
+      <RequiredFieldsHint />
+      <Input label="Nom complet" required {...register('fullName')} errorMessage={errors.fullName?.message} />
       <RadioGroup
         label="Type"
+        required
         options={PARTY_TYPE_OPTIONS}
         {...register('partyType')}
         errorMessage={errors.partyType?.message}
       />
-      <Input label="Email (optionnel)" type="email" {...register('email')} errorMessage={errors.email?.message} />
+      <Input label="Email" type="email" {...register('email')} errorMessage={errors.email?.message} />
       <Controller
         control={control}
         name="phone"
@@ -124,6 +148,7 @@ export function AddUnitOwnerForm({ unitId, propertyId, onSuccess, onCancel }: Ad
       />
       <Input
         label="Part de propriété (%)"
+        required
         type="number"
         min={0}
         max={100}
@@ -146,7 +171,9 @@ export function AddUnitOwnerForm({ unitId, propertyId, onSuccess, onCancel }: Ad
         {...register('invite')}
       />
       <div className="mt-2 flex gap-2">
-        <Button type="submit" isLoading={isPending}>
+        {/* Désactivé plutôt que refusé après coup : le message au-dessus dit
+            pourquoi, et le syndic n'a pas rempli le reste pour rien. */}
+        <Button type="submit" isLoading={isPending} disabled={Boolean(alreadyOwnerHere)}>
           {existingParty ? 'Rattacher au contact existant' : 'Rattacher au lot'}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>

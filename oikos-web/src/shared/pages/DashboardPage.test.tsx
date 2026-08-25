@@ -5,6 +5,7 @@ import type { OwnedUnit } from '@/features/property-ownership/units/types/unit.t
 import type { OwnedInstallment } from '@/features/property-ownership/installments/types/ownedInstallment.types';
 import type { Payment } from '@/features/property-mngt/installments/types/payment.types';
 import type { CurrentUser } from '@/features/identity/me/types/me.types';
+import type { OwnedMembershipRequest } from '@/features/property-ownership/membership-requests/types/membershipRequest.types';
 
 const owner: CurrentUser = {
   id: 'user-5',
@@ -43,6 +44,22 @@ const payments: Payment[] = [
 // reads it when the component calls it, well after this module has initialised.
 let mandateIds: string[] = [];
 
+// Idem : les lots validés et les demandes en attente varient d'un cas à
+// l'autre - un compte tout neuf n'a que la seconde, un copropriétaire déjà
+// installé a les deux.
+let ownedUnits: OwnedUnit[] = units;
+let membershipRequests: OwnedMembershipRequest[] = [];
+
+const pendingRequest: OwnedMembershipRequest = {
+  id: 'req-1',
+  propertyName: 'Les Jardins',
+  unitNumber: 'D4',
+  unitTypeName: 'Appartement',
+  status: 'PENDING',
+  decidedAt: null,
+  rejectionReason: null,
+};
+
 vi.mock('@/features/identity/me', () => ({
   useCurrentUser: () => ({ data: owner, isLoading: false }),
   boardPropertyIds: () => mandateIds,
@@ -52,7 +69,10 @@ vi.mock('@/shared/hooks/useEffectiveSpace', () => ({
   useEffectiveSpace: () => ({ kind: 'owner' }),
 }));
 vi.mock('@/features/property-ownership/units/hooks/useMyUnits', () => ({
-  useMyUnits: () => ({ data: units, isLoading: false, isError: false, error: null }),
+  useMyUnits: () => ({ data: ownedUnits, isLoading: false, isError: false, error: null }),
+}));
+vi.mock('@/features/property-ownership/membership-requests/hooks/useMyMembershipRequests', () => ({
+  useMyMembershipRequests: () => ({ data: membershipRequests, isLoading: false, isError: false, error: null }),
 }));
 vi.mock('@/features/property-ownership/installments/hooks/useMyInstallments', () => ({
   useMyInstallments: () => ({ data: installments, isLoading: false, error: null }),
@@ -91,6 +111,8 @@ function cardOf(propertyName: string) {
 describe('DashboardPage (owner space)', () => {
   beforeEach(() => {
     mandateIds = [];
+    ownedUnits = units;
+    membershipRequests = [];
   });
 
   // "Mes lots" was folded into the dashboard - it is no longer a screen of its own.
@@ -166,19 +188,57 @@ describe('DashboardPage (owner space)', () => {
     expect(screen.getByText('0 MAD').className).toMatch(/success/);
   });
 
-  // Explicitly kept while the rest of the dashboard was stripped: it is the
-  // only way for a mixed account to reach its board space from here.
-  it('keeps the switch to the board space for an owner who also sits on a bureau', () => {
-    mandateIds = ['p1'];
+  /**
+   * Le lot demandé via un lien d'invitation public, que le syndic n'a pas
+   * encore validé. Il n'apparaissait nulle part : « Mes lots » ne lit que les
+   * affectations validées, et la demande ne vivait que sur « Mes invitations »,
+   * un écran sans entrée de menu.
+   */
+  it('affiche le lot en attente à côté des lots déjà validés', () => {
+    membershipRequests = [pendingRequest];
     renderDashboard();
 
-    expect(screen.getByRole('link', { name: /bureau/i })).toHaveAttribute(
-      'href',
-      '/dashboard?space=board&propertyId=p1',
-    );
+    expect(screen.getByText('Les Jardins')).toBeInTheDocument();
+    expect(screen.getByText('En attente de validation')).toBeInTheDocument();
   });
 
-  it('shows no such switch for a plain owner', () => {
+  // Non cliquable, délibérément : le rôle n'est posé qu'à la validation, une
+  // carte cliquable mènerait à un 403.
+  it("ne rend pas le lot en attente cliquable", () => {
+    membershipRequests = [pendingRequest];
+    renderDashboard();
+
+    expect(screen.queryByRole('link', { name: /Les Jardins/ })).not.toBeInTheDocument();
+  });
+
+  // Le cas d'un compte qui vient d'accepter l'invitation : aucun lot validé.
+  // Lui annoncer « vous n'êtes propriétaire d'aucun lot » contredirait la
+  // demande qu'il vient de déposer.
+  it("remplace l'état vide par le lot en attente quand c'est tout ce qu'il y a", () => {
+    ownedUnits = [];
+    membershipRequests = [pendingRequest];
+    renderDashboard();
+
+    expect(screen.queryByText('Aucun lot')).not.toBeInTheDocument();
+    expect(screen.getByText('En attente de validation')).toBeInTheDocument();
+  });
+
+  // Une demande refusée ne mènera à aucun lot : elle n'a plus rien à faire sur
+  // le tableau de bord.
+  it('ne montre aucun badge pour une demande refusée', () => {
+    ownedUnits = [];
+    membershipRequests = [{ ...pendingRequest, status: 'REJECTED', rejectionReason: 'Lot déjà attribué' }];
+    renderDashboard();
+
+    expect(screen.queryByText('En attente de validation')).not.toBeInTheDocument();
+    expect(screen.getByText('Aucun lot')).toBeInTheDocument();
+  });
+
+  // La bascule vers l'espace conseil syndical vit dans le sélecteur d'espace
+  // de l'en-tête (SpaceSwitcher), présent sur tous les écrans : le tableau de
+  // bord n'en affiche plus de rappel, mandat ou pas.
+  it('carries no board-mandate card, even for an owner who also sits on a bureau', () => {
+    mandateIds = ['p1'];
     renderDashboard();
 
     expect(screen.queryByRole('link', { name: /bureau/i })).not.toBeInTheDocument();

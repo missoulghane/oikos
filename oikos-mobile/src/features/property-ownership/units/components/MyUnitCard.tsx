@@ -25,7 +25,7 @@ export function MyUnitCard({ unit, onPress, outstanding }: MyUnitCardProps) {
           )}
         </View>
         <Text style={styles.detail}>
-          {unit.buildingName} — Lot {unit.unitNumber}
+          {unit.buildingName} — {unit.unitNumber}
         </Text>
       </Card>
     </Pressable>

@@ -29,4 +29,22 @@ public interface InvitationRepository {
      * doesn't account for expiry (there's no stored EXPIRED status).
      */
     List<Invitation> findAllByPropertyIdAndTypeAndStatus(EntityId propertyId, InvitationType type, InvitationStatus status);
+
+    /**
+     * Le lien public d'une copropriété, quel que soit son statut. Il est
+     * unique par copropriété par décision produit : on le désactive et on le
+     * réactive (voir EnableInvitationUseCase), on n'en crée jamais un second,
+     * pour qu'un QR code déjà imprimé ou affiché ne devienne pas caduc.
+     * Optional.empty() tant qu'aucun n'a été créé.
+     */
+    Optional<Invitation> findPublicByPropertyId(EntityId propertyId);
+
+    /**
+     * L'invitation privée encore ouverte adressée à ce contact, s'il y en a
+     * une. ACTIVE seulement - l'appelant filtre lui-même l'expiration, comme
+     * pour findAllByPropertyIdAndTypeAndStatus : il n'existe pas de statut
+     * EXPIRED stocké. Il n'y en a jamais plus d'une ouverte à la fois, une
+     * nouvelle invitation fermant la précédente (voir CreateInvitationService).
+     */
+    Optional<Invitation> findOutstandingPrivateByPartyId(EntityId partyId);
 }

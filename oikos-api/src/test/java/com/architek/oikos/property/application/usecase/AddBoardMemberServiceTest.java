@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.property.application.command.AddBoardMemberCommand;
+import com.architek.oikos.property.application.port.out.AccountDirectoryPort;
 import com.architek.oikos.property.application.port.out.PartyDetails;
 import com.architek.oikos.property.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.property.domain.exception.PartyAlreadyHasRoleException;
@@ -40,8 +41,12 @@ class AddBoardMemberServiceTest {
     @Mock
     private PartyDirectoryPort partyDirectoryPort;
 
+    @Mock
+    private AccountDirectoryPort accountDirectoryPort;
+
     private AddBoardMemberService newService() {
-        return new AddBoardMemberService(boardMemberRepository, propertyRepository, partyDirectoryPort);
+        return new AddBoardMemberService(boardMemberRepository, propertyRepository, partyDirectoryPort,
+                accountDirectoryPort);
     }
 
     @Test
@@ -161,5 +166,52 @@ class AddBoardMemberServiceTest {
 
         verify(partyDirectoryPort).createParty(
                 new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, null, "+212612345678"), propertyId.value());
+    }
+
+    /**
+     * Le cas le plus trompeur : le syndic tape l'adresse avec laquelle la
+     * personne se connecte, qui n'est pas celle inscrite sur sa fiche. Rien ne
+     * correspondait, et un second contact naissait pour quelqu'un qui possède
+     * déjà un lot dans l'immeuble - avec le nom, parfois approximatif, saisi à
+     * ce moment-là.
+     */
+    @Test
+    void a_contact_reached_only_through_its_account_email_is_reused_rather_than_duplicated() {
+        PropertyId propertyId = PropertyId.newId();
+        EntityId existingPartyId = EntityId.newId();
+        when(propertyRepository.findById(propertyId))
+                .thenReturn(Optional.of(Property.create(propertyId, "Copro", "Address")));
+        when(partyDirectoryPort.findIdByEmail(EmailVO.of("user1@oikos.com"), propertyId.value()))
+                .thenReturn(Optional.empty());
+        when(partyDirectoryPort.findIdByPhone(any(), any())).thenReturn(Optional.empty());
+        when(accountDirectoryPort.findLinkedPartyInProperty(EmailVO.of("user1@oikos.com"), propertyId.value()))
+                .thenReturn(Optional.of(existingPartyId));
+        when(boardMemberRepository.existsByPropertyIdAndPartyIdAndBoardRole(any(), any(), any())).thenReturn(false);
+        when(boardMemberRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        newService().add(new AddBoardMemberCommand(propertyId, null, "Nom saisi n'importe comment",
+                "user1@oikos.com", null, BoardRole.TREASURER));
+
+        verify(partyDirectoryPort, never()).createParty(any(), any());
+    }
+
+    /** Personne derrière cette adresse : la fiche se crée, comme avant. */
+    @Test
+    void an_unknown_email_still_creates_the_contact() {
+        PropertyId propertyId = PropertyId.newId();
+        EntityId createdPartyId = EntityId.newId();
+        when(propertyRepository.findById(propertyId))
+                .thenReturn(Optional.of(Property.create(propertyId, "Copro", "Address")));
+        when(partyDirectoryPort.findIdByEmail(any(), any())).thenReturn(Optional.empty());
+        when(partyDirectoryPort.findIdByPhone(any(), any())).thenReturn(Optional.empty());
+        when(accountDirectoryPort.findLinkedPartyInProperty(any(), any())).thenReturn(Optional.empty());
+        when(partyDirectoryPort.createParty(any(), eq(propertyId.value()))).thenReturn(createdPartyId);
+        when(boardMemberRepository.existsByPropertyIdAndPartyIdAndBoardRole(any(), any(), any())).thenReturn(false);
+        when(boardMemberRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        newService().add(new AddBoardMemberCommand(propertyId, null, "Karim Alami", "inconnu@oikos.com", null,
+                BoardRole.MEMBER));
+
+        verify(partyDirectoryPort).createParty(any(PartyDetails.class), eq(propertyId.value()));
     }
 }

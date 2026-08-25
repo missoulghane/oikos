@@ -9,7 +9,11 @@ import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { AngleLeftIcon, AngleRightIcon } from '@/shared/icons';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
-import type { ConversationBox, ConversationSummary } from '@/features/messaging/types/messaging.types';
+import type {
+  ConversationBox,
+  ConversationReadState,
+  ConversationSummary,
+} from '@/features/messaging/types/messaging.types';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -17,6 +21,12 @@ const BOX_LABEL: Record<ConversationBox, string> = {
   RECEIVED: 'Réception',
   SENT: 'Envoyé',
 };
+
+const READ_STATE_FILTERS: { label: string; value: ConversationReadState | undefined }[] = [
+  { label: 'Tous', value: undefined },
+  { label: 'Non lus', value: 'UNREAD' },
+  { label: 'Lus', value: 'READ' },
+];
 
 const BOX_EMPTY_STATE: Record<ConversationBox, string> = {
   RECEIVED: 'Aucun message reçu',
@@ -59,13 +69,19 @@ export function MessagingLayout({ box }: MessagingLayoutProps) {
   const [page, setPage] = useState(0);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [readState, setReadState] = useState<ConversationReadState | undefined>(undefined);
 
   useEffect(() => {
     const timeout = setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
-  const conversations = useMyConversations(page, box, search || undefined);
+  const conversations = useMyConversations(page, box, search || undefined, readState);
+
+  function changeReadState(next: ConversationReadState | undefined) {
+    setReadState(next);
+    setPage(0);
+  }
   const hasConversationOpen = Boolean(conversationId);
   // Carried onto "Nouveau message" so composing from the board space doesn't
   // silently drop the viewer back into owner (see spaceQuerySuffix).
@@ -100,16 +116,35 @@ export function MessagingLayout({ box }: MessagingLayoutProps) {
           </div>
         </div>
 
-        <div className="border-b border-gray-200 dark:border-gray-800 p-3">
+        <div className="flex flex-col gap-3 border-b border-gray-200 dark:border-gray-800 p-3">
           <Input
             label="Rechercher"
-            placeholder="Nom, copropriété…"
+            placeholder="Nom, objet, copropriété, numéro de lot…"
             value={searchInput}
             onChange={(e) => {
               setSearchInput(e.target.value);
               setPage(0);
             }}
           />
+          {/* Filtré côté serveur, donc avant la pagination : « Non lus » sur une
+              page de 5 rend 5 non lus, pas les non lus parmi 5. */}
+          <div role="group" aria-label="Filtrer par état de lecture" className="flex gap-2">
+            {READ_STATE_FILTERS.map((filter) => (
+              <button
+                key={filter.label}
+                type="button"
+                aria-pressed={readState === filter.value}
+                onClick={() => changeReadState(filter.value)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  readState === filter.value
+                    ? 'bg-brand-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.05]'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">

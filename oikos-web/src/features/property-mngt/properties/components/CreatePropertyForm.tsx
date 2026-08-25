@@ -7,6 +7,7 @@ import {
   createPropertySchema,
   type CreatePropertyFormValues,
 } from '@/features/property-mngt/properties/schemas/createPropertySchema';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 interface CreatePropertyFormProps {
   onSubmit: (values: CreatePropertyFormValues) => void;
@@ -24,8 +25,9 @@ export function CreatePropertyForm({ onSubmit, isSubmitting, errorMessage }: Cre
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {errorMessage && <Alert message={errorMessage} />}
-      <Input label="Nom de la copropriété" {...register('name')} errorMessage={errors.name?.message} />
-      <Input label="Adresse" {...register('address')} errorMessage={errors.address?.message} />
+      <RequiredFieldsHint />
+      <Input label="Nom de la copropriété" required {...register('name')} errorMessage={errors.name?.message} />
+      <Input label="Adresse" required {...register('address')} errorMessage={errors.address?.message} />
       <Input label="Ville" {...register('city')} errorMessage={errors.city?.message} />
       <Button type="submit" isLoading={isSubmitting} className="mt-2">
         Créer la copropriété

@@ -2,22 +2,23 @@ package com.architek.oikos.messaging.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.messaging.application.command.SendBroadcastMessageCommand;
 import com.architek.oikos.messaging.domain.model.Conversation;
+import com.architek.oikos.messaging.domain.valueobject.ConversationSubject;
 import com.architek.oikos.messaging.domain.repository.ConversationRepository;
 import com.architek.oikos.messaging.domain.repository.MessageRepository;
 import com.architek.oikos.messaging.domain.valueobject.ConversationId;
@@ -40,30 +41,36 @@ class SendBroadcastMessageServiceTest {
     }
 
     @Test
-    void broadcasting_for_the_first_time_creates_the_property_s_channel() {
+    void a_broadcast_carries_its_own_subject() {
         EntityId propertyId = EntityId.newId();
         EntityId sender = EntityId.newId();
-        when(conversationRepository.findBroadcastConversation(propertyId)).thenReturn(Optional.empty());
         when(conversationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(messageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ConversationId id = newService().send(new SendBroadcastMessageCommand(propertyId, sender, MessageBody.of("Annonce")));
+        ConversationId id = newService().send(new SendBroadcastMessageCommand(propertyId, sender,
+                ConversationSubject.of("Coupure d'eau jeudi"), MessageBody.of("Annonce")));
 
         assertThat(id).isNotNull();
-        verify(conversationRepository).save(any(Conversation.class));
+        ArgumentCaptor<Conversation> captor = ArgumentCaptor.forClass(Conversation.class);
+        verify(conversationRepository).save(captor.capture());
+        assertThat(captor.getValue().getSubject().value()).isEqualTo("Coupure d'eau jeudi");
     }
 
+    // Le fond de la demande : deux annonces sans rapport ne sont pas un fil.
+    // Elles se retrouvaient bout à bout dans l'unique canal de la copropriété.
     @Test
-    void broadcasting_again_reuses_the_existing_channel() {
+    void broadcasting_again_starts_a_new_conversation_rather_than_reusing_one() {
         EntityId propertyId = EntityId.newId();
         EntityId sender = EntityId.newId();
-        Conversation existing = Conversation.createBroadcast(ConversationId.newId(), propertyId, sender);
-        when(conversationRepository.findBroadcastConversation(propertyId)).thenReturn(Optional.of(existing));
+        when(conversationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(messageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ConversationId id = newService().send(new SendBroadcastMessageCommand(propertyId, sender, MessageBody.of("Annonce 2")));
+        ConversationId first = newService().send(new SendBroadcastMessageCommand(propertyId, sender,
+                ConversationSubject.of("Coupure d'eau"), MessageBody.of("Annonce 1")));
+        ConversationId second = newService().send(new SendBroadcastMessageCommand(propertyId, sender,
+                ConversationSubject.of("Ravalement"), MessageBody.of("Annonce 2")));
 
-        assertThat(id).isEqualTo(existing.getId());
-        verify(conversationRepository, never()).save(any());
+        assertThat(first).isNotEqualTo(second);
+        verify(conversationRepository, times(2)).save(any(Conversation.class));
     }
 }

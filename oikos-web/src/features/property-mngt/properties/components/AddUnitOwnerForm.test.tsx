@@ -3,10 +3,20 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AddUnitOwnerForm } from '@/features/property-mngt/properties/components/AddUnitOwnerForm';
 import { useAddUnitOwner } from '@/features/property-mngt/properties/hooks/useAddUnitOwner';
-import { useParties } from '@/features/property-mngt/parties/hooks/useParties';
+import { useContactMatch, type ContactMatchedOn } from '@/features/property-mngt/parties/hooks/useContactMatch';
+import { useUnitOwners } from '@/features/property-mngt/properties/hooks/useUnitOwners';
 
 vi.mock('@/features/property-mngt/properties/hooks/useAddUnitOwner', () => ({ useAddUnitOwner: vi.fn() }));
-vi.mock('@/features/property-mngt/parties/hooks/useParties', () => ({ useParties: vi.fn() }));
+vi.mock('@/features/property-mngt/parties/hooks/useContactMatch', async () => {
+  const actual = await vi.importActual<typeof import('@/features/property-mngt/parties/hooks/useContactMatch')>(
+    '@/features/property-mngt/parties/hooks/useContactMatch',
+  );
+  // Le rapprochement a son propre test (useContactMatch.test) : ici on vérifie
+  // ce que le formulaire en fait, pas comment il est calculé. Le libellé, lui,
+  // reste le vrai - c'est ce que le syndic lit.
+  return { ...actual, useContactMatch: vi.fn() };
+});
+vi.mock('@/features/property-mngt/properties/hooks/useUnitOwners', () => ({ useUnitOwners: vi.fn() }));
 
 const mutate = vi.fn();
 
@@ -18,19 +28,29 @@ interface KnownParty {
 }
 
 /**
- * useParties est appelé deux fois par le formulaire (une recherche par email,
- * une par téléphone) : le faux répond la même page pour les deux, ce que
- * l'annuaire réel ferait aussi sur une recherche libre.
+ * Le rapprochement est rendu par useContactMatch : le faux répond la fiche
+ * reconnue, quelle que soit la coordonnée saisie - c'est le formulaire qui est
+ * testé ici, pas la recherche.
  */
-function setup(knownParties: KnownParty[] = []) {
+function setup(
+  knownParties: KnownParty[] = [],
+  unitOwners: { partyId: string; partyFullName: string; ownershipShare: number }[] = [],
+  matchedOn: ContactMatchedOn = 'EMAIL',
+) {
   mutate.mockReset();
   vi.mocked(useAddUnitOwner).mockReturnValue({ mutate, isPending: false, error: null } as never);
-  vi.mocked(useParties).mockReturnValue({
-    data: { content: knownParties, page: 0, size: 20, totalElements: knownParties.length, totalPages: 1 },
-    isLoading: false,
-    isError: false,
-    error: null,
-  } as never);
+  vi.mocked(useUnitOwners).mockReturnValue({ data: unitOwners, isLoading: false, isError: false, error: null } as never);
+  const known = knownParties[0];
+  vi.mocked(useContactMatch).mockReturnValue(
+    known
+      ? {
+          partyId: known.id,
+          fullName: known.fullName,
+          contactEmail: known.email,
+          matchedOn,
+        }
+      : undefined,
+  );
 
   render(<AddUnitOwnerForm unitId="u-1" propertyId="p-1" onSuccess={vi.fn()} onCancel={vi.fn()} />);
 }
@@ -52,7 +72,7 @@ describe('AddUnitOwnerForm', () => {
     const user = userEvent.setup();
     setup();
 
-    await user.type(screen.getByLabelText('Email (optionnel)'), 'jane.doe@example.com');
+    await user.type(screen.getByLabelText('Email'), 'jane.doe@example.com');
 
     expect(screen.getByRole('checkbox', { name: /Inviter à créer un compte/ })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: /Inviter à créer un compte/ })).toBeEnabled();
@@ -62,7 +82,7 @@ describe('AddUnitOwnerForm', () => {
     const user = userEvent.setup();
     setup([{ id: 'party-1', fullName: 'Jane Doe', email: 'jane.doe@example.com', phone: null }]);
 
-    await user.type(screen.getByLabelText('Email (optionnel)'), 'jane.doe@example.com');
+    await user.type(screen.getByLabelText('Email'), 'jane.doe@example.com');
 
     expect(await screen.findByText(/Un contact existe déjà avec cet email : Jane Doe/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Rattacher au contact existant' })).toBeInTheDocument();
@@ -72,7 +92,7 @@ describe('AddUnitOwnerForm', () => {
     // Le second filet demandé : le syndic ressaisit la même personne sous une
     // autre adresse, et seul le numéro trahit le doublon.
     const user = userEvent.setup();
-    setup([{ id: 'party-1', fullName: 'Jane Doe', email: 'jane.doe@example.com', phone: '+212612345678' }]);
+    setup([{ id: 'party-1', fullName: 'Jane Doe', email: 'jane.doe@example.com', phone: '+212612345678' }], [], 'PHONE');
 
     await user.type(screen.getByLabelText('Téléphone'), '612345678');
 
@@ -84,7 +104,7 @@ describe('AddUnitOwnerForm', () => {
     setup();
 
     await user.type(screen.getByLabelText('Nom complet'), 'Jane Doe');
-    await user.type(screen.getByLabelText('Email (optionnel)'), 'jane.doe@example.com');
+    await user.type(screen.getByLabelText('Email'), 'jane.doe@example.com');
     await user.type(screen.getByLabelText('Téléphone'), '0612345678');
     await user.clear(screen.getByLabelText('Part de propriété (%)'));
     await user.type(screen.getByLabelText('Part de propriété (%)'), '50');
@@ -109,7 +129,7 @@ describe('AddUnitOwnerForm', () => {
     setup();
 
     await user.type(screen.getByLabelText('Nom complet'), 'Jane Doe');
-    await user.type(screen.getByLabelText('Email (optionnel)'), 'jane.doe@example.com');
+    await user.type(screen.getByLabelText('Email'), 'jane.doe@example.com');
     await user.click(screen.getByRole('checkbox', { name: /Inviter à créer un compte/ }));
     await user.click(screen.getByRole('button', { name: 'Rattacher au lot' }));
 
@@ -139,5 +159,39 @@ describe('AddUnitOwnerForm', () => {
 
     expect(screen.getByRole('checkbox', { name: /Inviter à créer un compte/ })).toBeDisabled();
     expect(screen.getByText('Renseignez un email pour pouvoir envoyer une invitation.')).toBeInTheDocument();
+  });
+
+  // Le serveur refuse un contact déjà rattaché au lot (PartyAlreadyOwnsUnitException),
+  // en anglais technique : l'écran le sait avant lui, puisqu'il a déjà la liste
+  // des propriétaires du lot.
+  it('ferme le rattachement quand le contact reconnu détient déjà une part du lot', async () => {
+    const user = userEvent.setup();
+    setup(
+      [{ id: 'party-1', fullName: 'Jane Doe', email: 'jane.doe@example.com', phone: null }],
+      [{ partyId: 'party-1', partyFullName: 'Jane Doe', ownershipShare: 50 }],
+    );
+
+    await user.type(screen.getByLabelText('Email'), 'jane.doe@example.com');
+
+    expect(await screen.findByText(/Jane Doe détient déjà 50 % de ce lot/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Rattacher/ })).toBeDisabled();
+    // L'invitation à confirmer le rattachement n'a plus lieu d'être.
+    expect(screen.queryByText(/Un contact existe déjà avec/)).not.toBeInTheDocument();
+  });
+
+  it("traduit le refus du serveur quand il reconnaît un rattachement que l'écran n'avait pas vu", () => {
+    vi.mocked(useAddUnitOwner).mockReturnValue({
+      mutate,
+      isPending: false,
+      // Le message tel que l'API le renvoie (voir PartyAlreadyOwnsUnitException).
+      error: new Error('This party is already registered as an owner of this unit; remove the existing entry to change its share'),
+    } as never);
+    vi.mocked(useContactMatch).mockReturnValue(undefined);
+    vi.mocked(useUnitOwners).mockReturnValue({ data: [], isLoading: false, isError: false } as never);
+
+    render(<AddUnitOwnerForm unitId="u-1" propertyId="p-1" onSuccess={vi.fn()} onCancel={vi.fn()} />);
+
+    expect(screen.getByText(/détient déjà une part de ce lot/)).toBeInTheDocument();
+    expect(screen.queryByText(/already registered as an owner/)).not.toBeInTheDocument();
   });
 });

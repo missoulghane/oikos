@@ -11,9 +11,19 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
     return (
       <div className="flex flex-col gap-1">
-        <label htmlFor={selectId} className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {label}
-        </label>
+        {/* Même convention que Input : l'astérisque dit « obligatoire », son
+            absence dit « facultatif » sans avoir à l'écrire sur l'étiquette, et il
+            reste hors de <label> pour ne pas s'inviter dans le nom du champ. */}
+        <div className="flex items-center gap-1">
+          <label htmlFor={selectId} className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {label}
+          </label>
+          {rest.required && (
+            <span aria-hidden="true" className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              *
+            </span>
+          )}
+        </div>
         <select
           id={selectId}
           ref={ref}

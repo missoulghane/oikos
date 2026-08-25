@@ -32,8 +32,13 @@ export function OnboardingDonePage() {
         >
           Accéder à ma copropriété
         </Link>
+        {/* Vers les informations générales, où vit désormais le lien public
+            d'adhésion : c'est par lui qu'on fait venir les copropriétaires.
+            L'onglet « Invitations » qui l'hébergeait ne montre plus que les
+            demandes reçues - envoyer d'abord quelqu'un y attendre devant une
+            liste vide n'avait plus de sens. */}
         <Link
-          to={propertyId ? `/property-mngt/properties/${propertyId}/property/invitations` : '/login'}
+          to={propertyId ? `/property-mngt/properties/${propertyId}/property` : '/login'}
           className="inline-flex min-h-11 items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300"
         >
           Ajouter des copropriétaires

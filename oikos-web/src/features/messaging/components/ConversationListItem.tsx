@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Badge } from '@/shared/components/Badge/Badge';
+import { useMarkConversationReadById } from '@/features/messaging/hooks/useMarkConversationReadById';
+import { useMarkConversationUnread } from '@/features/messaging/hooks/useMarkConversationUnread';
 import type { ConversationBox, ConversationSummary } from '@/features/messaging/types/messaging.types';
 import { formatRelativeTime } from '@/shared/utils/formatRelativeTime';
 import { BOX_PATH } from '@/features/messaging/utils/boxPath';
-import { stripMessageBodyMarkup } from '@/features/messaging/utils/renderMessageBody';
+import { messagePreviewText } from '@/features/messaging/utils/renderMessageBody';
 
 export const BROADCAST_CONVERSATION_LABEL = 'Annonces de la copropriété';
 
@@ -11,8 +13,10 @@ export const BROADCAST_CONVERSATION_LABEL = 'Annonces de la copropriété';
 // the backend), not the participant list - "who it's with" is secondary
 // info, shown separately (see participantsLine below).
 export function conversationTitle(conversation: ConversationSummary): string {
+  // Un envoi groupé porte désormais son propre objet ; le libellé fixe ne sert
+  // plus que de repli pour les envois d'avant ce changement, écrits sans objet.
   if (conversation.type === 'BROADCAST') {
-    return BROADCAST_CONVERSATION_LABEL;
+    return conversation.subject ?? BROADCAST_CONVERSATION_LABEL;
   }
   return conversation.subject ?? 'Conversation';
 }
@@ -22,16 +26,6 @@ export function participantsLine(conversation: ConversationSummary): string | nu
     return null;
   }
   return conversation.participants.map((participant) => participant.fullName).join(', ');
-}
-
-const PREVIEW_MAX_CHARS = 100;
-
-function truncatePreview(preview: string | null): string | null {
-  if (!preview) {
-    return null;
-  }
-  const plain = stripMessageBodyMarkup(preview);
-  return plain.length > PREVIEW_MAX_CHARS ? `${plain.slice(0, PREVIEW_MAX_CHARS)}…` : plain;
 }
 
 interface ConversationListItemProps {
@@ -48,16 +42,30 @@ interface ConversationListItemProps {
 // rounded-card + circular-avatar chat entry: sender/timestamp on one line,
 // thin border-b divider between rows.
 export function ConversationListItem({ conversation, box, isActive = false, spaceSuffix = '' }: ConversationListItemProps) {
+  const markRead = useMarkConversationReadById();
+  const markUnread = useMarkConversationUnread();
   const title = conversationTitle(conversation);
   const participants = participantsLine(conversation);
   // For BROADCAST there's no "other participant" to name, so the sender
   // line falls back to the broadcast label itself.
   const senderLabel = participants ?? title;
-  const preview = truncatePreview(conversation.lastMessagePreview);
+  const preview = messagePreviewText(conversation.lastMessagePreview);
   const hasUnread = conversation.unreadCount > 0;
 
+  // Le bouton vit hors du <Link> : un lien dans un lien n'est pas du HTML
+  // valide, et cliquer « marquer comme lu » ne doit pas ouvrir la conversation.
   return (
-    <li>
+    <li className="relative">
+      <button
+        type="button"
+        disabled={markRead.isPending || markUnread.isPending}
+        onClick={() => (hasUnread ? markRead.mutate(conversation.id) : markUnread.mutate(conversation.id))}
+        aria-label={hasUnread ? `Marquer « ${title} » comme lu` : `Marquer « ${title} » comme non lu`}
+        title={hasUnread ? 'Marquer comme lu' : 'Marquer comme non lu'}
+        className="absolute right-2 top-2 z-10 rounded-md px-2 py-1 text-[11px] font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-gray-200"
+      >
+        {hasUnread ? 'Lu' : 'Non lu'}
+      </button>
       <Link
         to={`${BOX_PATH[box]}/${conversation.id}${spaceSuffix}`}
         className={`flex flex-col gap-0.5 border-b border-l-2 border-gray-100 dark:border-gray-800 px-3 py-2.5 ${
@@ -70,7 +78,7 @@ export function ConversationListItem({ conversation, box, isActive = false, spac
           >
             {senderLabel}
           </span>
-          <span className="flex shrink-0 items-center gap-2">
+          <span className="flex shrink-0 items-center gap-2 pr-14">
             {conversation.lastMessageAt && (
               <span className="text-theme-xs text-gray-400 dark:text-gray-500">
                 {formatRelativeTime(conversation.lastMessageAt)}

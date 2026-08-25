@@ -59,7 +59,7 @@ export function BankAccountsStepPage() {
                 onChange={(event) => patchAccount(index, { label: event.target.value })}
               />
               <Input
-                label="Numéro de compte (optionnel)"
+                label="Numéro de compte"
                 name={`bank-number-${index}`}
                 placeholder="RIB ou IBAN"
                 value={account.bankAccountNumber}

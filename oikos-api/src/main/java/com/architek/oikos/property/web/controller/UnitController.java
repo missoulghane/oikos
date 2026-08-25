@@ -103,7 +103,7 @@ public class UnitController {
     public ResponseEntity<Void> add(@PathVariable String buildingId, @Valid @RequestBody AddUnitRequest request) {
         UnitId id = addUnitUseCase.add(new AddUnitCommand(
                 BuildingId.of(buildingId), request.unitNumber(), UnitTypeDefinitionId.of(request.unitTypeId()),
-                request.shares()));
+                request.shares(), request.floor()));
         return ResponseEntity.created(URI.create("/api/v1/units/" + id)).build();
     }
 }

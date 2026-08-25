@@ -127,9 +127,12 @@ public class RecordOwnerPaymentService implements RecordOwnerPaymentUseCase {
                 command.valueDate(), Amount.of(command.amount()), journalEntryId, receiptNumber);
         Payment savedPayment = paymentRepository.save(payment);
 
-        // After-commit: see PaymentReceiptGenerationListener for why the receipt
-        // must not ride inside this transaction.
-        eventPublisher.publishEvent(new PaymentRecordedEvent(savedPayment.getId(), command.createdByUserId()));
+        // After-commit: the receipt (PaymentReceiptGenerationListener) and the
+        // regularization of whatever advance the lot still carries
+        // (PaymentAdvanceRegularizationListener) both hang off this event, and
+        // neither may ride inside this transaction - see each for why.
+        eventPublisher.publishEvent(new PaymentRecordedEvent(savedPayment.getId(), command.propertyId(),
+                command.unitId(), command.valueDate(), command.createdByUserId()));
 
         List<InstallmentAllocationView> allocationViews = allocationResult.allocations().stream()
                 .map(allocation -> new InstallmentAllocationView(allocation.installmentId(), allocation.amount()))

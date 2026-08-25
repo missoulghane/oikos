@@ -94,6 +94,23 @@ export function renderMessageBody(body: string): ReactNode {
   return renderPlainTextBody(body);
 }
 
+/** Au-delà, la ligne d'aperçu est de toute façon coupée à l'écran. */
+const PREVIEW_MAX_CHARS = 100;
+
+/**
+ * L'aperçu du dernier message, tel qu'il s'affiche partout : en clair et
+ * borné. Partagé par la ligne de conversation et la cloche des messages du
+ * header - celle-ci affichait le corps brut, donc les balises HTML de l'éditeur
+ * telles quelles.
+ */
+export function messagePreviewText(preview: string | null): string | null {
+  if (!preview) {
+    return null;
+  }
+  const plain = stripMessageBodyMarkup(preview);
+  return plain.length > PREVIEW_MAX_CHARS ? `${plain.slice(0, PREVIEW_MAX_CHARS)}…` : plain;
+}
+
 // Preview-only cleanup (conversation list row, see ConversationListItem) -
 // reduces either format to plain text so the preview never shows literal
 // "**"/"- " markers or raw HTML tags.

@@ -99,6 +99,20 @@ export function hasCopro(user: CurrentUser): boolean {
 }
 
 /**
+ * Aucune affectation valide nulle part : ni lot possédé, ni rôle de gestion.
+ *
+ * C'est l'état d'un compte créé depuis un lien d'invitation public. Soumettre
+ * la demande ne pose aucun rôle - seul le syndic en pose un, en la validant
+ * (AcceptMembershipRequestService côté API) -, si bien qu'entre les deux il n'y
+ * a rien derrière « Mes échéances », « Mes paiements » ou « Messagerie » qu'un
+ * écran vide. Ces entrées sont donc masquées jusqu'à la validation ; seul le
+ * tableau de bord reste, où le lot demandé s'affiche en attente.
+ */
+export function hasNoPropertyAccess(user: CurrentUser): boolean {
+  return !hasCopro(user) && !canManageProperties(user);
+}
+
+/**
  * Gates the accounting module (property:accounting:read) - board/manager
  * tiers only, admin or member (see V2__rbac_permissions.sql: both tiers
  * hold the identical bundle for this property, unlike some other

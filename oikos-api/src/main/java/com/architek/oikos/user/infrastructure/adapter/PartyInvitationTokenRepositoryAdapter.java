@@ -40,6 +40,11 @@ public class PartyInvitationTokenRepositoryAdapter implements PartyInvitationTok
     }
 
     @Override
+    public Optional<PartyInvitationToken> findByPartyId(EntityId partyId) {
+        return jpaRepository.findByPartyId(partyId.value()).map(this::toDomain);
+    }
+
+    @Override
     public void deleteByPartyId(EntityId partyId) {
         jpaRepository.deleteByPartyId(partyId.value());
     }

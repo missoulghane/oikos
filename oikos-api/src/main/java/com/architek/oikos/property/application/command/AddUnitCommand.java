@@ -5,5 +5,7 @@ import java.math.BigDecimal;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 
-public record AddUnitCommand(BuildingId buildingId, String unitNumber, UnitTypeDefinitionId unitTypeId, BigDecimal shares) {
+/** floor est facultatif : null vaut "etage inconnu" (voir Unit). */
+public record AddUnitCommand(BuildingId buildingId, String unitNumber, UnitTypeDefinitionId unitTypeId,
+                             BigDecimal shares, Integer floor) {
 }

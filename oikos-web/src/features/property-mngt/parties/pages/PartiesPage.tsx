@@ -16,6 +16,7 @@ import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { countActiveFilters } from '@/shared/utils/countActiveFilters';
 import { nextSortDirection, type SortDirection } from '@/shared/utils/sorting';
 import type { PartySortField } from '@/features/property-mngt/parties/types/party.types';
+import { boardSpaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
 
 const PROPERTY_PICKER_SIZE = 100;
 
@@ -143,7 +144,7 @@ export function PartiesPage() {
                   <tr key={party.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.03]">
                     <td className="px-3 py-2">
                       <Link
-                        to={`/parties/${propertyId}/${party.id}`}
+                        to={`/parties/${propertyId}/${party.id}${boardSpaceQuerySuffix(propertyId)}`}
                         className="font-medium text-gray-900 hover:underline dark:text-white/90"
                       >
                         {party.fullName}

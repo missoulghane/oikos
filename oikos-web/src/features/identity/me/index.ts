@@ -10,6 +10,7 @@ export {
   boardPropertyIds,
   isOwnerOnProperty,
   hasCopro,
+  hasNoPropertyAccess,
   isManagerTier,
   isBoardTierOnProperty,
   isManagerTierOnProperty,

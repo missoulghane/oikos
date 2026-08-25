@@ -39,7 +39,7 @@ class GetInvitationServiceTest {
     void getting_a_known_invitation_returns_its_view_with_a_link() {
         InvitationId id = InvitationId.newId();
         Invitation invitation = Invitation.issue(id, EntityId.newId(), InvitationType.PUBLIC, "PROPERTY_OWNER", null,
-                "tok", Instant.EPOCH.plus(Duration.ofDays(30)), EntityId.newId(), null);
+                "tok", Instant.EPOCH.plus(Duration.ofDays(30)), EntityId.newId(), null, null, null);
         when(invitationRepository.findById(id)).thenReturn(Optional.of(invitation));
         when(linkComposer.link("tok")).thenReturn("http://localhost/invitations?token=tok");
 

@@ -119,3 +119,36 @@
 .ql-snow .ql-picker.ql-header {
   width: 130px;
 }
+
+/* Mode « pleine hauteur » (voir la prop `fill` de QuillEditor). Quill insère sa
+   barre d'outils en frère du conteneur d'édition, tous deux dans le wrapper :
+   c'est donc le wrapper qui devient la colonne flex, la barre garde sa hauteur
+   naturelle et la zone de frappe absorbe le reste. Sans `min-height: 0`, un
+   enfant flex refuse de descendre sous la hauteur de son contenu et l'éditeur
+   pousserait la page au lieu de défiler. */
+.quill-fill {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+/* `height: auto` casse le `height: 100%` que le thème Snow pose sur le
+   conteneur et sur la zone de frappe. Ce 100% se mesure sur le wrapper, qui
+   contient déjà la barre d'outils : le conteneur dépassait donc du wrapper de
+   la hauteur exacte de cette barre, et venait recouvrir ce qui suit - les
+   boutons d'envoi. On rend la hauteur au flex, qui lui compte la barre. */
+.quill-fill .ql-container.ql-snow {
+  display: flex;
+  min-height: 0;
+  height: auto;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.quill-fill .ql-editor {
+  min-height: 0;
+  height: auto;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}

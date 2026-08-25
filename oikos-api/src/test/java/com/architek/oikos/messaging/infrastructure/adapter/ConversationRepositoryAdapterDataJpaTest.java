@@ -58,21 +58,28 @@ class ConversationRepositoryAdapterDataJpaTest {
     }
 
     @Test
-    void reloading_a_broadcast_conversation_has_no_subject() {
-        Conversation saved = adapter.save(Conversation.createBroadcast(ConversationId.newId(), EntityId.newId(), EntityId.newId()));
+    void reloading_a_broadcast_conversation_keeps_its_subject() {
+        Conversation saved = adapter.save(Conversation.createBroadcast(ConversationId.newId(), EntityId.newId(),
+                EntityId.newId(), ConversationSubject.of("Coupure d'eau")));
 
         Conversation reloaded = adapter.findById(saved.getId()).orElseThrow();
 
-        assertThat(reloaded.getSubject()).isNull();
+        assertThat(reloaded.getSubject().value()).isEqualTo("Coupure d'eau");
     }
 
+    // L'index d'unicité par copropriété est levé (V7) : une copropriété peut
+    // recevoir autant d'envois groupés que le bureau en émet.
     @Test
-    void finds_the_single_broadcast_conversation_of_a_property() {
+    void a_property_can_hold_several_broadcasts() {
         EntityId propertyId = EntityId.newId();
-        Conversation saved = adapter.save(Conversation.createBroadcast(ConversationId.newId(), propertyId, EntityId.newId()));
+        Conversation first = adapter.save(Conversation.createBroadcast(ConversationId.newId(), propertyId,
+                EntityId.newId(), ConversationSubject.of("Coupure d'eau")));
+        Conversation second = adapter.save(Conversation.createBroadcast(ConversationId.newId(), propertyId,
+                EntityId.newId(), ConversationSubject.of("Ravalement")));
 
-        assertThat(adapter.findBroadcastConversation(propertyId)).contains(saved);
-        assertThat(adapter.findBroadcastConversation(EntityId.newId())).isEmpty();
+        assertThat(adapter.findAllByPropertyIdsAndType(java.util.List.of(propertyId), ConversationType.BROADCAST))
+                .extracting(Conversation::getId)
+                .containsExactlyInAnyOrder(first.getId(), second.getId());
     }
 
     @Test
@@ -111,9 +118,9 @@ class ConversationRepositoryAdapterDataJpaTest {
         EntityId propertyA = EntityId.newId();
         EntityId propertyB = EntityId.newId();
         EntityId propertyC = EntityId.newId();
-        Conversation broadcastA = adapter.save(Conversation.createBroadcast(ConversationId.newId(), propertyA, EntityId.newId()));
-        Conversation broadcastB = adapter.save(Conversation.createBroadcast(ConversationId.newId(), propertyB, EntityId.newId()));
-        adapter.save(Conversation.createBroadcast(ConversationId.newId(), propertyC, EntityId.newId()));
+        Conversation broadcastA = adapter.save(Conversation.createBroadcast(ConversationId.newId(), propertyA, EntityId.newId(), ConversationSubject.of("Annonce")));
+        Conversation broadcastB = adapter.save(Conversation.createBroadcast(ConversationId.newId(), propertyB, EntityId.newId(), ConversationSubject.of("Annonce")));
+        adapter.save(Conversation.createBroadcast(ConversationId.newId(), propertyC, EntityId.newId(), ConversationSubject.of("Annonce")));
 
         List<Conversation> found = adapter.findAllByPropertyIdsAndType(List.of(propertyA, propertyB), ConversationType.BROADCAST);
 

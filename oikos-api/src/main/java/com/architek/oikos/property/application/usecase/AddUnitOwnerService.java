@@ -10,6 +10,7 @@ import com.architek.oikos.property.application.command.AddUnitOwnershipCommand;
 import com.architek.oikos.property.application.port.in.AddUnitOwnerUseCase;
 import com.architek.oikos.property.application.port.in.AddUnitOwnershipUseCase;
 import com.architek.oikos.property.application.port.out.AccountLinkingPort;
+import com.architek.oikos.property.application.port.out.AccountDirectoryPort;
 import com.architek.oikos.property.application.port.out.PartyDetails;
 import com.architek.oikos.property.application.port.out.PartyDirectoryPort;
 import com.architek.oikos.property.domain.exception.UnitNotFoundException;
@@ -43,13 +44,16 @@ public class AddUnitOwnerService implements AddUnitOwnerUseCase {
     private final PartyDirectoryPort partyDirectoryPort;
     private final AddUnitOwnershipUseCase addUnitOwnershipUseCase;
     private final AccountLinkingPort accountLinkingPort;
+    private final AccountDirectoryPort accountDirectoryPort;
 
     public AddUnitOwnerService(UnitRepository unitRepository, PartyDirectoryPort partyDirectoryPort,
-                                AddUnitOwnershipUseCase addUnitOwnershipUseCase, AccountLinkingPort accountLinkingPort) {
+                                AddUnitOwnershipUseCase addUnitOwnershipUseCase, AccountLinkingPort accountLinkingPort,
+                                AccountDirectoryPort accountDirectoryPort) {
         this.unitRepository = unitRepository;
         this.partyDirectoryPort = partyDirectoryPort;
         this.addUnitOwnershipUseCase = addUnitOwnershipUseCase;
         this.accountLinkingPort = accountLinkingPort;
+        this.accountDirectoryPort = accountDirectoryPort;
     }
 
     private Optional<EntityId> resolveByEmail(AddUnitOwnerCommand command, EntityId propertyId) {
@@ -62,8 +66,15 @@ public class AddUnitOwnerService implements AddUnitOwnerUseCase {
         Unit unit = unitRepository.findById(command.unitId()).orElseThrow(() -> new UnitNotFoundException(command.unitId()));
         EntityId propertyId = EntityId.of(unit.getPropertyId().asUuid());
 
+        // Email de fiche, téléphone, puis email de compte : le syndic tape
+        // souvent l'adresse avec laquelle la personne se connecte, qui n'est pas
+        // celle inscrite sur sa fiche (voir AccountDirectoryPort). Sans ce
+        // troisième filet, un second contact naît pour quelqu'un déjà au fichier.
         EntityId partyId = resolveByEmail(command, propertyId)
                 .or(() -> partyDirectoryPort.findIdByPhone(command.phone(), propertyId))
+                .or(() -> command.email() != null
+                        ? accountDirectoryPort.findLinkedPartyInProperty(command.email(), propertyId)
+                        : Optional.empty())
                 .orElseGet(() -> partyDirectoryPort.createParty(
                         new PartyDetails(command.fullName(), command.partyType(), command.email(), command.phone()),
                         propertyId));

@@ -65,7 +65,7 @@ export function MyUnitDetailPage() {
         {/* No "Affecté" pill: in the owner's own space the lot is affected to
             them by definition, so the badge only ever states the obvious. */}
         <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">
-          Lot {unit.data.unitNumber} — {unit.data.unitTypeName}
+          {unit.data.unitNumber} — {unit.data.unitTypeName}
         </h1>
         {ownedUnit && (
           <p className="text-sm text-gray-500 dark:text-gray-400">

@@ -32,7 +32,7 @@ describe('CreatePartyForm', () => {
     setup();
 
     await user.type(screen.getByLabelText('Nom complet'), 'Jane Doe');
-    await user.type(screen.getByLabelText('Email (optionnel)'), 'jane.doe@example.com');
+    await user.type(screen.getByLabelText('Email'), 'jane.doe@example.com');
 
     expect(screen.getByRole('checkbox', { name: /Inviter à créer un compte/ })).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Créer le contact' }));
@@ -54,7 +54,7 @@ describe('CreatePartyForm', () => {
     setup();
 
     await user.type(screen.getByLabelText('Nom complet'), 'Jane Doe');
-    await user.type(screen.getByLabelText('Email (optionnel)'), 'jane.doe@example.com');
+    await user.type(screen.getByLabelText('Email'), 'jane.doe@example.com');
     await user.click(screen.getByRole('checkbox', { name: /Inviter à créer un compte/ }));
     await user.click(screen.getByRole('button', { name: 'Créer le contact' }));
 

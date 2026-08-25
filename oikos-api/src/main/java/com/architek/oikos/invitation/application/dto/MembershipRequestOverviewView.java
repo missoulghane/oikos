@@ -2,38 +2,37 @@ package com.architek.oikos.invitation.application.dto;
 
 import java.time.Instant;
 
-import com.architek.oikos.invitation.domain.model.Invitation;
 import com.architek.oikos.invitation.domain.model.MembershipRequest;
-import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
- * Manager-facing "Demandes d'adhésion" overview: merges real, persisted
- * MembershipRequest rows (PUBLIC candidates, always reviewed by a manager)
- * with still-outstanding PRIVATE invitations (auto-accepted, no manager
- * review - see ListMembershipRequestsService) into one unified shape, so the
- * manager doesn't have to cross-reference two separate lists to track who
- * has and hasn't joined the property.
+ * Une ligne du tableau « Demandes d'adhésion » du syndic, déjà résolue : le
+ * nom et l'adresse du demandeur, le lot visé, la date de dépôt. La liste les
+ * portait jusqu'ici en identifiants bruts, et le tableau allait chercher
+ * chaque contact et chaque lot par une requête séparée depuis le navigateur -
+ * une vingtaine d'appels pour afficher cinq lignes, et rien à quoi le serveur
+ * puisse appliquer un tri ou une recherche.
  *
- * <p>fromInvitation(...) produces a synthetic INVITED entry: unitId/partyId
- * are null (no unit chosen, no account created yet), targetEmail carries the
- * invitation's own target instead. It is never persisted - see
- * MembershipRequestOverviewStatus's Javadoc.
+ * <p>requesterAccountVerified dit si le demandeur a confirmé son adresse
+ * email. Une demande déposée pendant l'inscription arrive avant cette
+ * confirmation (voir SubmitMembershipRequestService) : attribuer un lot à une
+ * adresse jamais confirmée est une décision que le syndic doit pouvoir
+ * prendre les yeux ouverts.
  */
 public record MembershipRequestOverviewView(EntityId id, EntityId invitationId, EntityId propertyId, EntityId unitId,
-                                             EntityId partyId, EmailVO targetEmail, MembershipRequestOverviewStatus status,
-                                             Instant decidedAt, EntityId decidedByUserId, String rejectionReason) {
+                                             EntityId partyId, EntityId userId, String requesterFullName,
+                                             String requesterEmail, boolean requesterAccountVerified, String unitNumber,
+                                             String unitTypeName, MembershipRequestOverviewStatus status,
+                                             Instant submittedAt, Instant decidedAt, EntityId decidedByUserId,
+                                             String decidedByFullName, String rejectionReason) {
 
-    public static MembershipRequestOverviewView fromRequest(MembershipRequest request) {
+    public static MembershipRequestOverviewView of(MembershipRequest request, String requesterFullName,
+                                                    String requesterEmail, boolean requesterAccountVerified,
+                                                    String unitNumber, String unitTypeName, String decidedByFullName) {
         return new MembershipRequestOverviewView(EntityId.of(request.getId().asUuid()), request.getInvitationId(),
-                request.getPropertyId(), request.getUnitId(), request.getPartyId(), null,
-                MembershipRequestOverviewStatus.valueOf(request.getStatus().name()), request.getDecidedAt(),
-                request.getDecidedByUserId(), request.getRejectionReason());
-    }
-
-    public static MembershipRequestOverviewView fromInvitation(Invitation invitation) {
-        return new MembershipRequestOverviewView(EntityId.of(invitation.getId().asUuid()),
-                EntityId.of(invitation.getId().asUuid()), invitation.getPropertyId(), null, null,
-                invitation.getTargetEmail(), MembershipRequestOverviewStatus.INVITED, null, null, null);
+                request.getPropertyId(), request.getUnitId(), request.getPartyId(), request.getUserId(),
+                requesterFullName, requesterEmail, requesterAccountVerified, unitNumber, unitTypeName,
+                MembershipRequestOverviewStatus.valueOf(request.getStatus().name()), request.getSubmittedAt(),
+                request.getDecidedAt(), request.getDecidedByUserId(), decidedByFullName, request.getRejectionReason());
     }
 }

@@ -32,10 +32,10 @@ export const BOARD_RECIPIENT: RecipientCandidate = {
   isStaff: true,
 };
 
-/** "Jean Dupont - Lot 12B" (no lot suffix for a board/manager seat that owns nothing here). */
+/** "Jean Dupont - 12B" (no lot suffix for a board/manager seat that owns nothing here). */
 function candidateNameLabel(candidate: RecipientCandidate): string {
   return candidate.unitNumbers.length > 0
-    ? `${candidate.fullName} - Lot ${candidate.unitNumbers.join(', ')}`
+    ? `${candidate.fullName} - ${candidate.unitNumbers.join(', ')}`
     : candidate.fullName;
 }
 

@@ -1,13 +1,17 @@
 package com.architek.oikos.invitation.web.request;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import com.architek.oikos.invitation.domain.model.InvitationType;
 
 /**
- * targetEmail is mandatory for PRIVATE, absent for PUBLIC - validated in
- * CreateInvitationService rather than declaratively here, since bean
- * validation can't express "required depending on another field's value".
+ * partyId et unitId sont obligatoires pour PRIVATE et interdits pour PUBLIC -
+ * validé dans CreateInvitationService plutôt que déclarativement ici, la
+ * validation par annotations ne sachant pas exprimer « obligatoire selon la
+ * valeur d'un autre champ ».
+ *
+ * <p>Pas d'adresse email : elle est lue sur le contact désigné plutôt que
+ * fournie par l'appelant, une adresse venue du client pouvant ne pas être la
+ * sienne.
  */
-public record CreateInvitationRequest(@NotNull InvitationType type, @Email String targetEmail) {
+public record CreateInvitationRequest(@NotNull InvitationType type, String partyId, String unitId) {
 }

@@ -73,7 +73,9 @@ class SendMessageDraftServiceTest {
         MessageDraftId draftId = MessageDraftId.newId();
         EntityId propertyId = EntityId.newId();
         EntityId owner = EntityId.newId();
-        MessageDraft draft = MessageDraft.create(draftId, propertyId, owner, Set.of(), true, null, "Annonce");
+        // Un brouillon d'envoi groupé porte son objet comme les autres depuis
+        // que le canal unique a disparu.
+        MessageDraft draft = MessageDraft.create(draftId, propertyId, owner, Set.of(), true, "Coupure d'eau", "Annonce");
         when(messageDraftRepository.findById(draftId)).thenReturn(Optional.of(draft));
         when(userAccessPort.canBroadcast(owner, propertyId)).thenReturn(true);
         ConversationId conversationId = ConversationId.newId();
@@ -83,7 +85,8 @@ class SendMessageDraftServiceTest {
 
         assertThat(result).isEqualTo(conversationId);
         verify(sendBroadcastMessageUseCase).send(argThat(command -> command.propertyId().equals(propertyId)
-                && command.senderId().equals(owner) && command.body().value().equals("Annonce")));
+                && command.senderId().equals(owner) && command.subject().value().equals("Coupure d'eau")
+                && command.body().value().equals("Annonce")));
         verify(messageDraftRepository).deleteById(draftId);
     }
 

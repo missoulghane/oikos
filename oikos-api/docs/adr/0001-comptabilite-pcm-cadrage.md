@@ -818,10 +818,10 @@ La cause n'était pas l'affichage mais l'imputation.
   saisie antidatée impute ce qui était dû ce jour-là, comme l'écriture
   qu'elle produit), la **date de pièce** pour une régularisation d'avance.
 - **Le reliquat n'est pas perdu** : il part en avance sur `UNIT_ADVANCE`,
-  et « Régulariser les avances » (`RegularizeUnitInstallmentsService`,
-  même seuil) l'impute sur l'appel concerné une fois celui-ci échu. C'est
-  d'ailleurs le rôle de ce mécanisme, jusqu'ici court-circuité par
-  l'imputation anticipée.
+  et l'imputation d'avance (`RegularizeUnitInstallmentsService`, même
+  seuil) l'affecte à l'appel concerné une fois celui-ci échu — voir la
+  section suivante pour ce qui la déclenche. C'est d'ailleurs le rôle de ce
+  mécanisme, jusqu'ici court-circuité par l'imputation anticipée.
 - **Aucune migration de données** : la correction ne vaut que pour les
   règlements futurs. Les imputations déjà passées sur des échéances alors
   non échues restent telles quelles — les échéances concernées sont
@@ -832,6 +832,47 @@ La cause n'était pas l'affichage mais l'imputation.
   toute échéance non échue **quel que soit son statut** (`hasFallenDue`,
   la date seule) : le prédicat précédent (`isNotYetDue`) exigeait
   « non soldée » et laissait donc passer exactement le cas ci-dessus.
+
+## Évolution — l'imputation de l'avance n'est plus une action du syndic
+
+L'imputation d'une avance sur un appel échu était une action manuelle
+(« Régulariser les avances », par lot et pour toute la copropriété). Elle
+demandait à un syndic de constater chaque matin, lot par lot, ce qu'une date
+suffit à dire : l'appel est échu, l'argent est déjà là, les deux doivent se
+rencontrer. Un syndic qui n'y pensait pas laissait des lots en impayé alors
+qu'ils avaient payé.
+
+Le mécanisme ne change pas — même `RegularizeUnitInstallmentsService`, même
+FIFO, même seuil d'échéance — seul le déclencheur bouge, et il y en a deux :
+
+- **À l'échéance** : `RegularizeDueInstallmentsService`, balayage quotidien
+  (`DueInstallmentRegularizationScheduler`, cron
+  `oikos.installment.regularization-cron`, UTC comme l'horloge de
+  l'application). La date du jour sert de seuil : ce qui échoit ce jour-là
+  est imputé, le reste attend son tour. Rejouer le balayage est sans effet,
+  l'avance ayant déjà été consommée.
+- **À la saisie d'une recette sur le lot**
+  (`PaymentAdvanceRegularizationListener`) : le moment où la position du lot
+  est justement regardée, et où une avance antérieure doit se solder sans
+  attendre la nuit.
+
+Deux conséquences à connaître :
+
+- **Attribution des écritures** : le balayage n'a pas d'auteur humain. Les
+  entrées qu'il poste portent un identifiant système fixe
+  (`DueInstallmentRegularizationScheduler.SYSTEM_USER_ID`) —
+  `journal_entry.created_by_user_id` est NOT NULL mais sans clé étrangère
+  vers `app_user`, contrairement à `document.uploaded_by`. Emprunter
+  l'identité d'un syndic pour une écriture que personne n'a saisie aurait été
+  pire.
+- **Une seule instance API**, comme pour le compteur d'anti-abus en mémoire :
+  deux conteneurs joueraient chacun le balayage, et deux passages
+  concurrents lisant la même avance pourraient l'imputer deux fois. Un
+  second conteneur demanderait un verrou (ShedLock ou équivalent) avant
+  d'activer ceci.
+
+Les deux endpoints `POST …/installments/regularization` (lot et copropriété)
+et leurs écrans disparaissent avec l'action.
 
 ## Questions ouvertes
 

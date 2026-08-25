@@ -104,8 +104,8 @@ describe('MyUnitStatementPage', () => {
     renderPage();
 
     // En tête du relevé, et sur chacune de ses lignes.
-    expect(screen.getAllByText('Al Amal — Bât A — Lot A1')).toHaveLength(1 + bodyRows().length);
-    expect(bodyRows()[0]).toHaveTextContent('Al Amal — Bât A — Lot A1');
+    expect(screen.getAllByText('Al Amal — Bât A — A1')).toHaveLength(1 + bodyRows().length);
+    expect(bodyRows()[0]).toHaveTextContent('Al Amal — Bât A — A1');
   });
 
   // Le cœur de la demande : rien n'a encore été débité pour cet appel.

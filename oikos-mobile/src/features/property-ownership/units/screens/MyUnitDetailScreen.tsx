@@ -76,7 +76,7 @@ export function MyUnitDetailScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View>
-          <Text style={styles.title}>Lot {unit.unitNumber}</Text>
+          <Text style={styles.title}>{unit.unitNumber}</Text>
           <Text style={styles.subtitle}>
             {unit.propertyName} — {unit.buildingName}
           </Text>

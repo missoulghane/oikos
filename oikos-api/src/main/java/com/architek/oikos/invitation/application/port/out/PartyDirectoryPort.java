@@ -16,4 +16,7 @@ public interface PartyDirectoryPort {
     EntityId createParty(PartyDetails details, EntityId propertyId);
 
     Optional<EntityId> findIdByEmail(EmailVO email, EntityId propertyId);
+
+    /** Optional.empty() si le contact n'existe pas (ou plus). */
+    Optional<PartyContactInfo> findById(EntityId partyId);
 }

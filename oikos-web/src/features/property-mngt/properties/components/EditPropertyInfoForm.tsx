@@ -10,6 +10,7 @@ import {
   type UpdatePropertyFormValues,
 } from '@/features/property-mngt/properties/schemas/updatePropertySchema';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 interface EditPropertyInfoFormProps {
   property: Property;
@@ -35,8 +36,9 @@ export function EditPropertyInfoForm({ property, onSuccess, onCancel }: EditProp
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
-      <Input label="Nom de la copropriété" {...register('name')} errorMessage={errors.name?.message} />
-      <Input label="Adresse" {...register('address')} errorMessage={errors.address?.message} />
+      <RequiredFieldsHint />
+      <Input label="Nom de la copropriété" required {...register('name')} errorMessage={errors.name?.message} />
+      <Input label="Adresse" required {...register('address')} errorMessage={errors.address?.message} />
       <Input label="Ville" {...register('city')} errorMessage={errors.city?.message} />
       <div className="flex gap-2">
         <Button type="submit" isLoading={isPending}>

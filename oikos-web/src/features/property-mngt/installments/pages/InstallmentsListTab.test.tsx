@@ -35,13 +35,6 @@ vi.mock('@/features/property-mngt/installments/api/getPropertyInstallments', () 
 vi.mock('@/features/property-mngt/installments/hooks/useInstallmentCallsByProperty', () => ({
   useInstallmentCallsByProperty: () => ({ data: { content: [] }, isLoading: false, isError: false }),
 }));
-vi.mock('@/features/property-mngt/installments/hooks/useRegularizePropertyInstallments', () => ({
-  useRegularizePropertyInstallments: () => ({ mutate: vi.fn(), isPending: false, isError: false, isSuccess: false }),
-}));
-vi.mock('@/features/identity/me', () => ({
-  useCurrentUser: () => ({ data: null }),
-  canWriteAccounting: () => false,
-}));
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return { ...actual, useOutletContext: () => ({ property }) };

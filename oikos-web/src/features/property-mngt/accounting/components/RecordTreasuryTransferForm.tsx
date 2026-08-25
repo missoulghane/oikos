@@ -12,6 +12,7 @@ import {
   type RecordTreasuryTransferFormValues,
 } from '@/features/property-mngt/accounting/schemas/recordTreasuryTransferSchema';
 import type { JournalEntryReference } from '@/features/property-mngt/accounting/types/accounting.types';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 interface RecordTreasuryTransferFormProps {
   propertyId: string;
@@ -49,7 +50,8 @@ export function RecordTreasuryTransferForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
-      <Select label="Compte source" {...register('sourceAccountId')} errorMessage={errors.sourceAccountId?.message}>
+      <RequiredFieldsHint />
+      <Select label="Compte source" required {...register('sourceAccountId')} errorMessage={errors.sourceAccountId?.message}>
         <option value="">Sélectionner…</option>
         {treasuryAccounts.map((account) => (
           <option key={account.id} value={account.id}>
@@ -59,6 +61,7 @@ export function RecordTreasuryTransferForm({
       </Select>
       <Select
         label="Compte destination"
+        required
         {...register('destinationAccountId')}
         errorMessage={errors.destinationAccountId?.message}
       >
@@ -69,9 +72,10 @@ export function RecordTreasuryTransferForm({
           </option>
         ))}
       </Select>
-      <Input label="Date" type="date" {...register('pieceDate')} errorMessage={errors.pieceDate?.message} />
+      <Input label="Date" required type="date" {...register('pieceDate')} errorMessage={errors.pieceDate?.message} />
       <Input
         label="Montant"
+        required
         type="number"
         min={0}
         step="any"

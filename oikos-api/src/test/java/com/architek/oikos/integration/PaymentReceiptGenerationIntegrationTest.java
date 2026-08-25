@@ -87,7 +87,7 @@ class PaymentReceiptGenerationIntegrationTest {
                 "Résidence Al Amal", "12 rue Exemple", null, DuesCalculationMode.FLAT_RATE, null));
         when(getUnitUseCase.getUnit(any())).thenReturn(new UnitView(UnitId.newId(), BuildingId.newId(),
                 PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(), "Appartement", new BigDecimal("120.00"),
-                OwnershipStatus.AFFECTED, List.of()));
+                OwnershipStatus.AFFECTED, List.of(), null));
         when(listUnitOwnershipsByUnitUseCase.listUnitOwnerships(any())).thenReturn(List.of());
     }
 
@@ -99,11 +99,11 @@ class PaymentReceiptGenerationIntegrationTest {
      */
     private static final EntityId RECORDING_USER = EntityId.newId();
 
-    private PaymentId givenAPayment() {
+    private Payment givenAPayment() {
         Payment payment = Payment.create(PaymentId.newId(), EntityId.newId(), EntityId.newId(), PaymentMode.CHECK,
                 LocalDate.of(2026, 3, 15), Amount.of(new BigDecimal("2500.00")), EntityId.newId(),
                 new ReceiptNumber(2026, 42));
-        return paymentRepository.save(payment).getId();
+        return paymentRepository.save(payment);
     }
 
     private List<DocumentView> receiptsOf(PaymentId paymentId) {
@@ -113,7 +113,7 @@ class PaymentReceiptGenerationIntegrationTest {
 
     @Test
     void generating_a_receipt_attaches_it_to_the_payment() {
-        PaymentId paymentId = givenAPayment();
+        PaymentId paymentId = givenAPayment().getId();
 
         generatePaymentReceiptUseCase.generate(paymentId, RECORDING_USER);
 
@@ -127,7 +127,7 @@ class PaymentReceiptGenerationIntegrationTest {
      */
     @Test
     void the_receipt_is_attributed_to_the_user_who_generated_it() {
-        PaymentId paymentId = givenAPayment();
+        PaymentId paymentId = givenAPayment().getId();
 
         generatePaymentReceiptUseCase.generate(paymentId, RECORDING_USER);
 
@@ -143,9 +143,14 @@ class PaymentReceiptGenerationIntegrationTest {
     @Test
     void a_receipt_published_after_commit_is_actually_persisted() {
         PaymentId paymentId = transactionTemplate.execute(status -> {
-            PaymentId id = givenAPayment();
-            eventPublisher.publishEvent(new PaymentRecordedEvent(id, RECORDING_USER));
-            return id;
+            Payment payment = givenAPayment();
+            // The lot is fictitious, so the other listener on this event
+            // (PaymentAdvanceRegularizationListener) finds no property and logs
+            // its failure - deliberately harmless to the receipt, which is what
+            // this test is about.
+            eventPublisher.publishEvent(new PaymentRecordedEvent(payment.getId(), payment.getPropertyId(),
+                    payment.getUnitId(), payment.getValueDate(), RECORDING_USER));
+            return payment.getId();
         });
 
         assertThat(receiptsOf(paymentId))
@@ -155,7 +160,7 @@ class PaymentReceiptGenerationIntegrationTest {
 
     @Test
     void regenerating_replaces_the_receipt_rather_than_adding_a_second() {
-        PaymentId paymentId = givenAPayment();
+        PaymentId paymentId = givenAPayment().getId();
 
         generatePaymentReceiptUseCase.generate(paymentId, RECORDING_USER);
         generatePaymentReceiptUseCase.generate(paymentId, RECORDING_USER);

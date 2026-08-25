@@ -24,12 +24,13 @@ public interface UnitPersistenceMapper {
         entity.setUnitNumber(unit.getUnitNumber());
         entity.setUnitTypeId(unit.getUnitTypeId().asUuid());
         entity.setShares(unit.getShares().value());
+        entity.setFloor(unit.getFloor());
         return entity;
     }
 
     default Unit toDomain(UnitEntity entity) {
         return Unit.reconstruct(UnitId.of(entity.getId()), BuildingId.of(entity.getBuildingId()),
                 PropertyId.of(entity.getPropertyId()), entity.getUnitNumber(),
-                UnitTypeDefinitionId.of(entity.getUnitTypeId()), Shares.of(entity.getShares()));
+                UnitTypeDefinitionId.of(entity.getUnitTypeId()), Shares.of(entity.getShares()), entity.getFloor());
     }
 }

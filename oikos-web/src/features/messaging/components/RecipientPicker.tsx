@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRecipientCandidates } from '@/features/messaging/hooks/useRecipientCandidates';
+import { useRecipientGroups } from '@/features/messaging/hooks/useRecipientGroups';
 import { useProperty } from '@/features/property-mngt/properties/hooks/useProperty';
 import { Input } from '@/shared/components/Input/Input';
 import { Loader } from '@/shared/components/Loader/Loader';
@@ -42,10 +43,10 @@ export const BOARD_RECIPIENT: RecipientCandidate = {
   isStaff: true,
 };
 
-/** "Jean Dupont - Lot 12B" (no lot suffix for a board/manager seat that owns nothing here). */
+/** "Jean Dupont - 12B" (no lot suffix for a board/manager seat that owns nothing here). */
 function candidateNameLabel(candidate: RecipientCandidate): string {
   return candidate.unitNumbers.length > 0
-    ? `${candidate.fullName} - Lot ${candidate.unitNumbers.join(', ')}`
+    ? `${candidate.fullName} - ${candidate.unitNumbers.join(', ')}`
     : candidate.fullName;
 }
 
@@ -66,6 +67,8 @@ interface RecipientPickerProps {
   canBroadcast?: boolean;
   /** Whether "Le bureau" (fil privé) may be picked as a recipient (board/manager tier only). */
   canBoardPrivate?: boolean;
+  /** Les raccourcis « groupes ». Coupés là où l'on compose justement un groupe, sinon il s'offrirait lui-même. */
+  showGroups?: boolean;
 }
 
 // Outlook "To:" style multi-select: selected recipients render as removable
@@ -85,6 +88,7 @@ export function RecipientPicker({
   disabled = false,
   canBroadcast = false,
   canBoardPrivate = false,
+  showGroups = true,
 }: RecipientPickerProps) {
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -105,6 +109,11 @@ export function RecipientPicker({
   const availableCandidates = (recipients.data ?? []).filter(
     (candidate) => !selectedIds.has(candidate.userId),
   );
+  // Les groupes de la copropriété : un carnet d'adresses, pas un destinataire.
+  // Choisir un groupe ajoute ses membres en pastilles, comme si on les avait
+  // saisis un par un - le message part aux personnes, et renommer le groupe
+  // plus tard ne touche à rien de déjà envoyé.
+  const groups = useRecipientGroups(showGroups ? propertyId : '');
   const isEveryoneSelected = value.some(isEveryoneRecipient);
   const isBoardSelected = value.some(isBoardRecipient);
   const isPseudoRecipientSelected = isEveryoneSelected || isBoardSelected;
@@ -132,6 +141,20 @@ export function RecipientPicker({
     onChange([BOARD_RECIPIENT]);
     setSearchInput('');
     setDebouncedSearch('');
+  }
+
+  function addGroupMembers(members: { userId: string; fullName: string }[]) {
+    const alreadyPicked = new Set(value.map((recipient) => recipient.userId));
+    const added = members
+      .filter((member) => !alreadyPicked.has(member.userId))
+      .map((member) => ({
+        userId: member.userId,
+        fullName: member.fullName,
+        roleLabel: '',
+        unitNumbers: [],
+        isStaff: false,
+      }));
+    onChange([...value, ...added]);
   }
 
   return (
@@ -179,6 +202,27 @@ export function RecipientPicker({
               Écrire au conseil (fil privé)
             </button>
           )}
+        </div>
+      )}
+
+      {showGroups && !isPseudoRecipientSelected && (groups.data?.length ?? 0) > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Groupes</span>
+          <div className="flex flex-wrap gap-2">
+            {groups.data?.map((group) => (
+              <button
+                key={group.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => addGroupMembers(group.members)}
+                title={group.members.map((member) => member.fullName).join(', ')}
+                className="inline-flex min-h-8 items-center self-start rounded-full border border-dashed border-gray-300 dark:border-gray-700 px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-brand-300 hover:text-brand-600 dark:hover:text-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {group.name}
+                <span className="ml-1.5 text-xs text-gray-400 dark:text-gray-500">({group.members.length})</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

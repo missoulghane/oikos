@@ -32,12 +32,14 @@ import com.architek.oikos.party.application.port.in.ListPartiesUseCase;
 import com.architek.oikos.party.application.port.in.UpdatePartyPhoneUseCase;
 import com.architek.oikos.party.application.port.in.UpdatePartyUseCase;
 import com.architek.oikos.party.domain.valueobject.PartyId;
+import com.architek.oikos.shared.domain.valueobject.PartyAccountStatus;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
 import com.architek.oikos.user.application.dto.UserAccessView;
 import com.architek.oikos.user.application.port.in.GetUserAccessUseCase;
+import com.architek.oikos.user.application.port.in.GetPartyAccountStatusUseCase;
 import com.architek.oikos.user.application.port.in.InvitePartyUseCase;
 import com.architek.oikos.user.domain.model.PropertyRole;
 
@@ -74,6 +76,9 @@ class PartyControllerWebMvcTest {
 
     @MockitoBean
     private InvitePartyUseCase invitePartyUseCase;
+
+    @MockitoBean
+    private GetPartyAccountStatusUseCase getPartyAccountStatusUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
@@ -135,6 +140,21 @@ class PartyControllerWebMvcTest {
 
         mockMvc.perform(get("/api/v1/parties/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void the_party_sheet_says_where_its_contact_stands_with_the_platform() throws Exception {
+        // Ce que l'ecran en fait : identite geree par le titulaire du compte
+        // (ACTIVE), modifiable avec une invitation en cours a renvoyer (INVITED),
+        // ou librement modifiable (NONE).
+        PartyId id = PartyId.newId();
+        when(getPartyUseCase.getParty(any()))
+                .thenReturn(new PartyView(id, EntityId.newId(), "Jane Doe", PartyType.INDIVIDUAL, "jane@doe.com", null));
+        when(getPartyAccountStatusUseCase.statusOf(any())).thenReturn(PartyAccountStatus.INVITED);
+
+        mockMvc.perform(get("/api/v1/parties/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"accountStatus\":\"INVITED\"}"));
     }
 
     @Test

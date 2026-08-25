@@ -9,12 +9,15 @@ import com.architek.oikos.invitation.application.port.out.UnitBasicInfo;
 import com.architek.oikos.invitation.application.port.out.UnitDirectoryPort;
 import com.architek.oikos.invitation.domain.exception.UnitUnavailableException;
 import com.architek.oikos.property.application.command.ClaimUnitOwnershipCommand;
+import com.architek.oikos.property.application.dto.UnitOwnershipView;
 import com.architek.oikos.property.application.dto.UnitView;
 import com.architek.oikos.property.application.port.in.ClaimUnitOwnershipUseCase;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
 import com.architek.oikos.property.application.port.in.ListAvailableUnitsByPropertyUseCase;
+import com.architek.oikos.property.application.port.in.ListUnitOwnershipsByUnitUseCase;
 import com.architek.oikos.property.application.query.GetUnitQuery;
 import com.architek.oikos.property.application.query.ListAvailableUnitsByPropertyQuery;
+import com.architek.oikos.property.application.query.ListUnitOwnershipsByUnitQuery;
 import com.architek.oikos.property.domain.exception.UnitAlreadyClaimedException;
 import com.architek.oikos.property.domain.exception.UnitNotFoundException;
 import com.architek.oikos.property.domain.valueobject.OwnershipStatus;
@@ -38,13 +41,16 @@ public class InvitationUnitDirectoryAdapter implements UnitDirectoryPort {
     private final GetUnitUseCase getUnitUseCase;
     private final ListAvailableUnitsByPropertyUseCase listAvailableUnitsByPropertyUseCase;
     private final ClaimUnitOwnershipUseCase claimUnitOwnershipUseCase;
+    private final ListUnitOwnershipsByUnitUseCase listUnitOwnershipsByUnitUseCase;
 
     public InvitationUnitDirectoryAdapter(GetUnitUseCase getUnitUseCase,
                                            ListAvailableUnitsByPropertyUseCase listAvailableUnitsByPropertyUseCase,
-                                           ClaimUnitOwnershipUseCase claimUnitOwnershipUseCase) {
+                                           ClaimUnitOwnershipUseCase claimUnitOwnershipUseCase,
+                                           ListUnitOwnershipsByUnitUseCase listUnitOwnershipsByUnitUseCase) {
         this.getUnitUseCase = getUnitUseCase;
         this.listAvailableUnitsByPropertyUseCase = listAvailableUnitsByPropertyUseCase;
         this.claimUnitOwnershipUseCase = claimUnitOwnershipUseCase;
+        this.listUnitOwnershipsByUnitUseCase = listUnitOwnershipsByUnitUseCase;
     }
 
     @Override
@@ -64,6 +70,14 @@ public class InvitationUnitDirectoryAdapter implements UnitDirectoryPort {
         Page<UnitView> page = listAvailableUnitsByPropertyUseCase.listAvailableUnits(
                 new ListAvailableUnitsByPropertyQuery(new PropertyId(propertyId), pageRequest));
         return page.map(view -> new AvailableUnitInfo(EntityId.of(view.id().asUuid()), view.unitNumber(), view.unitTypeName()));
+    }
+
+    @Override
+    public boolean isOwnedBy(EntityId unitId, EntityId partyId) {
+        return listUnitOwnershipsByUnitUseCase
+                .listUnitOwnerships(new ListUnitOwnershipsByUnitQuery(UnitId.of(unitId.value()))).stream()
+                .map(UnitOwnershipView::partyId)
+                .anyMatch(partyId::equals);
     }
 
     @Override

@@ -12,6 +12,32 @@ export interface Party {
 
 export type PagedParties = Paged<Party>;
 
+/**
+ * Où en est le contact vis-à-vis d'un compte de la plateforme, et donc ce que
+ * sa fiche autorise :
+ * - ACTIVE : un compte lui est rattaché. Son titulaire tient lui-même son
+ *   identité à jour, la fiche n'en est que la copie du syndic.
+ * - INVITED : une invitation court toujours, personne ne l'a encore acceptée.
+ *   Le nom et l'adresse partis avec elle sont figés (voir PartyInvitationToken
+ *   côté API) : les modifier ici n'y change rien, il faut la renvoyer.
+ * - NONE : ni compte, ni invitation en cours.
+ */
+export const PARTY_ACCOUNT_STATUSES = ['ACTIVE', 'INVITED', 'NONE'] as const;
+export type PartyAccountStatus = (typeof PARTY_ACCOUNT_STATUSES)[number];
+
+/** La fiche d'un contact : le contact, plus son rapport aux comptes (voir PartyDetailResponse côté API). */
+export interface PartyDetail extends Party {
+  accountStatus: PartyAccountStatus;
+}
+
+export interface UpdatePartyPayload {
+  fullName: string;
+  partyType: PartyType;
+  /** Facultatif : un contact peut n'avoir qu'un téléphone. */
+  email?: string;
+  phone?: string;
+}
+
 export interface PartyLot {
   id: string;
   unitId: string;

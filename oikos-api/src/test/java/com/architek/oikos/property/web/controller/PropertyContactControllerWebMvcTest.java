@@ -20,6 +20,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.architek.oikos.auth.infrastructure.security.JwtService;
+import com.architek.oikos.property.application.port.in.FindContactByAccountEmailUseCase;
 import com.architek.oikos.property.application.port.in.ListContactsByPropertyUseCase;
 import com.architek.oikos.property.application.query.ListContactsByPropertyQuery;
 import com.architek.oikos.property.domain.valueobject.PropertyId;
@@ -39,6 +40,9 @@ class PropertyContactControllerWebMvcTest {
 
     @MockitoBean
     private ListContactsByPropertyUseCase listContactsByPropertyUseCase;
+
+    @MockitoBean
+    private FindContactByAccountEmailUseCase findContactByAccountEmailUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));

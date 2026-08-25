@@ -11,6 +11,12 @@ export function useRecordOwnerPayment(propertyId: string, unitId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.units.payments(unitId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.units.installments(unitId) });
+      // Prefix match: every cached page/filter combo of the property-wide list,
+      // plus the "à collecter" summary that nests under the same key. A recette
+      // settles echeances that show there, and the API imputes the lot's
+      // remaining advance on top of it (PaymentAdvanceRegularizationListener),
+      // so more lines than the ones this payment paid for can have moved.
+      queryClient.invalidateQueries({ queryKey: ['properties', propertyId, 'installments'] });
       // Prefix match: also invalidates every treasury account's operations list
       // (queryKeys.properties.ledgerAccountEntries nests under this same key),
       // so a "saisir une recette" from an account's page shows the new entry

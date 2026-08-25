@@ -7,6 +7,7 @@ import com.architek.oikos.property.application.command.AddUnitCommand;
 import com.architek.oikos.property.application.port.in.AddUnitUseCase;
 import com.architek.oikos.property.application.port.out.LedgerAccountProvisioningPort;
 import com.architek.oikos.property.domain.exception.BuildingNotFoundException;
+import com.architek.oikos.property.domain.exception.UnitFloorOutOfBuildingRangeException;
 import com.architek.oikos.property.domain.exception.UnitTypeDefinitionNotFoundException;
 import com.architek.oikos.property.domain.model.Building;
 import com.architek.oikos.property.domain.model.Unit;
@@ -44,8 +45,15 @@ public class AddUnitService implements AddUnitUseCase {
                 .filter(unitType -> unitType.getPropertyId().equals(building.getPropertyId()))
                 .orElseThrow(() -> new UnitTypeDefinitionNotFoundException(command.unitTypeId()));
 
+        // L'etage reste facultatif ; fourni, il doit exister dans cet immeuble-la.
+        // 0 est le rez-de-chaussee, d'ou la borne haute inclusive : un immeuble
+        // "3 etages" contient bien les etages 0 a 3.
+        if (command.floor() != null && command.floor() > building.getFloorCount()) {
+            throw new UnitFloorOutOfBuildingRangeException(command.floor(), building.getFloorCount());
+        }
+
         Unit unit = Unit.create(UnitId.newId(), command.buildingId(), building.getPropertyId(), command.unitNumber(),
-                command.unitTypeId(), Shares.of(command.shares()));
+                command.unitTypeId(), Shares.of(command.shares()), command.floor());
         Unit savedUnit = unitRepository.save(unit);
 
         ledgerAccountProvisioningPort.provisionUnitReceivableAccount(savedUnit.getPropertyId().value(),

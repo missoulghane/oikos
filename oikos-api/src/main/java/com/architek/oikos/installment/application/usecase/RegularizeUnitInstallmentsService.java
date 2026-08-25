@@ -27,8 +27,10 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * that motivated this feature): reuses the exact same FIFO split as an
  * owner payment (PaymentAllocationCalculator), except the "amount received"
  * is the unit's own already-recorded, still-unclaimed advance instead of a
- * fresh payment - so a fund call generated after an advance was booked can
- * still be settled from it, one click, without waiting for a new payment.
+ * fresh payment - so a fund call generated after an advance was booked is
+ * settled from it, without waiting for a new payment. Nobody triggers this by
+ * hand: RegularizeDueInstallmentsService runs it the day an echeance falls due,
+ * and PaymentAdvanceRegularizationListener when a recette is recorded on the lot.
  * Same due-date cutoff as a payment, on the piece date: this is the mechanism
  * that eventually imputes an advance onto a call left out at payment time, once
  * that call has actually fallen due.

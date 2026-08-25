@@ -35,7 +35,7 @@ public class InvitationAccountDirectoryAdapter implements AccountDirectoryPort {
     @Override
     public AccountInfo getAccountInfo(EntityId userId) {
         UserView view = getUserUseCase.getUser(new GetUserQuery(UserId.of(userId.value())));
-        return new AccountInfo(EmailVO.of(view.email()), view.fullName());
+        return new AccountInfo(EmailVO.of(view.email()), view.fullName(), view.phone(), view.verified());
     }
 
     @Override

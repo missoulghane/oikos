@@ -95,8 +95,11 @@ export function UnitTypesStepPage() {
                 plus tard, ainsi que les tantièmes de chaque lot.
               </p>
             </div>
+            {/* Le titre de l'encadré dit déjà « Budget prévisionnel » : l'étiquette
+                du champ précise l'unité de temps plutôt que de répéter le titre -
+                c'est aussi le libellé de l'écran de configuration du syndic. */}
             <Input
-              label="Budget prévisionnel (optionnel)"
+              label="Budget prévisionnel annuel"
               type="number"
               min={0}
               step="0.01"

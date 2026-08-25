@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { BrandLogo, BrandMark } from '@/shared/components/BrandLogo/BrandLogo';
 import { useSidebar } from '@/shared/context/SidebarContext';
-import { useCurrentUser, boardPropertyIds, canManageProperties, isManagerTier } from '@/features/identity/me';
+import {
+  useCurrentUser,
+  boardPropertyIds,
+  canManageProperties,
+  hasNoPropertyAccess,
+  isManagerTier,
+} from '@/features/identity/me';
 import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
 import { useUnreadSummary } from '@/features/messaging';
 import {
@@ -48,7 +54,8 @@ const PROPERTY_INFO_TABS = [
   { name: 'Informations générales', path: '', icon: <FileIcon /> },
   { name: 'Lots', path: '/lots', icon: <BoxIconLine /> },
   { name: 'Contacts', path: '/contacts', icon: <GroupIcon /> },
-  { name: 'Invitations', path: '/invitations', icon: <MailIcon /> },
+  { name: 'Groupes de diffusion', path: '/messaging-groups', icon: <GroupIcon /> },
+  { name: "Demandes d'adhésion", path: '/membership-requests', icon: <MailIcon /> },
   { name: 'Documents', path: '/documents', icon: <DocsIcon /> },
   { name: 'Configuration', path: '/configuration', icon: <PlugInIcon /> },
 ];
@@ -204,6 +211,10 @@ export function AppSidebar() {
   const messagingUnreadCount = unreadSummary.data?.totalUnreadMessageCount ?? 0;
 
   const user = currentUser.data;
+  // Demande d'adhésion déposée, pas encore validée : le compte n'a ni lot ni
+  // mandat. Les entrées qui n'ouvriraient que du vide sont retirées ci-dessous
+  // - il ne reste que le tableau de bord, qui porte le lot en attente.
+  const noPropertyAccess = user ? hasNoPropertyAccess(user) : false;
   const effectiveSpace = useEffectiveSpace();
   const mandateIds = user ? boardPropertyIds(user) : [];
   const managerTier = user ? isManagerTier(user) : false;
@@ -222,13 +233,20 @@ export function AppSidebar() {
   // owner (see messagingTabs' own note and useActiveSpace).
   const spaceSuffix = spaceQuerySuffix(effectiveSpace);
 
-  // Messagerie is always shown, for every account type, regardless of the current route - unlike
-  // the property-scoped groups below (only meaningful while browsing a specific property), it
+  // Messagerie is shown for every account type that belongs to a property at all
+  // (see noPropertyAccess just below), regardless of the current route - unlike
+  // the property-scoped groups (only meaningful while browsing a specific property), it
   // doesn't depend on where in the app the viewer currently is. A NavItem can't show children/
   // expand (see the NavItem/NavGroup split below), so plain owners get it as a NavGroup too
   // (instead of a flat link) to expose the 3 mailbox tabs at all.
   const propertyGroups: NavGroup[] = contextPropertyId ? propertyContextGroups(contextPropertyId) : [];
-  const groups: NavGroup[] = [...propertyGroups, messagingGroup(messagingUnreadCount, spaceSuffix)];
+  // Un compte sans aucune affectation valide n'a pas de boîte à lettres qui
+  // tienne : la messagerie est adossée aux copropriétés dont on fait partie, et
+  // il n'en fait partie d'aucune tant que sa demande n'est pas validée. Le
+  // profil, lui, reste atteignable - il est dans l'en-tête, pas ici.
+  const groups: NavGroup[] = noPropertyAccess
+    ? propertyGroups
+    : [...propertyGroups, messagingGroup(messagingUnreadCount, spaceSuffix)];
 
   // Every menu starts closed - except the one holding the page the app
   // actually opened on (owner space or board space alike), opened by
@@ -251,7 +269,10 @@ export function AppSidebar() {
   // effective space, not just account type: switching into a board mandate
   // (SpaceSwitcher) must hide these again, or a mixed account sees the
   // personal-space menu items while browsing a résidence it manages.
-  const isOwnerSpace = effectiveSpace.kind === 'owner';
+  // Gated on noPropertyAccess as well: the owner space is also where an account
+  // with nothing at all lands (see useEffectiveSpace's defaultSpace), and these
+  // three entries would then open on empty screens.
+  const isOwnerSpace = effectiveSpace.kind === 'owner' && !noPropertyAccess;
 
   // Notifications deliberately have no sidebar entry: the header bell
   // (NotificationsBell, see AppHeader) is their single entry point, in the

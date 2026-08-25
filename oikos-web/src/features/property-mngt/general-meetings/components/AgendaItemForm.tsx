@@ -9,6 +9,7 @@ import type { AgendaItem, MajorityRule } from '@/features/property-mngt/general-
 import { Button } from '@/shared/components/Button/Button';
 import { Input } from '@/shared/components/Input/Input';
 import { Select } from '@/shared/components/Select/Select';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 const MAJORITY_RULES = Object.keys(MAJORITY_RULE_LABELS) as MajorityRule[];
 
@@ -58,16 +59,18 @@ export function AgendaItemForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(submit)} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit(submit)} className="flex flex-col gap-4" noValidate>
+      <RequiredFieldsHint />
       <Input
         label="Libellé du point"
+        required
         placeholder="Approbation des comptes 2025"
         {...register('label')}
         errorMessage={errors.label?.message}
       />
       <div className="flex flex-col gap-1">
         <label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Description (facultative)
+          Description
         </label>
         {/* Ten rows and resizable: this holds the resolution as it will be put to the vote,
             which on a works contract or a budget runs to a page. Three rows made a long text
@@ -85,7 +88,7 @@ export function AgendaItemForm({
           <p className="text-sm text-error-500 dark:text-error-400">{errors.description.message}</p>
         )}
       </div>
-      <Select label="Majorité requise" {...register('majorityRule')} errorMessage={errors.majorityRule?.message}>
+      <Select label="Majorité requise" required {...register('majorityRule')} errorMessage={errors.majorityRule?.message}>
         {MAJORITY_RULES.map((rule) => (
           <option key={rule} value={rule}>
             {MAJORITY_RULE_LABELS[rule]}

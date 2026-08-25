@@ -11,6 +11,7 @@ import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { floorLabel } from '@/features/property-mngt/properties/utils/floorLabel';
 
 const OWNERSHIP_STATUS_LABELS = {
   AFFECTED: 'Affecté',
@@ -45,12 +46,15 @@ export function UnitDetailPage() {
         </Link>
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white/90">
-            Lot {unit.data.unitNumber} — {unit.data.unitTypeName}
+            {unit.data.unitNumber} — {unit.data.unitTypeName}
           </h1>
           <span className="w-fit rounded-full bg-gray-100 dark:bg-white/[0.05] px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400">
             {OWNERSHIP_STATUS_LABELS[unit.data.ownershipStatus]}
           </span>
         </div>
+        {typeof unit.data.floor === 'number' && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">{floorLabel(unit.data.floor)}</p>
+        )}
         {showShares &&
           (isEditingShares ? (
             <div className="mt-2 max-w-xs">

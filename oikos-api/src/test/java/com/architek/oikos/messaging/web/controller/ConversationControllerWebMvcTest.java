@@ -36,6 +36,7 @@ import com.architek.oikos.messaging.application.port.in.ListConversationMessages
 import com.architek.oikos.messaging.application.port.in.ListMyConversationsUseCase;
 import com.architek.oikos.messaging.application.port.in.ListRecipientCandidatesUseCase;
 import com.architek.oikos.messaging.application.port.in.MarkConversationReadUseCase;
+import com.architek.oikos.messaging.application.port.in.MarkConversationUnreadUseCase;
 import com.architek.oikos.messaging.application.port.in.SendBroadcastMessageUseCase;
 import com.architek.oikos.messaging.application.port.in.SendMessageUseCase;
 import com.architek.oikos.messaging.application.port.in.StartBoardConversationUseCase;
@@ -88,6 +89,9 @@ class ConversationControllerWebMvcTest {
 
     @MockitoBean
     private MarkConversationReadUseCase markConversationReadUseCase;
+
+    @MockitoBean
+    private MarkConversationUnreadUseCase markConversationUnreadUseCase;
 
     @MockitoBean
     private ListRecipientCandidatesUseCase listRecipientCandidatesUseCase;
@@ -196,7 +200,7 @@ class ConversationControllerWebMvcTest {
                         .header("Authorization", bearerToken("PROPERTY_OWNER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"body":"Annonce"}
+                                {"subject":"Coupure d'eau","body":"Annonce"}
                                 """))
                 .andExpect(status().isForbidden());
     }
@@ -212,7 +216,7 @@ class ConversationControllerWebMvcTest {
                         .header("Authorization", bearerToken("PROPERTY_BOARD_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"body":"Annonce"}
+                                {"subject":"Coupure d'eau","body":"Annonce"}
                                 """))
                 .andExpect(status().isCreated());
     }
@@ -227,7 +231,7 @@ class ConversationControllerWebMvcTest {
                         .header("Authorization", bearerToken("PROPERTY_BOARD_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"body":"   "}
+                                {"subject":"Coupure d'eau","body":"   "}
                                 """))
                 .andExpect(status().isBadRequest());
     }
@@ -336,8 +340,10 @@ class ConversationControllerWebMvcTest {
                 .andExpect(status().isForbidden());
     }
 
+    // Un envoi groupé n'est pas un fil : même le bureau n'y répond pas, il en
+    // émet un autre (voir SendBroadcastMessageService).
     @Test
-    void a_board_member_can_reply_in_the_broadcast_conversation() throws Exception {
+    void not_even_a_board_member_can_reply_in_a_broadcast() throws Exception {
         ConversationId conversationId = ConversationId.newId();
         String propertyId = UUID.randomUUID().toString();
         String token = bearerToken("PROPERTY_BOARD_ADMIN");
@@ -345,8 +351,6 @@ class ConversationControllerWebMvcTest {
                 Set.of(), Map.of(), Map.of(propertyId, Set.of(Permission.MESSAGING_BROADCAST)), Set.of(), Set.of()));
         when(getConversationUseCase.getConversation(any())).thenReturn(new ConversationView(
                 conversationId, EntityId.of(propertyId), ConversationType.BROADCAST, EntityId.newId(), Set.of()));
-        when(sendMessageUseCase.send(any())).thenReturn(new MessageView(MessageId.newId(), conversationId, EntityId.of(callerId),
-                "Caller", SenderIdentity.BOARD, "Merci pour l'info", Instant.now(), true));
 
         mockMvc.perform(post("/api/v1/conversations/" + conversationId + "/messages")
                         .header("Authorization", token)
@@ -354,7 +358,7 @@ class ConversationControllerWebMvcTest {
                         .content("""
                                 {"body":"Merci pour l'info"}
                                 """))
-                .andExpect(status().isCreated());
+                .andExpect(status().isForbidden());
     }
 
     @Test

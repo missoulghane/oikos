@@ -21,7 +21,17 @@ export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(
 
     return (
       <fieldset className="flex flex-col gap-1">
-        <legend className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</legend>
+        <legend className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          {label}
+          {/* Même convention que Input/Select - voir RequiredFieldsHint. Ici
+              l'astérisque reste dans la légende, qui doit être le premier enfant
+              du fieldset : aria-hidden l'exclut du nom accessible du groupe. */}
+          {rest.required && (
+            <span aria-hidden="true" className="text-gray-500 dark:text-gray-400">
+              {' *'}
+            </span>
+          )}
+        </legend>
         <div className={`flex flex-wrap items-center gap-x-6 ${className}`}>
           {options.map((option) => (
             <label

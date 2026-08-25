@@ -36,6 +36,11 @@ export interface QuillEditorHandle {
   setHtml(html: string): void;
 }
 
+/** Hauteur minimale par défaut de la zone de frappe, partagée avec
+ * MessageBodyEditor qui la pose sur le parent en mode `fill` (voir le rendu
+ * plus bas pour pourquoi ce n'est plus ce composant qui la porte). */
+export const DEFAULT_EDITOR_MIN_HEIGHT = 80;
+
 interface QuillEditorProps {
   ref?: Ref<QuillEditorHandle>;
   /** Only read once, at mount - afterwards Quill owns its own content (see
@@ -46,6 +51,13 @@ interface QuillEditorProps {
   placeholder?: string;
   disabled?: boolean;
   minHeight?: number;
+  /**
+   * L'éditeur prend toute la hauteur que son parent lui laisse, au lieu de
+   * s'arrêter à minHeight. Le parent doit être un conteneur flex en colonne :
+   * la barre d'outils garde sa hauteur, la zone de frappe absorbe le reste
+   * (voir .quill-fill dans quillEditor.css).
+   */
+  fill?: boolean;
   autoFocus?: boolean;
   ariaLabel?: string;
   /**
@@ -94,7 +106,8 @@ export function QuillEditor({
   onBlur,
   placeholder,
   disabled = false,
-  minHeight = 80,
+  minHeight = DEFAULT_EDITOR_MIN_HEIGHT,
+  fill = false,
   autoFocus = false,
   ariaLabel,
   headings = false,
@@ -171,5 +184,14 @@ export function QuillEditor({
     [],
   );
 
-  return <div ref={containerRef} style={{ minHeight }} />;
+  // En mode « pleine hauteur », `minHeight` n'est volontairement pas posé ici :
+  // ce wrapper est un enfant flex que son parent peut rétrécir librement
+  // (min-h-0), et un plancher posé sur l'enfant seul ne l'en empêche pas - il
+  // le fait déborder hors du parent, par-dessus ce qui suit dans le
+  // formulaire (les boutons « Envoyer »/« Enregistrer comme brouillon »).
+  // Le plancher appartient au parent, qui lui refuse alors de rétrécir et
+  // laisse le formulaire défiler : voir MessageBodyEditor.
+  return (
+    <div ref={containerRef} className={fill ? 'quill-fill' : undefined} style={fill ? undefined : { minHeight }} />
+  );
 }

@@ -25,6 +25,7 @@ const affectedUnit: Unit = {
   shares: 150,
   ownershipStatus: 'AFFECTED',
   ownerFullNames: ['Jean Dupont'],
+  floor: 2,
 };
 
 function renderList() {
@@ -47,16 +48,22 @@ describe('UnitList', () => {
   it('lists units without any filter on first render', async () => {
     renderList();
 
-    expect(await screen.findByText('Lot A12 — Appartement')).toBeInTheDocument();
+    expect(await screen.findByText('A12 — Appartement')).toBeInTheDocument();
     expect(mockedGetUnits).toHaveBeenCalledWith(
       expect.objectContaining({ buildingId: 'building-1', search: undefined, ownershipStatus: undefined }),
     );
   });
 
+  it('shows the floor a lot sits on', async () => {
+    renderList();
+
+    expect(await screen.findByText('2e étage')).toBeInTheDocument();
+  });
+
   it('sends the ownership status to the API when the affectation filter is set', async () => {
     const user = userEvent.setup();
     renderList();
-    await screen.findByText('Lot A12 — Appartement');
+    await screen.findByText('A12 — Appartement');
 
     await user.selectOptions(screen.getByLabelText('Affectation'), 'NOT_AFFECTED');
 
@@ -68,7 +75,7 @@ describe('UnitList', () => {
   it('sends the typed lot number as the search term', async () => {
     const user = userEvent.setup();
     renderList();
-    await screen.findByText('Lot A12 — Appartement');
+    await screen.findByText('A12 — Appartement');
 
     await user.type(screen.getByRole('searchbox', { name: 'Rechercher' }), 'A12');
 
@@ -78,7 +85,7 @@ describe('UnitList', () => {
   it('sorts the lots on a column header, asking the server for the new order', async () => {
     const user = userEvent.setup();
     renderList();
-    await screen.findByText(/Lot A12/);
+    await screen.findByText(/A12/);
 
     await user.click(screen.getByRole('button', { name: /^Lot$/ }));
 

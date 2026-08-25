@@ -56,6 +56,21 @@ public class InvitationRepositoryAdapter implements InvitationRepository {
     }
 
     @Override
+    public Optional<Invitation> findPublicByPropertyId(EntityId propertyId) {
+        return jpaRepository.findByPropertyIdAndTypeOrderByCreatedDateAsc(propertyId.value(), InvitationType.PUBLIC).stream()
+                .findFirst()
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<Invitation> findOutstandingPrivateByPartyId(EntityId partyId) {
+        return jpaRepository.findByTargetPartyIdAndStatusOrderByCreatedDateDesc(partyId.value(), InvitationStatus.ACTIVE)
+                .stream()
+                .findFirst()
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public List<Invitation> findAllByPropertyIdAndTypeAndStatus(EntityId propertyId, InvitationType type, InvitationStatus status) {
         return jpaRepository.findByPropertyIdAndTypeAndStatus(propertyId.value(), type, status).stream()
                 .map(mapper::toDomain)

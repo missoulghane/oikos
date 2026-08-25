@@ -12,36 +12,30 @@ import com.architek.oikos.invitation.application.port.out.AccountInfo;
 import com.architek.oikos.invitation.application.port.out.BoardDirectoryPort;
 import com.architek.oikos.invitation.application.port.out.PartyDetails;
 import com.architek.oikos.invitation.application.port.out.PartyDirectoryPort;
-import com.architek.oikos.invitation.application.port.out.UnitBasicInfo;
-import com.architek.oikos.invitation.application.port.out.UnitDirectoryPort;
 import com.architek.oikos.invitation.domain.exception.InvalidInvitationTokenException;
-import com.architek.oikos.invitation.domain.exception.UnitUnavailableException;
 import com.architek.oikos.invitation.domain.model.Invitation;
 import com.architek.oikos.invitation.domain.model.InvitationType;
-import com.architek.oikos.invitation.domain.model.MembershipRequest;
 import com.architek.oikos.invitation.domain.repository.InvitationRepository;
-import com.architek.oikos.invitation.domain.repository.MembershipRequestRepository;
-import com.architek.oikos.invitation.domain.valueobject.MembershipRequestId;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
 
 /**
- * Handles PRIVATE invitations. Two shapes share this same token/usability
- * validation but then fork: board invitations (targetRole
- * PROPERTY_BOARD_MEMBER) attach the party to the board as a PENDING_
- * VALIDATION seat, with no unit to claim and no MembershipRequest audit row
- * (that trail is unit-ownership-specific) - accepting the link only
- * consumes the invitation, it does not grant the PROPERTY_BOARD_MEMBER role
- * by itself; an admin must explicitly validate the seat afterwards (see
- * property.application.usecase.ValidateBoardMemberService) for the role to
- * actually be granted. Everything else is the owner flow, where the unit is
- * always chosen by the caller and re-validated as belonging to this
- * invitation's property (never trust a client-submitted id from a different
- * property) - availability itself is enforced atomically by the claim below,
- * and the PROPERTY_OWNER role is granted immediately there.
- * PUBLIC never reaches this use case - it goes through
- * SubmitMembershipRequestUseCase instead, since it needs manager review.
+ * Ne traite plus que les invitations au conseil syndical (targetRole
+ * PROPERTY_BOARD_MEMBER) : la partie attache le contact au conseil sur un
+ * siège PENDING_VALIDATION, sans lot à réserver ni ligne MembershipRequest
+ * (cette trace-là suit les candidatures sur un lot). Accepter le lien ne
+ * donne pas le rôle PROPERTY_BOARD_MEMBER : un administrateur doit valider le
+ * siège ensuite (voir property.application.usecase.ValidateBoardMemberService).
+ *
+ * <p>Les invitations de copropriétaire, publiques comme privées, passent
+ * désormais toutes par SubmitMembershipRequestUseCase : elles déposent une
+ * demande que le syndic valide. Ce cas d'usage accordait jusqu'ici l'accès
+ * sur-le-champ à une invitation privée, en réservant le lot choisi par
+ * l'invité - une porte que la page d'accueil ouvre justement au changement de
+ * lot (« ce n'est pas votre lot ? »), et qui n'a plus lieu d'exister sans
+ * revue. Le refus ci-dessous est explicite plutôt que silencieux : un client
+ * resté sur l'ancien appel doit le savoir, pas croire avoir réussi.
  */
 @Component
 public class AcceptInvitationService implements AcceptInvitationUseCase {
@@ -50,22 +44,17 @@ public class AcceptInvitationService implements AcceptInvitationUseCase {
 
     private final InvitationRepository invitationRepository;
     private final PartyDirectoryPort partyDirectoryPort;
-    private final UnitDirectoryPort unitDirectoryPort;
     private final AccountDirectoryPort accountDirectoryPort;
     private final BoardDirectoryPort boardDirectoryPort;
-    private final MembershipRequestRepository membershipRequestRepository;
     private final Clock clock;
 
     public AcceptInvitationService(InvitationRepository invitationRepository, PartyDirectoryPort partyDirectoryPort,
-                                    UnitDirectoryPort unitDirectoryPort, AccountDirectoryPort accountDirectoryPort,
-                                    BoardDirectoryPort boardDirectoryPort,
-                                    MembershipRequestRepository membershipRequestRepository, Clock clock) {
+                                    AccountDirectoryPort accountDirectoryPort, BoardDirectoryPort boardDirectoryPort,
+                                    Clock clock) {
         this.invitationRepository = invitationRepository;
         this.partyDirectoryPort = partyDirectoryPort;
-        this.unitDirectoryPort = unitDirectoryPort;
         this.accountDirectoryPort = accountDirectoryPort;
         this.boardDirectoryPort = boardDirectoryPort;
-        this.membershipRequestRepository = membershipRequestRepository;
         this.clock = clock;
     }
 
@@ -77,60 +66,11 @@ public class AcceptInvitationService implements AcceptInvitationUseCase {
         if (!invitation.isUsable(clock.instant())) {
             throw new InvalidInvitationTokenException("This invitation link is no longer usable");
         }
-        if (invitation.getType() != InvitationType.PRIVATE) {
-            throw new InvalidInvitationTokenException("This invitation link is no longer usable");
+        if (invitation.getType() != InvitationType.PRIVATE || !isBoardInvitation(invitation)) {
+            throw new InvalidInvitationTokenException(
+                    "This invitation opens a membership request: submit it instead of accepting it directly");
         }
-        if (isBoardInvitation(invitation)) {
-            return acceptBoardInvitation(invitation, command.actingUserId());
-        }
-        EntityId unitId = resolveUnitId(invitation, command.unitId());
-
-        AccountInfo accountInfo = accountDirectoryPort.getAccountInfo(command.actingUserId());
-        EntityId userId = command.actingUserId();
-        EmailVO resolvedEmail = accountInfo.email();
-        EntityId partyId = resolveParty(accountInfo.email(), accountInfo.fullName(), invitation.getPropertyId());
-
-        try {
-            unitDirectoryPort.claim(unitId, partyId);
-        } catch (UnitUnavailableException e) {
-            invitationRepository.save(invitation.disable());
-            throw e;
-        }
-
-        accountDirectoryPort.grantPropertyRole(userId, partyId, invitation.getPropertyId(), invitation.getTargetRole());
-        invitationRepository.save(invitation.consume(resolvedEmail));
-
-        // PRIVATE never goes through manager review, so this is created
-        // directly in ACCEPTED status (submit()+accept() with no PENDING
-        // phase in between) - a permanent audit trail row alongside the
-        // access just granted, replacing the synthetic INVITED entry the
-        // manager's overview showed for this invitation until now (see
-        // ListMembershipRequestsService).
-        membershipRequestRepository.save(
-                MembershipRequest.submit(MembershipRequestId.newId(), EntityId.of(invitation.getId().asUuid()),
-                                invitation.getPropertyId(), unitId, partyId, userId)
-                        .accept(clock.instant(), null));
-
-        return userId;
-    }
-
-    /**
-     * The unit is always client-supplied for PRIVATE invitations now (no
-     * PRIVATE_WITH_UNIT left to fix it on the invitation itself), so it must
-     * be re-validated as actually belonging to this invitation's property
-     * (never trust a client-submitted id from a different property);
-     * availability itself is enforced atomically by the claim below, not here.
-     */
-    private EntityId resolveUnitId(Invitation invitation, EntityId requestedUnitId) {
-        if (requestedUnitId == null) {
-            throw new IllegalArgumentException("unitId is required to accept this invitation");
-        }
-        UnitBasicInfo unit = unitDirectoryPort.findBasicInfo(requestedUnitId)
-                .orElseThrow(() -> new IllegalArgumentException("Unit not found with id: " + requestedUnitId));
-        if (!unit.propertyId().equals(invitation.getPropertyId())) {
-            throw new IllegalArgumentException("Unit " + requestedUnitId + " does not belong to this invitation's property");
-        }
-        return requestedUnitId;
+        return acceptBoardInvitation(invitation, command.actingUserId());
     }
 
     private EntityId resolveParty(EmailVO email, String fullName, EntityId propertyId) {

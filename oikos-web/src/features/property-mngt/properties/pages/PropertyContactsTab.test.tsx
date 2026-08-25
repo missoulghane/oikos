@@ -13,9 +13,6 @@ import type { Property, PropertyContact } from '@/features/property-mngt/propert
 vi.mock('@/features/property-mngt/properties/api/getPropertyContacts', () => ({
   getPropertyContacts: vi.fn(),
 }));
-vi.mock('@/features/property-mngt/parties/hooks/useBulkInviteParties', () => ({
-  useBulkInviteParties: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false, isError: false }),
-}));
 
 // PropertyContactsTab reads its property from the router outlet context; the
 // test route below renders it directly, so stub that hook rather than building
@@ -74,6 +71,18 @@ describe('PropertyContactsTab', () => {
     expect(await screen.findByText(/Jean Dupont/)).toBeInTheDocument();
     expect(mockedGetPropertyContacts).toHaveBeenCalledWith(
       expect.objectContaining({ propertyId: 'property-1', hasLinkedAccount: undefined }),
+    );
+  });
+
+  // La fiche contact vit hors de /property-mngt : sans l'espace dans l'adresse,
+  // le syndic qui clique sur un contact était renvoyé dans son espace
+  // copropriétaire (voir boardSpaceQuerySuffix).
+  it('keeps the syndic space on the link to a contact', async () => {
+    renderTab();
+
+    expect(await screen.findByRole('link', { name: 'Jean Dupont' })).toHaveAttribute(
+      'href',
+      '/parties/property-1/party-1?space=board&propertyId=property-1',
     );
   });
 

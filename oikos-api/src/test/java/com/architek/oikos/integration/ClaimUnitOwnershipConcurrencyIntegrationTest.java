@@ -73,7 +73,7 @@ class ClaimUnitOwnershipConcurrencyIntegrationTest {
         BuildingId buildingId = addBuildingUseCase.add(new AddBuildingCommand(propertyId, "Bâtiment A", 3));
         UnitTypeDefinitionId unitTypeId =
                 addUnitTypeDefinitionUseCase.add(new AddUnitTypeDefinitionCommand(propertyId, "Appartement"));
-        UnitId unitId = addUnitUseCase.add(new AddUnitCommand(buildingId, "A1", unitTypeId, BigDecimal.TEN));
+        UnitId unitId = addUnitUseCase.add(new AddUnitCommand(buildingId, "A1", unitTypeId, BigDecimal.TEN, null));
 
         EntityId propertyEntityId = EntityId.of(propertyId.asUuid());
         PartyId partyOne = createPartyUseCase.create(new CreatePartyCommand(

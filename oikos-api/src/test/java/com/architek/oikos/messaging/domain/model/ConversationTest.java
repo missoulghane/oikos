@@ -47,12 +47,20 @@ class ConversationTest {
     }
 
     @Test
-    void creating_a_broadcast_conversation_stores_no_participant_and_no_subject() {
-        Conversation conversation = Conversation.createBroadcast(ConversationId.newId(), EntityId.newId(), EntityId.newId());
+    void creating_a_broadcast_conversation_stores_its_subject_and_no_participant() {
+        Conversation conversation = Conversation.createBroadcast(ConversationId.newId(), EntityId.newId(), EntityId.newId(),
+                ConversationSubject.of("Coupure d'eau"));
 
         assertThat(conversation.getType()).isEqualTo(ConversationType.BROADCAST);
         assertThat(conversation.getParticipantUserIds()).isEmpty();
-        assertThat(conversation.getSubject()).isNull();
+        assertThat(conversation.getSubject().value()).isEqualTo("Coupure d'eau");
+    }
+
+    // Un envoi groupé est un message, pas un canal : il lui faut un objet.
+    @Test
+    void creating_a_broadcast_conversation_without_a_subject_is_rejected() {
+        assertThatThrownBy(() -> Conversation.createBroadcast(ConversationId.newId(), EntityId.newId(), EntityId.newId(), null))
+                .isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -79,11 +87,14 @@ class ConversationTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    // Les envois d'avant ce changement ont été écrits sans objet : les relire
+    // doit rester possible, seul createBroadcast en exige un.
     @Test
-    void reconstructing_a_broadcast_conversation_with_a_subject_is_rejected() {
-        assertThatThrownBy(() -> Conversation.reconstruct(ConversationId.newId(), EntityId.newId(), ConversationType.BROADCAST,
-                EntityId.newId(), Set.of(), SUBJECT, null, null))
-                .isInstanceOf(IllegalArgumentException.class);
+    void reconstructing_a_broadcast_conversation_without_a_subject_is_accepted() {
+        Conversation legacy = Conversation.reconstruct(ConversationId.newId(), EntityId.newId(), ConversationType.BROADCAST,
+                EntityId.newId(), Set.of(), null, null, null);
+
+        assertThat(legacy.getSubject()).isNull();
     }
 
     @Test
@@ -96,8 +107,8 @@ class ConversationTest {
     @Test
     void two_conversations_with_the_same_id_are_equal() {
         ConversationId id = ConversationId.newId();
-        Conversation first = Conversation.createBroadcast(id, EntityId.newId(), EntityId.newId());
-        Conversation second = Conversation.createBroadcast(id, EntityId.newId(), EntityId.newId());
+        Conversation first = Conversation.createBroadcast(id, EntityId.newId(), EntityId.newId(), ConversationSubject.of("Annonce"));
+        Conversation second = Conversation.createBroadcast(id, EntityId.newId(), EntityId.newId(), ConversationSubject.of("Annonce"));
 
         assertThat(first).isEqualTo(second);
         assertThat(first).hasSameHashCodeAs(second);

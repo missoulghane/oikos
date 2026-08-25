@@ -1,6 +1,10 @@
 import type { Ref } from 'react';
 import { Controller, type Control, type FieldValues, type Path } from 'react-hook-form';
-import { QuillEditor, type QuillEditorHandle } from '@/shared/components/RichText/QuillEditor';
+import {
+  QuillEditor,
+  DEFAULT_EDITOR_MIN_HEIGHT,
+  type QuillEditorHandle,
+} from '@/shared/components/RichText/QuillEditor';
 
 interface MessageBodyEditorProps<TFieldValues extends FieldValues> {
   ref?: Ref<QuillEditorHandle>;
@@ -12,6 +16,8 @@ interface MessageBodyEditorProps<TFieldValues extends FieldValues> {
   autoFocus?: boolean;
   error?: string;
   minHeight?: number;
+  /** L'éditeur occupe la hauteur disponible plutôt que de s'arrêter à minHeight (voir QuillEditor). */
+  fill?: boolean;
 }
 
 // The body field's wire format is Quill's own HTML output (see QuillEditor) -
@@ -30,13 +36,22 @@ export function MessageBodyEditor<TFieldValues extends FieldValues>({
   autoFocus = false,
   error,
   minHeight,
+  fill = false,
 }: MessageBodyEditorProps<TFieldValues>) {
   return (
     <Controller
       control={control}
       name={name}
       render={({ field }) => (
-        <div className="flex flex-col gap-1">
+        // En mode `fill`, c'est ce conteneur - l'élément flex du formulaire -
+        // qui porte le plancher de hauteur, pas l'éditeur lui-même : posé sur
+        // l'éditeur, il le faisait déborder d'un parent déjà rétréci et
+        // recouvrir les boutons qui suivent (voir QuillEditor). Ici, le
+        // formulaire ne peut plus le rétrécir sous ce plancher : il défile.
+        <div
+          className={`flex flex-col gap-1 ${fill ? 'flex-1' : ''}`}
+          style={fill ? { minHeight: minHeight ?? DEFAULT_EDITOR_MIN_HEIGHT } : undefined}
+        >
           <QuillEditor
             ref={ref}
             defaultValue={field.value ?? ''}
@@ -46,6 +61,7 @@ export function MessageBodyEditor<TFieldValues extends FieldValues>({
             disabled={disabled}
             autoFocus={autoFocus}
             minHeight={minHeight}
+            fill={fill}
             ariaLabel={ariaLabel}
           />
           {error && <p className="text-sm text-error-500 dark:text-error-400">{error}</p>}

@@ -34,7 +34,7 @@ export function MyMembershipRequestsScreen() {
               <View style={styles.rowHeader}>
                 <Text style={styles.rowLabel}>
                   {item.propertyName ?? 'Copropriété'}
-                  {item.unitNumber && ` — Lot ${item.unitNumber}`}
+                  {item.unitNumber && ` — ${item.unitNumber}`}
                   {item.unitTypeName && ` (${item.unitTypeName})`}
                 </Text>
                 <Badge color={badge.color}>{badge.label}</Badge>

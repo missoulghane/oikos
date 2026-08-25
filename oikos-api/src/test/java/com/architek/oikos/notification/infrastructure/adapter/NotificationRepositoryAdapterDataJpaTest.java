@@ -58,10 +58,25 @@ class NotificationRepositoryAdapterDataJpaTest {
         Notification second = adapter.save(Notification.create(NotificationId.newId(), userId, null, NotificationType.GENERAL, "Second", null, null));
         adapter.save(Notification.create(NotificationId.newId(), EntityId.newId(), null, NotificationType.GENERAL, "Autre utilisateur", null, null));
 
-        Page<Notification> page = adapter.findByRecipientUserId(userId, PageRequest.of(0, 20));
+        Page<Notification> page = adapter.findByRecipientUserId(userId, false, PageRequest.of(0, 20));
 
         assertThat(page.content()).extracting(Notification::getId).containsExactlyInAnyOrder(first.getId(), second.getId());
         assertThat(page.totalElements()).isEqualTo(2);
+    }
+
+    // La cloche liste le non-lu : une notification ouverte en sort, et le total
+    // suit - sans quoi la pagination annoncerait des lignes qu'elle ne rend pas.
+    @Test
+    void lists_only_the_unread_ones_when_asked() {
+        EntityId userId = EntityId.newId();
+        Notification unread = adapter.save(Notification.create(NotificationId.newId(), userId, null, NotificationType.GENERAL, "Non lu", null, null));
+        Notification read = adapter.save(Notification.create(NotificationId.newId(), userId, null, NotificationType.GENERAL, "Lu", null, null));
+        adapter.save(read.markRead(java.time.Instant.now()));
+
+        Page<Notification> page = adapter.findByRecipientUserId(userId, true, PageRequest.of(0, 20));
+
+        assertThat(page.content()).extracting(Notification::getId).containsExactly(unread.getId());
+        assertThat(page.totalElements()).isEqualTo(1);
     }
 
     @Test

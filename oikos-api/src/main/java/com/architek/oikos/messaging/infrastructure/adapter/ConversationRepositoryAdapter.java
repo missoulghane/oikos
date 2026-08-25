@@ -40,11 +40,6 @@ public class ConversationRepositoryAdapter implements ConversationRepository {
     }
 
     @Override
-    public Optional<Conversation> findBroadcastConversation(EntityId propertyId) {
-        return jpaRepository.findByPropertyIdAndType(propertyId.value(), ConversationType.BROADCAST).map(mapper::toDomain);
-    }
-
-    @Override
     public List<Conversation> findAllGroupByParticipant(EntityId userId) {
         return jpaRepository.findAllGroupByParticipant(userId.value()).stream().map(mapper::toDomain).toList();
     }

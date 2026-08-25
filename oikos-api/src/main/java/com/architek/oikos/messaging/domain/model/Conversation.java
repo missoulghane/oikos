@@ -34,11 +34,19 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * thread never reuses an earlier one, matching GROUP's "New message"
  * semantics - see StartBoardConversationService.
  *
- * <p>BROADCAST conversations are unique per property
- * (uk_conversation_broadcast_property), carry no stored participants and no
- * subject: their identity is already the fixed channel label rendered by the
- * frontend, not a per-message title. Membership is resolved dynamically from
- * the property's current roster at read time, same as BOARD_PRIVATE above.
+ * <p>BROADCAST conversations carry no stored participants but do carry a
+ * subject, like the two types above: un envoi groupé n'est pas un fil, c'est
+ * un message adressé à toute la copropriété, avec son propre objet, et le
+ * suivant est un autre message - jamais une réponse au précédent. Il n'y a
+ * donc plus de canal unique par copropriété (l'index unique
+ * uk_conversation_broadcast_property est levé par V7) ni de find-or-create :
+ * chaque envoi crée sa propre ligne, comme GROUP et BOARD_PRIVATE.
+ * Membership is resolved dynamically from the property's current roster at
+ * read time, same as BOARD_PRIVATE above.
+ *
+ * <p>Le sujet reste nullable pour ce seul type, et uniquement pour les lignes
+ * antérieures à ce changement : elles ont été écrites sans objet, et rien ne
+ * permet de leur en inventer un. createBroadcast, lui, en exige un.
  *
  * <p>createdDate mirrors the persistence layer's audited created_date
  * (read-only from the domain's point of view - AuditableEntity/JPA auditing
@@ -84,9 +92,6 @@ public final class Conversation {
         if ((type == ConversationType.GROUP || type == ConversationType.BOARD_PRIVATE) && subject == null) {
             throw new IllegalArgumentException("a " + type + " conversation must have a subject");
         }
-        if (type == ConversationType.BROADCAST && subject != null) {
-            throw new IllegalArgumentException("a BROADCAST conversation must not have a subject");
-        }
         if (type != ConversationType.GROUP && concernsUnit != null) {
             throw new IllegalArgumentException("a " + type + " conversation must not concern a unit");
         }
@@ -101,8 +106,10 @@ public final class Conversation {
         return new Conversation(id, propertyId, ConversationType.GROUP, createdBy, participantUserIds, subject, concernsUnit, null);
     }
 
-    public static Conversation createBroadcast(ConversationId id, EntityId propertyId, EntityId createdBy) {
-        return new Conversation(id, propertyId, ConversationType.BROADCAST, createdBy, Set.of(), null, null, null);
+    public static Conversation createBroadcast(ConversationId id, EntityId propertyId, EntityId createdBy,
+                                                ConversationSubject subject) {
+        Objects.requireNonNull(subject, "a broadcast must have a subject");
+        return new Conversation(id, propertyId, ConversationType.BROADCAST, createdBy, Set.of(), subject, null, null);
     }
 
     public static Conversation createBoardPrivate(ConversationId id, EntityId propertyId, EntityId createdBy,

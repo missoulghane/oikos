@@ -7,6 +7,7 @@ import { useUnitOwners } from '@/features/property-mngt/properties/hooks/useUnit
 import { AddUnitOwnerForm } from '@/features/property-mngt/properties/components/AddUnitOwnerForm';
 import { PARTY_TYPE_LABELS } from '@/features/property-mngt/properties/constants/partyTypeLabels';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { boardSpaceQuerySuffix } from '@/shared/hooks/useEffectiveSpace';
 
 interface UnitOwnersSectionProps {
   unitId: string;
@@ -52,7 +53,11 @@ export function UnitOwnersSection({ unitId, propertyId, canManage = true }: Unit
           {data.map((owner) => (
             <li key={owner.id} className="flex items-center justify-between py-1 text-sm">
               <span className="text-gray-700 dark:text-gray-300">
-                <Link to={`/parties/${propertyId}/${owner.partyId}`} className="hover:underline">
+                {/* Suffixe d'espace : même raison que dans l'onglet Contacts, voir boardSpaceQuerySuffix. */}
+                <Link
+                  to={`/parties/${propertyId}/${owner.partyId}${boardSpaceQuerySuffix(propertyId)}`}
+                  className="hover:underline"
+                >
                   {owner.partyFullName}
                 </Link>{' '}
                 ({PARTY_TYPE_LABELS[owner.partyType]}) — {owner.partyEmail}

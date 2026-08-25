@@ -16,9 +16,16 @@ interface MessageComposerProps {
   identityChoiceNeeded?: boolean;
   /** Preselected from the active space (useEffectiveSpace) when the choice is offered. */
   defaultIdentity?: SenderIdentity;
+  /** Appelé une fois le message parti : la zone de saisie se referme (voir ConversationPage). */
+  onSent?: () => void;
 }
 
-export function MessageComposer({ conversationId, identityChoiceNeeded = false, defaultIdentity }: MessageComposerProps) {
+export function MessageComposer({
+  conversationId,
+  identityChoiceNeeded = false,
+  defaultIdentity,
+  onSent,
+}: MessageComposerProps) {
   const [identityOverride, setIdentityOverride] = useState<SenderIdentity | null>(null);
   const selectedIdentity = identityOverride ?? defaultIdentity;
   const {
@@ -49,8 +56,15 @@ export function MessageComposer({ conversationId, identityChoiceNeeded = false, 
     setClearSignal((signal) => signal + 1);
   }
 
+  function handleSent() {
+    clearBody();
+    // Répondre est un geste, pas un mode : une fois le message parti, la zone
+    // de saisie disparaît et le fil redevient une lecture.
+    onSent?.();
+  }
+
   function onSubmit(values: SendMessageFormValues) {
-    mutate({ ...values, senderIdentity: identityChoiceNeeded ? selectedIdentity : undefined }, { onSuccess: clearBody });
+    mutate({ ...values, senderIdentity: identityChoiceNeeded ? selectedIdentity : undefined }, { onSuccess: handleSent });
   }
 
   function handleRetry() {
@@ -58,63 +72,72 @@ export function MessageComposer({ conversationId, identityChoiceNeeded = false, 
     // mutation actually succeeds, so retrying just resubmits the same text.
     mutate(
       { body: getValues('body'), senderIdentity: identityChoiceNeeded ? selectedIdentity : undefined },
-      { onSuccess: clearBody },
+      { onSuccess: handleSent },
     );
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2" noValidate>
-      {isError && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <Alert message={getErrorMessage(error)} />
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleRetry}
-            disabled={isPending}
-            className="self-start sm:self-auto"
-          >
-            Réessayer
-          </Button>
-        </div>
-      )}
-      {identityChoiceNeeded && (
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500 dark:text-gray-400">Répondre en tant que</span>
-          <div role="group" aria-label="Répondre en tant que" className="flex rounded-lg border border-gray-200 p-0.5 dark:border-gray-800">
-            {(['OWNER', 'BOARD'] as const).map((identity) => (
-              <button
-                key={identity}
-                type="button"
-                disabled={isPending}
-                aria-pressed={selectedIdentity === identity}
-                onClick={() => setIdentityOverride(identity)}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                  selectedIdentity === identity
-                    ? 'bg-brand-500 text-white'
-                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.05]'
-                }`}
-              >
-                {identity === 'OWNER' ? 'Copropriétaire' : 'Membre du conseil'}
-              </button>
-            ))}
+    // h-full/min-h-0 : le formulaire occupe la hauteur que ConversationPage lui
+    // laisse, et l'éditeur prend ce qui reste - une ligne de saisie pour écrire
+    // un message était le vrai reproche.
+    <form onSubmit={handleSubmit(onSubmit)} className="flex h-full min-h-0 flex-col gap-2" noValidate>
+      {/* Zone défilante : quand le fil laisse peu de place, ce sont les champs
+          qui défilent - le bouton « Envoyer » reste posé en bas, jamais
+          recouvert par l'éditeur. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+        {isError && (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <Alert message={getErrorMessage(error)} />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleRetry}
+              disabled={isPending}
+              className="self-start sm:self-auto"
+            >
+              Réessayer
+            </Button>
           </div>
-        </div>
-      )}
-      <MessageBodyEditor
-        ref={editorRef}
-        control={control}
-        name="body"
-        ariaLabel="Message"
-        placeholder="Écrivez un message…"
-        disabled={isPending}
-        // Only rendered once the user explicitly clicks "Répondre"
-        // (ConversationPage), never on initial page load.
-        autoFocus
-        error={errors.body?.message}
-        minHeight={72}
-      />
-      <Button type="submit" isLoading={isPending} className="self-end">
+        )}
+        {identityChoiceNeeded && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 dark:text-gray-400">Répondre en tant que</span>
+            <div role="group" aria-label="Répondre en tant que" className="flex rounded-lg border border-gray-200 p-0.5 dark:border-gray-800">
+              {(['OWNER', 'BOARD'] as const).map((identity) => (
+                <button
+                  key={identity}
+                  type="button"
+                  disabled={isPending}
+                  aria-pressed={selectedIdentity === identity}
+                  onClick={() => setIdentityOverride(identity)}
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                    selectedIdentity === identity
+                      ? 'bg-brand-500 text-white'
+                      : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.05]'
+                  }`}
+                >
+                  {identity === 'OWNER' ? 'Copropriétaire' : 'Membre du conseil'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <MessageBodyEditor
+          ref={editorRef}
+          control={control}
+          name="body"
+          ariaLabel="Message"
+          placeholder="Écrivez un message…"
+          disabled={isPending}
+          // Only rendered once the user explicitly clicks "Répondre"
+          // (ConversationPage), never on initial page load.
+          autoFocus
+          error={errors.body?.message}
+          fill
+          minHeight={160}
+        />
+      </div>
+      <Button type="submit" isLoading={isPending} className="shrink-0 self-end">
         Envoyer
       </Button>
     </form>

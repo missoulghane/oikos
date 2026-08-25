@@ -9,6 +9,7 @@ import { FilterPanel } from '@/shared/components/FilterPanel/FilterPanel';
 import { SortableColumnHeader } from '@/shared/components/SortableColumnHeader/SortableColumnHeader';
 import { Pagination } from '@/shared/components/Pagination/Pagination';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { floorLabel } from '@/features/property-mngt/properties/utils/floorLabel';
 import { countActiveFilters } from '@/shared/utils/countActiveFilters';
 import { nextSortDirection, type SortDirection } from '@/shared/utils/sorting';
 import type { OwnershipStatus, UnitSortField } from '@/features/property-mngt/properties/types/property.types';
@@ -115,6 +116,7 @@ export function UnitList({ buildingId, propertyId, showShares }: UnitListProps) 
                     Lot
                   </SortableColumnHeader>
                   <th className="px-3 py-2 font-medium">Type</th>
+                  <th className="px-3 py-2 font-medium">Étage</th>
                   {/* Only sortable when it is displayed - a header for a hidden
                       column would sort on something the reader cannot see. */}
                   {showShares && (
@@ -143,10 +145,15 @@ export function UnitList({ buildingId, propertyId, showShares }: UnitListProps) 
                         to={`/property-mngt/properties/${propertyId}/units/${unit.id}`}
                         className="font-medium text-gray-900 hover:underline dark:text-white/90"
                       >
-                        Lot {unit.unitNumber} — {unit.unitTypeName}
+                        {unit.unitNumber} — {unit.unitTypeName}
                       </Link>
                     </td>
                     <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{unit.unitTypeName}</td>
+                    {/* Un tiret plutôt qu'une case vide : l'étage n'est pas renseigné
+                        sur les lots générés en masse, ce n'est pas une donnée manquante. */}
+                    <td className="px-3 py-2 text-gray-500 dark:text-gray-400">
+                      {typeof unit.floor === 'number' ? floorLabel(unit.floor) : '—'}
+                    </td>
                     {showShares && (
                       <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300">{unit.shares}</td>
                     )}

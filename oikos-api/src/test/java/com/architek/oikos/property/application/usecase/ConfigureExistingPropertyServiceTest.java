@@ -110,7 +110,7 @@ class ConfigureExistingPropertyServiceTest {
         ArgumentCaptor<Unit> unitCaptor = ArgumentCaptor.forClass(Unit.class);
         verify(unitRepository, org.mockito.Mockito.times(3)).save(unitCaptor.capture());
         assertThat(unitCaptor.getAllValues()).extracting(Unit::getUnitNumber)
-                .containsExactly("Appartement 1", "Appartement 2", "Box 1");
+                .containsExactly("N° 1", "N° 2", "N° 1");
         assertThat(unitCaptor.getAllValues()).allSatisfy(
                 unit -> assertThat(unit.getShares().value()).isEqualByComparingTo(BigDecimal.ZERO));
 

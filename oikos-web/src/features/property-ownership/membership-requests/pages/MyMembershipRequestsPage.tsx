@@ -37,7 +37,7 @@ export function MyMembershipRequestsPage() {
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-gray-700 dark:text-gray-300">
                       {request.propertyName ?? 'Copropriété'}
-                      {request.unitNumber && ` — Lot ${request.unitNumber}`}
+                      {request.unitNumber && ` — ${request.unitNumber}`}
                       {request.unitTypeName && ` (${request.unitTypeName})`}
                     </p>
                     <Badge color={badge.color}>{badge.label}</Badge>

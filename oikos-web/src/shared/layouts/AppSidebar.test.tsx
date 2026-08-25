@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -16,10 +16,16 @@ const owner: CurrentUser = {
   hasAvatar: false,
 };
 
+// Mutable : le même compte, avant et après la validation de sa demande
+// d'adhésion. La factory ne le lit qu'au rendu, bien après l'initialisation
+// de ce module.
+let noPropertyAccess = false;
+
 vi.mock('@/features/identity/me', () => ({
   useCurrentUser: () => ({ data: owner }),
   boardPropertyIds: () => [],
   canManageProperties: () => false,
+  hasNoPropertyAccess: () => noPropertyAccess,
   isManagerTier: () => false,
 }));
 vi.mock('@/features/messaging', () => ({
@@ -54,6 +60,10 @@ function renderSidebar() {
 }
 
 describe('AppSidebar (owner space)', () => {
+  beforeEach(() => {
+    noPropertyAccess = false;
+  });
+
   it('still lists the owner self-service entries', () => {
     renderSidebar();
 
@@ -104,5 +114,32 @@ describe('AppSidebar (owner space)', () => {
     await userEvent.click(screen.getByText('Mon tableau de bord'));
 
     expect(closeMobileSidebar).toHaveBeenCalled();
+  });
+});
+
+/**
+ * Le compte qui vient d'accepter une invitation publique : sa demande attend
+ * le syndic, il ne possède aucun lot et n'a de rôle nulle part. Chacune de ces
+ * entrées ouvrait sur un écran vide - et la messagerie, adossée aux
+ * copropriétés dont on fait partie, sur une boîte qui ne peut rien recevoir.
+ */
+describe('AppSidebar (aucune affectation valide)', () => {
+  beforeEach(() => {
+    noPropertyAccess = true;
+  });
+
+  it('ne garde que le tableau de bord', () => {
+    renderSidebar();
+
+    expect(screen.getByText('Mon tableau de bord')).toBeInTheDocument();
+    expect(screen.queryByText('Mes échéances')).not.toBeInTheDocument();
+    expect(screen.queryByText('Mes paiements')).not.toBeInTheDocument();
+    expect(screen.queryByText('Assemblées générales')).not.toBeInTheDocument();
+  });
+
+  it('retire la messagerie', () => {
+    renderSidebar();
+
+    expect(screen.queryByText('Messagerie')).not.toBeInTheDocument();
   });
 });

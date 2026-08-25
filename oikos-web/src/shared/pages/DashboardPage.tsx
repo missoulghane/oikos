@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { ArrowDownIcon, ArrowRightIcon, ArrowUpIcon } from '@/shared/icons';
-import { useCurrentUser, boardPropertyIds, canWriteAccounting, hasCopro } from '@/features/identity/me';
+import { useCurrentUser, boardPropertyIds, canWriteAccounting } from '@/features/identity/me';
 import { useEffectiveSpace } from '@/shared/hooks/useEffectiveSpace';
 import { useMandateProperties } from '@/shared/hooks/useMandateProperties';
 import { useProperty } from '@/features/property-mngt/properties/hooks/useProperty';
@@ -13,7 +13,6 @@ import { useInstallmentCollectionSummary } from '@/features/property-mngt/instal
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
 import { MyUnitsList } from '@/features/property-ownership/units/components/MyUnitsList';
 import { ResumeOnboardingBanner } from '@/features/identity/onboarding/components/ResumeOnboardingBanner';
-import { SpaceLinkCard } from '@/shared/components/SpaceLinkCard/SpaceLinkCard';
 import { Card } from '@/shared/components/Card/Card';
 import { CardLink } from '@/shared/components/Card/CardLink';
 import { Loader } from '@/shared/components/Loader/Loader';
@@ -211,7 +210,6 @@ function EntryActionCard({ to, icon, title, subtitle }: EntryActionCardProps) {
 function BoardDashboard({ propertyId, mandateIds }: { propertyId: string; mandateIds: string[] }) {
   const property = useProperty(propertyId);
   const currentUser = useCurrentUser();
-  const ownsHere = currentUser.data ? hasCopro(currentUser.data) : false;
   // Les deux saisies ne s'affichent que pour qui peut écrire en comptabilité - un bouton
   // qui mène à un formulaire refusé n'est pas un raccourci.
   const canWrite = currentUser.data ? canWriteAccounting(currentUser.data, propertyId) : false;
@@ -241,15 +239,6 @@ function BoardDashboard({ propertyId, mandateIds }: { propertyId: string; mandat
       </div>
 
       <TreasuryBalances propertyId={propertyId} />
-
-      {ownsHere && (
-        <SpaceLinkCard
-          to="/dashboard?space=owner"
-          tone="owner"
-          title="Revenir à l'espace copropriétaire"
-          subtitle="Vos charges se règlent là, pas dans l'espace bureau"
-        />
-      )}
     </>
   );
 }
@@ -292,28 +281,12 @@ function ManagerDashboard() {
  * <p>« Mes lots » a quitté le titre de la page, qui nomme désormais l'espace,
  * et redevient ce qu'il est : l'intitulé de la liste qui suit.
  */
-function OwnerDashboard({ mandateIds }: { mandateIds: string[] }) {
+function OwnerDashboard() {
   return (
     <>
       <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Mes lots</h2>
       <MyUnitsList />
-      {mandateIds.length > 0 && <MandateCard mandateIds={mandateIds} />}
     </>
-  );
-}
-
-/** The card that signals a board mandate from the owner dashboard - a mention, never an automatic switch. */
-function MandateCard({ mandateIds }: { mandateIds: string[] }) {
-  const mandateProperties = useMandateProperties(mandateIds);
-  const first = mandateProperties.byId.get(mandateIds[0]);
-
-  return (
-    <SpaceLinkCard
-      to={`/dashboard?space=board&propertyId=${mandateIds[0]}`}
-      tone="board"
-      title={mandateIds.length > 1 ? `${mandateIds.length} mandats au bureau` : `Mandat au bureau — ${first?.name ?? ''}`}
-      subtitle="Accéder à l'espace conseil syndical"
-    />
   );
 }
 
@@ -348,7 +321,7 @@ export function DashboardPage() {
     ) : effectiveSpace.kind === 'manager' ? (
       <ManagerDashboard />
     ) : (
-      <OwnerDashboard mandateIds={mandateIds} />
+      <OwnerDashboard />
     );
 
   const firstName = currentUser.data ? getFirstName(currentUser.data.fullName) : '';

@@ -26,4 +26,12 @@ public interface UnitDirectoryPort {
      * @throws UnitUnavailableException if the unit already has an owner
      */
     void claim(EntityId unitId, EntityId partyId);
+
+    /**
+     * Ce contact est-il déjà propriétaire de ce lot ? C'est le cas nominal
+     * d'une invitation privée : le syndic rattache le lot au contact, puis
+     * l'invite pour ce lot-là. Réserver le lot échouerait alors, alors qu'il
+     * n'y a rien à réserver - seul l'accès reste à ouvrir.
+     */
+    boolean isOwnedBy(EntityId unitId, EntityId partyId);
 }

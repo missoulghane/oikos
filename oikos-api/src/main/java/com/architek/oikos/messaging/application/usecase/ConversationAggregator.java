@@ -18,6 +18,7 @@ import com.architek.oikos.messaging.application.dto.ConversationSummaryView;
 import com.architek.oikos.messaging.application.port.out.PropertyMemberDirectoryPort;
 import com.architek.oikos.messaging.application.port.out.UserAccessPort;
 import com.architek.oikos.messaging.application.query.ConversationBox;
+import com.architek.oikos.messaging.application.query.ConversationReadState;
 import com.architek.oikos.messaging.domain.model.Conversation;
 import com.architek.oikos.messaging.domain.model.ConversationReadMarker;
 import com.architek.oikos.messaging.domain.model.ConversationType;
@@ -62,13 +63,19 @@ class ConversationAggregator {
 
     /** Sorted by lastMessageAt descending, conversations with no message yet sorted last. Unfiltered by box. */
     List<ConversationSummaryView> listAll(EntityId userId, String search) {
-        return listAll(userId, search, null);
+        return listAll(userId, search, null, null);
     }
 
     /** Same as {@link #listAll(EntityId, String)}, additionally restricted to conversations the
      * caller has received into (box == RECEIVED) or sent into (box == SENT) at least one message;
      * box == null means unfiltered. */
     List<ConversationSummaryView> listAll(EntityId userId, String search, ConversationBox box) {
+        return listAll(userId, search, box, null);
+    }
+
+    /** Same, plus the lu/non-lu filter (readState == null means unfiltered). */
+    List<ConversationSummaryView> listAll(EntityId userId, String search, ConversationBox box,
+                                           ConversationReadState readState) {
         Set<EntityId> memberPropertyIds = userAccessPort.memberPropertyIds(userId);
         List<Conversation> groups = conversationRepository.findAllGroupByParticipant(userId);
         List<Conversation> broadcasts =
@@ -88,6 +95,10 @@ class ConversationAggregator {
 
         Map<EntityId, String> propertyNameCache = new HashMap<>();
         Map<EntityId, Map<EntityId, String>> memberNamesByPropertyCache = new HashMap<>();
+        // Les lots de chaque membre, pour que la recherche accepte un numéro de
+        // lot : « A12 » doit ramener la conversation ouverte avec le
+        // propriétaire de ce lot, pas seulement celle dont l'objet le cite.
+        Map<EntityId, Map<EntityId, List<String>>> memberUnitsByPropertyCache = new HashMap<>();
 
         List<ConversationSummaryView> views = new ArrayList<>();
         for (Conversation conversation : all) {
@@ -125,12 +136,21 @@ class ConversationAggregator {
             long unreadCount = messageRepository.countUnread(conversation.getId(), lastReadMessageId);
 
             String subject = conversation.getSubject() != null ? conversation.getSubject().value() : null;
-            views.add(new ConversationSummaryView(conversation.getId(), conversation.getType(), propertyId, propertyName,
-                    subject, conversation.getConcernsUnit(), participants, preview, lastMessageAt, unreadCount, messageCount));
+            ConversationSummaryView view = new ConversationSummaryView(conversation.getId(), conversation.getType(), propertyId,
+                    propertyName, subject, conversation.getConcernsUnit(), participants, preview, lastMessageAt, unreadCount,
+                    messageCount);
+            if (!matchesSearch(view, search)) {
+                Map<EntityId, List<String>> unitsByUserId =
+                        memberUnitsByPropertyCache.computeIfAbsent(propertyId, memberDisplayNameResolver::unitNumbersByUserId);
+                if (!matchesUnitNumber(conversation, userId, unitsByUserId, search)) {
+                    continue;
+                }
+            }
+            views.add(view);
         }
 
         return views.stream()
-                .filter(view -> matchesSearch(view, search))
+                .filter(view -> matchesReadState(view, readState))
                 .sorted(Comparator.comparing(ConversationSummaryView::lastMessageAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
     }
@@ -144,6 +164,37 @@ class ConversationAggregator {
         boolean matchesAnyParticipant = view.participants().stream()
                 .anyMatch(participant -> participant.fullName() != null && participant.fullName().toLowerCase(Locale.ROOT).contains(pattern));
         boolean matchesPropertyName = view.propertyName() != null && view.propertyName().toLowerCase(Locale.ROOT).contains(pattern);
-        return matchesSubject || matchesAnyParticipant || matchesPropertyName;
+        // Le lot que le fil déclare concerner (« Concerne » à la rédaction) -
+        // gratuit, il est déjà sur la vue.
+        boolean matchesConcernsUnit = view.concernsUnit() != null && view.concernsUnit().toLowerCase(Locale.ROOT).contains(pattern);
+        return matchesSubject || matchesAnyParticipant || matchesPropertyName || matchesConcernsUnit;
+    }
+
+    /**
+     * Le numéro de lot d'un participant. Séparé de matchesSearch parce qu'il
+     * demande le registre des lots de la copropriété : on ne le résout que pour
+     * les conversations que le reste de la recherche n'a pas déjà retenues, et
+     * jamais du tout quand la recherche est vide.
+     *
+     * <p>Sur les participants, pas sur l'appelant : chercher son propre lot
+     * ramènerait toute sa boîte.
+     */
+    private static boolean matchesUnitNumber(Conversation conversation, EntityId userId,
+                                              Map<EntityId, List<String>> unitsByUserId, String search) {
+        if (search == null || search.isBlank()) {
+            return false;
+        }
+        String pattern = search.trim().toLowerCase(Locale.ROOT);
+        return conversation.getParticipantUserIds().stream()
+                .filter(participantId -> !participantId.equals(userId))
+                .flatMap(participantId -> unitsByUserId.getOrDefault(participantId, List.of()).stream())
+                .anyMatch(unitNumber -> unitNumber.toLowerCase(Locale.ROOT).contains(pattern));
+    }
+
+    private static boolean matchesReadState(ConversationSummaryView view, ConversationReadState readState) {
+        if (readState == null) {
+            return true;
+        }
+        return readState == ConversationReadState.UNREAD ? view.unreadCount() > 0 : view.unreadCount() == 0;
     }
 }

@@ -15,15 +15,13 @@ public interface ConversationRepository {
 
     Optional<Conversation> findById(ConversationId id);
 
-    Optional<Conversation> findBroadcastConversation(EntityId propertyId);
-
     /** Every GROUP conversation (wherever created) the given user is currently a participant of. */
     List<Conversation> findAllGroupByParticipant(EntityId userId);
 
     /**
      * Every conversation of the given type across the given properties in one
      * query - used by ListMyConversationsService/GetUnreadSummaryService to
-     * resolve every BROADCAST channel and every BOARD_PRIVATE thread of every
+     * resolve every BROADCAST send and every BOARD_PRIVATE thread of every
      * property the caller is a member of (resp. staff of), rather than one
      * query per property.
      */

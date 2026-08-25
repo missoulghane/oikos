@@ -6,6 +6,7 @@ import { Badge } from '@/shared/components/Badge/Badge';
 import { ChatIcon } from '@/shared/icons';
 import { useUnreadSummary } from '@/features/messaging/hooks/useUnreadSummary';
 import { conversationTitle } from '@/features/messaging/components/ConversationListItem';
+import { messagePreviewText } from '@/features/messaging/utils/renderMessageBody';
 import { formatRelativeTime } from '@/shared/utils/formatRelativeTime';
 
 export function NotificationBell() {
@@ -61,7 +62,11 @@ export function NotificationBell() {
                       {conversation.unreadCount}
                     </span>
                   </span>
-                  <span className="truncate text-xs text-gray-500 dark:text-gray-400">{conversation.lastMessagePreview}</span>
+                  {/* En clair : le corps est du HTML (Quill), l'afficher tel
+                      quel montrait les balises au lecteur. */}
+                  <span className="truncate text-xs text-gray-500 dark:text-gray-400">
+                    {messagePreviewText(conversation.lastMessagePreview)}
+                  </span>
                   <span className="text-xs text-gray-400 dark:text-gray-500">
                     {conversation.propertyName}
                     {conversation.lastMessageAt && ` · ${formatRelativeTime(conversation.lastMessageAt)}`}

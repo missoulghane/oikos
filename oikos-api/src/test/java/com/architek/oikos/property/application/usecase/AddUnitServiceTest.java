@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.architek.oikos.property.application.command.AddUnitCommand;
 import com.architek.oikos.property.application.port.out.LedgerAccountProvisioningPort;
 import com.architek.oikos.property.domain.exception.BuildingNotFoundException;
+import com.architek.oikos.property.domain.exception.UnitFloorOutOfBuildingRangeException;
 import com.architek.oikos.property.domain.exception.UnitTypeDefinitionNotFoundException;
 import com.architek.oikos.property.domain.model.Building;
 import com.architek.oikos.property.domain.model.UnitTypeDefinition;
@@ -57,7 +58,7 @@ class AddUnitServiceTest {
                 .thenReturn(Optional.of(UnitTypeDefinition.create(unitTypeId, propertyId, "Appartement")));
         when(unitRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        newService().add(new AddUnitCommand(buildingId, "A12", unitTypeId, new BigDecimal("150")));
+        newService().add(new AddUnitCommand(buildingId, "A12", unitTypeId, new BigDecimal("150"), 2));
 
         verify(unitRepository).save(any());
         verify(ledgerAccountProvisioningPort).provisionUnitReceivableAccount(any(), any());
@@ -69,7 +70,7 @@ class AddUnitServiceTest {
         when(buildingRepository.findById(buildingId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> newService().add(
-                new AddUnitCommand(buildingId, "A12", UnitTypeDefinitionId.newId(), BigDecimal.TEN)))
+                new AddUnitCommand(buildingId, "A12", UnitTypeDefinitionId.newId(), BigDecimal.TEN, null)))
                 .isInstanceOf(BuildingNotFoundException.class);
     }
 
@@ -82,7 +83,53 @@ class AddUnitServiceTest {
         when(unitTypeDefinitionRepository.findById(unitTypeId))
                 .thenReturn(Optional.of(UnitTypeDefinition.create(unitTypeId, PropertyId.newId(), "Appartement")));
 
-        assertThatThrownBy(() -> newService().add(new AddUnitCommand(buildingId, "A12", unitTypeId, BigDecimal.TEN)))
+        assertThatThrownBy(() -> newService().add(new AddUnitCommand(buildingId, "A12", unitTypeId, BigDecimal.TEN, null)))
                 .isInstanceOf(UnitTypeDefinitionNotFoundException.class);
+    }
+
+    @Test
+    void adding_a_unit_on_a_floor_the_building_does_not_have_is_rejected() {
+        BuildingId buildingId = BuildingId.newId();
+        PropertyId propertyId = PropertyId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        when(buildingRepository.findById(buildingId))
+                .thenReturn(Optional.of(Building.create(buildingId, propertyId, "Batiment A", 3)));
+        when(unitTypeDefinitionRepository.findById(unitTypeId))
+                .thenReturn(Optional.of(UnitTypeDefinition.create(unitTypeId, propertyId, "Appartement")));
+
+        assertThatThrownBy(() -> newService().add(new AddUnitCommand(buildingId, "A12", unitTypeId, BigDecimal.TEN, 4)))
+                .isInstanceOf(UnitFloorOutOfBuildingRangeException.class);
+    }
+
+    @Test
+    void the_top_floor_of_the_building_is_allowed_since_zero_is_the_ground_floor() {
+        BuildingId buildingId = BuildingId.newId();
+        PropertyId propertyId = PropertyId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        when(buildingRepository.findById(buildingId))
+                .thenReturn(Optional.of(Building.create(buildingId, propertyId, "Batiment A", 3)));
+        when(unitTypeDefinitionRepository.findById(unitTypeId))
+                .thenReturn(Optional.of(UnitTypeDefinition.create(unitTypeId, propertyId, "Appartement")));
+        when(unitRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        newService().add(new AddUnitCommand(buildingId, "A12", unitTypeId, BigDecimal.TEN, 3));
+
+        verify(unitRepository).save(any());
+    }
+
+    @Test
+    void a_unit_may_be_added_without_saying_which_floor_it_is_on() {
+        BuildingId buildingId = BuildingId.newId();
+        PropertyId propertyId = PropertyId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        when(buildingRepository.findById(buildingId))
+                .thenReturn(Optional.of(Building.create(buildingId, propertyId, "Batiment A", 3)));
+        when(unitTypeDefinitionRepository.findById(unitTypeId))
+                .thenReturn(Optional.of(UnitTypeDefinition.create(unitTypeId, propertyId, "Appartement")));
+        when(unitRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        newService().add(new AddUnitCommand(buildingId, "A12", unitTypeId, BigDecimal.TEN, null));
+
+        verify(unitRepository).save(any());
     }
 }

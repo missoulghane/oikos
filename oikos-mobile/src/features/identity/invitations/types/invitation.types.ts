@@ -8,6 +8,16 @@ export interface InvitationPreview {
   propertyName: string;
   propertyAddress: string;
   targetEmail: string | null;
+  /** Non nul pour une invitation au conseil syndical : le siège proposé. Un siège n'est pas un lot. */
+  boardRole: string | null;
+  /**
+   * Le lot désigné par une invitation privée. Nul pour un lien public (il
+   * circule, chacun choisit le sien) et nul aussi si ce lot a été supprimé
+   * depuis l'envoi - le sélecteur reprend alors la main.
+   */
+  targetUnitId: string | null;
+  targetUnitNumber: string | null;
+  targetUnitTypeName: string | null;
 }
 
 export interface AvailableUnit {
@@ -32,5 +42,6 @@ export interface PagedAvailableUnits {
  */
 export interface ConsumeInvitationPayload {
   token: string;
-  unitId: string;
+  /** Nul pour une invitation au conseil syndical, qui ne porte sur aucun lot. */
+  unitId: string | null;
 }

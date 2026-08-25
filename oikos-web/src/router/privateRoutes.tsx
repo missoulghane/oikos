@@ -30,14 +30,17 @@ const PropertyLotsTab = lazy(() =>
 const PropertyContactsTab = lazy(() =>
   import('@/features/property-mngt/properties').then((m) => ({ default: m.PropertyContactsTab })),
 );
-const PropertyInvitationsTab = lazy(() =>
-  import('@/features/property-mngt/invitations').then((m) => ({ default: m.PropertyInvitationsTab })),
+const MembershipRequestsTab = lazy(() =>
+  import('@/features/property-mngt/invitations').then((m) => ({ default: m.MembershipRequestsTab })),
 );
 const PropertyDocumentsTab = lazy(() =>
   import('@/features/property-mngt/documents').then((m) => ({ default: m.PropertyDocumentsTab })),
 );
 const UnitDetailPage = lazy(() =>
   import('@/features/property-mngt/properties').then((m) => ({ default: m.UnitDetailPage })),
+);
+const AddBuildingPage = lazy(() =>
+  import('@/features/property-mngt/properties').then((m) => ({ default: m.AddBuildingPage })),
 );
 const GeneralMeetingsSectionLayout = lazy(() =>
   import('@/features/property-mngt/general-meetings').then((m) => ({ default: m.GeneralMeetingsSectionLayout })),
@@ -86,6 +89,9 @@ const InstallmentsListTab = lazy(() =>
 );
 const InstallmentCallsTab = lazy(() =>
   import('@/features/property-mngt/installments').then((m) => ({ default: m.InstallmentCallsTab })),
+);
+const InstallmentDetailPage = lazy(() =>
+  import('@/features/property-mngt/installments').then((m) => ({ default: m.InstallmentDetailPage })),
 );
 const InstallmentsConfigurationTab = lazy(() =>
   import('@/features/property-mngt/pricing').then((m) => ({ default: m.InstallmentsConfigurationTab })),
@@ -140,6 +146,9 @@ const RecordOwnerPaymentPage = lazy(() =>
 );
 const PropertyUnitTypesTab = lazy(() =>
   import('@/features/property-mngt/properties').then((m) => ({ default: m.PropertyUnitTypesTab })),
+);
+const RecipientGroupsTab = lazy(() =>
+  import('@/features/messaging').then((m) => ({ default: m.RecipientGroupsTab })),
 );
 const PartiesPage = lazy(() =>
   import('@/features/property-mngt/parties').then((m) => ({ default: m.PartiesPage })),
@@ -370,12 +379,33 @@ export const privateRoutes: RouteObject[] = [
                     ),
                   },
                   {
-                    path: 'invitations',
+                    // Le carnet d'adresses de la messagerie : il appartient à la
+                    // copropriété, il vit donc avec ses contacts, pas dans la
+                    // messagerie qui est transverse.
+                    path: 'messaging-groups',
                     element: (
                       <Suspense fallback={<Loader />}>
-                        <PropertyInvitationsTab />
+                        <RecipientGroupsTab />
                       </Suspense>
                     ),
+                  },
+                  {
+                    path: 'membership-requests',
+                    element: (
+                      <Suspense fallback={<Loader />}>
+                        <MembershipRequestsTab />
+                      </Suspense>
+                    ),
+                  },
+                  {
+                    // L'onglet « Invitations » est devenu « Demandes
+                    // d'adhésion » : il ne montre plus que celles-ci, le lien
+                    // public ayant rejoint les informations générales.
+                    // Redirection plutôt que 404, comme pour 'board' :
+                    // l'ancienne adresse circule dans les notifications déjà
+                    // envoyées et dans les favoris des syndics.
+                    path: 'invitations',
+                    element: <Navigate to="../membership-requests" replace relative="path" />,
                   },
                   {
                     // L'onglet Bureau a fusionné avec les informations générales,
@@ -531,6 +561,18 @@ export const privateRoutes: RouteObject[] = [
                       </Suspense>
                     ),
                   },
+                  {
+                    // Après les onglets, et sans risque pour eux : un segment
+                    // statique l'emporte toujours sur un segment dynamique dans
+                    // le classement de React Router, 'calls' et 'configuration'
+                    // ne peuvent donc pas être avalés par ':installmentId'.
+                    path: ':installmentId',
+                    element: (
+                      <Suspense fallback={<Loader />}>
+                        <InstallmentDetailPage />
+                      </Suspense>
+                    ),
+                  },
                 ],
               },
               {
@@ -674,6 +716,16 @@ export const privateRoutes: RouteObject[] = [
                 ),
               },
             ],
+          },
+          {
+            // Hors de l'onglet « Lots » : ajouter un immeuble est un écran à part
+            // entière, pas un formulaire déplié dans la liste (voir AddBuildingPage).
+            path: 'properties/:propertyId/buildings/new',
+            element: (
+              <Suspense fallback={<Loader />}>
+                <AddBuildingPage />
+              </Suspense>
+            ),
           },
           {
             path: 'properties/:propertyId/units/:unitId',

@@ -5,7 +5,7 @@ import { useEffectiveSpace, spaceQuerySuffix } from '@/shared/hooks/useEffective
 import { useConversationMessages } from '@/features/messaging/hooks/useConversationMessages';
 import { useMarkConversationRead } from '@/features/messaging/hooks/useMarkConversationRead';
 import { MessageThreadItem } from '@/features/messaging/components/MessageThreadItem';
-import { participantsLine } from '@/features/messaging/components/ConversationListItem';
+import { conversationTitle, participantsLine } from '@/features/messaging/components/ConversationListItem';
 import { MessageComposer } from '@/features/messaging/components/MessageComposer';
 import type { MessagingOutletContext } from '@/features/messaging/pages/MessagingLayout';
 import { BOX_PATH } from '@/features/messaging/utils/boxPath';
@@ -84,12 +84,12 @@ export function ConversationPage() {
   );
 
   // Any participant may reply in a GROUP conversation (already enforced by
-  // the backend for read access to even be here). A BROADCAST or
-  // BOARD_PRIVATE thread is read-only for everyone except board/manager -
-  // mirrors canSendToConversation server-side, so "Répondre" is never shown
-  // to someone who'd get a 403 clicking it.
-  const canReply =
-    summary?.type === 'GROUP' || ((summary?.type === 'BROADCAST' || summary?.type === 'BOARD_PRIVATE') && isStaffOnThisProperty);
+  // the backend for read access to even be here). A BOARD_PRIVATE thread is
+  // read-only for everyone except board/manager. Un envoi groupé, lui, ne se
+  // répond pas du tout : c'est un message adressé à la copropriété, pas un fil
+  // - le bureau en émet un autre. Miroir de canSendToConversation côté serveur,
+  // pour que « Répondre » ne s'affiche jamais à qui recevrait un 403.
+  const canReply = summary?.type === 'GROUP' || (summary?.type === 'BOARD_PRIVATE' && isStaffOnThisProperty);
 
   // Same "envoyer en tant que" rule as composing a new message: only a real
   // choice for a GROUP thread where the sender holds both roles on this
@@ -108,7 +108,10 @@ export function ConversationPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 p-3">
+      {/* L'objet, à côté du retour : la page n'affichait que les messages, et on
+          ouvrait un fil sans savoir de quoi il parlait dès qu'on avait quitté la
+          liste des yeux. */}
+      <div className="flex items-center gap-3 border-b border-gray-100 dark:border-gray-800 p-3">
         <Link
           to={`${BOX_PATH[box]}${spaceQuerySuffix(effectiveSpace)}`}
           aria-label="Retour à la liste des messages"
@@ -116,9 +119,22 @@ export function ConversationPage() {
         >
           <ChevronLeftIcon className="h-5 w-5" />
         </Link>
+        {summary && (
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-semibold text-gray-900 dark:text-white/90">
+              {conversationTitle(summary)}
+            </h1>
+            <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+              {summary.propertyName}
+              {participantsLine(summary) && ` · ${participantsLine(summary)}`}
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      {/* Le fil rétrécit pendant qu'on écrit : c'est la zone de saisie qui prend
+          la place, pas la page qui s'allonge. */}
+      <div className={`overflow-y-auto p-4 ${isReplying ? 'max-h-[40%] shrink' : 'flex-1'}`}>
         {messages.isLoading && <Loader label="Chargement des messages…" />}
         {messages.isError && (
           <div className="p-4">
@@ -135,9 +151,16 @@ export function ConversationPage() {
       </div>
 
       {canReply && (
-        <div className="border-t border-gray-100 dark:border-gray-800 p-3">
+        <div
+          className={`border-t border-gray-100 dark:border-gray-800 p-3 ${isReplying ? 'flex min-h-0 flex-1 flex-col' : ''}`}
+        >
           {isReplying ? (
-            <MessageComposer conversationId={id} identityChoiceNeeded={identityChoiceNeeded} defaultIdentity={defaultIdentity} />
+            <MessageComposer
+              conversationId={id}
+              identityChoiceNeeded={identityChoiceNeeded}
+              defaultIdentity={defaultIdentity}
+              onSent={() => setIsReplying(false)}
+            />
           ) : (
             <Button
               type="button"

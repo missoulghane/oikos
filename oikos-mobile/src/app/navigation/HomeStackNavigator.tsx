@@ -46,7 +46,7 @@ export function HomeStackNavigator() {
       <Stack.Screen
         name="MyUnitDetail"
         component={MyUnitDetailScreen}
-        options={({ route }) => ({ title: `Lot ${route.params.unit.unitNumber}` })}
+        options={({ route }) => ({ title: route.params.unit.unitNumber })}
       />
       <Stack.Screen name="MyInstallments" component={MyInstallmentsScreen} options={{ title: 'Mes échéances' }} />
       <Stack.Screen

@@ -1,10 +1,15 @@
 import { create } from 'zustand';
-import type { InvitationType } from '@/features/identity/invitations/types/invitation.types';
 
 interface PendingInvitation {
   token: string;
-  unitId: string;
-  type: InvitationType;
+  /** Nul pour un siège au conseil syndical, qui ne porte sur aucun lot. */
+  unitId: string | null;
+  /**
+   * Ce qui décide de la route de finalisation, et non plus le type public /
+   * privé du lien : les deux invitations de copropriétaire déposent la même
+   * demande d'adhésion, seul un siège au conseil s'accepte encore directement.
+   */
+  isBoardSeat: boolean;
 }
 
 interface PendingInvitationState {

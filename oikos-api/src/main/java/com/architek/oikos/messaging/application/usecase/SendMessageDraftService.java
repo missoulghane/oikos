@@ -67,8 +67,8 @@ public class SendMessageDraftService implements SendMessageDraftUseCase {
         if (!userAccessPort.canBroadcast(draft.getCreatedBy(), draft.getPropertyId())) {
             throw new UnauthorizedException("no longer allowed to broadcast on property " + draft.getPropertyId());
         }
-        return sendBroadcastMessageUseCase.send(
-                new SendBroadcastMessageCommand(draft.getPropertyId(), draft.getCreatedBy(), messageBody(draft)));
+        return sendBroadcastMessageUseCase.send(new SendBroadcastMessageCommand(draft.getPropertyId(),
+                draft.getCreatedBy(), conversationSubject(draft), messageBody(draft)));
     }
 
     // No senderIdentity concept on MessageDraft yet - null lets

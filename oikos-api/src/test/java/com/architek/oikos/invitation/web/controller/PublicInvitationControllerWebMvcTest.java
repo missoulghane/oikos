@@ -64,7 +64,8 @@ class PublicInvitationControllerWebMvcTest {
     @Test
     void preview_is_reachable_without_authentication() throws Exception {
         when(getInvitationByTokenUseCase.getPreview(any())).thenReturn(
-                new InvitationPreviewView(InvitationType.PUBLIC, true, null, "Copro Test", "1 rue de la Paix", null, null));
+                new InvitationPreviewView(InvitationType.PUBLIC, true, null, "Copro Test", "1 rue de la Paix", null, null,
+                        null, null, null));
 
         mockMvc.perform(get("/api/v1/invitations/by-token/tok")).andExpect(status().isOk());
     }

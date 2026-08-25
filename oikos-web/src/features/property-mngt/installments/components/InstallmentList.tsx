@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Badge } from '@/shared/components/Badge/Badge';
 import {
   INSTALLMENT_STATUS_BADGE_COLORS,
@@ -14,6 +15,8 @@ import type {
 
 interface InstallmentListProps {
   installments: Installment[];
+  /** Porté par la page, pas par la ligne : l'échéance ne connaît que son lot. */
+  propertyId: string;
   sortBy: InstallmentSortField;
   sortDirection: SortDirection;
   onSort: (field: InstallmentSortField) => void;
@@ -26,7 +29,13 @@ interface InstallmentListProps {
  * API can order on (INSTALLMENT_SORT_FIELDS), and status is computed rather
  * than stored, so there is nothing to sort it by.
  */
-export function InstallmentList({ installments, sortBy, sortDirection, onSort }: InstallmentListProps) {
+export function InstallmentList({
+  installments,
+  propertyId,
+  sortBy,
+  sortDirection,
+  onSort,
+}: InstallmentListProps) {
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
@@ -61,7 +70,15 @@ export function InstallmentList({ installments, sortBy, sortDirection, onSort }:
           {installments.map((installment) => (
             <tr key={installment.id}>
               <td className="px-3 py-2 text-gray-900 dark:text-white/90">
-                {new Date(installment.dueDate).toLocaleDateString('fr-FR')}
+                {/* The date carries the link rather than the whole row: a row-wide
+                    handler is not reachable by keyboard and cannot be opened in a
+                    new tab, which is exactly what a syndic does with a list. */}
+                <Link
+                  to={`/property-mngt/properties/${propertyId}/installments/${installment.id}`}
+                  className="font-medium text-brand-500 hover:underline dark:text-brand-400"
+                >
+                  {new Date(installment.dueDate).toLocaleDateString('fr-FR')}
+                </Link>
                 {/* Only ever reached with the "à venir" filter on, since these
                     rows are left out by default - marked so a line that is not
                     owed yet is not read as arrears. */}

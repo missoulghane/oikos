@@ -39,10 +39,11 @@ public class NotificationRepositoryAdapter implements NotificationRepository {
     }
 
     @Override
-    public Page<Notification> findByRecipientUserId(EntityId recipientUserId, PageRequest pageRequest) {
+    public Page<Notification> findByRecipientUserId(EntityId recipientUserId, boolean unreadOnly, PageRequest pageRequest) {
         Pageable pageable = Pageable.ofSize(pageRequest.pageSize()).withPage(pageRequest.pageNumber());
-        org.springframework.data.domain.Page<NotificationEntity> springPage =
-                jpaRepository.findByUserIdOrderByCreatedDateDesc(recipientUserId.value(), pageable);
+        org.springframework.data.domain.Page<NotificationEntity> springPage = unreadOnly
+                ? jpaRepository.findByUserIdAndReadAtIsNullOrderByCreatedDateDesc(recipientUserId.value(), pageable)
+                : jpaRepository.findByUserIdOrderByCreatedDateDesc(recipientUserId.value(), pageable);
         var content = springPage.getContent().stream().map(mapper::toDomain).toList();
         return Page.of(content, pageRequest.pageNumber(), pageRequest.pageSize(), springPage.getTotalElements());
     }

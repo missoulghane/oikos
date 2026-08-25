@@ -12,6 +12,7 @@ import {
   recordPayrollExpenseSchema,
   type RecordPayrollExpenseFormValues,
 } from '@/features/property-mngt/accounting/schemas/recordPayrollExpenseSchema';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 export function RecordPayrollExpenseForm({ propertyId }: { propertyId: string }) {
   const navigate = useNavigate();
@@ -34,7 +35,8 @@ export function RecordPayrollExpenseForm({ propertyId }: { propertyId: string })
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
-      <Select label="Compte de charge" {...register('ledgerAccountId')} errorMessage={errors.ledgerAccountId?.message}>
+      <RequiredFieldsHint />
+      <Select label="Compte de charge" required {...register('ledgerAccountId')} errorMessage={errors.ledgerAccountId?.message}>
         <option value="">Sélectionner…</option>
         {chargeAccounts.map((account) => (
           <option key={account.id} value={account.id}>
@@ -42,9 +44,10 @@ export function RecordPayrollExpenseForm({ propertyId }: { propertyId: string })
           </option>
         ))}
       </Select>
-      <Input label="Date" type="date" {...register('date')} errorMessage={errors.date?.message} />
+      <Input label="Date" required type="date" {...register('date')} errorMessage={errors.date?.message} />
       <Input
         label="Montant"
+        required
         type="number"
         min={0}
         step="any"

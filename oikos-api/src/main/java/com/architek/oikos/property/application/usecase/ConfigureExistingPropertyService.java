@@ -153,7 +153,7 @@ public class ConfigureExistingPropertyService implements ConfigureExistingProper
                     throw new IllegalArgumentException(
                             "Unknown unit type in building configuration: " + unitTypeConfiguration.unitTypeName());
                 }
-                createUnits(building.getId(), command.propertyId(), unitTypeConfiguration.unitTypeName(), unitTypeId,
+                createUnits(building.getId(), command.propertyId(), unitTypeId,
                         unitTypeConfiguration.count());
             }
         }
@@ -164,11 +164,11 @@ public class ConfigureExistingPropertyService implements ConfigureExistingProper
      * type) - safe because this service refuses to run on a property that
      * already has buildings, so no number can collide with an existing one.
      */
-    private void createUnits(BuildingId buildingId, PropertyId propertyId, String unitTypeName,
+    private void createUnits(BuildingId buildingId, PropertyId propertyId,
                               UnitTypeDefinitionId unitTypeId, int count) {
         for (int sequence = 1; sequence <= count; sequence++) {
             Unit savedUnit = unitRepository.save(Unit.create(UnitId.newId(), buildingId, propertyId,
-                    unitTypeName + " " + sequence, unitTypeId, Shares.of(BigDecimal.ZERO)));
+                    Unit.generatedNumber(sequence), unitTypeId, Shares.of(BigDecimal.ZERO)));
             ledgerAccountProvisioningPort.provisionUnitReceivableAccount(propertyId.value(), savedUnit.getId().value());
         }
     }

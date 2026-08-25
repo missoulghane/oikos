@@ -22,7 +22,8 @@ import com.architek.oikos.shared.exception.ResourceNotFoundException;
  * Board invitations are always PRIVATE with a mandatory targetEmail - unlike
  * CreateInvitationService's PUBLIC case (unit picked from an open pool), a
  * board seat is always offered to one specific person for one specific role,
- * so there is no "no target" variant to validate against here.
+ * so there is no "no target" variant to validate against here. Pas de lot non
+ * plus (targetUnitId nul) : un siège au conseil n'en est pas un.
  */
 @Component
 public class CreateBoardInvitationService implements CreateBoardInvitationUseCase {
@@ -55,7 +56,7 @@ public class CreateBoardInvitationService implements CreateBoardInvitationUseCas
         Instant expiresAt = clock.instant().plus(invitationTokenTtl);
         Invitation invitation = Invitation.issue(InvitationId.newId(), command.propertyId(), InvitationType.PRIVATE,
                 TARGET_ROLE_BOARD_MEMBER, command.targetEmail(), rawToken, expiresAt, command.createdByUserId(),
-                command.boardRole());
+                command.boardRole(), null, null);
 
         return invitationRepository.save(invitation).getId();
     }

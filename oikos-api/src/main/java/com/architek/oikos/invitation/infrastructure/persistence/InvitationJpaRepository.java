@@ -18,4 +18,18 @@ public interface InvitationJpaRepository extends JpaRepository<InvitationEntity,
     Page<InvitationEntity> findByPropertyId(UUID propertyId, Pageable pageable);
 
     List<InvitationEntity> findByPropertyIdAndTypeAndStatus(UUID propertyId, InvitationType type, InvitationStatus status);
+
+    /**
+     * Trié par date de création : rien n'empêche techniquement deux lignes
+     * PUBLIC pour une même copropriété (les bases d'avant cette règle en ont),
+     * et le lien historique - celui dont le QR code circule - est le premier.
+     */
+    List<InvitationEntity> findByPropertyIdAndTypeOrderByCreatedDateAsc(UUID propertyId, InvitationType type);
+
+    /**
+     * Trié du plus récent au plus ancien : la règle « une seule ouverte à la
+     * fois » est appliquée à l'écriture, ce tri n'est que la ceinture qui va
+     * avec les bretelles pour les lignes antérieures.
+     */
+    List<InvitationEntity> findByTargetPartyIdAndStatusOrderByCreatedDateDesc(UUID targetPartyId, InvitationStatus status);
 }

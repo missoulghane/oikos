@@ -68,6 +68,15 @@ oikos:
   property:
     configure:
       max-units: 500
+  installment:
+    # Imputation quotidienne des avances sur les échéances arrivées à terme
+    # (RegularizeDueInstallmentsService) : c'est ce qui solde une échéance dont
+    # le lot a déjà payé, le jour où elle échoit, sans action du syndic.
+    # Heure UTC, comme l'horloge de l'application (ClockConfiguration) : la date
+    # balayée est lue dans le même fuseau, les deux ne peuvent pas se contredire
+    # autour de minuit. Une expression pointant une heure jamais atteinte
+    # suffit à neutraliser le balayage sans release.
+    regularization-cron: ${INSTALLMENT_REGULARIZATION_CRON:0 15 1 * * *}
   mail:
     # Set to false to skip real SMTP sending and log the email content instead
     # (see SmtpEmailAdapter / LoggingEmailAdapter). Overridden to false in dev.
@@ -101,6 +110,16 @@ oikos:
     # QR code et via le code court. Pas de TTL : il cesse d'accepter une réponse
     # à l'ouverture de la séance, ce que le statut de l'AG dit déjà (ADR 0002 §10).
     convocation-confirmation-base-url: ${APP_CONVOCATION_CONFIRMATION_BASE_URL:${oikos.mail.public-base-url}/convocations/confirmation}
+  invitation:
+    # Qui, au bureau, est prévenu d'une demande d'adhésion et de son issue.
+    # Vide (le défaut) = tous les rôles du conseil ayant un siège ACTIVE : une
+    # demande qui n'atteindrait qu'un destinataire attendrait son retour de
+    # vacances. Une copropriété qui préfère réserver ces alertes se donne la
+    # liste des rôles, séparés par des virgules, parmi PRESIDENT, TREASURER,
+    # SECRETARY, MEMBER, VOLUNTEER_MANAGER, PROPERTY_MANAGER (voir BoardRole) -
+    # un nom inconnu empêche le démarrage plutôt que de vider la liste en
+    # silence.
+    notified-board-roles: ${INVITATION_NOTIFIED_BOARD_ROLES:}
   storage:
     type: ${STORAGE_TYPE:local}
     local:

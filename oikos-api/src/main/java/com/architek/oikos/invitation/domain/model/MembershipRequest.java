@@ -27,10 +27,11 @@ public final class MembershipRequest {
     private final Instant decidedAt;
     private final EntityId decidedByUserId;
     private final String rejectionReason;
+    private final Instant submittedAt;
 
     private MembershipRequest(MembershipRequestId id, EntityId invitationId, EntityId propertyId, EntityId unitId,
                                EntityId partyId, EntityId userId, MembershipRequestStatus status, Instant decidedAt,
-                               EntityId decidedByUserId, String rejectionReason) {
+                               EntityId decidedByUserId, String rejectionReason, Instant submittedAt) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.invitationId = Objects.requireNonNull(invitationId, "invitationId must not be null");
         this.propertyId = Objects.requireNonNull(propertyId, "propertyId must not be null");
@@ -41,30 +42,31 @@ public final class MembershipRequest {
         this.decidedAt = decidedAt;
         this.decidedByUserId = decidedByUserId;
         this.rejectionReason = rejectionReason;
+        this.submittedAt = submittedAt;
     }
 
     public static MembershipRequest submit(MembershipRequestId id, EntityId invitationId, EntityId propertyId,
                                             EntityId unitId, EntityId partyId, EntityId userId) {
         return new MembershipRequest(id, invitationId, propertyId, unitId, partyId, userId,
-                MembershipRequestStatus.PENDING, null, null, null);
+                MembershipRequestStatus.PENDING, null, null, null, null);
     }
 
     public static MembershipRequest reconstruct(MembershipRequestId id, EntityId invitationId, EntityId propertyId,
                                                  EntityId unitId, EntityId partyId, EntityId userId,
                                                  MembershipRequestStatus status, Instant decidedAt,
-                                                 EntityId decidedByUserId, String rejectionReason) {
+                                                 EntityId decidedByUserId, String rejectionReason, Instant submittedAt) {
         return new MembershipRequest(id, invitationId, propertyId, unitId, partyId, userId, status, decidedAt,
-                decidedByUserId, rejectionReason);
+                decidedByUserId, rejectionReason, submittedAt);
     }
 
     public MembershipRequest accept(Instant decidedAt, EntityId decidedByUserId) {
         return new MembershipRequest(id, invitationId, propertyId, unitId, partyId, userId,
-                MembershipRequestStatus.ACCEPTED, decidedAt, decidedByUserId, null);
+                MembershipRequestStatus.ACCEPTED, decidedAt, decidedByUserId, null, submittedAt);
     }
 
     public MembershipRequest reject(Instant decidedAt, EntityId decidedByUserId, String reason) {
         return new MembershipRequest(id, invitationId, propertyId, unitId, partyId, userId,
-                MembershipRequestStatus.REJECTED, decidedAt, decidedByUserId, reason);
+                MembershipRequestStatus.REJECTED, decidedAt, decidedByUserId, reason, submittedAt);
     }
 
     public boolean isPending() {
@@ -109,6 +111,17 @@ public final class MembershipRequest {
 
     public String getRejectionReason() {
         return rejectionReason;
+    }
+
+    /**
+     * Date de dépôt de la demande, miroir en lecture seule du created_date
+     * audité par JPA (voir AuditableEntity) : nulle sur une instance qui
+     * vient d'être construite et pas encore persistée, renseignée dès que le
+     * mapper la relit. C'est la colonne sur laquelle la liste du syndic est
+     * triée par défaut, la plus récente en tête.
+     */
+    public Instant getSubmittedAt() {
+        return submittedAt;
     }
 
     @Override

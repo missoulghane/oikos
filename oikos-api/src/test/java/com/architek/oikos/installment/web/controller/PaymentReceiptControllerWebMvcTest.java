@@ -112,7 +112,7 @@ class PaymentReceiptControllerWebMvcTest {
     private void givenPaymentOnUnitOwnedBy(String partyId) {
         when(getUnitUseCase.getUnit(any())).thenReturn(new UnitView(UnitId.of(PAID_UNIT.value()),
                 BuildingId.newId(), PropertyId.of(PROPERTY.value()), "A12", UnitTypeDefinitionId.newId(),
-                "Appartement", new BigDecimal("120.00"), OwnershipStatus.AFFECTED, List.of()));
+                "Appartement", new BigDecimal("120.00"), OwnershipStatus.AFFECTED, List.of(), null));
         when(listDocumentsByOwnerUseCase.list(any())).thenReturn(Page.of(List.of(), 0, 1, 0));
         when(getPaymentUseCase.getPayment(any())).thenReturn(new PaymentView(PAYMENT, PROPERTY, PAID_UNIT,
                 PaymentMode.CHECK, LocalDate.of(2026, 3, 15), new BigDecimal("2500.00"), EntityId.newId(),

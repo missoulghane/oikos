@@ -9,6 +9,7 @@ import {
   addBuildingSchema,
   type AddBuildingFormValues,
 } from '@/features/property-mngt/properties/schemas/addBuildingSchema';
+import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 interface AddBuildingFormProps {
   propertyId: string;
@@ -29,11 +30,15 @@ export function AddBuildingForm({ propertyId, onSuccess, onCancel }: AddBuilding
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 rounded-lg border border-gray-200 dark:border-gray-800 p-4" noValidate>
+    // Ni bordure ni fond ici : le formulaire est posé dans la carte de
+    // AddBuildingPage, qui les porte pour lui - deux cadres imbriqués sinon.
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
-      <Input label="Nom de l'immeuble" {...register('name')} errorMessage={errors.name?.message} />
+      <RequiredFieldsHint />
+      <Input label="Nom de l'immeuble" required {...register('name')} errorMessage={errors.name?.message} />
       <Input
         label="Nombre d'étages"
+        required
         type="number"
         min={0}
         step={1}

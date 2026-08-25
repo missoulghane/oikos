@@ -23,6 +23,8 @@ public interface InvitationPersistenceMapper {
         entity.setCreatedByUserId(invitation.getCreatedByUserId().value());
         entity.setConsumedEmail(invitation.getConsumedEmail() != null ? invitation.getConsumedEmail().value() : null);
         entity.setTargetBoardRole(invitation.getTargetBoardRole());
+        entity.setTargetUnitId(invitation.getTargetUnitId() != null ? invitation.getTargetUnitId().value() : null);
+        entity.setTargetPartyId(invitation.getTargetPartyId() != null ? invitation.getTargetPartyId().value() : null);
         return entity;
     }
 
@@ -32,6 +34,8 @@ public interface InvitationPersistenceMapper {
                 entity.getTargetEmail() != null ? EmailVO.of(entity.getTargetEmail()) : null,
                 entity.getToken(), entity.getStatus(), entity.getExpiresAt(), EntityId.of(entity.getCreatedByUserId()),
                 entity.getConsumedEmail() != null ? EmailVO.of(entity.getConsumedEmail()) : null,
-                entity.getTargetBoardRole());
+                entity.getTargetBoardRole(),
+                entity.getTargetUnitId() != null ? EntityId.of(entity.getTargetUnitId()) : null,
+                entity.getTargetPartyId() != null ? EntityId.of(entity.getTargetPartyId()) : null);
     }
 }

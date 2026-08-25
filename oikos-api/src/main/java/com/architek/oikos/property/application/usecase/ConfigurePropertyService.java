@@ -35,9 +35,11 @@ import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
  * flow, not at bulk creation time. Each UnitTypeConfiguration entry names a
  * unit type (find-or-create by (property, name), since the property does not
  * exist yet before this call - its types cannot preexist); unitNumber is
- * generated as "{name} {n}", restarting at 1 per (building, unitType): valid
- * only because buildings created by this use case start empty - it does not
- * coordinate with units added afterwards via AddUnitUseCase.
+ * generated as "N° {n}" (voir Unit.generatedNumber), restarting at 1 per
+ * (building, unitType): valid only because buildings created by this use case
+ * start empty - it does not coordinate with units added afterwards via
+ * AddUnitUseCase. Le type n'est plus recopie dans le numero: il s'affiche a
+ * cote, en suffixe, partout ou un lot est nomme ("N° 1 - Appartement").
  *
  * <p>Provisions the property's cash account and each created unit's
  * dedicated receivable account (ADR 0001 decisions 5/6, "exigence
@@ -96,19 +98,18 @@ public class ConfigurePropertyService implements ConfigurePropertyUseCase {
                         name -> unitTypeDefinitionRepository.save(
                                 UnitTypeDefinition.create(UnitTypeDefinitionId.newId(), savedProperty.getId(), name))
                                 .getId());
-                createUnits(savedBuilding.getId(), savedProperty.getId(), unitTypeConfiguration.unitTypeName(), unitTypeId,
-                        unitTypeConfiguration.count());
+                createUnits(savedBuilding.getId(), savedProperty.getId(), unitTypeId, unitTypeConfiguration.count());
             }
         }
 
         return savedProperty.getId();
     }
 
-    private void createUnits(BuildingId buildingId, PropertyId propertyId, String unitTypeName,
+    private void createUnits(BuildingId buildingId, PropertyId propertyId,
                               UnitTypeDefinitionId unitTypeId, int count) {
         for (int sequence = 1; sequence <= count; sequence++) {
             Unit savedUnit = unitRepository.save(Unit.create(UnitId.newId(), buildingId, propertyId,
-                    unitTypeName + " " + sequence, unitTypeId, Shares.of(BigDecimal.ZERO)));
+                    Unit.generatedNumber(sequence), unitTypeId, Shares.of(BigDecimal.ZERO)));
             ledgerAccountProvisioningPort.provisionUnitReceivableAccount(propertyId.value(), savedUnit.getId().value());
         }
     }

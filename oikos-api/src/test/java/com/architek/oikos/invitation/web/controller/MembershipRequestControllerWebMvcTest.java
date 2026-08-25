@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,7 +73,8 @@ class MembershipRequestControllerWebMvcTest {
 
     private MembershipRequestOverviewView sampleOverviewView(String propertyId) {
         return new MembershipRequestOverviewView(EntityId.newId(), EntityId.newId(), EntityId.of(propertyId),
-                EntityId.newId(), EntityId.newId(), null, MembershipRequestOverviewStatus.PENDING, null, null, null);
+                EntityId.newId(), EntityId.newId(), EntityId.newId(), "Jane Doe", "jane.doe@example.com", true,
+                "A-12", "Appartement", MembershipRequestOverviewStatus.PENDING, Instant.EPOCH, null, null, null, null);
     }
 
     @Test

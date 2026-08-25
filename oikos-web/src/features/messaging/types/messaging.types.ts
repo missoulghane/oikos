@@ -17,7 +17,8 @@ export interface ConversationSummary {
   type: ConversationType;
   propertyId: string;
   propertyName: string;
-  subject: string | null; // GROUP conversation title, chosen at compose time; always null for BROADCAST
+  /** Objet choisi à la rédaction. Null seulement sur les envois groupés d'avant leur passage en messages autonomes. */
+  subject: string | null;
   /** Optional lot label the GROUP thread concerns (e.g. "Appartement 3"), chosen at compose time -
    * disambiguates a recipient who owns several units in the property. Free text, never a foreign
    * key to the unit registry - a display hint, not a structural link. Always null otherwise. */
@@ -90,6 +91,8 @@ export interface SendMessagePayload {
 }
 
 export interface SendBroadcastMessagePayload {
+  /** Un envoi groupé porte son objet, comme tout autre message : ce n'est plus une reprise d'un canal d'annonces. */
+  subject: string;
   body: string;
 }
 
@@ -97,6 +100,9 @@ export interface SendBroadcastMessagePayload {
  * posted); Envoyé = the caller has sent at least one message in it. A back-and-forth conversation
  * matches both. */
 export type ConversationBox = 'RECEIVED' | 'SENT';
+
+/** Filtre lu / non lu de la boîte. Absent = pas de filtre. */
+export type ConversationReadState = 'READ' | 'UNREAD';
 
 export interface MessageDraftSummary {
   id: string;
@@ -129,4 +135,22 @@ export interface SaveMessageDraftPayload {
 
 export interface MessageDraftReference {
   draftId: string;
+}
+
+/**
+ * Un carnet d'adresses de la copropriété : une liste de destinataires nommée,
+ * tenue par le bureau. Composer avec un groupe déplie ses membres - le message
+ * part à des personnes, il ne garde aucun lien vers le groupe (voir
+ * RecipientGroup côté API).
+ */
+export interface RecipientGroup {
+  id: string;
+  propertyId: string;
+  name: string;
+  members: ConversationParticipant[];
+}
+
+export interface SaveRecipientGroupPayload {
+  name: string;
+  memberUserIds: string[];
 }

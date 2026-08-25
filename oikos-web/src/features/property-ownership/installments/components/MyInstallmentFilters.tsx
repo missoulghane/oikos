@@ -48,7 +48,7 @@ export function MyInstallmentFilters({ value, onChange, hiddenNotYetDue }: MyIns
         <option value="">Tous</option>
         {units.data?.map((unit) => (
           <option key={unit.unitId} value={unit.unitId}>
-            {unit.propertyName} — {unit.buildingName} — Lot {unit.unitNumber}
+            {unit.propertyName} — {unit.buildingName} — {unit.unitNumber}
           </option>
         ))}
       </Select>

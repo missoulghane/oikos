@@ -13,7 +13,7 @@ export function UnitLedgerAccountRow({ account, propertyId }: { account: LedgerA
             to={`/property-mngt/properties/${propertyId}/units/${unit.data.id}`}
             className="text-sm font-medium text-brand-500 dark:text-brand-400 hover:underline"
           >
-            Lot {unit.data.unitNumber}
+            {unit.data.unitNumber}
           </Link>
         ) : (
           <p className="text-sm font-medium text-gray-900 dark:text-white/90">Lot</p>

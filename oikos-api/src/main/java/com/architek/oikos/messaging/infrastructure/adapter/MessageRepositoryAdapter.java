@@ -1,7 +1,5 @@
 package com.architek.oikos.messaging.infrastructure.adapter;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,16 +34,21 @@ public class MessageRepositoryAdapter implements MessageRepository {
         return mapper.toDomain(saved);
     }
 
+    /**
+     * Le plus récent d'abord, et rendu tel quel. La page était retournée dans
+     * l'ordre inverse (le plus ancien en tête de page) : on lisait donc le fil
+     * à l'endroit d'un chat, alors que la messagerie de l'application se lit
+     * comme une boîte mail - le dernier message en haut.
+     */
     @Override
     public Page<Message> findRecentPage(ConversationId conversationId, PageRequest pageRequest) {
         Pageable pageable = Pageable.ofSize(pageRequest.pageSize()).withPage(pageRequest.pageNumber());
         org.springframework.data.domain.Page<MessageEntity> springPage =
                 jpaRepository.findByConversationIdOrderByCreatedDateDesc(conversationId.asUuid(), pageable);
 
-        List<Message> ascending = new ArrayList<>(springPage.getContent().stream().map(mapper::toDomain).toList());
-        Collections.reverse(ascending);
+        List<Message> mostRecentFirst = springPage.getContent().stream().map(mapper::toDomain).toList();
 
-        return Page.of(ascending, pageRequest.pageNumber(), pageRequest.pageSize(), springPage.getTotalElements());
+        return Page.of(mostRecentFirst, pageRequest.pageNumber(), pageRequest.pageSize(), springPage.getTotalElements());
     }
 
     @Override

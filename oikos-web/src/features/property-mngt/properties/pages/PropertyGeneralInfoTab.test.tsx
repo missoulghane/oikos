@@ -11,6 +11,12 @@ vi.mock('@/features/property-mngt/board-members', () => ({
   BoardSection: () => <section>Conseil syndical (bloc)</section>,
 }));
 
+// Même raison pour le lien public d'adhésion, qui a rejoint cette page : il
+// lit le sien via react-query et se teste chez lui.
+vi.mock('@/features/property-mngt/invitations', () => ({
+  PublicInvitationSection: () => <section>Lien public (bloc)</section>,
+}));
+
 const property: Property = {
   id: 'p-1',
   name: 'Résidence Les Oliviers',
@@ -59,5 +65,13 @@ describe('PropertyGeneralInfoTab', () => {
     renderTab();
 
     expect(screen.getByText('Conseil syndical (bloc)')).toBeInTheDocument();
+  });
+
+  // Le lien public appartient à la copropriété au même titre que son nom : il
+  // vivait dans un onglet « Invitations » où personne n'allait le chercher.
+  it("porte le lien public d'adhésion", () => {
+    renderTab();
+
+    expect(screen.getByText('Lien public (bloc)')).toBeInTheDocument();
   });
 });

@@ -22,10 +22,12 @@ import com.architek.oikos.property.application.dto.UnitTypePriceView;
 import com.architek.oikos.property.application.dto.UnitView;
 import com.architek.oikos.property.application.port.in.GetPropertyUseCase;
 import com.architek.oikos.property.application.port.in.ListBuildingsByPropertyUseCase;
+import com.architek.oikos.property.application.port.in.ListPropertiesUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitTypePricesByPropertyUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitsByBuildingUseCase;
 import com.architek.oikos.property.application.query.GetPropertyQuery;
 import com.architek.oikos.property.application.query.ListBuildingsByPropertyQuery;
+import com.architek.oikos.property.application.query.ListPropertiesQuery;
 import com.architek.oikos.property.application.query.ListUnitTypePricesByPropertyQuery;
 import com.architek.oikos.property.application.query.ListUnitsByBuildingQuery;
 import com.architek.oikos.property.application.dto.PropertyView;
@@ -56,9 +58,34 @@ class InstallmentPropertyDirectoryAdapterTest {
     @Mock
     private ListUnitTypePricesByPropertyUseCase listUnitTypePricesByPropertyUseCase;
 
+    @Mock
+    private ListPropertiesUseCase listPropertiesUseCase;
+
     private InstallmentPropertyDirectoryAdapter newAdapter() {
         return new InstallmentPropertyDirectoryAdapter(listBuildingsByPropertyUseCase, listUnitsByBuildingUseCase,
-                getPropertyUseCase, listUnitTypePricesByPropertyUseCase);
+                getPropertyUseCase, listUnitTypePricesByPropertyUseCase, listPropertiesUseCase);
+    }
+
+    private static PropertyView propertyView(PropertyId id) {
+        return new PropertyView(id, "Residence " + id, "1 rue Test", "Casablanca",
+                com.architek.oikos.property.domain.valueobject.DuesCalculationMode.FLAT_RATE, null);
+    }
+
+    /**
+     * The nightly imputation sweep reads every copropriété through this method,
+     * and the list use case is paginated: stopping at the first page would leave
+     * every property beyond it unregularized, silently.
+     */
+    @Test
+    void list_all_ids_walks_every_page() {
+        PropertyId first = PropertyId.newId();
+        PropertyId second = PropertyId.newId();
+        when(listPropertiesUseCase.listProperties(new ListPropertiesQuery(PageRequest.of(0, 100))))
+                .thenReturn(Page.of(List.of(propertyView(first)), 0, 100, 101));
+        when(listPropertiesUseCase.listProperties(new ListPropertiesQuery(PageRequest.of(1, 100))))
+                .thenReturn(Page.of(List.of(propertyView(second)), 1, 100, 101));
+
+        assertThat(newAdapter().listAllIds()).containsExactly(first.value(), second.value());
     }
 
     @Test
@@ -99,7 +126,7 @@ class InstallmentPropertyDirectoryAdapterTest {
         when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingA, PageRequest.of(0, 100), null)))
                 .thenReturn(Page.of(List.of(
                         new UnitView(unitA1, buildingA, propertyIdValue, "A1", UnitTypeDefinitionId.newId(), "Appartement",
-                                new BigDecimal("150"), OwnershipStatus.AFFECTED, List.of())),
+                                new BigDecimal("150"), OwnershipStatus.AFFECTED, List.of(), null)),
                         0, 100, 1));
 
         List<UnitShareLine> lines = newAdapter().listUnitShares(propertyId);
@@ -138,13 +165,13 @@ class InstallmentPropertyDirectoryAdapterTest {
                 PageRequest.of(0, 100), null)))
                 .thenReturn(Page.of(List.of(
                         new UnitView(unitA1, buildingA, propertyIdValue, "A1", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
-                                OwnershipStatus.AFFECTED, List.of())), 0, 100, 1));
+                                OwnershipStatus.AFFECTED, List.of(), null)), 0, 100, 1));
 
         when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingB,
                 PageRequest.of(0, 100), null)))
                 .thenReturn(Page.of(List.of(
                         new UnitView(unitB1, buildingB, propertyIdValue, "B1", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
-                                OwnershipStatus.AFFECTED, List.of())), 0, 100, 1));
+                                OwnershipStatus.AFFECTED, List.of(), null)), 0, 100, 1));
 
         List<EntityId> unitIds = newAdapter().listUnitIds(propertyId);
 
@@ -166,7 +193,7 @@ class InstallmentPropertyDirectoryAdapterTest {
                 PageRequest.of(0, 100), "A1")))
                 .thenReturn(Page.of(List.of(
                         new UnitView(unitA1, buildingA, propertyIdValue, "A1", UnitTypeDefinitionId.newId(), "Appartement", BigDecimal.TEN,
-                                OwnershipStatus.AFFECTED, List.of())), 0, 100, 1));
+                                OwnershipStatus.AFFECTED, List.of(), null)), 0, 100, 1));
 
         Map<EntityId, String> unitNumberById = newAdapter().listUnitNumbersById(propertyId, "A1");
 
@@ -199,8 +226,8 @@ class InstallmentPropertyDirectoryAdapterTest {
                 .thenReturn(Page.of(List.of(new BuildingView(buildingA, propertyIdValue, "A", 3)), 0, 100, 1));
         when(listUnitsByBuildingUseCase.listUnits(new ListUnitsByBuildingQuery(buildingA, PageRequest.of(0, 100), null)))
                 .thenReturn(Page.of(List.of(
-                        new UnitView(pricedUnit, buildingA, propertyIdValue, "A1", pricedTypeId, "Appartement", BigDecimal.TEN, OwnershipStatus.AFFECTED, List.of()),
-                        new UnitView(unpricedUnit, buildingA, propertyIdValue, "A2", unpricedTypeId, "Box", BigDecimal.TEN, OwnershipStatus.AFFECTED, List.of())),
+                        new UnitView(pricedUnit, buildingA, propertyIdValue, "A1", pricedTypeId, "Appartement", BigDecimal.TEN, OwnershipStatus.AFFECTED, List.of(), null),
+                        new UnitView(unpricedUnit, buildingA, propertyIdValue, "A2", unpricedTypeId, "Box", BigDecimal.TEN, OwnershipStatus.AFFECTED, List.of(), null)),
                         0, 100, 2));
         when(listUnitTypePricesByPropertyUseCase.listUnitTypePrices(new ListUnitTypePricesByPropertyQuery(propertyIdValue)))
                 .thenReturn(List.of(new UnitTypePriceView(UnitTypePricingId.newId(), propertyIdValue, pricedTypeId,

@@ -34,6 +34,22 @@ class MemberDisplayNameResolver {
         this.partyAccountDirectoryPort = partyAccountDirectoryPort;
     }
 
+    /**
+     * Les lots de chaque membre, clés par userId - même croisement que
+     * namesByUserId, pour que la recherche de la boîte accepte un numéro de lot
+     * (voir ConversationAggregator.matchesUnitNumber).
+     */
+    Map<EntityId, java.util.List<String>> unitNumbersByUserId(EntityId propertyId) {
+        var members = propertyMemberDirectoryPort.listMembers(propertyId);
+        Map<EntityId, EntityId> userIdByPartyId = partyAccountDirectoryPort.resolveUserIds(
+                members.stream().map(PropertyMemberInfo::partyId).toList());
+
+        return members.stream()
+                .filter(member -> userIdByPartyId.containsKey(member.partyId()))
+                .collect(Collectors.toMap(member -> userIdByPartyId.get(member.partyId()), PropertyMemberInfo::unitNumbers,
+                        (first, second) -> java.util.stream.Stream.concat(first.stream(), second.stream()).distinct().toList()));
+    }
+
     Map<EntityId, String> namesByUserId(EntityId propertyId) {
         var members = propertyMemberDirectoryPort.listMembers(propertyId);
         Map<EntityId, EntityId> userIdByPartyId = partyAccountDirectoryPort.resolveUserIds(
