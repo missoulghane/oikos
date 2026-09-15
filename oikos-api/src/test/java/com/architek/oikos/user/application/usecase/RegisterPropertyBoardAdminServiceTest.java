@@ -15,12 +15,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.architek.oikos.shared.application.port.out.AsyncEmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
-import com.architek.oikos.shared.infrastructure.email.AsyncEmailSender;
 import com.architek.oikos.user.application.command.RegisterPropertyBoardAdminCommand;
 import com.architek.oikos.user.application.port.out.PartyProvisioningDetails;
 import com.architek.oikos.user.application.port.out.PartyProvisioningPort;
@@ -56,7 +56,7 @@ class RegisterPropertyBoardAdminServiceTest {
     private PasswordEncoderPort passwordEncoderPort;
 
     @Mock
-    private AsyncEmailSender asyncEmailSender;
+    private AsyncEmailSenderPort asyncEmailSender;
 
     private RegisterPropertyBoardAdminService newService() {
         return new RegisterPropertyBoardAdminService(userRepository, onboardingLeadRepository, partyProvisioningPort, propertyProvisioningPort,

@@ -3,6 +3,7 @@ package com.architek.oikos.shared.infrastructure.email;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import com.architek.oikos.shared.application.port.out.AsyncEmailSenderPort;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 
@@ -14,7 +15,7 @@ import com.architek.oikos.shared.domain.valueobject.EmailVO;
  * is simply no one left synchronously waiting to react to them.
  */
 @Component
-public class AsyncEmailSender {
+public class AsyncEmailSender implements AsyncEmailSenderPort {
 
     private final EmailSenderPort emailSenderPort;
 
@@ -22,6 +23,7 @@ public class AsyncEmailSender {
         this.emailSenderPort = emailSenderPort;
     }
 
+    @Override
     @Async
     public void send(EmailVO to, String subject, String htmlBody) {
         emailSenderPort.send(to, subject, htmlBody);

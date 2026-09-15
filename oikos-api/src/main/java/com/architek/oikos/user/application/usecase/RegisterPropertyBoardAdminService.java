@@ -8,10 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.architek.oikos.shared.application.port.out.AsyncEmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
-import com.architek.oikos.shared.infrastructure.email.AsyncEmailSender;
 import com.architek.oikos.user.application.command.RegisterPropertyBoardAdminCommand;
 import com.architek.oikos.user.application.dto.RegisteredBoardAdminView;
 import com.architek.oikos.user.application.port.in.RegisterPropertyBoardAdminUseCase;
@@ -41,7 +41,7 @@ import com.architek.oikos.user.domain.valueobject.UserId;
  * RegisterPropertyManagerAdminService is the counterpart for professional
  * management firms. Issues a verification token and sends the verification
  * email afterwards - same activation flow as a plain user registration
- * (see RegisterUserService). The send itself goes through AsyncEmailSender:
+ * (see RegisterUserService). The send itself goes through AsyncEmailSenderPort:
  * the SMTP round-trip must not make the caller wait, since this is the last
  * step of the wizard the visitor sees before landing on the property.
  */
@@ -54,7 +54,7 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
     private final PropertyProvisioningPort propertyProvisioningPort;
     private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordEncoderPort passwordEncoderPort;
-    private final AsyncEmailSender asyncEmailSender;
+    private final AsyncEmailSenderPort asyncEmailSender;
     private final VerificationTokenGenerator tokenGenerator;
     private final VerificationEmailComposer emailComposer;
     private final Clock clock;
@@ -66,7 +66,7 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
                                               PropertyProvisioningPort propertyProvisioningPort,
                                               VerificationTokenRepository verificationTokenRepository,
                                               PasswordEncoderPort passwordEncoderPort,
-                                              AsyncEmailSender asyncEmailSender,
+                                              AsyncEmailSenderPort asyncEmailSender,
                                               VerificationTokenGenerator tokenGenerator,
                                               VerificationEmailComposer emailComposer,
                                               Clock clock,
