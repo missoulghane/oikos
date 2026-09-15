@@ -2,17 +2,34 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { ERROR_MESSAGES } from '@/shared/constants/errorMessages';
 import type { Payment } from '@/features/property-mngt/installments/types/payment.types';
 import type { OwnedUnit } from '@/features/property-ownership/units/types/unit.types';
 
 const PAYMENT_ID = 'pay-1';
 
 const payments: Payment[] = [
-  { id: PAYMENT_ID, propertyId: 'p1', unitId: 'unit-1', mode: 'CHECK', valueDate: '2026-03-15', amount: 2500, journalEntryId: 'j1' },
+  {
+    id: PAYMENT_ID,
+    propertyId: 'p1',
+    unitId: 'unit-1',
+    mode: 'CHECK',
+    valueDate: '2026-03-15',
+    amount: 2500,
+    journalEntryId: 'j1',
+  },
 ];
 
 const units: OwnedUnit[] = [
-  { unitId: 'unit-1', unitNumber: 'A12', buildingId: 'b1', buildingName: 'Bât A', propertyId: 'p1', propertyName: 'Al Amal', ownershipShare: 100 },
+  {
+    unitId: 'unit-1',
+    unitNumber: 'A12',
+    buildingId: 'b1',
+    buildingName: 'Bât A',
+    propertyId: 'p1',
+    propertyName: 'Al Amal',
+    ownershipShare: 100,
+  },
 ];
 
 const downloadMutate = vi.fn();
@@ -32,7 +49,8 @@ vi.mock('@/features/property-mngt/installments/hooks/useDownloadPaymentReceipt',
   useDownloadPaymentReceipt: () => ({ mutate: downloadMutate, ...downloadState }),
 }));
 
-const { MyPaymentDetailPage } = await import('@/features/property-ownership/payments/pages/MyPaymentDetailPage');
+const { MyPaymentDetailPage } =
+  await import('@/features/property-ownership/payments/pages/MyPaymentDetailPage');
 
 function renderPage() {
   return render(
@@ -51,7 +69,10 @@ describe('MyPaymentDetailPage receipt', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Télécharger le reçu' }));
 
-    expect(downloadMutate).toHaveBeenCalledWith({ paymentId: PAYMENT_ID, fileName: `recu-${PAYMENT_ID}.pdf` });
+    expect(downloadMutate).toHaveBeenCalledWith({
+      paymentId: PAYMENT_ID,
+      fileName: `recu-${PAYMENT_ID}.pdf`,
+    });
   });
 
   // A payment predating receipts, or one whose generation failed, has none. The
@@ -60,7 +81,11 @@ describe('MyPaymentDetailPage receipt', () => {
     downloadState = {
       isPending: false,
       isError: true,
-      error: { isAxiosError: true, response: { status: 404 }, message: 'Request failed with status code 404' },
+      error: {
+        isAxiosError: true,
+        response: { status: 404 },
+        message: 'Request failed with status code 404',
+      },
     };
     renderPage();
 
@@ -68,7 +93,7 @@ describe('MyPaymentDetailPage receipt', () => {
     expect(screen.queryByText(/status code 404/)).not.toBeInTheDocument();
   });
 
-  it('surfaces any other failure as-is', () => {
+  it('reports any other failure without echoing the server detail', () => {
     downloadState = {
       isPending: false,
       isError: true,
@@ -76,6 +101,7 @@ describe('MyPaymentDetailPage receipt', () => {
     };
     renderPage();
 
-    expect(screen.getByText('Boom')).toBeInTheDocument();
+    expect(screen.getByText(ERROR_MESSAGES.unexpected)).toBeInTheDocument();
+    expect(screen.queryByText('Boom')).not.toBeInTheDocument();
   });
 });

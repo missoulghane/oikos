@@ -15,7 +15,6 @@ import com.architek.oikos.invitation.application.port.out.UnitDirectoryPort;
 import com.architek.oikos.invitation.domain.exception.InvitationNotFoundException;
 import com.architek.oikos.invitation.domain.exception.MembershipRequestAlreadyDecidedException;
 import com.architek.oikos.invitation.domain.exception.MembershipRequestNotFoundException;
-import com.architek.oikos.invitation.domain.exception.UnitUnavailableException;
 import com.architek.oikos.invitation.domain.model.Invitation;
 import com.architek.oikos.invitation.domain.model.MembershipRequest;
 import com.architek.oikos.invitation.domain.repository.InvitationRepository;
@@ -71,7 +70,12 @@ public class AcceptMembershipRequestService implements AcceptMembershipRequestUs
         Invitation invitation = invitationRepository.findById(InvitationId.of(request.getInvitationId().value()))
                 .orElseThrow(() -> new InvitationNotFoundException(InvitationId.of(request.getInvitationId().value())));
 
-        claimUnlessAlreadyOwned(request.getUnitId(), request.getPartyId());
+        // Sans catch, et ce n'est pas un oubli : claim() est idempotent pour le
+        // contact qui détient déjà le lot (voir ClaimUnitOwnershipService), et
+        // rattraper ici l'échec d'un service transactionnel ne servirait qu'à
+        // faire échouer le commit en UnexpectedRollbackException - la
+        // transaction est marquée rollback-only avant que le catch ne s'exécute.
+        unitDirectoryPort.claim(request.getUnitId(), request.getPartyId());
         accountDirectoryPort.grantPropertyRole(request.getUserId(), request.getPartyId(), request.getPropertyId(),
                 invitation.getTargetRole());
         membershipRequestRepository.save(request.accept(clock.instant(), command.decidedByUserId()));
@@ -83,23 +87,6 @@ public class AcceptMembershipRequestService implements AcceptMembershipRequestUs
                 membershipRequestRepository.save(
                         sibling.reject(clock.instant(), command.decidedByUserId(), SIBLING_REJECTION_REASON));
                 eventPublisher.publishEvent(decided(sibling, false, command.decidedByUserId(), SIBLING_REJECTION_REASON));
-            }
-        }
-    }
-
-    /**
-     * Le cas nominal d'une invitation privée : le syndic a rattaché le lot au
-     * contact avant de l'inviter, il n'y a donc rien à réserver - seul l'accès
-     * reste à ouvrir. Vérifier après l'échec plutôt qu'avant garde la
-     * réservation atomique : un contrôle préalable rouvrirait la fenêtre de
-     * concurrence que le verrou de ClaimUnitOwnershipService ferme.
-     */
-    private void claimUnlessAlreadyOwned(EntityId unitId, EntityId partyId) {
-        try {
-            unitDirectoryPort.claim(unitId, partyId);
-        } catch (UnitUnavailableException e) {
-            if (!unitDirectoryPort.isOwnedBy(unitId, partyId)) {
-                throw e;
             }
         }
     }

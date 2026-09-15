@@ -93,18 +93,17 @@ public class ListMembershipRequestsService implements ListMembershipRequestsUseC
 
     /**
      * Un compte supprimé entre-temps ne doit pas faire disparaître la demande
-     * de la liste ni casser la page : la ligne s'affiche sans identité plutôt
-     * que de propager une UserNotFoundException. La demande, elle, reste un
-     * fait dont le syndic a besoin.
+     * de la liste ni casser la page : la ligne s'affiche sans identité. La
+     * demande, elle, reste un fait dont le syndic a besoin.
+     *
+     * <p>Une lecture qui ne lève pas, et non un try/catch autour de
+     * getAccountInfo : l'exception traverserait le proxy transactionnel de
+     * GetUserService et marquerait cette transaction-ci rollback-only, si bien
+     * que la rattraper ne sauvait rien - la page entière tombait ensuite au
+     * commit, en UnexpectedRollbackException.
      */
     private AccountInfo account(EntityId userId, Map<EntityId, AccountInfo> cache) {
-        return cache.computeIfAbsent(userId, id -> {
-            try {
-                return accountDirectoryPort.getAccountInfo(id);
-            } catch (RuntimeException e) {
-                return null;
-            }
-        });
+        return cache.computeIfAbsent(userId, id -> accountDirectoryPort.findAccountInfo(id).orElse(null));
     }
 
     private static boolean matchesStatus(MembershipRequestOverviewView view, MembershipRequestOverviewStatus status) {

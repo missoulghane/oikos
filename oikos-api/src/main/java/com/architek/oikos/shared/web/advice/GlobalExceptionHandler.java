@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import com.architek.oikos.shared.exception.BusinessException;
+import com.architek.oikos.shared.exception.CodedException;
 import com.architek.oikos.shared.exception.ConflictException;
 import com.architek.oikos.shared.exception.ResourceNotFoundException;
 import com.architek.oikos.shared.exception.TooManyRequestsException;
@@ -32,12 +33,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
-        return build(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), codeOf(ex), request);
     }
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex, HttpServletRequest request) {
-        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), codeOf(ex), request);
     }
 
     /**
@@ -55,7 +56,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex, HttpServletRequest request) {
-        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), codeOf(ex), request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -83,7 +84,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex, HttpServletRequest request) {
-        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+        return build(HttpStatus.CONFLICT, ex.getMessage(), codeOf(ex), request);
     }
 
     /**
@@ -121,7 +122,22 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, HttpServletRequest request) {
-        ErrorResponse body = ErrorResponse.of(status.value(), status.getReasonPhrase(), message, request.getRequestURI());
+        return build(status, message, null, request);
+    }
+
+    private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, String code, HttpServletRequest request) {
+        ErrorResponse body = ErrorResponse.of(status.value(), status.getReasonPhrase(), message, code,
+                request.getRequestURI());
         return ResponseEntity.status(status).body(body);
+    }
+
+    /**
+     * Les interfaces n'affichent jamais {@code message} - il est technique et en
+     * anglais. Quand une exception porte un code, il voyage avec la réponse : c'est
+     * le seul moyen pour un client de distinguer deux erreurs de même statut sans
+     * se mettre à comparer des messages.
+     */
+    private static String codeOf(Throwable ex) {
+        return ex instanceof CodedException coded ? coded.errorCode() : null;
     }
 }

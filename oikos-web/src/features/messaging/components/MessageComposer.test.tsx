@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MessageComposer } from '@/features/messaging/components/MessageComposer';
 import { sendMessage } from '@/features/messaging/api/sendMessage';
 import type { Message } from '@/features/messaging/types/messaging.types';
+import { ERROR_MESSAGES } from '@/shared/constants/errorMessages';
 
 // Factory form (not bare automock): a bare `vi.mock(path)` still loads the
 // real module to derive its shape, which would drag in httpClient -> env.ts
@@ -79,7 +80,7 @@ describe('MessageComposer', () => {
   it('shows an error with a retry button that resubmits the same draft', async () => {
     mockedSendMessage.mockRejectedValueOnce({
       isAxiosError: true,
-      response: { data: { message: 'Erreur serveur' } },
+      response: { status: 500, data: { message: 'Erreur serveur' } },
     });
     const user = userEvent.setup();
     renderComposer();
@@ -88,7 +89,9 @@ describe('MessageComposer', () => {
     await user.type(editor, 'Bonjour');
     await user.click(screen.getByRole('button', { name: /envoyer/i }));
 
-    expect(await screen.findByText('Erreur serveur')).toBeInTheDocument();
+    // Le détail de l'exception reste côté serveur : l'écran affiche la phrase du
+    // catalogue, qui dit quoi faire (réessayer, écrire au support).
+    expect(await screen.findByText(ERROR_MESSAGES.unexpected)).toBeInTheDocument();
     expect(editor).toHaveTextContent('Bonjour');
 
     mockedSendMessage.mockResolvedValueOnce(sentMessage);

@@ -10,9 +10,12 @@ import { useAddUnitOwner } from '@/features/property-mngt/properties/hooks/useAd
 import { useUnitOwners } from '@/features/property-mngt/properties/hooks/useUnitOwners';
 import { contactMatchLabel, useContactMatch } from '@/features/property-mngt/parties/hooks/useContactMatch';
 import { PARTY_TYPE_LABELS } from '@/features/property-mngt/properties/constants/partyTypeLabels';
-import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { getApiErrorCode, getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { PARTY_TYPES } from '@/features/property-mngt/properties/types/property.types';
-import { addUnitOwnerSchema, type AddUnitOwnerFormValues } from '@/features/property-mngt/properties/schemas/addUnitOwnerSchema';
+import {
+  addUnitOwnerSchema,
+  type AddUnitOwnerFormValues,
+} from '@/features/property-mngt/properties/schemas/addUnitOwnerSchema';
 import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 interface AddUnitOwnerFormProps {
@@ -29,20 +32,16 @@ const PARTY_TYPE_OPTIONS = PARTY_TYPES.map((type) => ({ value: type, label: PART
  * la plupart des cas (voir alreadyOwnerHere) ; il reste atteignable quand le
  * serveur reconnaît un contact que la recherche de l'écran n'avait pas
  * rapproché - une adresse saisie ici qui, côté serveur, désigne une fiche déjà
- * rattachée. Le message de l'API est alors une phrase technique en anglais :
- * on la remplace par la même explication que celle affichée en amont.
+ * rattachée. Le message générique du catalogue ne dirait alors pas ce qui
+ * bloque : on le remplace par la même explication que celle affichée en amont.
  *
- * <p>Reconnu sur son texte, faute de code d'erreur dans les réponses de l'API
- * (voir ErrorResponse) : le repère est volontairement court et stable, et
- * l'appel retombe sur le message d'origine s'il ne correspond pas.
+ * <p>Reconnu au code d'erreur de la réponse (ErrorCodes.java côté API), pas à son
+ * message : celui-ci est technique, en anglais, et se reformule sans préavis.
  */
-const ALREADY_OWNER_API_MESSAGE = 'already registered as an owner';
-
 function addUnitOwnerErrorMessage(error: unknown): string {
-  const message = getErrorMessage(error);
-  return message.includes(ALREADY_OWNER_API_MESSAGE)
+  return getApiErrorCode(error) === 'PARTY_ALREADY_OWNS_UNIT'
     ? "Ce contact détient déjà une part de ce lot. Un même contact n'y figure qu'une fois : vérifiez la liste des propriétaires ci-dessous."
-    : message;
+    : getErrorMessage(error);
 }
 
 /**
@@ -104,7 +103,11 @@ export function AddUnitOwnerForm({ unitId, propertyId, onSuccess, onCancel }: Ad
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 rounded-lg border border-gray-200 dark:border-gray-800 p-4" noValidate>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="flex flex-col gap-4 rounded-lg border border-gray-200 dark:border-gray-800 p-4"
+      noValidate
+    >
       {error && <Alert message={addUnitOwnerErrorMessage(error)} />}
       {/* Deux états, jamais les deux à la fois : « ce contact existe » invite à
           confirmer, « il détient déjà une part ici » ferme la porte et dit
@@ -163,10 +166,10 @@ export function AddUnitOwnerForm({ unitId, propertyId, onSuccess, onCancel }: Ad
         disabled={!email}
         hint={
           !email
-            ? "Renseignez un email pour pouvoir envoyer une invitation."
+            ? 'Renseignez un email pour pouvoir envoyer une invitation.'
             : invite
-              ? 'Un lien sera envoyé par email pour que ce copropriétaire accède à ses lots.'
-              : "Aucun email ne partira : le rattachement reste interne au syndic."
+              ? 'Un lien sera envoyé par email : il confirmera ce lot, puis sa demande reviendra ici pour validation.'
+              : 'Aucun email ne partira : le rattachement reste interne au syndic.'
         }
         {...register('invite')}
       />

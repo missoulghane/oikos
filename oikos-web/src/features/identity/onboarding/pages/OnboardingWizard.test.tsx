@@ -64,9 +64,27 @@ async function fillPropertyStep(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByText('Comment souhaitez-vous gérer vos charges ?');
 }
 
+/**
+ * Joue le tunnel jusqu'au récapitulatif, puis revient sur l'étape 2 par son
+ * lien « Modifier » : le seul chemin, depuis que le brouillon ne survit plus à
+ * un rechargement, pour retrouver l'étape 2 avec une inscription déjà faite.
+ */
+async function goBackToPropertyStepFromRecap(user: ReturnType<typeof userEvent.setup>) {
+  await fillAccountStep(user);
+  await fillPropertyStep(user);
+  await user.click(await screen.findByRole('button', { name: 'Continuer' }));
+  await screen.findByText('Quels types de lots gérez-vous ?');
+  await user.click(await screen.findByRole('button', { name: 'Continuer' }));
+  await screen.findByText('Structure de votre copropriété');
+  await user.click(await screen.findByRole('button', { name: 'Continuer' }));
+  await user.click(await screen.findByRole('button', { name: 'Passer cette étape' }));
+
+  const propertySection = (await screen.findByText('Votre copropriété')).closest('section')!;
+  await user.click(within(propertySection).getByRole('link', { name: 'Modifier' }));
+}
+
 describe('OnboardingWizardPage', () => {
   beforeEach(() => {
-    window.localStorage.clear();
     mockedRegister.mockReset();
     mockedConfigure.mockReset();
     mockedCaptureLead.mockReset();
@@ -78,22 +96,6 @@ describe('OnboardingWizardPage', () => {
     });
     mockedConfigure.mockResolvedValue(undefined);
     mockedCaptureLead.mockResolvedValue(undefined);
-  });
-
-  it('reprend un brouillon écrit avant l’ajout du téléphone, sans tomber', async () => {
-    // Ce brouillon-là existe pour de vrai dans les navigateurs ouverts avant que
-    // le champ n'existe : `account` y tient en deux clés, et le remplacement en
-    // bloc des valeurs par défaut laissait `phone` à `undefined`, ce que
-    // PhoneField faisait payer d'un écran blanc.
-    window.localStorage.setItem(
-      'oikos-onboarding-draft',
-      JSON.stringify({ account: { fullName: 'Jane Doe', email: 'jane.doe@example.com' } }),
-    );
-
-    renderWizard();
-
-    expect(await screen.findByLabelText('Nom complet')).toHaveValue('Jane Doe');
-    expect(screen.getByLabelText('Téléphone')).toHaveValue('');
   });
 
   it('captures the email on step 1, before any account can exist', async () => {
@@ -268,18 +270,54 @@ describe('OnboardingWizardPage', () => {
     expect(mockedRegister).toHaveBeenCalledTimes(1);
   });
 
-  it('resumes an interrupted wizard from the stored draft', async () => {
+  /**
+   * La page de fin efface le brouillon en se montant. Elle affiche pourtant
+   * l'email qu'elle vient d'effacer : sans la copie figée avant le nettoyage,
+   * le dernier écran du tunnel annonce un email vide.
+   */
+  it('affiche l’email de confirmation bien qu’elle efface le brouillon', async () => {
     const user = userEvent.setup();
     renderWizard();
     await fillAccountStep(user);
     await fillPropertyStep(user);
-    await screen.findByText('Comment souhaitez-vous gérer vos charges ?');
+    await user.click(await screen.findByRole('button', { name: 'Continuer' }));
+    await user.type(await screen.findByLabelText('Appartement'), '50');
+    await user.click(screen.getByRole('button', { name: 'Continuer' }));
+    await user.click(await screen.findByRole('button', { name: 'Continuer' }));
+    await user.click(await screen.findByRole('button', { name: 'Passer cette étape' }));
+    await user.click(await screen.findByRole('button', { name: 'Finaliser ma copropriété' }));
 
-    // Nouveau rendu, comme après un rechargement de page.
-    renderWizard('/register/board-admin/summary');
+    expect(await screen.findByText('Votre copropriété est créée !')).toBeInTheDocument();
+    expect(screen.getByText('jane.doe@example.com')).toBeInTheDocument();
+  });
 
-    const sections = await screen.findAllByText('Résidence Exemple');
-    expect(sections.length).toBeGreaterThan(0);
+  // Revenir sur l'étape 2 après coup - par le récapitulatif - retrouve une
+  // inscription déjà faite. Continuer la reprend, c'est voulu, mais plus en
+  // silence : le nom saisi ici ne repartirait nulle part.
+  it('annonce la reprise d’une inscription déjà faite', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await goBackToPropertyStepFromRecap(user);
+
+    expect(await screen.findByText(/Une copropriété a déjà été créée/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Recommencer avec une nouvelle copropriété' })).toBeInTheDocument();
+  });
+
+  it('repart de zéro sans recréer ce qui existe déjà', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await goBackToPropertyStepFromRecap(user);
+
+    await user.click(await screen.findByRole('button', { name: 'Recommencer avec une nouvelle copropriété' }));
+
+    // Le brouillon est vidé ; le compte et la copropriété d'avant, eux, existent
+    // toujours - on ne les recrée pas.
+    expect(
+      screen.queryByRole('button', { name: 'Recommencer avec une nouvelle copropriété' }),
+    ).not.toBeInTheDocument();
     expect(mockedRegister).toHaveBeenCalledTimes(1);
+    // Repartir de zéro efface aussi le mot de passe : l'étape 2 renvoie à
+    // l'étape 1 plutôt que de laisser créer un compte sans lui.
+    expect(screen.getByText(/Votre mot de passe n'a pas été conservé/)).toBeInTheDocument();
   });
 });

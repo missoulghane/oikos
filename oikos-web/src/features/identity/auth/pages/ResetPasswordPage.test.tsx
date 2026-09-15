@@ -6,6 +6,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/shared/context/ThemeContext';
 import { ResetPasswordPage } from '@/features/identity/auth/pages/ResetPasswordPage';
 import { resetPassword } from '@/features/identity/auth/api/resetPassword';
+import { AxiosError, AxiosHeaders } from 'axios';
+import { ERROR_MESSAGES } from '@/shared/constants/errorMessages';
+import type { ApiErrorBody } from '@/shared/types/apiError.types';
 
 // Factory form (not bare automock): see ForgotPasswordPage.test.tsx.
 vi.mock('@/features/identity/auth/api/resetPassword', () => ({
@@ -27,7 +30,11 @@ function renderPage(initialPath = '/reset-password?token=the-token') {
   );
 }
 
-async function fillNewPassword(user: ReturnType<typeof userEvent.setup>, password: string, confirmation = password) {
+async function fillNewPassword(
+  user: ReturnType<typeof userEvent.setup>,
+  password: string,
+  confirmation = password,
+) {
   await user.type(screen.getByLabelText('Nouveau mot de passe'), password);
   await user.type(screen.getByLabelText('Confirmation du mot de passe'), confirmation);
   await user.click(screen.getByRole('button', { name: 'Réinitialiser mon mot de passe' }));
@@ -48,7 +55,10 @@ describe('ResetPasswordPage', () => {
     // mock.calls[0][0] plutôt que toHaveBeenCalledWith : react-query passe un
     // second argument de contexte à la mutationFn.
     await waitFor(() =>
-      expect(mockedResetPassword.mock.calls[0][0]).toEqual({ token: 'the-token', newPassword: 'motdepasse123' }),
+      expect(mockedResetPassword.mock.calls[0][0]).toEqual({
+        token: 'the-token',
+        newPassword: 'motdepasse123',
+      }),
     );
     expect(await screen.findByText(/Votre mot de passe a bien été réinitialisé/)).toBeInTheDocument();
     // La révocation des sessions se dit : c'est ce que l'utilisateur venu
@@ -65,17 +75,37 @@ describe('ResetPasswordPage', () => {
     expect(mockedResetPassword).not.toHaveBeenCalled();
     // Une impasse serait cruelle : le lien coupé par la messagerie est le cas le
     // plus fréquent, et il se répare en redemandant un email.
-    expect(screen.getByRole('link', { name: 'Demandez-en un nouveau' })).toHaveAttribute('href', '/forgot-password');
+    expect(screen.getByRole('link', { name: 'Demandez-en un nouveau' })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    );
   });
 
-  it('affiche le message de l’API quand le lien a expiré, sans fermer la porte', async () => {
+  it('traduit le lien expiré en français, sans fermer la porte', async () => {
     const user = userEvent.setup();
-    mockedResetPassword.mockRejectedValue(new Error('Ce lien de réinitialisation a expiré. Demandez-en un nouveau.'));
+    // L'API répond INVALID_LINK ; son message ("Ce lien ... a expiré") est écrit
+    // pour les logs et n'est jamais affiché - la phrase vient du catalogue.
+    const error = new AxiosError<ApiErrorBody>('Request failed', '400');
+    error.response = {
+      data: {
+        status: 400,
+        error: 'Bad Request',
+        message: 'Password reset token has expired',
+        code: 'INVALID_LINK',
+        path: '/auth/reset-password',
+        timestamp: '',
+      },
+      status: 400,
+      statusText: 'Bad Request',
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+    };
+    mockedResetPassword.mockRejectedValue(error);
     renderPage();
 
     await fillNewPassword(user, 'motdepasse123');
 
-    expect(await screen.findByText(/Ce lien de réinitialisation a expiré/)).toBeInTheDocument();
+    expect(await screen.findByText(ERROR_MESSAGES.invalidLink)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Retour à la connexion' })).toHaveAttribute('href', '/login');
   });
 
@@ -95,7 +125,9 @@ describe('ResetPasswordPage', () => {
 
     await fillNewPassword(user, 'court');
 
-    expect(await screen.findByText('Le mot de passe doit contenir au moins 10 caractères')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Le mot de passe doit contenir au moins 10 caractères'),
+    ).toBeInTheDocument();
     expect(mockedResetPassword).not.toHaveBeenCalled();
   });
 });

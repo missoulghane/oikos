@@ -9,10 +9,21 @@ import { useUnitTypeDefinitions } from '@/features/property-mngt/properties/hook
 import { useAddUnitTypeDefinition } from '@/features/property-mngt/properties/hooks/useAddUnitTypeDefinition';
 import { useRemoveUnitTypeDefinition } from '@/features/property-mngt/properties/hooks/useRemoveUnitTypeDefinition';
 import { UNIT_TYPE_CHOICES } from '@/features/property-mngt/properties/constants/unitTypeChoices';
-import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { getApiErrorCode, getErrorMessage } from '@/shared/utils/getErrorMessage';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
 
 const CHOICE_NAMES = new Set<string>(UNIT_TYPE_CHOICES.map((choice) => choice.name));
+
+/**
+ * Le seul refus que le syndic peut lever lui-même : le message générique d'un
+ * conflit ne lui dirait pas quoi faire, celui-ci si. Reconnu au code d'erreur de
+ * la réponse (ErrorCodes.java côté API), jamais à son message.
+ */
+function removeUnitTypeErrorMessage(error: unknown): string {
+  return getApiErrorCode(error) === 'UNIT_TYPE_IN_USE'
+    ? 'Ce type de lot est utilisé par des lots : retirez-le d’abord des lots concernés.'
+    : getErrorMessage(error);
+}
 
 /**
  * Les types de lots gérés par la copropriété, cochés dans la même liste que
@@ -98,15 +109,15 @@ export function PropertyUnitTypesTab() {
         <div className="flex flex-col gap-1">
           <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Types de lots gérés</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Cochez les types de lots que compte votre copropriété. Ils déterminent ce que vous pourrez créer dans la
-            liste des lots, et ce que vous tarifez dans la configuration des échéances.
+            Cochez les types de lots que compte votre copropriété. Ils déterminent ce que vous pourrez créer
+            dans la liste des lots, et ce que vous tarifez dans la configuration des échéances.
           </p>
         </div>
 
         {unitTypes.isError && <Alert message={getErrorMessage(unitTypes.error)} />}
         {/* Un type porté par des lots ne se retire pas : l'API refuse, et le
             message dit lequel plutôt que de laisser la case revenir seule. */}
-        {removeType.error && <Alert message={getErrorMessage(removeType.error)} />}
+        {removeType.error && <Alert message={removeUnitTypeErrorMessage(removeType.error)} />}
         {addType.error && <Alert message={getErrorMessage(addType.error)} />}
         {savedAt !== null && <Alert variant="success" message="Types de lots enregistrés." />}
 

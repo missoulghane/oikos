@@ -1,11 +1,33 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '@/shared/components/Card/Card';
 import { CheckCircleIcon } from '@/shared/icons';
 import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingContext';
 
+/**
+ * Fin du tunnel, et seul endroit où le brouillon est effacé.
+ *
+ * <p>Il ne l'était nulle part, et le provider vit aussi longtemps que l'onglet :
+ * repartir dans le wizard sans recharger la page reprenait silencieusement
+ * l'inscription qui vient de s'achever (voir PropertyStepPage :
+ * alreadyRegistered court-circuite la création du compte), et la configuration
+ * partait sur l'ancienne copropriété - avec, passé deux heures, un 401 annoncé
+ * comme un « lien expiré » qui n'expliquait rien.
+ *
+ * <p>Le contenu affiché est figé avant le nettoyage : la page lit le brouillon
+ * qu'elle vient d'effacer.
+ */
 export function OnboardingDonePage() {
-  const { draft } = useOnboarding();
-  const propertyId = draft.registration?.propertyId;
+  const { draft, reset } = useOnboarding();
+  const [completed] = useState(() => ({
+    email: draft.account.email,
+    propertyId: draft.registration?.propertyId,
+  }));
+  useEffect(() => {
+    reset();
+  }, [reset]);
+
+  const propertyId = completed.propertyId;
 
   return (
     <Card className="w-full max-w-2xl text-center">
@@ -21,7 +43,7 @@ export function OnboardingDonePage() {
       {/* Le compte n'est pas encore vérifié : sans ce rappel, les deux boutons
           ci-dessous renverraient vers un écran de connexion inexplicable. */}
       <p className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-600 dark:bg-white/[0.03] dark:text-gray-400">
-        Un email de confirmation vous a été envoyé à <strong>{draft.account.email}</strong>. Activez votre compte
+        Un email de confirmation vous a été envoyé à <strong>{completed.email}</strong>. Activez votre compte
         pour accéder à votre espace.
       </p>
 

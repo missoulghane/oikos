@@ -3,7 +3,7 @@ import { AuthLayout } from '@/shared/layouts/AuthLayout';
 import { Card } from '@/shared/components/Card/Card';
 import { LoginForm } from '@/features/identity/auth/components/LoginForm';
 import { useLogin } from '@/features/identity/auth/hooks/useLogin';
-import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { getLoginErrorMessage } from '@/features/identity/auth/utils/getLoginErrorMessage';
 import { sanitizeReturnTo } from '@/shared/utils/sanitizeReturnTo';
 import type { LoginFormValues } from '@/features/identity/auth/schemas/loginSchema';
 
@@ -27,7 +27,7 @@ export function LoginPage() {
         <LoginForm
           onSubmit={handleSubmit}
           isSubmitting={isPending}
-          errorMessage={error ? getErrorMessage(error) : undefined}
+          errorMessage={error ? getLoginErrorMessage(error) : undefined}
         />
         <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           <Link to="/forgot-password" className="font-medium text-gray-900 dark:text-white/90 underline">

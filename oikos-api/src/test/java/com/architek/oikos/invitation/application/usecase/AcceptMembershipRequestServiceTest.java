@@ -149,6 +149,11 @@ class AcceptMembershipRequestServiceTest {
      * Le cas nominal d'une invitation privée : le syndic a rattaché le lot au
      * contact avant de l'inviter. Il n'y a rien à réserver, seul l'accès reste
      * à ouvrir - échouer ici bloquerait toutes les invitations privées.
+     *
+     * <p>La tolérance vit dans claim() lui-même (voir ClaimUnitOwnershipService)
+     * et non dans un catch ici : rattraper l'exception d'un service
+     * transactionnel laisse la transaction marquée rollback-only, et le commit
+     * échouait en UnexpectedRollbackException. D'où l'absence de doThrow.
      */
     @Test
     void a_lot_already_owned_by_the_requester_is_not_re_claimed_and_the_role_is_still_granted() {
@@ -166,12 +171,10 @@ class AcceptMembershipRequestServiceTest {
         when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
         when(membershipRequestRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(membershipRequestRepository.findAllPendingByUnitId(unitId)).thenReturn(List.of(request));
-        org.mockito.Mockito.doThrow(new UnitUnavailableException("already claimed"))
-                .when(unitDirectoryPort).claim(unitId, partyId);
-        when(unitDirectoryPort.isOwnedBy(unitId, partyId)).thenReturn(true);
 
         newService().accept(new AcceptMembershipRequestCommand(request.getId(), EntityId.newId()));
 
+        verify(unitDirectoryPort).claim(unitId, partyId);
         verify(accountDirectoryPort).grantPropertyRole(userId, partyId, propertyId, "PROPERTY_OWNER");
     }
 
@@ -191,7 +194,6 @@ class AcceptMembershipRequestServiceTest {
         when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
         org.mockito.Mockito.doThrow(new UnitUnavailableException("already claimed"))
                 .when(unitDirectoryPort).claim(unitId, partyId);
-        when(unitDirectoryPort.isOwnedBy(unitId, partyId)).thenReturn(false);
 
         assertThatThrownBy(() -> newService().accept(new AcceptMembershipRequestCommand(request.getId(), EntityId.newId())))
                 .isInstanceOf(UnitUnavailableException.class);

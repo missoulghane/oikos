@@ -21,8 +21,9 @@ import com.architek.oikos.auth.application.port.in.LogoutUseCase;
 import com.architek.oikos.auth.application.port.in.RefreshTokenUseCase;
 import com.architek.oikos.auth.application.port.in.RequestPasswordResetUseCase;
 import com.architek.oikos.auth.application.port.in.ResetPasswordUseCase;
+import com.architek.oikos.auth.domain.exception.AccountNotActivatedException;
+import com.architek.oikos.auth.domain.exception.InvalidCredentialsException;
 import com.architek.oikos.auth.domain.exception.InvalidPasswordResetTokenException;
-import com.architek.oikos.shared.exception.UnauthorizedException;
 
 @WebMvcTest(controllers = AuthController.class)
 class AuthControllerWebMvcTest {
@@ -62,8 +63,8 @@ class AuthControllerWebMvcTest {
     }
 
     @Test
-    void login_with_unverified_account_returns_403() throws Exception {
-        when(loginUseCase.login(any())).thenThrow(new UnauthorizedException("Account is not verified"));
+    void login_with_wrong_credentials_returns_403_with_a_code_and_no_detail() throws Exception {
+        when(loginUseCase.login(any())).thenThrow(new InvalidCredentialsException());
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .with(csrf())
@@ -71,7 +72,24 @@ class AuthControllerWebMvcTest {
                         .content("""
                                 {"identifier":"user@oikos.com","password":"password123"}
                                 """))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                // C'est le code, et lui seul, qui pilote la phrase affichée : le message
+                // reste technique et n'est jamais montré.
+                .andExpect(jsonPath("$.code", is("INVALID_CREDENTIALS")));
+    }
+
+    @Test
+    void login_with_unverified_account_returns_403() throws Exception {
+        when(loginUseCase.login(any())).thenThrow(new AccountNotActivatedException());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"identifier":"user@oikos.com","password":"password123"}
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code", is("ACCOUNT_NOT_ACTIVATED")));
     }
 
     @Test

@@ -32,7 +32,7 @@ const removeMutate = vi.fn();
 const addMutateAsync = vi.fn().mockResolvedValue(undefined);
 const removeMutateAsync = vi.fn().mockResolvedValue(undefined);
 
-function setup(defined: { id: string; name: string }[], removeError: Error | null = null) {
+function setup(defined: { id: string; name: string }[], removeError: unknown = null) {
   vi.mocked(useUnitTypeDefinitions).mockReturnValue({
     data: defined.map((unitType) => ({ ...unitType, propertyId: property.id })),
     isLoading: false,
@@ -122,9 +122,14 @@ describe('PropertyUnitTypesTab', () => {
   it('affiche le refus quand le type est porté par des lots', () => {
     // L'API refuse de supprimer un type utilisé : la case ne doit pas se
     // décocher en silence pour se recocher toute seule au rechargement.
-    setup([{ id: 'type-appart', name: 'Appartement' }], new Error('Ce type de lot est utilisé par des lots.'));
+    setup([{ id: 'type-appart', name: 'Appartement' }], {
+      isAxiosError: true,
+      response: { status: 400, data: { message: 'Unit type is still assigned', code: 'UNIT_TYPE_IN_USE' } },
+    });
 
-    expect(screen.getByText('Ce type de lot est utilisé par des lots.')).toBeInTheDocument();
+    expect(screen.getByText(/utilisé par des lots/)).toBeInTheDocument();
+    // Le message de l'API reste dans la console réseau.
+    expect(screen.queryByText(/still assigned/)).not.toBeInTheDocument();
   });
 
   it('garde visible un type hérité d’une saisie libre', () => {

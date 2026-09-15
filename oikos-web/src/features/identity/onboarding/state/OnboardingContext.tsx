@@ -1,12 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { initialDraft, mergeStoredDraft, type OnboardingDraft } from '@/features/identity/onboarding/state/onboardingDraft';
-
-const STORAGE_KEY = 'oikos-onboarding-draft';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { initialDraft, type OnboardingDraft } from '@/features/identity/onboarding/state/onboardingDraft';
 
 interface OnboardingContextType {
   draft: OnboardingDraft;
   update: (patch: Partial<OnboardingDraft>) => void;
-  /** Mot de passe gardé en mémoire uniquement - voir le commentaire de persistance. */
   password: string;
   setPassword: (password: string) => void;
   reset: () => void;
@@ -22,36 +19,23 @@ export function useOnboarding() {
   return context;
 }
 
-function readStoredDraft(): OnboardingDraft {
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return initialDraft();
-    }
-    // Fusion avec les valeurs par défaut : un brouillon écrit par une version
-    // antérieure du wizard n'a pas forcément toutes les clés attendues.
-    return mergeStoredDraft(JSON.parse(stored) as Partial<OnboardingDraft>);
-  } catch {
-    return initialDraft();
-  }
-}
-
+/**
+ * Le brouillon vit en mémoire, et nulle part ailleurs : fermer l'onglet ou
+ * recharger la page repart de l'étape 1.
+ *
+ * <p>Il était persisté dans le localStorage pour permettre de reprendre un
+ * wizard interrompu. La reprise se payait cher : le brouillon survivait à la
+ * fin du tunnel avec l'identifiant de la copropriété créée et son jeton, une
+ * inscription relancée depuis le même navigateur repartait silencieusement sur
+ * l'ancienne copropriété, et un brouillon écrit par une version antérieure du
+ * wizard devait être recollé champ par champ à chaque déploiement sous peine
+ * d'écran blanc. Le compte et la copropriété, eux, naissent à l'étape 2 et sont
+ * bien persistés côté API : ce qu'un rechargement fait perdre, ce sont les
+ * saisies des étapes de configuration.
+ */
 export function OnboardingProvider({ children }: { children: ReactNode }) {
-  const [draft, setDraft] = useState<OnboardingDraft>(() => readStoredDraft());
-  // Jamais persisté : un mot de passe en clair dans le localStorage survivrait à
-  // la session et serait lisible par n'importe quel script de la page. Reprendre
-  // un wizard interrompu après l'étape 2 n'en a de toute façon pas besoin, le
-  // compte étant déjà créé.
+  const [draft, setDraft] = useState<OnboardingDraft>(() => initialDraft());
   const [password, setPassword] = useState('');
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-    } catch {
-      // Stockage indisponible (navigation privée) : le wizard reste utilisable
-      // d'une traite, seule la reprise après fermeture est perdue.
-    }
-  }, [draft]);
 
   const update = useCallback((patch: Partial<OnboardingDraft>) => {
     setDraft((previous) => ({ ...previous, ...patch }));
@@ -60,11 +44,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(() => {
     setPassword('');
     setDraft(initialDraft());
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // idem
-    }
   }, []);
 
   const value = useMemo(

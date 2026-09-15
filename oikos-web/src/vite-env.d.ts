@@ -9,6 +9,8 @@ declare module '*.svg?react' {
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string;
+  /** Optionnelle : config/env.ts retombe sur l'adresse de support par défaut. */
+  readonly VITE_SUPPORT_EMAIL?: string;
 }
 
 interface ImportMeta {

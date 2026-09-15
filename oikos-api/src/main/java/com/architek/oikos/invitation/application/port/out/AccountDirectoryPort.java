@@ -1,5 +1,7 @@
 package com.architek.oikos.invitation.application.port.out;
 
+import java.util.Optional;
+
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
@@ -11,6 +13,15 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 public interface AccountDirectoryPort {
 
     AccountInfo getAccountInfo(EntityId userId);
+
+    /**
+     * L'identité d'un compte qui a pu disparaître. Optional plutôt qu'un
+     * try/catch chez l'appelant : l'exception de getAccountInfo traverse le
+     * proxy transactionnel de GetUserService et marque la transaction
+     * rollback-only, si bien que la rattraper ne sauve rien - le commit échoue
+     * ensuite en UnexpectedRollbackException.
+     */
+    Optional<AccountInfo> findAccountInfo(EntityId userId);
 
     void grantPropertyRole(EntityId userId, EntityId partyId, EntityId propertyId, String targetRole);
 }

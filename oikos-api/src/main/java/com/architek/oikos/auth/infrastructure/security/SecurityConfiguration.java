@@ -52,10 +52,19 @@ public class SecurityConfiguration {
         this.accessDeniedHandler = accessDeniedHandler;
     }
 
+    /**
+     * Les contrôles d'état du compte sont déplacés après la vérification du mot de
+     * passe : pré-vérification (le défaut de Spring Security), ils répondaient
+     * « compte non activé » à qui n'avait fourni aucun mot de passe valable, ce qui
+     * suffisait à faire de /auth/login un annuaire des comptes. Voir
+     * PostPasswordUserDetailsChecker.
+     */
     @Bean
     public AuthenticationManager authenticationManager() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
+        provider.setPreAuthenticationChecks(userDetails -> { });
+        provider.setPostAuthenticationChecks(new PostPasswordUserDetailsChecker());
         return new ProviderManager(provider);
     }
 

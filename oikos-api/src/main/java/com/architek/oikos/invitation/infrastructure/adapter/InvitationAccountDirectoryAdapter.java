@@ -1,5 +1,7 @@
 package com.architek.oikos.invitation.infrastructure.adapter;
 
+import java.util.Optional;
+
 import org.springframework.stereotype.Component;
 
 import com.architek.oikos.invitation.application.port.out.AccountDirectoryPort;
@@ -34,7 +36,16 @@ public class InvitationAccountDirectoryAdapter implements AccountDirectoryPort {
 
     @Override
     public AccountInfo getAccountInfo(EntityId userId) {
-        UserView view = getUserUseCase.getUser(new GetUserQuery(UserId.of(userId.value())));
+        return accountInfoOf(getUserUseCase.getUser(new GetUserQuery(UserId.of(userId.value()))));
+    }
+
+    @Override
+    public Optional<AccountInfo> findAccountInfo(EntityId userId) {
+        return getUserUseCase.findUser(new GetUserQuery(UserId.of(userId.value())))
+                .map(InvitationAccountDirectoryAdapter::accountInfoOf);
+    }
+
+    private static AccountInfo accountInfoOf(UserView view) {
         return new AccountInfo(EmailVO.of(view.email()), view.fullName(), view.phone(), view.verified());
     }
 

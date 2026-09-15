@@ -36,6 +36,13 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * which is right for an owner being onboarded and wrong for the syndic simply
  * recording who owns what - the recipient got an invitation nobody told them
  * about. It stays a no-op when the party already has an account.
+ *
+ * <p>C'est l'invitation privée du module invitation, pour le lot qui vient
+ * d'être rattaché - la même que depuis la fiche du contact, donc le même
+ * parcours que le lien public : le destinataire confirme son lot, et sa
+ * demande d'adhésion revient au syndic. Elle part une fois le rattachement
+ * accompli, pour qu'aucun email n'annonce un lot qu'un partage supérieur à
+ * 100 % ferait refuser juste après.
  */
 @Component
 public class AddUnitOwnerService implements AddUnitOwnerUseCase {
@@ -79,13 +86,19 @@ public class AddUnitOwnerService implements AddUnitOwnerUseCase {
                         new PartyDetails(command.fullName(), command.partyType(), command.email(), command.phone()),
                         propertyId));
 
-        // Pas d'adresse, pas d'invitation : le lien de création de compte part par
-        // email et n'a nulle part où aller. Le lot est rattaché quand même.
-        if (command.invite() && command.email() != null) {
-            accountLinkingPort.inviteOwnerIfUnlinked(partyId, command.email(), command.fullName());
+        UnitOwnershipId ownershipId = addUnitOwnershipUseCase.add(
+                new AddUnitOwnershipCommand(command.unitId(), partyId, command.ownershipShare()));
+
+        // Pas d'adresse, pas d'invitation : le lien part par email et n'a nulle
+        // part où aller. Le lot est rattaché quand même. L'adresse se lit sur la
+        // fiche et non dans la commande : c'est celle à laquelle l'invitation
+        // partira (voir CreateInvitationService), et une fiche retrouvée par le
+        // téléphone peut n'en avoir aucune.
+        if (command.invite() && partyDirectoryPort.getPartyById(partyId).email() != null) {
+            accountLinkingPort.inviteOwnerForUnitIfUnlinked(propertyId, partyId,
+                    EntityId.of(command.unitId().asUuid()), command.invitedByUserId());
         }
 
-        return addUnitOwnershipUseCase.add(
-                new AddUnitOwnershipCommand(command.unitId(), partyId, command.ownershipShare()));
+        return ownershipId;
     }
 }

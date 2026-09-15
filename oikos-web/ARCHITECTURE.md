@@ -206,10 +206,11 @@ donner un retour immédiat côté client avant l'aller-retour réseau :
 
 Ce n'est qu'une validation de confort : l'API reste la seule source de
 vérité, et `GlobalExceptionHandler` (oikos-api) renvoie un
-`ErrorResponse { status, error, message, path, timestamp }` en cas de
-validation serveur échouée — c'est ce format que
-`shared/utils/getErrorMessage.ts` sait extraire pour l'afficher via le
-composant `Alert`.
+`ErrorResponse { status, error, message, code, path, timestamp }` en cas de
+validation serveur échouée. `message` est technique (anglais, identifiants
+internes) et n'est jamais affiché ; `shared/utils/getErrorMessage.ts` choisit la
+phrase à montrer d'après `status` — ou d'après `code`, quand l'API en donne un —
+dans `shared/constants/errorMessages.ts`.
 
 ## 5. Gestion des erreurs
 
@@ -221,6 +222,14 @@ composant `Alert`.
   page 500 dédiée apparaît).
 - Erreurs API — chaque hook de mutation expose `error`, traduit en message
   utilisateur via `getErrorMessage()` et affiché avec `Alert`.
+- `shared/constants/errorMessages.ts` — le catalogue des phrases affichées, en
+  français, en un seul endroit. Le détail d'une exception ne sort jamais du
+  serveur : il reste dans la réponse HTTP et les logs. Quand un cas mérite mieux
+  que la phrase générique, on ajoute un code côté API (`ErrorCodes.java`) et sa
+  traduction ici, plutôt que de réafficher le message.
+- Connexion — `features/identity/auth/utils/getLoginErrorMessage.ts` : un seul
+  message pour tout refus (« Identifiant ou mot de passe invalide. »), sauf
+  `ACCOUNT_NOT_ACTIVATED`, que l'API ne renvoie qu'après un mot de passe correct.
 
 ## 6. Tests
 

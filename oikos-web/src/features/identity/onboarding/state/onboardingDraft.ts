@@ -42,11 +42,9 @@ export interface OnboardingRegistration {
   propertyId: string;
   onboardingToken: string;
   /**
-   * Échéance du jeton d'onboarding (epoch ms). Le brouillon survit dans le
-   * localStorage bien au-delà des 2 h du jeton : sans cette date, un wizard
-   * repris le lendemain postait un jeton périmé et se heurtait à un 401 sans
-   * issue. Absente sur un brouillon écrit avant cet ajout - on tente alors le
-   * jeton, l'API tranchera.
+   * Échéance du jeton d'onboarding (epoch ms). Un onglet laissé ouvert dépasse
+   * sans mal les 2 h du jeton : sans cette date, la configuration postée le
+   * lendemain se heurtait à un 401 sans issue.
    */
   onboardingTokenExpiresAt?: number;
 }
@@ -92,48 +90,6 @@ export function initialDraft(): OnboardingDraft {
     buildings: [emptyBuilding(0)],
     bankAccounts: [],
     registration: null,
-  };
-}
-
-/**
- * Reconstruit un brouillon complet à partir de ce qu'on relit du localStorage.
- *
- * <p>Une fusion à plat ne suffit pas : le brouillon survit aux déploiements, et
- * celui écrit avant l'ajout du téléphone porte un `account` à deux champs qui
- * remplaçait l'objet par défaut en entier - `phone` valait alors `undefined`, et
- * le formulaire de l'étape 1 plantait au premier rendu. Chaque objet imbriqué
- * est donc fusionné champ par champ.
- *
- * <p>Les collections sont vérifiées plutôt que reprises telles quelles : un
- * brouillon tronqué (onglet fermé pendant l'écriture, quota atteint) ferait
- * échouer le premier `.map` bien plus loin, sans rien qui désigne la cause.
- */
-/**
- * Un bâtiment relu d'un brouillon écrit avant l'ajout d'un champ n'a pas ce
- * champ : même cause que la fusion en profondeur ci-dessus, une strate plus bas.
- */
-function normalizeBuilding(building: OnboardingBuilding): OnboardingBuilding {
-  return {
-    name: building?.name ?? '',
-    floorCount: typeof building?.floorCount === 'number' ? building.floorCount : 0,
-    unitCounts: building?.unitCounts ?? {},
-  };
-}
-
-export function mergeStoredDraft(stored: Partial<OnboardingDraft> | null | undefined): OnboardingDraft {
-  const base = initialDraft();
-  if (!stored || typeof stored !== 'object') {
-    return base;
-  }
-  return {
-    ...base,
-    ...stored,
-    account: { ...base.account, ...stored.account },
-    property: { ...base.property, ...stored.property },
-    unitTypePrices: { ...base.unitTypePrices, ...stored.unitTypePrices },
-    selectedUnitTypes: Array.isArray(stored.selectedUnitTypes) ? stored.selectedUnitTypes : base.selectedUnitTypes,
-    buildings: Array.isArray(stored.buildings) ? stored.buildings.map(normalizeBuilding) : base.buildings,
-    bankAccounts: Array.isArray(stored.bankAccounts) ? stored.bankAccounts : base.bankAccounts,
   };
 }
 

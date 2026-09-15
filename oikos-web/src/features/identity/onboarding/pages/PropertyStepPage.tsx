@@ -13,7 +13,7 @@ import { propertyStepSchema, type PropertyStepValues } from '@/features/identity
 
 export function PropertyStepPage() {
   const navigate = useNavigate();
-  const { draft, update, password } = useOnboarding();
+  const { draft, update, password, reset } = useOnboarding();
   const register_ = useRegisterPropertyBoardAdmin();
 
   const {
@@ -25,6 +25,10 @@ export function PropertyStepPage() {
     defaultValues: draft.property,
   });
 
+  // Une inscription déjà faite, sur laquelle on revient par le récapitulatif.
+  // Continuer la reprend - c'est voulu -, mais plus en silence : le nom et
+  // l'adresse saisis ici ne repartiraient nulle part, la copropriété ayant été
+  // créée avec ceux du premier passage.
   const alreadyRegistered = draft.registration !== null;
 
   function onSubmit(values: PropertyStepValues) {
@@ -77,6 +81,24 @@ export function PropertyStepPage() {
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
         {register_.isError && <Alert message={getErrorMessage(register_.error)} />}
+        {alreadyRegistered && (
+          <div className="flex flex-col gap-2">
+            <Alert
+              variant="warning"
+              message={`Une copropriété a déjà été créée : « ${draft.property.name} ». Continuer reprendra sa configuration — le nom et l'adresse ci-dessous ne seront pas réappliqués.`}
+            />
+            {/* La seule sortie honnête : le compte et la copropriété précédents
+                existent bel et bien, on ne peut pas les recréer. Repartir de
+                zéro efface le brouillon, pas ce qui a été créé. */}
+            <button
+              type="button"
+              onClick={reset}
+              className="self-start text-sm font-medium text-brand-500 underline dark:text-brand-400"
+            >
+              Recommencer avec une nouvelle copropriété
+            </button>
+          </div>
+        )}
         {!password && !alreadyRegistered && (
           <Alert
             variant="warning"

@@ -4,18 +4,19 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import com.architek.oikos.auth.application.dto.AuthenticatedPrincipal;
 import com.architek.oikos.auth.application.port.out.AuthenticationPort;
+import com.architek.oikos.auth.domain.exception.AccountNotActivatedException;
+import com.architek.oikos.auth.domain.exception.InvalidCredentialsException;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
-import com.architek.oikos.shared.exception.UnauthorizedException;
 
 @Component
 public class AuthenticationAdapter implements AuthenticationPort {
@@ -37,9 +38,14 @@ public class AuthenticationAdapter implements AuthenticationPort {
                     .collect(Collectors.toSet());
             return new AuthenticatedPrincipal(EntityId.of(principal.getUserId()), authorities);
         } catch (DisabledException e) {
-            throw new UnauthorizedException("Account is not verified or has been disabled");
-        } catch (BadCredentialsException e) {
-            throw new UnauthorizedException("Invalid credentials");
+            // Ne remonte qu'après un mot de passe correct - voir
+            // PostPasswordUserDetailsChecker, qui est ce qui rend ce message
+            // racontable sans ouvrir un annuaire des comptes.
+            throw new AccountNotActivatedException();
+        } catch (AuthenticationException e) {
+            // Tout le reste (mot de passe faux, identifiant inconnu, compte
+            // verrouillé) se répond d'une seule et même façon.
+            throw new InvalidCredentialsException();
         }
     }
 }

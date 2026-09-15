@@ -3,14 +3,17 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AddUnitOwnerForm } from '@/features/property-mngt/properties/components/AddUnitOwnerForm';
 import { useAddUnitOwner } from '@/features/property-mngt/properties/hooks/useAddUnitOwner';
-import { useContactMatch, type ContactMatchedOn } from '@/features/property-mngt/parties/hooks/useContactMatch';
+import {
+  useContactMatch,
+  type ContactMatchedOn,
+} from '@/features/property-mngt/parties/hooks/useContactMatch';
 import { useUnitOwners } from '@/features/property-mngt/properties/hooks/useUnitOwners';
 
 vi.mock('@/features/property-mngt/properties/hooks/useAddUnitOwner', () => ({ useAddUnitOwner: vi.fn() }));
 vi.mock('@/features/property-mngt/parties/hooks/useContactMatch', async () => {
-  const actual = await vi.importActual<typeof import('@/features/property-mngt/parties/hooks/useContactMatch')>(
-    '@/features/property-mngt/parties/hooks/useContactMatch',
-  );
+  const actual = await vi.importActual<
+    typeof import('@/features/property-mngt/parties/hooks/useContactMatch')
+  >('@/features/property-mngt/parties/hooks/useContactMatch');
   // Le rapprochement a son propre test (useContactMatch.test) : ici on vérifie
   // ce que le formulaire en fait, pas comment il est calculé. Le libellé, lui,
   // reste le vrai - c'est ce que le syndic lit.
@@ -39,7 +42,12 @@ function setup(
 ) {
   mutate.mockReset();
   vi.mocked(useAddUnitOwner).mockReturnValue({ mutate, isPending: false, error: null } as never);
-  vi.mocked(useUnitOwners).mockReturnValue({ data: unitOwners, isLoading: false, isError: false, error: null } as never);
+  vi.mocked(useUnitOwners).mockReturnValue({
+    data: unitOwners,
+    isLoading: false,
+    isError: false,
+    error: null,
+  } as never);
   const known = knownParties[0];
   vi.mocked(useContactMatch).mockReturnValue(
     known
@@ -92,7 +100,11 @@ describe('AddUnitOwnerForm', () => {
     // Le second filet demandé : le syndic ressaisit la même personne sous une
     // autre adresse, et seul le numéro trahit le doublon.
     const user = userEvent.setup();
-    setup([{ id: 'party-1', fullName: 'Jane Doe', email: 'jane.doe@example.com', phone: '+212612345678' }], [], 'PHONE');
+    setup(
+      [{ id: 'party-1', fullName: 'Jane Doe', email: 'jane.doe@example.com', phone: '+212612345678' }],
+      [],
+      'PHONE',
+    );
 
     await user.type(screen.getByLabelText('Téléphone'), '612345678');
 
@@ -183,8 +195,18 @@ describe('AddUnitOwnerForm', () => {
     vi.mocked(useAddUnitOwner).mockReturnValue({
       mutate,
       isPending: false,
-      // Le message tel que l'API le renvoie (voir PartyAlreadyOwnsUnitException).
-      error: new Error('This party is already registered as an owner of this unit; remove the existing entry to change its share'),
+      // La réponse telle que l'API la renvoie : le code porte le sens, le message
+      // (anglais, technique) n'est jamais affiché.
+      error: {
+        isAxiosError: true,
+        response: {
+          status: 400,
+          data: {
+            message: 'This party is already registered as an owner of this unit',
+            code: 'PARTY_ALREADY_OWNS_UNIT',
+          },
+        },
+      },
     } as never);
     vi.mocked(useContactMatch).mockReturnValue(undefined);
     vi.mocked(useUnitOwners).mockReturnValue({ data: [], isLoading: false, isError: false } as never);

@@ -55,14 +55,26 @@ class AddUnitOwnerServiceTest {
     @Mock
     private AccountDirectoryPort accountDirectoryPort;
 
+    private static final EntityId INVITED_BY = EntityId.newId();
+
     private AddUnitOwnerService newService() {
         return new AddUnitOwnerService(unitRepository, partyDirectoryPort, addUnitOwnershipUseCase, accountLinkingPort,
                 accountDirectoryPort);
     }
 
     private static Unit existingUnit(UnitId id) {
-        return Unit.create(id, BuildingId.newId(), PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(),
+        return existingUnit(id, PropertyId.newId());
+    }
+
+    private static Unit existingUnit(UnitId id, PropertyId propertyId) {
+        return Unit.create(id, BuildingId.newId(), propertyId, "A12", UnitTypeDefinitionId.newId(),
                 Shares.of(BigDecimal.TEN));
+    }
+
+    /** La fiche telle que le module invitation la relira pour y adresser le lien. */
+    private void ficheWithEmail(String email) {
+        when(partyDirectoryPort.getPartyById(any()))
+                .thenReturn(new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of(email), null));
     }
 
     @Test
@@ -72,9 +84,10 @@ class AddUnitOwnerServiceTest {
         when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
         when(partyDirectoryPort.findIdByEmail(any(), any())).thenReturn(Optional.of(existingPartyId));
         when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
+        ficheWithEmail("jane.doe@example.com");
 
         newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"),
-                null, new BigDecimal("50"), true));
+                null, new BigDecimal("50"), true, INVITED_BY));
 
         verify(partyDirectoryPort, never()).createParty(any(), any());
         ArgumentCaptor<AddUnitOwnershipCommand> captor = ArgumentCaptor.forClass(AddUnitOwnershipCommand.class);
@@ -91,9 +104,10 @@ class AddUnitOwnerServiceTest {
         when(partyDirectoryPort.findIdByEmail(any(), any())).thenReturn(Optional.empty());
         when(partyDirectoryPort.createParty(any(), any())).thenReturn(newPartyId);
         when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
+        ficheWithEmail("jane.doe@example.com");
 
         newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"),
-                null, new BigDecimal("50"), true));
+                null, new BigDecimal("50"), true, INVITED_BY));
 
         ArgumentCaptor<PartyDetails> partyCaptor = ArgumentCaptor.forClass(PartyDetails.class);
         verify(partyDirectoryPort).createParty(partyCaptor.capture(), any());
@@ -111,7 +125,7 @@ class AddUnitOwnerServiceTest {
         when(unitRepository.findById(unitId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL,
-                EmailVO.of("jane.doe@example.com"), null, BigDecimal.TEN, true)))
+                EmailVO.of("jane.doe@example.com"), null, BigDecimal.TEN, true, INVITED_BY)))
                 .isInstanceOf(UnitNotFoundException.class);
 
         verify(partyDirectoryPort, never()).findIdByEmail(any(), any());
@@ -130,9 +144,10 @@ class AddUnitOwnerServiceTest {
         when(partyDirectoryPort.findIdByEmail(any(), any())).thenReturn(Optional.empty());
         when(partyDirectoryPort.findIdByPhone(eq("+212612345678"), any())).thenReturn(Optional.of(existingPartyId));
         when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
+        ficheWithEmail("autre.adresse@example.com");
 
         newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL,
-                EmailVO.of("autre.adresse@example.com"), "+212612345678", new BigDecimal("50"), true));
+                EmailVO.of("autre.adresse@example.com"), "+212612345678", new BigDecimal("50"), true, INVITED_BY));
 
         verify(partyDirectoryPort, never()).createParty(any(), any());
         ArgumentCaptor<AddUnitOwnershipCommand> captor = ArgumentCaptor.forClass(AddUnitOwnershipCommand.class);
@@ -141,17 +156,46 @@ class AddUnitOwnerServiceTest {
     }
 
     @Test
-    void the_invitation_goes_out_when_it_is_asked_for() {
+    void the_invitation_goes_out_for_the_lot_that_was_just_attached() {
+        // Le lot voyage avec l'invitation : c'est ce qui en fait l'invitation
+        // privée du module invitation - le lien /invitations, l'écran qui
+        // annonce le lot, et une demande d'adhésion validée par le syndic -
+        // plutôt que l'ancien lien /accept-invitation, qui rattachait le compte
+        // sans que personne n'ait rien à valider.
         UnitId unitId = UnitId.newId();
+        PropertyId propertyId = PropertyId.newId();
         EntityId partyId = EntityId.newId();
-        when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
+        when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId, propertyId)));
         when(partyDirectoryPort.findIdByEmail(any(), any())).thenReturn(Optional.of(partyId));
         when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
+        ficheWithEmail("jane.doe@example.com");
 
         newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL,
-                EmailVO.of("jane.doe@example.com"), null, new BigDecimal("50"), true));
+                EmailVO.of("jane.doe@example.com"), null, new BigDecimal("50"), true, INVITED_BY));
 
-        verify(accountLinkingPort).inviteOwnerIfUnlinked(eq(partyId), any(), eq("Jane Doe"));
+        verify(accountLinkingPort).inviteOwnerForUnitIfUnlinked(eq(EntityId.of(propertyId.asUuid())), eq(partyId),
+                eq(EntityId.of(unitId.asUuid())), eq(INVITED_BY));
+    }
+
+    @Test
+    void nothing_is_sent_to_a_fiche_without_an_email() {
+        // Fiche retrouvée par le téléphone : le syndic a beau saisir une
+        // adresse, l'invitation partirait à celle de la fiche (voir
+        // CreateInvitationService) - il n'y en a pas, donc rien ne part, et le
+        // lot est rattaché quand même.
+        UnitId unitId = UnitId.newId();
+        when(unitRepository.findById(unitId)).thenReturn(Optional.of(existingUnit(unitId)));
+        when(partyDirectoryPort.findIdByEmail(any(), any())).thenReturn(Optional.empty());
+        when(partyDirectoryPort.findIdByPhone(eq("+212612345678"), any())).thenReturn(Optional.of(EntityId.newId()));
+        when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
+        when(partyDirectoryPort.getPartyById(any()))
+                .thenReturn(new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, null, "+212612345678"));
+
+        newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL,
+                EmailVO.of("jane.doe@example.com"), "+212612345678", new BigDecimal("50"), true, INVITED_BY));
+
+        verify(accountLinkingPort, never()).inviteOwnerForUnitIfUnlinked(any(), any(), any(), any());
+        verify(addUnitOwnershipUseCase).add(any());
     }
 
     @Test
@@ -165,8 +209,8 @@ class AddUnitOwnerServiceTest {
         when(addUnitOwnershipUseCase.add(any())).thenReturn(UnitOwnershipId.newId());
 
         newService().add(new AddUnitOwnerCommand(unitId, "Jane Doe", PartyType.INDIVIDUAL,
-                EmailVO.of("jane.doe@example.com"), null, new BigDecimal("50"), false));
+                EmailVO.of("jane.doe@example.com"), null, new BigDecimal("50"), false, INVITED_BY));
 
-        verify(accountLinkingPort, never()).inviteOwnerIfUnlinked(any(), any(), any());
+        verify(accountLinkingPort, never()).inviteOwnerForUnitIfUnlinked(any(), any(), any(), any());
     }
 }

@@ -6,7 +6,7 @@ import { Button } from '@/shared/components/Button/Button';
 import { LoginForm } from '@/features/identity/auth/components/LoginForm';
 import { BrandMark } from '@/shared/components/BrandMark/BrandMark';
 import { useLogin } from '@/features/identity/auth/hooks/useLogin';
-import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { getLoginErrorMessage } from '@/features/identity/auth/utils/getLoginErrorMessage';
 import { colors } from '@/shared/theme/colors';
 import type { AuthStackParamList } from '@/app/navigation/AuthNavigator';
 import type { LoginFormValues } from '@/features/identity/auth/schemas/loginSchema';
@@ -28,7 +28,7 @@ export function LoginScreen({ navigation }: Props) {
       <BrandMark size={64} />
       <Text style={styles.title}>Daba Syndic</Text>
       <Card style={styles.card}>
-        <LoginForm onSubmit={handleSubmit} isSubmitting={isPending} errorMessage={error ? getErrorMessage(error) : undefined} />
+        <LoginForm onSubmit={handleSubmit} isSubmitting={isPending} errorMessage={error ? getLoginErrorMessage(error) : undefined} />
         <Button variant="secondary" onPress={() => navigation.navigate('ForgotPassword')} style={styles.linkButton}>
           Mot de passe oublié ?
         </Button>

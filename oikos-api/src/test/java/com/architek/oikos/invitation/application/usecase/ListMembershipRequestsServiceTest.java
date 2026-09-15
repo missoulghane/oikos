@@ -69,8 +69,8 @@ class ListMembershipRequestsServiceTest {
     }
 
     private void account(EntityId userId, String fullName, String email, boolean verified) {
-        when(accountDirectoryPort.getAccountInfo(userId))
-                .thenReturn(new AccountInfo(EmailVO.of(email), fullName, null, verified));
+        when(accountDirectoryPort.findAccountInfo(userId))
+                .thenReturn(Optional.of(new AccountInfo(EmailVO.of(email), fullName, null, verified)));
     }
 
     private void unit(EntityId unitId, String unitNumber) {
@@ -191,6 +191,11 @@ class ListMembershipRequestsServiceTest {
     /**
      * Un compte supprimé entre-temps ne doit pas faire disparaître la demande
      * ni casser la page : elle reste un fait dont le syndic a besoin.
+     *
+     * <p>L'absence se lit, elle ne se lève pas : une exception venue de
+     * GetUserService marquerait la transaction de cette lecture rollback-only,
+     * et la page tomberait au commit malgré le rattrapage. D'où findAccountInfo
+     * et non un thenThrow sur getAccountInfo.
      */
     @Test
     void a_request_whose_account_no_longer_exists_is_still_listed_without_an_identity() {
@@ -198,7 +203,7 @@ class ListMembershipRequestsServiceTest {
         EntityId unitId = EntityId.newId();
         when(membershipRequestRepository.findAllByPropertyId(PROPERTY_ID))
                 .thenReturn(List.of(request(userId, unitId, MembershipRequestStatus.PENDING, Instant.EPOCH)));
-        when(accountDirectoryPort.getAccountInfo(userId)).thenThrow(new IllegalStateException("user is gone"));
+        when(accountDirectoryPort.findAccountInfo(userId)).thenReturn(Optional.empty());
         unit(unitId, "A-12");
 
         Page<MembershipRequestOverviewView> result = newService().listMembershipRequests(defaultQuery());
@@ -222,7 +227,7 @@ class ListMembershipRequestsServiceTest {
 
         newService().listMembershipRequests(defaultQuery());
 
-        verify(accountDirectoryPort, times(1)).getAccountInfo(userId);
+        verify(accountDirectoryPort, times(1)).findAccountInfo(userId);
         verify(unitDirectoryPort, times(1)).findBasicInfo(any());
     }
 

@@ -23,15 +23,11 @@ public interface UnitDirectoryPort {
      * Attaches partyId as the sole owner of unitId, atomically (see
      * property.ClaimUnitOwnershipUseCase's pessimistic lock).
      *
-     * @throws UnitUnavailableException if the unit already has an owner
+     * <p>Sans effet, et sans erreur, si ce contact détient déjà le lot : c'est
+     * le cas nominal d'une invitation privée, où le syndic rattache le lot au
+     * contact avant de l'inviter pour ce lot-là.
+     *
+     * @throws UnitUnavailableException if the unit belongs to someone else
      */
     void claim(EntityId unitId, EntityId partyId);
-
-    /**
-     * Ce contact est-il déjà propriétaire de ce lot ? C'est le cas nominal
-     * d'une invitation privée : le syndic rattache le lot au contact, puis
-     * l'invite pour ce lot-là. Réserver le lot échouerait alors, alors qu'il
-     * n'y a rien à réserver - seul l'accès reste à ouvrir.
-     */
-    boolean isOwnedBy(EntityId unitId, EntityId partyId);
 }

@@ -122,6 +122,49 @@ class AuthenticationFlowIntegrationTest {
                 .andExpect(status().isNoContent());
     }
 
+    /**
+     * Le contrôle « compte activé » tourne après la vérification du mot de passe
+     * (PostPasswordUserDetailsChecker) : c'est ce qui empêche /auth/login de servir
+     * d'annuaire. Tant que le bon mot de passe n'a pas été donné, un compte existant
+     * mais non activé répond exactement comme une adresse inconnue.
+     */
+    @Test
+    void an_unactivated_account_is_only_named_as_such_once_the_password_is_right() throws Exception {
+        String email = "never-verified@oikos.com";
+        String password = "password123456";
+
+        mockMvc.perform(post("/api/v1/users/register-property-user")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fullName":"Jane Doe","email":"%s","password":"%s"}
+                                """.formatted(email, password)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"identifier":"%s","password":"wrongpassword999"}
+                                """.formatted(email)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code", is("INVALID_CREDENTIALS")));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"identifier":"no-such-account@oikos.com","password":"wrongpassword999"}
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code", is("INVALID_CREDENTIALS")));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"identifier":"%s","password":"%s"}
+                                """.formatted(email, password)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code", is("ACCOUNT_NOT_ACTIVATED")));
+    }
+
     @Test
     void registers_a_property_board_admin_with_its_property_and_logs_in_after_verification() throws Exception {
         String email = "flow-property-manager@oikos.com";

@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import com.architek.oikos.auth.infrastructure.security.UserPrincipal;
 import com.architek.oikos.property.application.command.AddUnitOwnerCommand;
 import com.architek.oikos.property.application.command.AddUnitOwnershipCommand;
 import com.architek.oikos.property.application.command.RemoveUnitOwnershipCommand;
@@ -76,11 +78,17 @@ public class UnitOwnershipController {
     @PreAuthorize("@propertyAccess.managesUnit(authentication, #unitId)")
     @PostMapping("/units/{unitId}/owners/new-party")
     public ResponseEntity<Void> addWithNewParty(@PathVariable String unitId,
-                                                    @Valid @RequestBody AddUnitOwnerRequest request) {
+                                                    @Valid @RequestBody AddUnitOwnerRequest request,
+                                                    Authentication authentication) {
         UnitOwnershipId id = addUnitOwnerUseCase.add(new AddUnitOwnerCommand(UnitId.of(unitId), request.fullName(),
                 request.partyType(), emailOrNull(request.email()), request.phone(), request.ownershipShare(),
-                request.inviteOrDefault()));
+                request.inviteOrDefault(), currentUserId(authentication)));
         return ResponseEntity.created(URI.create("/api/v1/units/" + unitId + "/owners/" + id)).build();
+    }
+
+    private EntityId currentUserId(Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return EntityId.of(principal.getUserId());
     }
 
     @PreAuthorize("@propertyAccess.managesUnit(authentication, #unitId)")
