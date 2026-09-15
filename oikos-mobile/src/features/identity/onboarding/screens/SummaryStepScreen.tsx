@@ -134,14 +134,11 @@ export function SummaryStepScreen({ navigation }: Props) {
             )}
           </RecapSection>
 
+          {/* La copropriété existe depuis l'étape 2 : ce bouton la structure, il ne
+              la crée pas - d'où « Finaliser » plutôt que « Créer ». */}
           <Button isLoading={configure.isPending} onPress={finalize}>
             Finaliser ma copropriété
           </Button>
-          {/* La copropriété existe depuis l'étape 2 : ce bouton la structure, il ne
-              la crée pas - d'où « Finaliser » plutôt que « Créer ». */}
-          <Text style={styles.footnote}>
-            Votre compte est déjà créé : vous pourrez reprendre cette configuration plus tard si besoin.
-          </Text>
         </View>
       </WizardShell>
     </AuthLayout>
@@ -208,10 +205,5 @@ const styles = StyleSheet.create({
   },
   buildingRecap: {
     marginBottom: 4,
-  },
-  footnote: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: colors.gray[500],
   },
 });

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/Button/Button';
 import { Input } from '@/shared/components/Input/Input';
@@ -18,6 +19,23 @@ export function UnitTypesStepPage() {
   const navigate = useNavigate();
   const { draft, update } = useOnboarding();
   const isFlatRate = draft.duesCalculationMode === 'FLAT_RATE';
+  // N'affiche les prix manquants qu'après une tentative de « Continuer » - pas
+  // dès l'arrivée sur l'étape, où aucun champ n'a encore pu être rempli.
+  const [attemptedContinue, setAttemptedContinue] = useState(false);
+
+  function isPriceMissing(name: string) {
+    return (draft.unitTypePrices[name] ?? '') === '';
+  }
+
+  const hasMissingPrice = isFlatRate && draft.selectedUnitTypes.some(isPriceMissing);
+
+  function handleContinue() {
+    if (hasMissingPrice) {
+      setAttemptedContinue(true);
+      return;
+    }
+    navigate(nextStepPath('unit-types')!);
+  }
 
   function toggleType(name: string) {
     const selected = draft.selectedUnitTypes.includes(name)
@@ -81,6 +99,7 @@ export function UnitTypesStepPage() {
                 placeholder="0"
                 value={draft.unitTypePrices[name] ?? ''}
                 onChange={(event) => setPrice(name, event.target.value)}
+                errorMessage={attemptedContinue && isPriceMissing(name) ? 'Le prix est requis' : undefined}
               />
             ))}
           </section>
@@ -111,11 +130,7 @@ export function UnitTypesStepPage() {
           </section>
         )}
 
-        <Button
-          type="button"
-          disabled={draft.selectedUnitTypes.length === 0}
-          onClick={() => navigate(nextStepPath('unit-types')!)}
-        >
+        <Button type="button" disabled={draft.selectedUnitTypes.length === 0} onClick={handleContinue}>
           Continuer
         </Button>
       </div>

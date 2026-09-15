@@ -178,8 +178,10 @@ class AuthenticationFlowIntegrationTest {
                                 """.formatted(email, password)))
                 .andExpect(status().isCreated());
 
+        // Sent through AsyncEmailSender: the response above no longer waits on it,
+        // so the assertion must poll instead of assuming it already happened.
         var bodyCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        verify(emailSenderPort).send(any(), any(), bodyCaptor.capture());
+        verify(emailSenderPort, org.mockito.Mockito.timeout(2000)).send(any(), any(), bodyCaptor.capture());
         String token = extractToken(bodyCaptor.getValue());
 
         mockMvc.perform(post("/api/v1/users/verify")

@@ -74,6 +74,7 @@ async function goBackToPropertyStepFromRecap(user: ReturnType<typeof userEvent.s
   await fillPropertyStep(user);
   await user.click(await screen.findByRole('button', { name: 'Continuer' }));
   await screen.findByText('Quels types de lots gérez-vous ?');
+  await user.type(await screen.findByLabelText('Appartement'), '50');
   await user.click(await screen.findByRole('button', { name: 'Continuer' }));
   await screen.findByText('Structure de votre copropriété');
   await user.click(await screen.findByRole('button', { name: 'Continuer' }));
@@ -198,6 +199,8 @@ describe('OnboardingWizardPage', () => {
 
     // Appartement est coché par défaut ; on ajoute Box, pas Bureau.
     await user.click(await screen.findByRole('checkbox', { name: /Box/ }));
+    await user.type(screen.getByLabelText('Appartement'), '50');
+    await user.type(screen.getByLabelText('Box'), '20');
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
 
     expect(await screen.findByText('Structure de votre copropriété')).toBeInTheDocument();
@@ -257,6 +260,7 @@ describe('OnboardingWizardPage', () => {
     // the step we just left (the failure mode fillPropertyStep guards against).
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
     await screen.findByText('Quels types de lots gérez-vous ?');
+    await user.type(await screen.findByLabelText('Appartement'), '50');
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
     await screen.findByText('Structure de votre copropriété');
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));

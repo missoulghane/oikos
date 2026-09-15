@@ -8,10 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
+import com.architek.oikos.shared.infrastructure.email.AsyncEmailSender;
 import com.architek.oikos.user.application.command.RegisterPropertyBoardAdminCommand;
 import com.architek.oikos.user.application.dto.RegisteredBoardAdminView;
 import com.architek.oikos.user.application.port.in.RegisterPropertyBoardAdminUseCase;
@@ -41,7 +41,9 @@ import com.architek.oikos.user.domain.valueobject.UserId;
  * RegisterPropertyManagerAdminService is the counterpart for professional
  * management firms. Issues a verification token and sends the verification
  * email afterwards - same activation flow as a plain user registration
- * (see RegisterUserService).
+ * (see RegisterUserService). The send itself goes through AsyncEmailSender:
+ * the SMTP round-trip must not make the caller wait, since this is the last
+ * step of the wizard the visitor sees before landing on the property.
  */
 @Component
 public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardAdminUseCase {
@@ -52,7 +54,7 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
     private final PropertyProvisioningPort propertyProvisioningPort;
     private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordEncoderPort passwordEncoderPort;
-    private final EmailSenderPort emailSenderPort;
+    private final AsyncEmailSender asyncEmailSender;
     private final VerificationTokenGenerator tokenGenerator;
     private final VerificationEmailComposer emailComposer;
     private final Clock clock;
@@ -64,7 +66,7 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
                                               PropertyProvisioningPort propertyProvisioningPort,
                                               VerificationTokenRepository verificationTokenRepository,
                                               PasswordEncoderPort passwordEncoderPort,
-                                              EmailSenderPort emailSenderPort,
+                                              AsyncEmailSender asyncEmailSender,
                                               VerificationTokenGenerator tokenGenerator,
                                               VerificationEmailComposer emailComposer,
                                               Clock clock,
@@ -75,7 +77,7 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
         this.propertyProvisioningPort = propertyProvisioningPort;
         this.verificationTokenRepository = verificationTokenRepository;
         this.passwordEncoderPort = passwordEncoderPort;
-        this.emailSenderPort = emailSenderPort;
+        this.asyncEmailSender = asyncEmailSender;
         this.tokenGenerator = tokenGenerator;
         this.emailComposer = emailComposer;
         this.clock = clock;
@@ -106,7 +108,7 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
         VerificationToken verificationToken = VerificationToken.issue(savedUser.getId(), rawToken, expiresAt);
         verificationTokenRepository.save(verificationToken);
 
-        emailSenderPort.send(command.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken, null));
+        asyncEmailSender.send(command.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken, null));
 
         // Closes the funnel opened on step 1 of the wizard: the address became an
         // account, so the follow-up job must leave it alone (see OnboardingLead).

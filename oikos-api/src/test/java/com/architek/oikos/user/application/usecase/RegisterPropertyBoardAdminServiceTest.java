@@ -15,12 +15,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
+import com.architek.oikos.shared.infrastructure.email.AsyncEmailSender;
 import com.architek.oikos.user.application.command.RegisterPropertyBoardAdminCommand;
 import com.architek.oikos.user.application.port.out.PartyProvisioningDetails;
 import com.architek.oikos.user.application.port.out.PartyProvisioningPort;
@@ -56,11 +56,11 @@ class RegisterPropertyBoardAdminServiceTest {
     private PasswordEncoderPort passwordEncoderPort;
 
     @Mock
-    private EmailSenderPort emailSenderPort;
+    private AsyncEmailSender asyncEmailSender;
 
     private RegisterPropertyBoardAdminService newService() {
         return new RegisterPropertyBoardAdminService(userRepository, onboardingLeadRepository, partyProvisioningPort, propertyProvisioningPort,
-                verificationTokenRepository, passwordEncoderPort, emailSenderPort, new VerificationTokenGenerator(),
+                verificationTokenRepository, passwordEncoderPort, asyncEmailSender, new VerificationTokenGenerator(),
                 new VerificationEmailComposer("http://localhost/verify"), Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
     }
 
@@ -97,6 +97,6 @@ class RegisterPropertyBoardAdminServiceTest {
 
         verify(propertyProvisioningPort).assignPropertyManager(propertyId, partyId);
         verify(verificationTokenRepository).save(any());
-        verify(emailSenderPort).send(any(), any(), any());
+        verify(asyncEmailSender).send(any(), any(), any());
     }
 }

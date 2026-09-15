@@ -161,14 +161,11 @@ export function SummaryStepPage() {
           )}
         </RecapSection>
 
+        {/* La copropriété existe depuis l'étape 2 : ce bouton la structure, il ne
+            la crée pas - d'où « Finaliser » plutôt que « Créer ». */}
         <Button type="button" isLoading={configure.isPending} onClick={finalize}>
           Finaliser ma copropriété
         </Button>
-        {/* La copropriété existe depuis l'étape 2 : ce bouton la structure, il ne
-            la crée pas - d'où « Finaliser » plutôt que « Créer ». */}
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-          Votre compte est déjà créé : vous pourrez reprendre cette configuration plus tard si besoin.
-        </p>
       </div>
     </WizardShell>
   );

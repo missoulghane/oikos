@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthLayout } from '@/shared/layouts/AuthLayout';
@@ -22,6 +23,23 @@ const UNIT_TYPE_DESCRIPTIONS: Record<string, string> = {
 export function UnitTypesStepScreen({ navigation }: Props) {
   const { draft, update } = useOnboarding();
   const isFlatRate = draft.duesCalculationMode === 'FLAT_RATE';
+  // N'affiche les prix manquants qu'après une tentative de « Continuer » - pas
+  // dès l'arrivée sur l'étape, où aucun champ n'a encore pu être rempli.
+  const [attemptedContinue, setAttemptedContinue] = useState(false);
+
+  function isPriceMissing(name: string) {
+    return (draft.unitTypePrices[name] ?? '') === '';
+  }
+
+  const hasMissingPrice = isFlatRate && draft.selectedUnitTypes.some(isPriceMissing);
+
+  function handleContinue() {
+    if (hasMissingPrice) {
+      setAttemptedContinue(true);
+      return;
+    }
+    navigation.navigate('Buildings');
+  }
 
   function toggleType(name: string) {
     const selected = draft.selectedUnitTypes.includes(name)
@@ -78,6 +96,7 @@ export function UnitTypesStepScreen({ navigation }: Props) {
                   placeholder="0"
                   value={draft.unitTypePrices[name] ?? ''}
                   onChangeText={(text) => setPrice(name, text)}
+                  errorMessage={attemptedContinue && isPriceMissing(name) ? 'Le prix est requis' : undefined}
                 />
               ))}
             </View>
@@ -100,7 +119,7 @@ export function UnitTypesStepScreen({ navigation }: Props) {
             </View>
           )}
 
-          <Button disabled={draft.selectedUnitTypes.length === 0} onPress={() => navigation.navigate('Buildings')}>
+          <Button disabled={draft.selectedUnitTypes.length === 0} onPress={handleContinue}>
             Continuer
           </Button>
         </View>

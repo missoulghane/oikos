@@ -19,15 +19,10 @@ import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingCo
  */
 export function OnboardingDonePage() {
   const { draft, reset } = useOnboarding();
-  const [completed] = useState(() => ({
-    email: draft.account.email,
-    propertyId: draft.registration?.propertyId,
-  }));
+  const [completed] = useState(() => ({ email: draft.account.email }));
   useEffect(() => {
     reset();
   }, [reset]);
-
-  const propertyId = completed.propertyId;
 
   return (
     <Card className="w-full max-w-2xl text-center">
@@ -40,8 +35,8 @@ export function OnboardingDonePage() {
         informations de vos lots.
       </p>
 
-      {/* Le compte n'est pas encore vérifié : sans ce rappel, les deux boutons
-          ci-dessous renverraient vers un écran de connexion inexplicable. */}
+      {/* Le compte n'est pas encore vérifié : sans ce rappel, le bouton
+          ci-dessous renverrait vers un écran de connexion inexplicable. */}
       <p className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-600 dark:bg-white/[0.03] dark:text-gray-400">
         Un email de confirmation vous a été envoyé à <strong>{completed.email}</strong>. Activez votre compte
         pour accéder à votre espace.
@@ -53,17 +48,6 @@ export function OnboardingDonePage() {
           className="inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
         >
           Accéder à ma copropriété
-        </Link>
-        {/* Vers les informations générales, où vit désormais le lien public
-            d'adhésion : c'est par lui qu'on fait venir les copropriétaires.
-            L'onglet « Invitations » qui l'hébergeait ne montre plus que les
-            demandes reçues - envoyer d'abord quelqu'un y attendre devant une
-            liste vide n'avait plus de sens. */}
-        <Link
-          to={propertyId ? `/property-mngt/properties/${propertyId}/property` : '/login'}
-          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300"
-        >
-          Ajouter des copropriétaires
         </Link>
       </div>
     </Card>

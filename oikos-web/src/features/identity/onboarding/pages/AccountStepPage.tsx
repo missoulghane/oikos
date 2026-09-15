@@ -21,7 +21,7 @@ export function AccountStepPage() {
     control,
     handleSubmit,
     setValue,
-    formState: { errors },
+    formState: { errors, touchedFields },
   } = useForm<AccountStepValues>({
     resolver: zodResolver(accountStepSchema),
     // Validation dès qu'un champ a été quitté, puis à chaque frappe : la
@@ -92,7 +92,10 @@ export function AccountStepPage() {
           type="password"
           autoComplete="new-password"
           {...register('confirmPassword')}
-          errorMessage={errors.confirmPassword?.message}
+          // Revalider ce champ dès que le mot de passe change (deps ci-dessus) sert
+          // à rafraîchir une erreur de concordance déjà affichée - pas à en faire
+          // apparaître une avant que l'utilisateur n'ait lui-même quitté ce champ.
+          errorMessage={touchedFields.confirmPassword ? errors.confirmPassword?.message : undefined}
         />
         <Button type="submit">Continuer</Button>
       </form>

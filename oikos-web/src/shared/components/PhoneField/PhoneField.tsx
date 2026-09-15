@@ -44,17 +44,27 @@ export function PhoneField({ label, value, onChange, onBlur, errorMessage, name 
     }
   }
 
+  // Le select et l'input partagent un seul champ RHF : passer de l'un à
+  // l'autre au clavier ne doit pas compter comme quitter le champ (ce que
+  // ferait un onBlur posé sur chacun), sous peine de déclencher la validation
+  // - et donc d'afficher une erreur - dès la première tabulation, avant même
+  // que l'utilisateur ait pu saisir un numéro.
+  function handleContainerBlur(event: React.FocusEvent<HTMLDivElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      onBlur?.();
+    }
+  }
+
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={inputId} className="text-sm font-medium text-gray-700 dark:text-gray-300">
         {label}
       </label>
-      <div className="flex gap-2">
+      <div className="flex gap-2" onBlur={handleContainerBlur}>
         <select
           aria-label="Indicatif du pays"
           value={selectedIso}
           onChange={(event) => handleDialChange(event.target.value)}
-          onBlur={onBlur}
           className={`min-h-11 w-28 shrink-0 rounded-lg border bg-white px-2 py-2 text-base text-gray-800 shadow-theme-xs focus:outline-none focus:ring-3 dark:bg-gray-900 dark:text-white/90 ${
             errorMessage
               ? 'border-error-500 focus:border-error-300 focus:ring-error-500/20'
@@ -78,7 +88,6 @@ export function PhoneField({ label, value, onChange, onBlur, errorMessage, name 
           placeholder="612345678"
           value={parsed.nationalNumber}
           onChange={(event) => onChange(composePhone(selected.dial, event.target.value))}
-          onBlur={onBlur}
           aria-invalid={Boolean(errorMessage)}
           aria-describedby={errorMessage ? `${inputId}-error` : undefined}
           className={`min-h-11 w-full rounded-lg border bg-transparent px-3 py-2 text-base text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:outline-none focus:ring-3 dark:text-white/90 dark:placeholder:text-white/30 ${
