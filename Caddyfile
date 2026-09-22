@@ -1,4 +1,4 @@
-oikos-staging.tech {
+oikos-staging.tech, daba-syndic.com, www.daba-syndic.com  {
     handle /api/* {
         reverse_proxy api:8080
     }
