@@ -136,21 +136,3 @@ export interface SaveMessageDraftPayload {
 export interface MessageDraftReference {
   draftId: string;
 }
-
-/**
- * Un carnet d'adresses de la copropriété : une liste de destinataires nommée,
- * tenue par le bureau. Composer avec un groupe déplie ses membres - le message
- * part à des personnes, il ne garde aucun lien vers le groupe (voir
- * RecipientGroup côté API).
- */
-export interface RecipientGroup {
-  id: string;
-  propertyId: string;
-  name: string;
-  members: ConversationParticipant[];
-}
-
-export interface SaveRecipientGroupPayload {
-  name: string;
-  memberUserIds: string[];
-}

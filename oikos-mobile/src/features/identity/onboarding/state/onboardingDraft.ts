@@ -1,3 +1,5 @@
+import { DEFAULT_BOARD_SEAT, type BoardSeat } from '@/features/identity/onboarding/constants/boardSeats';
+
 // Mirrors property-mngt/properties/types/property.types.ts's DuesCalculationMode
 // (oikos-web) - duplicated locally rather than importing from property-mngt,
 // which doesn't exist on mobile (out of scope, see PLAN.md).
@@ -25,6 +27,15 @@ export type UnitTypeName = (typeof UNIT_TYPE_CHOICES)[number]['name'];
 export interface OnboardingAccount {
   fullName: string;
   email: string;
+  /** Siège au conseil syndical, choisi à l'étape 1 et envoyé avec la copropriété à l'étape 2. */
+  boardRole: BoardSeat;
+  acceptedTerms: boolean;
+}
+
+/** Le compte créé à l'étape 1, et le jeton qui autorise l'étape 2 tant qu'il n'est pas vérifié. */
+export interface OnboardingAccountRegistration {
+  userId: string;
+  onboardingToken: string;
 }
 
 export interface OnboardingProperty {
@@ -63,6 +74,7 @@ export interface OnboardingDraft {
   unitTypePrices: Record<string, string>;
   buildings: OnboardingBuilding[];
   bankAccounts: OnboardingBankAccount[];
+  accountRegistration: OnboardingAccountRegistration | null;
   registration: OnboardingRegistration | null;
 }
 
@@ -74,7 +86,7 @@ export function emptyBuilding(index: number): OnboardingBuilding {
 
 export function initialDraft(): OnboardingDraft {
   return {
-    account: { fullName: '', email: '' },
+    account: { fullName: '', email: '', boardRole: DEFAULT_BOARD_SEAT, acceptedTerms: false },
     property: { name: '', address: '', addressComplement: '', postalCode: '', city: '' },
     // Forfait par défaut, comme demandé - et c'est aussi le défaut du domaine.
     duesCalculationMode: 'FLAT_RATE',
@@ -83,6 +95,7 @@ export function initialDraft(): OnboardingDraft {
     unitTypePrices: {},
     buildings: [emptyBuilding(0)],
     bankAccounts: [],
+    accountRegistration: null,
     registration: null,
   };
 }

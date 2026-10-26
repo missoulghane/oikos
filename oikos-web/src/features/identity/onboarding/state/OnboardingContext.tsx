@@ -4,8 +4,6 @@ import { initialDraft, type OnboardingDraft } from '@/features/identity/onboardi
 interface OnboardingContextType {
   draft: OnboardingDraft;
   update: (patch: Partial<OnboardingDraft>) => void;
-  password: string;
-  setPassword: (password: string) => void;
   reset: () => void;
 }
 
@@ -29,27 +27,26 @@ export function useOnboarding() {
  * inscription relancée depuis le même navigateur repartait silencieusement sur
  * l'ancienne copropriété, et un brouillon écrit par une version antérieure du
  * wizard devait être recollé champ par champ à chaque déploiement sous peine
- * d'écran blanc. Le compte et la copropriété, eux, naissent à l'étape 2 et sont
- * bien persistés côté API : ce qu'un rechargement fait perdre, ce sont les
- * saisies des étapes de configuration.
+ * d'écran blanc. Le compte naît à l'étape 1 et la copropriété à l'étape 2, tous
+ * deux persistés côté API : ce qu'un rechargement fait perdre, ce sont les
+ * saisies des étapes de configuration - un compte vérifié reprend ensuite
+ * connecté (voir PropertyStepPage et ResumeOnboardingBanner).
+ *
+ * <p>Le mot de passe n'y figure pas : il part vers l'API dès l'étape 1, qui
+ * crée le compte, et n'a plus à être conservé nulle part ensuite.
  */
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<OnboardingDraft>(() => initialDraft());
-  const [password, setPassword] = useState('');
 
   const update = useCallback((patch: Partial<OnboardingDraft>) => {
     setDraft((previous) => ({ ...previous, ...patch }));
   }, []);
 
   const reset = useCallback(() => {
-    setPassword('');
     setDraft(initialDraft());
   }, []);
 
-  const value = useMemo(
-    () => ({ draft, update, password, setPassword, reset }),
-    [draft, update, password, reset],
-  );
+  const value = useMemo(() => ({ draft, update, reset }), [draft, update, reset]);
 
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
 }

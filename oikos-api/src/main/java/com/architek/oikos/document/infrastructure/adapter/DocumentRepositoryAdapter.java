@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import com.architek.oikos.document.domain.model.Document;
@@ -13,6 +14,7 @@ import com.architek.oikos.document.domain.valueobject.DocumentOwnerType;
 import com.architek.oikos.document.infrastructure.mapper.DocumentPersistenceMapper;
 import com.architek.oikos.document.infrastructure.persistence.DocumentEntity;
 import com.architek.oikos.document.infrastructure.persistence.DocumentJpaRepository;
+import com.architek.oikos.document.infrastructure.persistence.DocumentSpecifications;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -41,10 +43,14 @@ public class DocumentRepositoryAdapter implements DocumentRepository {
     }
 
     @Override
-    public Page<Document> findAllByOwner(DocumentOwnerType ownerType, EntityId ownerId, PageRequest pageRequest) {
-        Pageable pageable = Pageable.ofSize(pageRequest.pageSize()).withPage(pageRequest.pageNumber());
-        org.springframework.data.domain.Page<DocumentEntity> springPage =
-                jpaRepository.findByOwnerTypeAndOwnerId(ownerType.name(), ownerId.value(), pageable);
+    public Page<Document> findAllByOwner(DocumentOwnerType ownerType, EntityId ownerId, String search,
+                                         PageRequest pageRequest) {
+        // Most recent first; id breaks ties so a page boundary never splits two
+        // documents uploaded in the same instant unpredictably.
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(pageRequest.pageNumber(),
+                pageRequest.pageSize(), Sort.by(Sort.Order.desc("createdDate"), Sort.Order.asc("id")));
+        org.springframework.data.domain.Page<DocumentEntity> springPage = jpaRepository.findAll(
+                DocumentSpecifications.matching(ownerType.name(), ownerId.value(), search), pageable);
         List<Document> content = springPage.getContent().stream().map(mapper::toDomain).toList();
         return Page.of(content, pageRequest.pageNumber(), pageRequest.pageSize(), springPage.getTotalElements());
     }

@@ -82,11 +82,16 @@ export function EditMeetingForm({ meeting, onDone }: { meeting: GeneralMeeting; 
           <option value="VIDEOCONFERENCE">{VENUE_TYPE_LABELS.VIDEOCONFERENCE}</option>
           <option value="HYBRID">{VENUE_TYPE_LABELS.HYBRID}</option>
         </Select>
+        {/* Full row, as on the creation form: the address and the link are the long values. */}
         {needsAddress && (
-          <Input label="Adresse" {...register('venueAddress')} errorMessage={errors.venueAddress?.message} />
+          <div className="sm:col-span-2">
+            <Input label="Adresse" {...register('venueAddress')} errorMessage={errors.venueAddress?.message} />
+          </div>
         )}
         {needsLink && (
-          <Input label="Lien de connexion" {...register('venueLink')} errorMessage={errors.venueLink?.message} />
+          <div className="sm:col-span-2">
+            <Input label="Lien de connexion" {...register('venueLink')} errorMessage={errors.venueLink?.message} />
+          </div>
         )}
       </div>
       {update.isError && <Alert message={getErrorMessage(update.error)} />}

@@ -4,9 +4,6 @@ import { initialDraft, type OnboardingDraft } from '@/features/identity/onboardi
 interface OnboardingContextType {
   draft: OnboardingDraft;
   update: (patch: Partial<OnboardingDraft>) => void;
-  /** Mot de passe gardé en mémoire uniquement - voir le commentaire de persistance. */
-  password: string;
-  setPassword: (password: string) => void;
   reset: () => void;
 }
 
@@ -21,30 +18,23 @@ export function useOnboarding() {
 }
 
 /**
- * oikos-web persists `draft` to localStorage so an interrupted wizard survives
- * a page reload (never `password` - a plaintext password surviving in
- * localStorage would outlive the session). This port keeps the draft
- * in-memory only for now (no AsyncStorage dependency added this pass) - an
- * app kill mid-wizard loses progress on mobile, unlike on web. Worth adding
- * if this turns out to matter in practice; see PLAN.md.
+ * In-memory draft, like oikos-web's: an app kill mid-wizard loses the
+ * configuration steps, while the account (step 1) and the property (step 2)
+ * are already persisted by the API. The password is not kept at all: it
+ * leaves for the API on step 1, which creates the account.
  */
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<OnboardingDraft>(() => initialDraft());
-  const [password, setPassword] = useState('');
 
   const update = useCallback((patch: Partial<OnboardingDraft>) => {
     setDraft((previous) => ({ ...previous, ...patch }));
   }, []);
 
   const reset = useCallback(() => {
-    setPassword('');
     setDraft(initialDraft());
   }, []);
 
-  const value = useMemo(
-    () => ({ draft, update, password, setPassword, reset }),
-    [draft, update, password, reset],
-  );
+  const value = useMemo(() => ({ draft, update, reset }), [draft, update, reset]);
 
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
 }

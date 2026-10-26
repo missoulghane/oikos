@@ -61,45 +61,50 @@ export function UnitTypesStepScreen({ navigation }: Props) {
       <WizardShell
         step="UnitTypes"
         title="Quels types de lots gérez-vous ?"
-        subtitle="Sélectionnez les types de lots présents dans votre copropriété."
+        subtitle={
+          isFlatRate
+            ? 'Sélectionnez les types de lots présents dans votre copropriété et indiquez le montant de chacun.'
+            : 'Sélectionnez les types de lots présents dans votre copropriété.'
+        }
         onBack={() => navigation.goBack()}
       >
         <View style={styles.container}>
-          {UNIT_TYPE_CHOICES.map((choice) => (
-            <SelectableCard
-              key={choice.name}
-              type="checkbox"
-              value={choice.name}
-              checked={draft.selectedUnitTypes.includes(choice.name)}
-              onSelect={toggleType}
-              title={choice.name}
-              description={UNIT_TYPE_DESCRIPTIONS[choice.name]}
-            />
-          ))}
+          {UNIT_TYPE_CHOICES.map((choice) => {
+            const isSelected = draft.selectedUnitTypes.includes(choice.name);
+            return (
+              // Le montant se saisit sur la ligne même du type qu'il chiffre, à côté
+              // de sa case (même disposition que oikos-web). En tantièmes, ce sont le
+              // budget prévisionnel et les tantièmes des lots qui servent au calcul.
+              <View key={choice.name} style={styles.typeRow}>
+                <View style={styles.typeCard}>
+                  <SelectableCard
+                    type="checkbox"
+                    value={choice.name}
+                    checked={isSelected}
+                    onSelect={toggleType}
+                    title={choice.name}
+                    description={UNIT_TYPE_DESCRIPTIONS[choice.name]}
+                  />
+                </View>
+                {isFlatRate && isSelected && (
+                  <View style={styles.priceField}>
+                    <Input
+                      label="Montant (MAD)"
+                      accessibilityLabel={`Montant ${choice.name}`}
+                      keyboardType="decimal-pad"
+                      placeholder="0"
+                      value={draft.unitTypePrices[choice.name] ?? ''}
+                      onChangeText={(text) => setPrice(choice.name, text)}
+                      errorMessage={attemptedContinue && isPriceMissing(choice.name) ? 'Requis' : undefined}
+                    />
+                  </View>
+                )}
+              </View>
+            );
+          })}
 
           {draft.selectedUnitTypes.length === 0 && (
             <Alert variant="warning" message="Sélectionnez au moins un type de lot pour continuer." />
-          )}
-
-          {/* La section des montants n'a de sens qu'au forfait : en tantièmes, ce
-              sont le budget prévisionnel et les tantièmes de chaque lot qui servent
-              au calcul, jamais un prix par type. */}
-          {isFlatRate && draft.selectedUnitTypes.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Montant par type de lot</Text>
-              <Text style={styles.sectionSubtitle}>Indiquez le montant associé à chaque type de lot.</Text>
-              {draft.selectedUnitTypes.map((name) => (
-                <Input
-                  key={name}
-                  label={name}
-                  keyboardType="decimal-pad"
-                  placeholder="0"
-                  value={draft.unitTypePrices[name] ?? ''}
-                  onChangeText={(text) => setPrice(name, text)}
-                  errorMessage={attemptedContinue && isPriceMissing(name) ? 'Le prix est requis' : undefined}
-                />
-              ))}
-            </View>
           )}
 
           {!isFlatRate && (
@@ -131,6 +136,18 @@ export function UnitTypesStepScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     gap: 12,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  typeCard: {
+    flex: 1,
+    minWidth: 0,
+  },
+  priceField: {
+    width: 112,
   },
   section: {
     marginTop: 8,

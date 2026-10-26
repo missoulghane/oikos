@@ -31,7 +31,7 @@ class UserViewTest {
                 .map(role -> new PropertyRoleGrant(EntityId.newId(), propertyId, role))
                 .collect(Collectors.toSet());
         return User.reconstruct(UserId.newId(), EmailVO.of("jane@doe.com"), "Jane Doe", null, HashedPassword.of("hashed"),
-                Set.of(Role.ROLE_USER), Set.of(), grants, true, true, null, null);
+                Set.of(Role.ROLE_USER), Set.of(), grants, true, true, null, null, null);
     }
 
     @Test

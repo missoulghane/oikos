@@ -8,15 +8,11 @@ import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 /**
  * Type de lot propre a une property (ex: "Appartement", "Duplex"), remplace
  * l'ancien enum global UnitType: chaque property definit ses propres types.
- * Une ligne "OTHERS" est systematiquement creee a la creation de la property
- * (voir CreatePropertyService/ConfigurePropertyService) - elle n'est pas
- * protegee, elle peut etre retiree comme n'importe quel autre type tant
- * qu'aucun Unit ne la reference. Immutable: semantique d'entite, equals/
+ * Aucun type n'est cree d'office avec la property: ses types sont ceux que
+ * le syndic declare (wizard, onglet Configuration). Immutable: semantique d'entite, equals/
  * hashCode se basent sur l'identite (id), pas sur les valeurs.
  */
 public final class UnitTypeDefinition {
-
-    public static final String DEFAULT_NAME = "OTHERS";
 
     private final UnitTypeDefinitionId id;
     private final PropertyId propertyId;

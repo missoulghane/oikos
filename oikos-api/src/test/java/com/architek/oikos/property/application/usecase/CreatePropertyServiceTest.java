@@ -2,7 +2,6 @@ package com.architek.oikos.property.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,7 +15,6 @@ import com.architek.oikos.property.application.command.CreatePropertyCommand;
 import com.architek.oikos.property.application.port.out.LedgerAccountProvisioningPort;
 import com.architek.oikos.property.domain.model.Property;
 import com.architek.oikos.property.domain.repository.PropertyRepository;
-import com.architek.oikos.property.domain.repository.UnitTypeDefinitionRepository;
 
 @ExtendWith(MockitoExtension.class)
 class CreatePropertyServiceTest {
@@ -25,13 +23,10 @@ class CreatePropertyServiceTest {
     private PropertyRepository propertyRepository;
 
     @Mock
-    private UnitTypeDefinitionRepository unitTypeDefinitionRepository;
-
-    @Mock
     private LedgerAccountProvisioningPort ledgerAccountProvisioningPort;
 
     private CreatePropertyService newService() {
-        return new CreatePropertyService(propertyRepository, unitTypeDefinitionRepository, ledgerAccountProvisioningPort);
+        return new CreatePropertyService(propertyRepository, ledgerAccountProvisioningPort);
     }
 
     @Test
@@ -45,17 +40,6 @@ class CreatePropertyServiceTest {
         ArgumentCaptor<Property> propertyCaptor = ArgumentCaptor.forClass(Property.class);
         verify(propertyRepository).save(propertyCaptor.capture());
         assertThat(propertyCaptor.getValue().getName()).isEqualTo("Copro Laumiere");
-    }
-
-    @Test
-    void creating_a_property_always_seeds_a_default_others_unit_type() {
-        when(propertyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        CreatePropertyCommand command = new CreatePropertyCommand("Copro Laumiere", "33 Avenue de Laumiere", "Casablanca");
-
-        newService().create(command);
-
-        verify(unitTypeDefinitionRepository).save(argThat(unitType -> unitType.getName().equals("OTHERS")));
     }
 
     @Test

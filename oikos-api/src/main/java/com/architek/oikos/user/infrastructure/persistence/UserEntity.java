@@ -1,5 +1,6 @@
 package com.architek.oikos.user.infrastructure.persistence;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -72,4 +73,7 @@ public class UserEntity extends AuditableEntity {
 
     @Column(nullable = false)
     private boolean enabled;
+
+    @Column(name = "terms_accepted_at")
+    private Instant termsAcceptedAt;
 }

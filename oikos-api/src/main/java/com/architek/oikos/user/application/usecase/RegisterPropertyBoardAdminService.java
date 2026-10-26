@@ -10,48 +10,34 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.shared.application.port.out.AsyncEmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
-import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.user.application.command.RegisterPropertyBoardAdminCommand;
-import com.architek.oikos.user.application.dto.RegisteredBoardAdminView;
 import com.architek.oikos.user.application.port.in.RegisterPropertyBoardAdminUseCase;
-import com.architek.oikos.user.application.port.out.PartyProvisioningDetails;
-import com.architek.oikos.user.application.port.out.PartyProvisioningPort;
-import com.architek.oikos.user.application.port.out.PropertyProvisioningDetails;
-import com.architek.oikos.user.application.port.out.PropertyProvisioningPort;
 import com.architek.oikos.user.domain.exception.EmailAlreadyUsedException;
-import com.architek.oikos.user.domain.model.PropertyRole;
 import com.architek.oikos.user.domain.model.Role;
 import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.model.VerificationToken;
-import com.architek.oikos.user.domain.repository.OnboardingLeadRepository;
 import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.user.domain.repository.VerificationTokenRepository;
 import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
 import com.architek.oikos.user.domain.valueobject.UserId;
 
 /**
- * Registers a volunteer syndic board admin (a natural person self-managing
- * their own HOA, without a professional firm): creates the property they
- * administer (without a building - added later), then a Party scoped to
- * that property, assigns it as the property's PROPERTY_MANAGER board
- * member, and finally the User account (ROLE_USER globally,
- * PROPERTY_BOARD_ADMIN granted through the linked Party) - in that order,
- * since the Party can only be created once its property id is known.
- * RegisterPropertyManagerAdminService is the counterpart for professional
- * management firms. Issues a verification token and sends the verification
- * email afterwards - same activation flow as a plain user registration
- * (see RegisterUserService). The send itself goes through AsyncEmailSenderPort:
- * the SMTP round-trip must not make the caller wait, since this is the last
- * step of the wizard the visitor sees before landing on the property.
+ * Step 1 of the volunteer-syndic wizard: creates the account (ROLE_USER, no
+ * property yet) and records when its holder accepted the terms. The property,
+ * the Party scoped to it and the PROPERTY_BOARD_ADMIN grant come at step 2
+ * (see CreateBoardAdminPropertyService) - a Party is property-scoped, so it
+ * cannot exist before the property has a name.
+ *
+ * <p>Issues a verification token and sends the verification email - same
+ * activation flow as a plain user registration (see RegisterUserService). The
+ * send goes through AsyncEmailSenderPort: the SMTP round-trip must not make the
+ * visitor wait between two steps of the wizard.
  */
 @Component
 public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardAdminUseCase {
 
     private final UserRepository userRepository;
-    private final OnboardingLeadRepository onboardingLeadRepository;
-    private final PartyProvisioningPort partyProvisioningPort;
-    private final PropertyProvisioningPort propertyProvisioningPort;
     private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordEncoderPort passwordEncoderPort;
     private final AsyncEmailSenderPort asyncEmailSender;
@@ -61,9 +47,6 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
     private final Duration verificationTokenTtl;
 
     public RegisterPropertyBoardAdminService(UserRepository userRepository,
-                                              OnboardingLeadRepository onboardingLeadRepository,
-                                              PartyProvisioningPort partyProvisioningPort,
-                                              PropertyProvisioningPort propertyProvisioningPort,
                                               VerificationTokenRepository verificationTokenRepository,
                                               PasswordEncoderPort passwordEncoderPort,
                                               AsyncEmailSenderPort asyncEmailSender,
@@ -72,9 +55,6 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
                                               Clock clock,
                                               @Value("${oikos.mail.verification-token-ttl-hours}") long verificationTokenTtlHours) {
         this.userRepository = userRepository;
-        this.onboardingLeadRepository = onboardingLeadRepository;
-        this.partyProvisioningPort = partyProvisioningPort;
-        this.propertyProvisioningPort = propertyProvisioningPort;
         this.verificationTokenRepository = verificationTokenRepository;
         this.passwordEncoderPort = passwordEncoderPort;
         this.asyncEmailSender = asyncEmailSender;
@@ -86,37 +66,23 @@ public class RegisterPropertyBoardAdminService implements RegisterPropertyBoardA
 
     @Override
     @Transactional
-    public RegisteredBoardAdminView register(RegisterPropertyBoardAdminCommand command) {
+    public UserId register(RegisterPropertyBoardAdminCommand command) {
         if (userRepository.existsByEmail(command.email().value())) {
             throw new EmailAlreadyUsedException(command.email().value());
         }
-        EntityId propertyId = propertyProvisioningPort.provisionProperty(
-                new PropertyProvisioningDetails(command.propertyName(), command.propertyAddress(), command.propertyCity()));
-        EntityId partyId = partyProvisioningPort.createParty(
-                new PartyProvisioningDetails(command.fullName(), command.email(), command.phone(), propertyId));
-        propertyProvisioningPort.assignPropertyManager(propertyId, partyId);
 
         HashedPassword hashedPassword = passwordEncoderPort.encode(command.password());
         User user = User.register(UserId.newId(), command.email(), command.fullName(), command.phone(), hashedPassword,
                         Role.ROLE_USER)
-                .withLinkedParty(partyId)
-                .withPropertyRoleGrant(partyId, propertyId, PropertyRole.PROPERTY_BOARD_ADMIN);
+                .withTermsAcceptedAt(clock.instant());
         User savedUser = userRepository.save(user);
 
         String rawToken = tokenGenerator.generate();
         Instant expiresAt = clock.instant().plus(verificationTokenTtl);
-        VerificationToken verificationToken = VerificationToken.issue(savedUser.getId(), rawToken, expiresAt);
-        verificationTokenRepository.save(verificationToken);
+        verificationTokenRepository.save(VerificationToken.issue(savedUser.getId(), rawToken, expiresAt));
 
         asyncEmailSender.send(command.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken, null));
 
-        // Closes the funnel opened on step 1 of the wizard: the address became an
-        // account, so the follow-up job must leave it alone (see OnboardingLead).
-        onboardingLeadRepository.findByEmail(command.email())
-                .filter(lead -> !lead.isConverted())
-                .map(lead -> lead.convertedAt(clock.instant()))
-                .ifPresent(onboardingLeadRepository::save);
-
-        return new RegisteredBoardAdminView(savedUser.getId(), propertyId);
+        return savedUser.getId();
     }
 }

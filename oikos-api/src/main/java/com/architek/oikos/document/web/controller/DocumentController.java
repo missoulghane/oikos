@@ -30,6 +30,7 @@ import com.architek.oikos.document.application.port.in.ListDocumentsByOwnerUseCa
 import com.architek.oikos.document.application.port.in.UploadDocumentUseCase;
 import com.architek.oikos.document.application.query.GetDocumentQuery;
 import com.architek.oikos.document.application.query.ListDocumentsByOwnerQuery;
+import com.architek.oikos.document.domain.model.Document;
 import com.architek.oikos.document.domain.valueobject.DocumentId;
 import com.architek.oikos.document.domain.valueobject.DocumentOwnerType;
 import com.architek.oikos.document.web.response.DocumentResponse;
@@ -65,14 +66,18 @@ public class DocumentController {
     public ResponseEntity<DocumentResponse> upload(@RequestParam String ownerType,
                                                     @RequestParam String ownerId,
                                                     @RequestParam MultipartFile file,
+                                                    @RequestParam(required = false) String title,
                                                     Authentication authentication) {
         if (file.isEmpty()) {
             throw new BusinessException("The uploaded file must not be empty");
         }
+        if (title != null && title.strip().length() > Document.TITLE_MAX_LENGTH) {
+            throw new BusinessException("The title must not exceed " + Document.TITLE_MAX_LENGTH + " characters");
+        }
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         DocumentView view = uploadDocumentUseCase.upload(new UploadDocumentCommand(
                 DocumentOwnerType.valueOf(ownerType.toUpperCase()), EntityId.of(ownerId), file.getOriginalFilename(),
-                file.getContentType(), readBytes(file), EntityId.of(principal.getUserId())));
+                title, file.getContentType(), readBytes(file), EntityId.of(principal.getUserId())));
         return ResponseEntity.created(URI.create("/api/v1/documents/" + view.id())).body(DocumentResponse.from(view));
     }
 
@@ -80,10 +85,12 @@ public class DocumentController {
     @GetMapping("/documents")
     public PagedDocumentResponse list(@RequestParam String ownerType,
                                       @RequestParam String ownerId,
+                                      @RequestParam(required = false) String search,
                                       @RequestParam(defaultValue = "0") int page,
                                       @RequestParam(defaultValue = "20") int size) {
         ListDocumentsByOwnerQuery query = new ListDocumentsByOwnerQuery(
-                DocumentOwnerType.valueOf(ownerType.toUpperCase()), EntityId.of(ownerId), PageRequest.of(page, size));
+                DocumentOwnerType.valueOf(ownerType.toUpperCase()), EntityId.of(ownerId), search,
+                PageRequest.of(page, size));
         return PagedDocumentResponse.from(listDocumentsByOwnerUseCase.list(query));
     }
 

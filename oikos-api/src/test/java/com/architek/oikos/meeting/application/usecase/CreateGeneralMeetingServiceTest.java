@@ -2,6 +2,7 @@ package com.architek.oikos.meeting.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,7 +61,7 @@ class CreateGeneralMeetingServiceTest {
         when(generalMeetingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         newService().create(new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG ordinaire 2026",
-                SESSION_DATE, VENUE));
+                SESSION_DATE, VENUE, null));
 
         ArgumentCaptor<GeneralMeeting> captor = ArgumentCaptor.forClass(GeneralMeeting.class);
         verify(generalMeetingRepository).save(captor.capture());
@@ -97,12 +98,31 @@ class CreateGeneralMeetingServiceTest {
                 .thenReturn(Optional.empty());
         when(generalMeetingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        newService().create(new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG", null, null));
+        newService().create(new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG", null, null, null));
 
         ArgumentCaptor<GeneralMeeting> captor = ArgumentCaptor.forClass(GeneralMeeting.class);
         verify(generalMeetingRepository).save(captor.capture());
         assertThat(captor.getValue().getScheduledAt()).isNull();
         assertThat(captor.getValue().getVenue()).isNull();
+    }
+
+    @Test
+    void a_comment_given_at_creation_is_carried_onto_the_draft_and_a_blank_one_is_dropped() {
+        when(propertyDirectoryPort.getProperty(propertyId))
+                .thenReturn(new PropertyInfo(propertyId, "Résidence Al Amal", VotingWeightMode.SHARES));
+        when(quorumSettingRepository.findByPropertyAndType(propertyId, MeetingType.ORDINARY))
+                .thenReturn(Optional.empty());
+        when(generalMeetingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        newService().create(new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG",
+                SESSION_DATE, VENUE, "<p>Vote du budget travaux</p>"));
+        newService().create(new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG",
+                SESSION_DATE, VENUE, "   "));
+
+        ArgumentCaptor<GeneralMeeting> captor = ArgumentCaptor.forClass(GeneralMeeting.class);
+        verify(generalMeetingRepository, times(2)).save(captor.capture());
+        assertThat(captor.getAllValues().get(0).getComment()).isEqualTo("<p>Vote du budget travaux</p>");
+        assertThat(captor.getAllValues().get(1).getComment()).isNull();
     }
 
     @Test

@@ -14,6 +14,9 @@ export const createGeneralMeetingSchema = z
     venueType: z.enum(['PHYSICAL', 'VIDEOCONFERENCE', 'HYBRID']),
     venueAddress: z.string().trim().max(250, 'Adresse limitée à 250 caractères').optional(),
     venueLink: z.string().trim().max(500, 'Lien limité à 500 caractères').optional(),
+    // The editor's HTML, capped like the API's request. Only the creation screen fills it:
+    // afterwards the comment has its own editor and endpoint, and EditMeetingForm leaves it out.
+    comment: z.string().max(20000, 'Commentaire limité à 20 000 caractères').optional(),
   })
   .refine((values) => values.venueType === 'VIDEOCONFERENCE' || Boolean(values.venueAddress), {
     path: ['venueAddress'],

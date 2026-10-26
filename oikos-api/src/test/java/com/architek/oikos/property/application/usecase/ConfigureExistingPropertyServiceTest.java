@@ -126,7 +126,7 @@ class ConfigureExistingPropertyServiceTest {
     }
 
     @Test
-    void the_default_others_unit_type_is_not_created_unlike_the_property_creating_sibling() {
+    void only_the_unit_types_named_by_the_wizard_are_created() {
         PropertyId propertyId = PropertyId.newId();
         givenExistingUnconfiguredProperty(propertyId);
         when(propertyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -142,9 +142,7 @@ class ConfigureExistingPropertyServiceTest {
 
         ArgumentCaptor<UnitTypeDefinition> typeCaptor = ArgumentCaptor.forClass(UnitTypeDefinition.class);
         verify(unitTypeDefinitionRepository).save(typeCaptor.capture());
-        assertThat(typeCaptor.getValue().getName()).isEqualTo("Appartement");
-        assertThat(typeCaptor.getAllValues()).extracting(UnitTypeDefinition::getName)
-                .doesNotContain(UnitTypeDefinition.DEFAULT_NAME);
+        assertThat(typeCaptor.getAllValues()).extracting(UnitTypeDefinition::getName).containsExactly("Appartement");
         verify(unitTypePricingRepository, never()).save(any());
     }
 

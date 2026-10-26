@@ -1,4 +1,5 @@
 import type { DuesCalculationMode } from '@/features/property-mngt/properties/types/property.types';
+import { DEFAULT_BOARD_SEAT, type BoardSeat } from '@/features/identity/onboarding/constants/boardSeats';
 
 /**
  * Types de lots proposés par le wizard. Le libellé sert tel quel de nom de type
@@ -17,6 +18,17 @@ export interface OnboardingAccount {
   email: string;
   /** Format international, tel que le compose PhoneField (« +212612345678 »). */
   phone: string;
+  /** Siège au conseil syndical, choisi à l'étape 1 et envoyé avec la copropriété à l'étape 2. */
+  boardRole: BoardSeat;
+  acceptedTerms: boolean;
+}
+
+/** Le compte créé à l'étape 1, et le jeton qui autorise l'étape 2 tant qu'il n'est pas vérifié. */
+export interface OnboardingAccountRegistration {
+  userId: string;
+  onboardingToken: string;
+  /** Échéance du jeton (epoch ms) - voir OnboardingRegistration. */
+  onboardingTokenExpiresAt?: number;
 }
 
 export interface OnboardingProperty {
@@ -38,6 +50,7 @@ export interface OnboardingBankAccount {
   bankAccountNumber: string;
 }
 
+/** La copropriété créée à l'étape 2, et le jeton qui autorise sa configuration (étape 7). */
 export interface OnboardingRegistration {
   propertyId: string;
   onboardingToken: string;
@@ -52,7 +65,7 @@ export interface OnboardingRegistration {
 /** Marge de sécurité : un jeton qui expire pendant l'appel est déjà périmé. */
 const TOKEN_EXPIRY_MARGIN_MS = 30_000;
 
-export function isOnboardingTokenUsable(registration: OnboardingRegistration): boolean {
+export function isOnboardingTokenUsable(registration: { onboardingTokenExpiresAt?: number }): boolean {
   return (
     registration.onboardingTokenExpiresAt === undefined ||
     registration.onboardingTokenExpiresAt - TOKEN_EXPIRY_MARGIN_MS > Date.now()
@@ -69,6 +82,7 @@ export interface OnboardingDraft {
   unitTypePrices: Record<string, string>;
   buildings: OnboardingBuilding[];
   bankAccounts: OnboardingBankAccount[];
+  accountRegistration: OnboardingAccountRegistration | null;
   registration: OnboardingRegistration | null;
 }
 
@@ -80,7 +94,7 @@ export function emptyBuilding(index: number): OnboardingBuilding {
 
 export function initialDraft(): OnboardingDraft {
   return {
-    account: { fullName: '', email: '', phone: '' },
+    account: { fullName: '', email: '', phone: '', boardRole: DEFAULT_BOARD_SEAT, acceptedTerms: false },
     property: { name: '', address: '', city: '' },
     // Forfait par défaut, comme demandé - et c'est aussi le défaut du domaine.
     duesCalculationMode: 'FLAT_RATE',
@@ -89,6 +103,7 @@ export function initialDraft(): OnboardingDraft {
     unitTypePrices: {},
     buildings: [emptyBuilding(0)],
     bankAccounts: [],
+    accountRegistration: null,
     registration: null,
   };
 }

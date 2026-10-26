@@ -52,6 +52,7 @@ export interface CreateGeneralMeetingPayload {
   venueType?: VenueType | null;
   venueAddress?: string | null;
   venueLink?: string | null;
+  comment?: string | null;
 }
 
 /** Full replacement of the editable fields - omitting a field clears it (the API uses PUT). */

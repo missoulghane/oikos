@@ -2,13 +2,11 @@ package com.architek.oikos.document.infrastructure.persistence;
 
 import java.util.UUID;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, UUID> {
-
-    Page<DocumentEntity> findByOwnerTypeAndOwnerId(String ownerType, UUID ownerId, Pageable pageable);
+public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, UUID>,
+        JpaSpecificationExecutor<DocumentEntity> {
 
     boolean existsByOwnerTypeAndOwnerIdAndChecksumSha256(String ownerType, UUID ownerId, String checksumSha256);
 }

@@ -4,8 +4,8 @@ import { stepPath } from '@/features/identity/onboarding/constants/steps';
 
 /**
  * Un syndic bénévole dont la copropriété n'a aucun bâtiment n'a pas fini son
- * wizard (le compte et la copropriété naissent à l'étape 2, la structure à
- * l'étape 7). Plutôt qu'une redirection forcée - qui l'enfermerait dans le
+ * wizard (le compte naît à l'étape 1, la copropriété à l'étape 2, la structure
+ * à l'étape 7). Plutôt qu'une redirection forcée - qui l'enfermerait dans le
  * tunnel alors que son espace est parfaitement utilisable - on lui propose de
  * reprendre là où il s'est arrêté.
  *

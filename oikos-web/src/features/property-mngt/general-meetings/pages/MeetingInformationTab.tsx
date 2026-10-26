@@ -1,10 +1,20 @@
-import { useOutletContext } from 'react-router-dom';
+import { useLocation, useOutletContext } from 'react-router-dom';
 import { canWriteDocuments, useCurrentUser } from '@/features/identity/me';
 import { AttachmentsPanel } from '@/features/property-mngt/documents';
 import type { GeneralMeetingContext } from '@/features/property-mngt/general-meetings/pages/GeneralMeetingDetailLayout';
 import { MeetingCommentEditor } from '@/features/property-mngt/general-meetings/components/MeetingCommentEditor';
 import { useUpdateGeneralMeetingComment } from '@/features/property-mngt/general-meetings/hooks/useMeetingMutations';
+import { Alert } from '@/shared/components/Alert/Alert';
 import { Card } from '@/shared/components/Card/Card';
+
+/**
+ * What the creation page hands over when it lands here: the files it could not
+ * attach. The meeting exists by then, so they are reported beside the upload
+ * field that can send them again, not on a page the syndic has left.
+ */
+export interface MeetingInformationLocationState {
+  failedUploads?: string[];
+}
 
 /**
  * What concerns the assembly as a whole rather than one point of its agenda:
@@ -20,6 +30,7 @@ export function MeetingInformationTab() {
   const currentUser = useCurrentUser();
   const canWrite = currentUser.data ? canWriteDocuments(currentUser.data, property.id) : false;
   const updateComment = useUpdateGeneralMeetingComment(meeting.id);
+  const failedUploads = (useLocation().state as MeetingInformationLocationState | null)?.failedUploads ?? [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,6 +61,17 @@ export function MeetingInformationTab() {
             un point précis se joignent à ce point, dans l'onglet « Ordre du jour ».
           </p>
         </div>
+        {failedUploads.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <Alert
+              variant="warning"
+              message="L'assemblée a été créée, mais ces documents n'ont pas pu être joints. Vous pouvez les ajouter à nouveau ci-dessous."
+            />
+            {failedUploads.map((message) => (
+              <Alert key={message} message={message} />
+            ))}
+          </div>
+        )}
         <AttachmentsPanel
           ownerType="GENERAL_MEETING"
           ownerId={meeting.id}

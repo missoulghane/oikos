@@ -28,8 +28,7 @@ import com.architek.oikos.property.web.response.UnitTypeDefinitionResponse;
 
 /**
  * Types de lot propres a une property (remplace l'ancien enum global
- * UnitType) - une ligne "OTHERS" existe toujours par defaut (creee a la
- * creation de la property).
+ * UnitType).
  */
 @RestController
 public class UnitTypeDefinitionController {

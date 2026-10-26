@@ -56,53 +56,58 @@ export function UnitTypesStepPage() {
     <WizardShell
       step="unit-types"
       title="Quels types de lots gérez-vous ?"
-      subtitle="Sélectionnez les types de lots présents dans votre copropriété."
+      subtitle={
+        isFlatRate
+          ? 'Sélectionnez les types de lots présents dans votre copropriété et indiquez le montant de chacun.'
+          : 'Sélectionnez les types de lots présents dans votre copropriété.'
+      }
       backPath={previousStepPath('unit-types')}
     >
       <div className="flex flex-col gap-3">
-        {UNIT_TYPE_CHOICES.map((choice) => (
-          <SelectableCard
-            key={choice.name}
-            type="checkbox"
-            name="unit-types"
-            value={choice.name}
-            checked={draft.selectedUnitTypes.includes(choice.name)}
-            onSelect={toggleType}
-            title={choice.name}
-            description={UNIT_TYPE_DESCRIPTIONS[choice.name]}
-          />
-        ))}
+        {UNIT_TYPE_CHOICES.map((choice) => {
+          const isSelected = draft.selectedUnitTypes.includes(choice.name);
+          return (
+            // Le montant se saisit sur la ligne même du type qu'il chiffre, à côté
+            // de sa case : le geste « je coche, je chiffre » se fait sur place, sans
+            // aller le rechercher dans une liste séparée plus bas. Hors du <label>
+            // de la carte, sinon cliquer dans le champ décocherait le type.
+            <div key={choice.name} className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <SelectableCard
+                  type="checkbox"
+                  name="unit-types"
+                  value={choice.name}
+                  checked={isSelected}
+                  onSelect={toggleType}
+                  title={choice.name}
+                  description={UNIT_TYPE_DESCRIPTIONS[choice.name]}
+                />
+              </div>
+              {/* En tantièmes, ce sont le budget prévisionnel et les tantièmes de
+                  chaque lot qui servent au calcul, jamais un prix par type. */}
+              {isFlatRate && isSelected && (
+                <div className="w-32 shrink-0">
+                  <Input
+                    label="Montant (MAD)"
+                    aria-label={`Montant ${choice.name}`}
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    id={`price-${choice.name}`}
+                    name={`price-${choice.name}`}
+                    placeholder="0"
+                    value={draft.unitTypePrices[choice.name] ?? ''}
+                    onChange={(event) => setPrice(choice.name, event.target.value)}
+                    errorMessage={attemptedContinue && isPriceMissing(choice.name) ? 'Requis' : undefined}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {draft.selectedUnitTypes.length === 0 && (
           <Alert variant="warning" message="Sélectionnez au moins un type de lot pour continuer." />
-        )}
-
-        {/* La section des montants n'a de sens qu'au forfait : en tantièmes, ce
-            sont le budget prévisionnel et les tantièmes de chaque lot qui servent
-            au calcul, jamais un prix par type. */}
-        {isFlatRate && draft.selectedUnitTypes.length > 0 && (
-          <section className="mt-2 flex flex-col gap-3 rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
-            <div>
-              <h2 className="text-sm font-medium text-gray-900 dark:text-white/90">Montant par type de lot</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Indiquez le montant associé à chaque type de lot.
-              </p>
-            </div>
-            {draft.selectedUnitTypes.map((name) => (
-              <Input
-                key={name}
-                label={name}
-                type="number"
-                min={0}
-                step="0.01"
-                name={`price-${name}`}
-                placeholder="0"
-                value={draft.unitTypePrices[name] ?? ''}
-                onChange={(event) => setPrice(name, event.target.value)}
-                errorMessage={attemptedContinue && isPriceMissing(name) ? 'Le prix est requis' : undefined}
-              />
-            ))}
-          </section>
         )}
 
         {!isFlatRate && (

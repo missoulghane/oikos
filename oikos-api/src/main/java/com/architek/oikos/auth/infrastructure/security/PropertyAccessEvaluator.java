@@ -537,6 +537,20 @@ public class PropertyAccessEvaluator {
         return hasOnboardingScope(authentication, propertyId) || managesProperty(authentication, propertyId);
     }
 
+    /**
+     * Step 2 of the volunteer-syndic wizard (creating the account's property):
+     * either the account-scoped token issued at step 1, or an ordinary session -
+     * a visitor who left after step 1 verifies their email, logs in and resumes
+     * there. Never a property-scoped onboarding token, which already has its
+     * property. The use case itself refuses an account that administers one.
+     */
+    public boolean canCreateBoardAdminProperty(Authentication authentication) {
+        boolean hasAccountScope = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(JwtService.ACCOUNT_ONBOARDING_AUTHORITY::equals);
+        return hasAccountScope || !isOnboardingToken(authentication);
+    }
+
     private static boolean hasOnboardingScope(Authentication authentication, String propertyId) {
         String expected = JwtService.ONBOARDING_AUTHORITY_PREFIX + propertyId;
         return authentication.getAuthorities().stream()

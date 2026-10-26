@@ -166,17 +166,41 @@ class AuthenticationFlowIntegrationTest {
     }
 
     @Test
-    void registers_a_property_board_admin_with_its_property_and_logs_in_after_verification() throws Exception {
+    void registers_a_property_board_admin_then_its_property_and_logs_in_after_verification() throws Exception {
         String email = "flow-property-manager@oikos.com";
         String password = "password123456";
 
-        mockMvc.perform(post("/api/v1/users/register-property-board-admin")
+        // Step 1: the account alone.
+        MvcResult registration = mockMvc.perform(post("/api/v1/users/register-property-board-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"fullName":"Jane Doe","email":"%s","password":"%s",
-                                "propertyName":"Residence A","propertyAddress":"1 rue de Paris"}
+                                {"fullName":"Jane Doe","email":"%s","password":"%s","acceptedTerms":true}
                                 """.formatted(email, password)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andReturn();
+        String accountToken = JsonPath.read(registration.getResponse().getContentAsString(), "$.onboardingToken");
+
+        // Step 2: its property, with the account-scoped token - the account is not verified yet.
+        MvcResult propertyCreation = mockMvc.perform(post("/api/v1/users/me/board-admin-property")
+                        .header("Authorization", "Bearer " + accountToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"propertyName":"Residence A","propertyAddress":"1 rue de Paris",
+                                 "boardRole":"VOLUNTEER_MANAGER"}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String propertyId = JsonPath.read(propertyCreation.getResponse().getContentAsString(), "$.propertyId");
+
+        // Replaying step 2 never creates a second property.
+        mockMvc.perform(post("/api/v1/users/me/board-admin-property")
+                        .header("Authorization", "Bearer " + accountToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"propertyName":"Residence B","propertyAddress":"2 rue de Paris",
+                                 "boardRole":"VOLUNTEER_MANAGER"}
+                                """))
+                .andExpect(status().isConflict());
 
         // Sent through AsyncEmailSender: the response above no longer waits on it,
         // so the assertion must poll instead of assuming it already happened.
@@ -206,7 +230,15 @@ class AuthenticationFlowIntegrationTest {
         mockMvc.perform(get("/api/v1/users/me").header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email", is(email)))
-                .andExpect(jsonPath("$.roles", org.hamcrest.Matchers.hasItem("ROLE_USER")));
+                .andExpect(jsonPath("$.roles", org.hamcrest.Matchers.hasItem("ROLE_USER")))
+                .andExpect(jsonPath("$.roleByProperty['" + propertyId + "']",
+                        org.hamcrest.Matchers.hasItem("PROPERTY_BOARD_ADMIN")));
+
+        // No default "OTHERS" unit type is seeded with the property any more.
+        mockMvc.perform(get("/api/v1/properties/" + propertyId + "/unit-types")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()", is(0)));
     }
 
     @Test

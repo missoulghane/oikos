@@ -10,8 +10,7 @@ import { useRegisterDevicePushToken } from '@/features/notifications/hooks/useRe
  * while authenticated, backing CreateNotificationService's push delivery
  * (see PLAN.md Phase 3). Entirely best-effort: every step here can silently
  * no-op (simulator, permission denied, no EAS project configured yet - see
- * PLAN.md risks) without blocking or surfacing anything to the user, exactly
- * like oikos-web's useCaptureOnboardingLead.
+ * PLAN.md risks) without blocking or surfacing anything to the user.
  */
 export function usePushTokenRegistration() {
   const registerToken = useRegisterDevicePushToken();

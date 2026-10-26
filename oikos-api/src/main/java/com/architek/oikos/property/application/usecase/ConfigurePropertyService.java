@@ -29,8 +29,8 @@ import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 
 /**
- * Creates a property, its default "OTHERS" unit type, all of its buildings and
- * units in a single transaction (POST /properties/configure). Units are
+ * Creates a property, the unit types its buildings name, all of its buildings
+ * and units in a single transaction (POST /properties/configure). Units are
  * created with Shares.ZERO - tantiemes are assigned later through a dedicated
  * flow, not at bulk creation time. Each UnitTypeConfiguration entry names a
  * unit type (find-or-create by (property, name), since the property does not
@@ -84,10 +84,7 @@ public class ConfigurePropertyService implements ConfigurePropertyUseCase {
                 Property.create(PropertyId.newId(), command.name(), command.address(), command.city()));
         ledgerAccountProvisioningPort.provisionPropertyCashAccount(savedProperty.getId().value());
 
-        UnitTypeDefinition defaultUnitType = unitTypeDefinitionRepository.save(UnitTypeDefinition.create(
-                UnitTypeDefinitionId.newId(), savedProperty.getId(), UnitTypeDefinition.DEFAULT_NAME));
         Map<String, UnitTypeDefinitionId> unitTypeIdsByName = new HashMap<>();
-        unitTypeIdsByName.put(defaultUnitType.getName(), defaultUnitType.getId());
 
         for (BuildingConfiguration buildingConfiguration : command.buildings()) {
             Building savedBuilding = buildingRepository.save(Building.create(BuildingId.newId(),

@@ -64,7 +64,7 @@ class DocumentControllerWebMvcTest {
     }
 
     private DocumentView aDocumentView(EntityId ownerId) {
-        return new DocumentView(DocumentId.newId(), DocumentOwnerType.PROPERTY, ownerId, "notice.pdf",
+        return new DocumentView(DocumentId.newId(), DocumentOwnerType.PROPERTY, ownerId, "notice.pdf", "notice",
                 "application/pdf", 42L, EntityId.newId(), Instant.now());
     }
 
@@ -110,6 +110,43 @@ class DocumentControllerWebMvcTest {
                         .param("ownerId", ownerId.toString())
                         .header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void the_search_term_and_the_title_reach_the_use_cases() throws Exception {
+        EntityId ownerId = EntityId.newId();
+        when(listDocumentsByOwnerUseCase.list(any())).thenReturn(Page.of(java.util.List.of(), 0, 20, 0));
+        when(uploadDocumentUseCase.upload(any())).thenReturn(aDocumentView(ownerId));
+
+        mockMvc.perform(get("/api/v1/documents")
+                        .param("ownerType", "PROPERTY")
+                        .param("ownerId", ownerId.toString())
+                        .param("search", "budget")
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart("/api/v1/documents")
+                        .file(new MockMultipartFile("file", "notice.pdf", "application/pdf", new byte[] {1, 2, 3}))
+                        .param("ownerType", "PROPERTY")
+                        .param("ownerId", ownerId.toString())
+                        .param("title", "Règlement de copropriété")
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
+                .andExpect(status().isCreated());
+
+        org.mockito.Mockito.verify(listDocumentsByOwnerUseCase).list(org.mockito.ArgumentMatchers.argThat(
+                query -> "budget".equals(query.search())));
+        org.mockito.Mockito.verify(uploadDocumentUseCase).upload(org.mockito.ArgumentMatchers.argThat(
+                command -> "Règlement de copropriété".equals(command.title())));
+    }
+
+    @Test
+    void a_title_longer_than_200_characters_is_refused() throws Exception {
+        mockMvc.perform(multipart("/api/v1/documents")
+                        .file(new MockMultipartFile("file", "notice.pdf", "application/pdf", new byte[] {1, 2, 3}))
+                        .param("ownerType", "PROPERTY")
+                        .param("ownerId", EntityId.newId().toString())
+                        .param("title", "x".repeat(201))
+                        .header("Authorization", bearerToken("ROLE_ADMIN")))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

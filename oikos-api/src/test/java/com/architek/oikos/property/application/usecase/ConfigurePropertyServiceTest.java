@@ -3,7 +3,6 @@ package com.architek.oikos.property.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +24,7 @@ import com.architek.oikos.property.domain.exception.PropertyConfigurationLimitEx
 import com.architek.oikos.property.domain.model.Building;
 import com.architek.oikos.property.domain.model.Property;
 import com.architek.oikos.property.domain.model.Unit;
+import com.architek.oikos.property.domain.model.UnitTypeDefinition;
 import com.architek.oikos.property.domain.repository.BuildingRepository;
 import com.architek.oikos.property.domain.repository.PropertyRepository;
 import com.architek.oikos.property.domain.repository.UnitRepository;
@@ -91,15 +91,31 @@ class ConfigurePropertyServiceTest {
     }
 
     @Test
-    void configuring_a_property_always_seeds_a_default_others_unit_type() {
+    void configuring_a_property_creates_only_the_unit_types_its_buildings_name() {
         when(propertyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(buildingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(unitTypeDefinitionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(unitRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ConfigurePropertyCommand command = new ConfigurePropertyCommand("My Property", "123 Main St", "Casablanca", List.of(
+                new BuildingConfiguration("Building A", 0, List.of(new UnitTypeConfiguration("Appartement", 1)))));
+
+        newService(500).configure(command);
+
+        ArgumentCaptor<UnitTypeDefinition> typeCaptor = ArgumentCaptor.forClass(UnitTypeDefinition.class);
+        verify(unitTypeDefinitionRepository).save(typeCaptor.capture());
+        assertThat(typeCaptor.getAllValues()).extracting(UnitTypeDefinition::getName).containsExactly("Appartement");
+    }
+
+    @Test
+    void configuring_a_property_without_buildings_creates_no_unit_type() {
+        when(propertyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         ConfigurePropertyCommand command = new ConfigurePropertyCommand("My Property", "123 Main St", "Casablanca", List.of());
 
         newService(500).configure(command);
 
-        verify(unitTypeDefinitionRepository).save(argThat(unitType -> unitType.getName().equals("OTHERS")));
+        verify(unitTypeDefinitionRepository, never()).save(any());
     }
 
     @Test

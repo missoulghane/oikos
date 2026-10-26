@@ -14,6 +14,8 @@ export interface Document {
   ownerType: DocumentOwnerType;
   ownerId: string;
   fileName: string;
+  /** Ce qu'on lit dans la liste : saisi au dépôt, ou le nom du fichier sans son extension. */
+  title: string;
   contentType: string;
   sizeBytes: number;
   uploadedBy: string;

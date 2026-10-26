@@ -100,7 +100,7 @@ public class GeneralMeetingController {
                                                                     @Valid @RequestBody CreateGeneralMeetingRequest request) {
         GeneralMeetingId id = createGeneralMeetingUseCase.create(new CreateGeneralMeetingCommand(
                 EntityId.of(propertyId), request.meetingType(), request.title(), request.scheduledAt(),
-                venueOrNull(request.venueType(), request.venueAddress(), request.venueLink())));
+                venueOrNull(request.venueType(), request.venueAddress(), request.venueLink()), request.comment()));
         return ResponseEntity.status(HttpStatus.CREATED).body(GeneralMeetingReferenceResponse.from(id));
     }
 

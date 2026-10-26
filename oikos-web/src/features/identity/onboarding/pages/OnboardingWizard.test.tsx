@@ -7,7 +7,7 @@ import { ThemeProvider } from '@/shared/context/ThemeContext';
 import { OnboardingWizardPage } from '@/features/identity/onboarding/pages/OnboardingWizardPage';
 import { registerPropertyBoardAdmin } from '@/features/identity/register/api/registerPropertyBoardAdmin';
 import { configureProperty } from '@/features/identity/onboarding/api/configureProperty';
-import { captureOnboardingLead } from '@/features/identity/onboarding/api/captureOnboardingLead';
+import { createBoardAdminProperty } from '@/features/identity/onboarding/api/createBoardAdminProperty';
 
 // Factory form (not bare automock): a bare `vi.mock(path)` still loads the
 // real module to derive its shape, which would drag in httpClient -> env.ts
@@ -18,13 +18,13 @@ vi.mock('@/features/identity/register/api/registerPropertyBoardAdmin', () => ({
 vi.mock('@/features/identity/onboarding/api/configureProperty', () => ({
   configureProperty: vi.fn(),
 }));
-vi.mock('@/features/identity/onboarding/api/captureOnboardingLead', () => ({
-  captureOnboardingLead: vi.fn(),
+vi.mock('@/features/identity/onboarding/api/createBoardAdminProperty', () => ({
+  createBoardAdminProperty: vi.fn(),
 }));
 
 const mockedRegister = vi.mocked(registerPropertyBoardAdmin);
 const mockedConfigure = vi.mocked(configureProperty);
-const mockedCaptureLead = vi.mocked(captureOnboardingLead);
+const mockedCreateProperty = vi.mocked(createBoardAdminProperty);
 
 function renderWizard(initialPath = '/register/board-admin/account') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -48,7 +48,11 @@ async function fillAccountStep(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('Téléphone'), '0612345678');
   await user.type(screen.getByLabelText('Mot de passe'), 'motdepasse123');
   await user.type(screen.getByLabelText('Confirmation du mot de passe'), 'motdepasse123');
+  await user.click(screen.getByRole('checkbox', { name: "J'accepte les CGV et CGU" }));
   await user.click(screen.getByRole('button', { name: 'Continuer' }));
+  // Même raison que fillPropertyStep : la navigation part du onSuccess de la
+  // création du compte, après la résolution du clic.
+  await screen.findByText('Parlez-nous de votre copropriété');
 }
 
 async function fillPropertyStep(user: ReturnType<typeof userEvent.setup>) {
@@ -57,7 +61,7 @@ async function fillPropertyStep(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('Ville'), 'Casablanca');
   await user.click(screen.getByRole('button', { name: 'Continuer' }));
   // Waits for step 3 before returning, and not out of politeness: this step
-  // navigates from the register mutation's onSuccess (see PropertyStepPage), so
+  // navigates from the property mutation's onSuccess (see PropertyStepPage), so
   // the click resolves before the wizard has moved. Callers that then look for
   // "Continuer" would otherwise match step 2's button, still mounted, re-submit
   // it, and end up asserting against step 3 believing they were on step 4.
@@ -74,7 +78,7 @@ async function goBackToPropertyStepFromRecap(user: ReturnType<typeof userEvent.s
   await fillPropertyStep(user);
   await user.click(await screen.findByRole('button', { name: 'Continuer' }));
   await screen.findByText('Quels types de lots gérez-vous ?');
-  await user.type(await screen.findByLabelText('Appartement'), '50');
+  await user.type(await screen.findByLabelText('Montant Appartement'), '50');
   await user.click(await screen.findByRole('button', { name: 'Continuer' }));
   await screen.findByText('Structure de votre copropriété');
   await user.click(await screen.findByRole('button', { name: 'Continuer' }));
@@ -88,30 +92,67 @@ describe('OnboardingWizardPage', () => {
   beforeEach(() => {
     mockedRegister.mockReset();
     mockedConfigure.mockReset();
-    mockedCaptureLead.mockReset();
+    mockedCreateProperty.mockReset();
     mockedRegister.mockResolvedValue({
       userId: 'user-1',
+      onboardingToken: 'account-token',
+      expiresInSeconds: 7200,
+    });
+    mockedCreateProperty.mockResolvedValue({
       propertyId: 'property-1',
       onboardingToken: 'onboarding-token',
       expiresInSeconds: 7200,
     });
     mockedConfigure.mockResolvedValue(undefined);
-    mockedCaptureLead.mockResolvedValue(undefined);
   });
 
-  it('captures the email on step 1, before any account can exist', async () => {
+  it('creates the account on step 1, alone, with the terms accepted', async () => {
     const user = userEvent.setup();
     renderWizard();
 
     await fillAccountStep(user);
 
-    await waitFor(() => expect(mockedCaptureLead).toHaveBeenCalled());
-    expect(mockedCaptureLead.mock.calls[0][0]).toEqual({
-      email: 'jane.doe@example.com',
+    expect(mockedRegister).toHaveBeenCalledTimes(1);
+    expect(mockedRegister.mock.calls[0][0]).toEqual({
       fullName: 'Jane Doe',
+      email: 'jane.doe@example.com',
+      // Saisi « 0612345678 » sous l'indicatif marocain : le 0 de tête n'existe
+      // pas en format international, c'est PhoneField qui l'écarte.
+      phone: '+212612345678',
+      password: 'motdepasse123',
+      acceptedTerms: true,
     });
+    // La copropriété ne vient qu'à l'étape 2.
+    expect(mockedCreateProperty).not.toHaveBeenCalled();
+  });
+
+  it('refuses to create the account until the terms are accepted', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByLabelText('Nom complet'), 'Jane Doe');
+    await user.type(screen.getByLabelText('Adresse email'), 'jane.doe@example.com');
+    await user.type(screen.getByLabelText('Téléphone'), '0612345678');
+    await user.type(screen.getByLabelText('Mot de passe'), 'motdepasse123');
+    await user.type(screen.getByLabelText('Confirmation du mot de passe'), 'motdepasse123');
+    await user.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    expect(await screen.findByText('Vous devez accepter les CGV et CGU')).toBeInTheDocument();
     expect(mockedRegister).not.toHaveBeenCalled();
-    expect(await screen.findByText('Parlez-nous de votre copropriété')).toBeInTheDocument();
+  });
+
+  it('offers the board seats with « Syndic » selected by default', async () => {
+    renderWizard();
+
+    const seat = screen.getByLabelText('Votre rôle dans le conseil syndical');
+    expect(seat).toHaveDisplayValue('Syndic');
+    expect(within(seat).getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Syndic',
+      'Président',
+      'Trésorier',
+      'Secrétaire',
+      'Membre du conseil syndical',
+    ]);
   });
 
   it('signals two different passwords on the spot, without submitting the step', async () => {
@@ -124,7 +165,7 @@ describe('OnboardingWizardPage', () => {
     await user.tab();
 
     expect(await screen.findByText('Les mots de passe ne correspondent pas')).toBeInTheDocument();
-    expect(mockedCaptureLead).not.toHaveBeenCalled();
+    expect(mockedRegister).not.toHaveBeenCalled();
   });
 
   it('keeps the password rule out of sight until it is actually broken', async () => {
@@ -139,31 +180,45 @@ describe('OnboardingWizardPage', () => {
     expect(await screen.findByText('Au moins 10 caractères')).toBeInTheDocument();
   });
 
-  it("creates the account at the end of step 2, with the city sent beside the address", async () => {
+  it('creates the property on step 2 with the seat chosen on step 1, authenticated by the account token', async () => {
     const user = userEvent.setup();
     renderWizard();
 
+    await user.selectOptions(screen.getByLabelText('Votre rôle dans le conseil syndical'), 'Trésorier');
     await fillAccountStep(user);
     await user.type(await screen.findByLabelText('Nom de la copropriété'), 'Résidence Exemple');
     await user.type(screen.getByLabelText('Adresse'), '12 rue Exemple');
     await user.type(screen.getByLabelText('Ville'), 'Casablanca');
+    // Le siège a été choisi à l'étape 1 : il n'est pas redemandé ici.
+    expect(screen.queryByLabelText('Votre rôle dans le conseil syndical')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
 
-    await waitFor(() => expect(mockedRegister).toHaveBeenCalled());
-    expect(mockedRegister.mock.calls[0][0]).toEqual(
-      expect.objectContaining({
-        fullName: 'Jane Doe',
-        email: 'jane.doe@example.com',
-        // Saisi « 0612345678 » sous l'indicatif marocain : le 0 de tête n'existe
-        // pas en format international, c'est PhoneField qui l'écarte.
-        phone: '+212612345678',
+    await waitFor(() => expect(mockedCreateProperty).toHaveBeenCalled());
+    expect(mockedCreateProperty.mock.calls[0][0]).toEqual({
+      onboardingToken: 'account-token',
+      payload: {
         propertyName: 'Résidence Exemple',
         // Deux champs distincts et non plus une concaténation : la fiche
         // copropriété doit pouvoir afficher et corriger l'un sans l'autre.
         propertyAddress: '12 rue Exemple',
         propertyCity: 'Casablanca',
-      }),
-    );
+        boardRole: 'TREASURER',
+      },
+    });
+    expect(mockedRegister).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not recreate the account when going back to step 1', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await fillAccountStep(user);
+
+    await user.click(screen.getByRole('link', { name: /Revenir à l'étape précédente/ }));
+
+    expect(await screen.findByText('Votre compte est créé')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Continuer' }));
+    expect(await screen.findByText('Parlez-nous de votre copropriété')).toBeInTheDocument();
+    expect(mockedRegister).toHaveBeenCalledTimes(1);
   });
 
   it('offers the flat-rate amounts only, and the projected budget in shares mode', async () => {
@@ -178,7 +233,7 @@ describe('OnboardingWizardPage', () => {
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
 
     expect(await screen.findByText('Quels types de lots gérez-vous ?')).toBeInTheDocument();
-    expect(screen.getByText('Montant par type de lot')).toBeInTheDocument();
+    expect(screen.getByLabelText('Montant Appartement')).toBeInTheDocument();
     expect(screen.queryByText('Budget prévisionnel')).not.toBeInTheDocument();
 
     // Retour à l'étape précédente pour basculer en tantièmes.
@@ -187,7 +242,7 @@ describe('OnboardingWizardPage', () => {
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
 
     expect(await screen.findByText('Budget prévisionnel')).toBeInTheDocument();
-    expect(screen.queryByText('Montant par type de lot')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Montant Appartement')).not.toBeInTheDocument();
   });
 
   it('shows exactly the selected unit types on the buildings step', async () => {
@@ -199,8 +254,10 @@ describe('OnboardingWizardPage', () => {
 
     // Appartement est coché par défaut ; on ajoute Box, pas Bureau.
     await user.click(await screen.findByRole('checkbox', { name: /Box/ }));
-    await user.type(screen.getByLabelText('Appartement'), '50');
-    await user.type(screen.getByLabelText('Box'), '20');
+    // Le montant se saisit à côté de chaque case cochée, et seulement d'elles.
+    expect(screen.queryByLabelText('Montant Bureau')).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('Montant Appartement'), '50');
+    await user.type(screen.getByLabelText('Montant Box'), '20');
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
 
     expect(await screen.findByText('Structure de votre copropriété')).toBeInTheDocument();
@@ -217,7 +274,7 @@ describe('OnboardingWizardPage', () => {
     // Mode de gestion (forfait par défaut).
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
     // Types de lots : Appartement seul, à 50.
-    await user.type(await screen.findByLabelText('Appartement'), '50');
+    await user.type(await screen.findByLabelText('Montant Appartement'), '50');
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
     // Bâtiments : 12 appartements dans l'unique bâtiment, sur 3 étages.
     const floorCount = await screen.findByRole('spinbutton', { name: "Nombre d'étages" });
@@ -260,7 +317,7 @@ describe('OnboardingWizardPage', () => {
     // the step we just left (the failure mode fillPropertyStep guards against).
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
     await screen.findByText('Quels types de lots gérez-vous ?');
-    await user.type(await screen.findByLabelText('Appartement'), '50');
+    await user.type(await screen.findByLabelText('Montant Appartement'), '50');
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
     await screen.findByText('Structure de votre copropriété');
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
@@ -270,8 +327,9 @@ describe('OnboardingWizardPage', () => {
     await user.click(within(propertySection).getByRole('link', { name: 'Modifier' }));
 
     expect(await screen.findByLabelText('Nom de la copropriété')).toHaveValue('Résidence Exemple');
-    // Revenir en arrière ne recrée pas le compte : il existe déjà.
+    // Revenir en arrière ne recrée ni le compte ni la copropriété : ils existent déjà.
     expect(mockedRegister).toHaveBeenCalledTimes(1);
+    expect(mockedCreateProperty).toHaveBeenCalledTimes(1);
   });
 
   /**
@@ -285,7 +343,7 @@ describe('OnboardingWizardPage', () => {
     await fillAccountStep(user);
     await fillPropertyStep(user);
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
-    await user.type(await screen.findByLabelText('Appartement'), '50');
+    await user.type(await screen.findByLabelText('Montant Appartement'), '50');
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
     await user.click(await screen.findByRole('button', { name: 'Passer cette étape' }));
@@ -320,8 +378,10 @@ describe('OnboardingWizardPage', () => {
       screen.queryByRole('button', { name: 'Recommencer avec une nouvelle copropriété' }),
     ).not.toBeInTheDocument();
     expect(mockedRegister).toHaveBeenCalledTimes(1);
-    // Repartir de zéro efface aussi le mot de passe : l'étape 2 renvoie à
-    // l'étape 1 plutôt que de laisser créer un compte sans lui.
-    expect(screen.getByText(/Votre mot de passe n'a pas été conservé/)).toBeInTheDocument();
+    expect(mockedCreateProperty).toHaveBeenCalledTimes(1);
+    // Repartir de zéro oublie aussi le compte : l'étape 2 renvoie à l'étape 1
+    // plutôt que de créer une copropriété sans compte pour la porter.
+    expect(screen.getByText(/Commencez par créer votre compte/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continuer' })).toBeDisabled();
   });
 });

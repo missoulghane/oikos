@@ -21,7 +21,7 @@ public class ListDocumentsByOwnerService implements ListDocumentsByOwnerUseCase 
     @Override
     @Transactional(readOnly = true)
     public Page<DocumentView> list(ListDocumentsByOwnerQuery query) {
-        return documentRepository.findAllByOwner(query.ownerType(), query.ownerId(), query.pageRequest())
+        return documentRepository.findAllByOwner(query.ownerType(), query.ownerId(), query.search(), query.pageRequest())
                 .map(DocumentView::from);
     }
 }

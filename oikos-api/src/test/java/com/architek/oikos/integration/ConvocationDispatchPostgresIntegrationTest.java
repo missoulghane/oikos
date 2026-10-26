@@ -199,7 +199,7 @@ class ConvocationDispatchPostgresIntegrationTest extends PostgresIntegrationTest
                 ownerUserId.value(), ownerPartyId);
 
         meetingId = createGeneralMeetingUseCase.create(
-                new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG ordinaire 2026", SESSION_DATE, VENUE));
+                new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG ordinaire 2026", SESSION_DATE, VENUE, null));
         addAgendaItemUseCase.add(new AddAgendaItemCommand(meetingId, "Approbation des comptes 2025", null,
                 MajorityRule.ABSOLUTE));
         scheduleGeneralMeetingUseCase.schedule(new ScheduleGeneralMeetingCommand(meetingId, SESSION_DATE, VENUE));
@@ -398,7 +398,7 @@ class ConvocationDispatchPostgresIntegrationTest extends PostgresIntegrationTest
                 UUID.randomUUID(), propertyId.value(), OffsetDateTime.now(ZoneOffset.UTC),
                 OffsetDateTime.now(ZoneOffset.UTC));
         GeneralMeetingId quorateMeeting = createGeneralMeetingUseCase.create(
-                new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG avec quorum", SESSION_DATE, VENUE));
+                new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG avec quorum", SESSION_DATE, VENUE, null));
         addAgendaItemUseCase.add(new AddAgendaItemCommand(quorateMeeting, "Point", null, MajorityRule.SIMPLE));
         scheduleGeneralMeetingUseCase.schedule(new ScheduleGeneralMeetingCommand(quorateMeeting, SESSION_DATE, VENUE));
         generateConvocationsUseCase.generate(new GenerateConvocationsCommand(quorateMeeting));

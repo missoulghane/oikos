@@ -72,7 +72,7 @@ class AgendaItemReorderPostgresIntegrationTest extends PostgresIntegrationTestBa
                 propertyId.value(), "Résidence Al Amal", "12 rue des Orangers", now, now);
 
         meetingId = createGeneralMeetingUseCase.create(
-                new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG ordinaire 2026", null, null));
+                new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG ordinaire 2026", null, null, null));
         addItem("Comptes");
         addItem("Travaux");
         addItem("Divers");

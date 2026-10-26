@@ -11,9 +11,7 @@ import com.architek.oikos.property.domain.repository.UnitRepository;
 import com.architek.oikos.property.domain.repository.UnitTypeDefinitionRepository;
 
 /**
- * La ligne "OTHERS" seedee a la creation de la property n'est pas protegee:
- * elle peut etre retiree comme n'importe quel autre type, tant qu'aucun Unit
- * ne la reference (meme regle que pour tout autre type). La ligne de prix
+ * Un type peut etre retire tant qu'aucun Unit ne le reference. La ligne de prix
  * associee (unit_type_pricing), elle, est supprimee automatiquement par la
  * DB (ON DELETE CASCADE) puisqu'un prix sans type n'a pas de sens.
  */

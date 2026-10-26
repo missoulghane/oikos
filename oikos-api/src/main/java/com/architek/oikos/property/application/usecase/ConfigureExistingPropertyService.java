@@ -45,8 +45,7 @@ import com.architek.oikos.shared.domain.pagination.PageRequest;
  * property it creates itself. They cannot be merged: the wizard's property
  * already exists by then (registration creates account, property and party
  * together, because a Party is property-scoped), so there is nothing to create
- * here - and no default "OTHERS" unit type either, since the wizard always
- * names the types it wants.
+ * here.
  *
  * <p>Units are created with Shares.ZERO, like the sibling service: tantiemes
  * are entered later from each unit's own screen, which is also why SHARES mode

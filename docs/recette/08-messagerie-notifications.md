@@ -5,7 +5,7 @@
 Routes front : `/messages/reception`, `/messages/sent`, `/messages/drafts`,
 `/messages/new`, `/notifications`.
 Endpoints : `ConversationController`, `MessageDraftController`,
-`RecipientGroupController`, `NotificationController`.
+`NotificationController`.
 
 ### MSG-01 — Envoi d'un message direct
 - **Rôle** : tout membre de la copropriété (OWNER, SYNDIC, MANAGER)
@@ -25,12 +25,12 @@ Endpoints : `ConversationController`, `MessageDraftController`,
 - **Priorité** : P3
 - [ ]
 
-### MSG-03 — Message diffusé (broadcast) à un groupe
+### MSG-03 — Message diffusé (broadcast) à toute la copropriété
 - **Rôle** : SYNDIC (admin), MANAGER (admin/membre avec droit `canBroadcastOnProperty`)
-- **Prérequis** : groupe de diffusion existant ou destinataires multiples
+- **Prérequis** : copropriété avec plusieurs membres
 - **Étapes** :
   1. `POST /properties/{propertyId}/broadcast-messages`
-- **Résultat attendu** : tous les destinataires du groupe reçoivent le message
+- **Résultat attendu** : tous les membres de la copropriété reçoivent le message
 - **Priorité** : P2
 - [ ]
 
@@ -62,12 +62,11 @@ Endpoints : `ConversationController`, `MessageDraftController`,
 - **Priorité** : P2
 - [ ]
 
-### MSG-07 — Gestion des groupes de diffusion
-- **Rôle** : SYNDIC (admin), MANAGER (admin)
-- **Prérequis** : copropriété avec plusieurs membres
+### MSG-07 — Groupes de diffusion supprimés
+- **Rôle** : SYNDIC (admin)
+- **Prérequis** : aucun
 - **Étapes** :
-  1. Créer un groupe (`POST /properties/{propertyId}/messaging/groups`)
-  2. Le modifier puis le supprimer
-- **Résultat attendu** : cycle complet fonctionnel, groupe utilisable ensuite dans un envoi broadcast (MSG-03)
+  1. Ouvrir le menu « Ma copropriété », puis « Nouveau message »
+- **Résultat attendu** : plus d'entrée « Groupes de diffusion » dans le menu ni de raccourcis « Groupes » dans le choix des destinataires ; `/properties/{propertyId}/messaging/groups` répond 404. Les conversations déjà envoyées à des membres d'un groupe restent intactes
 - **Priorité** : P3
 - [ ]

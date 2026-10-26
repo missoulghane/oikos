@@ -30,6 +30,9 @@ public class DocumentEntity extends AuditableEntity {
     @Column(name = "file_name", nullable = false)
     private String fileName;
 
+    @Column(nullable = false, length = 200)
+    private String title;
+
     @Column(name = "content_type", nullable = false)
     private String contentType;
 

@@ -4,22 +4,22 @@
 
 Routes front : `/register`, `/register/user`, `/register/manager-admin`,
 `/register/board-admin/{account,property,dues-mode,unit-types,buildings,bank-accounts,summary,done}`.
-Endpoints : `POST /users/onboarding-leads`, `/users/register-property-user`,
-`/users/register-property-board-admin`, `/users/register-property-manager-admin`,
-`POST /properties/{id}/configuration`.
+Endpoints : `/users/register-property-user`,
+`/users/register-property-board-admin`, `POST /users/me/board-admin-property`,
+`/users/register-property-manager-admin`, `POST /properties/{id}/configuration`.
 
-Rappel important (confirmé dans le code, `RegisterPropertyBoardAdminService`
-Javadoc) : dans le wizard syndic bénévole, **le compte utilisateur et la
-copropriété ne sont créés qu'à l'étape 2** ("Votre copropriété"), pas à
-l'étape 1. Les étapes 1 à 7 utilisent 7 sous-routes distinctes plus une page
-finale `/done`.
+Rappel important : dans le wizard syndic bénévole, **le compte utilisateur est
+créé à l'étape 1** ("Votre compte") et **la copropriété à l'étape 2** ("Votre
+copropriété"). Les étapes 1 à 7 utilisent 7 sous-routes distinctes plus une
+page finale `/done`. Le syndic professionnel n'est plus proposé sur `/register`
+(la route `/register/manager-admin` reste accessible directement).
 
 ### REG-01 — Choix du type d'inscription
 - **Rôle** : ANONYME
 - **Prérequis** : aucun
 - **Étapes** :
   1. Aller sur `/register`
-- **Résultat attendu** : proposition claire des parcours (copropriétaire, syndic bénévole, syndic professionnel), chaque choix mène à la bonne route
+- **Résultat attendu** : deux parcours proposés (« Syndic ou membre du conseil syndical », copropriétaire), chaque choix mène à la bonne route ; plus d'option « Syndic professionnel »
 - **Priorité** : P3
 - [ ]
 
@@ -43,22 +43,23 @@ finale `/done`.
 - **Priorité** : P1
 - [ ]
 
-### REG-04 — Wizard syndic bénévole, étape 1 "Votre compte" (capture du lead)
+### REG-04 — Wizard syndic bénévole, étape 1 "Votre compte" (création du compte)
 - **Rôle** : futur SYNDIC (admin)
 - **Prérequis** : aucun
 - **Étapes** :
   1. Aller sur `/register/board-admin/account`
-  2. Saisir nom/email/téléphone/mot de passe, cliquer "Continuer"
-- **Résultat attendu** : `POST /users/onboarding-leads` (202) déclenché, **aucun compte utilisateur créé en base à ce stade**, redirection vers l'étape 2
+  2. Saisir nom/email/téléphone/mot de passe, choisir son rôle dans le conseil syndical (« Syndic » par défaut), cocher « J'accepte les CGV et CGU », cliquer "Continuer"
+  3. Refaire l'essai sans cocher la case CGV/CGU
+- **Résultat attendu** : `POST /users/register-property-board-admin` (201) crée le compte seul (`app_user.terms_accepted_at` renseigné), renvoie un jeton d'onboarding de compte, email de vérification envoyé de façon asynchrone ; redirection vers l'étape 2. Sans la case cochée : message « Vous devez accepter les CGV et CGU », aucun appel. Revenir à l'étape 1 affiche « Votre compte est créé » sans recréer le compte
 - **Priorité** : P1
 - [ ]
 
-### REG-05 — Wizard, étape 2 "Votre copropriété" (création effective du compte)
+### REG-05 — Wizard, étape 2 "Votre copropriété" (création de la copropriété)
 - **Rôle** : futur SYNDIC (admin)
 - **Prérequis** : étape 1 complétée dans la session en cours
 - **Étapes** :
   1. Sur `/register/board-admin/property`, saisir les infos de la copropriété, valider
-- **Résultat attendu** : `POST /users/register-property-board-admin` crée dans une seule transaction la Property, la Party et le User ; un token d'onboarding est renvoyé pour authentifier les étapes suivantes ; email de vérification envoyé **de façon asynchrone** (`@Async`, fire-and-forget — ne doit pas ralentir la réponse HTTP)
+- **Résultat attendu** : `POST /users/me/board-admin-property` (authentifié par le jeton de l'étape 1) crée dans une seule transaction la Property (**sans type de lot « OTHERS »**), la Party, le siège au conseil syndical choisi à l'étape 1 et le rôle `PROPERTY_BOARD_ADMIN` ; un jeton d'onboarding de copropriété est renvoyé pour authentifier les étapes suivantes. Un second envoi pour le même compte est refusé (409)
 - **Priorité** : P1
 - [ ]
 
@@ -76,7 +77,7 @@ finale `/done`.
 - **Prérequis** : étape 3 complétée
 - **Étapes** :
   1. Sur `/register/board-admin/unit-types`, définir un ou plusieurs types de lots
-- **Résultat attendu** : données conservées en état local, navigation vers l'étape 5
+- **Résultat attendu** : au forfait, le champ montant s'affiche à côté de la case de chaque type coché ; données conservées en état local, navigation vers l'étape 5
 - **Priorité** : P2
 - [ ]
 
@@ -108,21 +109,31 @@ finale `/done`.
 - **Priorité** : P1
 - [ ]
 
+### REG-11a — Abandon du wizard après l'étape 1
+- **Rôle** : SYNDIC (admin)
+- **Prérequis** : étape 1 complétée, puis fermeture de l'onglet
+- **Étapes** :
+  1. Activer le compte depuis l'email, se connecter
+  2. Sur le tableau de bord, cliquer « Créer ma copropriété »
+- **Résultat attendu** : l'étape 2 s'ouvre connectée (avec le choix du rôle au conseil syndical), la copropriété est créée avec la session, le wizard se poursuit normalement
+- **Priorité** : P2
+- [ ]
+
 ### REG-11 — Abandon du wizard après l'étape 2
 - **Rôle** : SYNDIC (admin)
 - **Prérequis** : étape 2 complétée, puis fermeture de l'onglet/navigateur
 - **Étapes** :
   1. Compléter l'étape 2 puis quitter sans terminer le wizard
-  2. Se reconnecter plus tard avec les identifiants créés à l'étape 2
+  2. Se reconnecter plus tard avec les identifiants créés à l'étape 1
 - **Résultat attendu** : le compte existe et permet la connexion ; la copropriété existe mais reste incomplète (pas de bâtiments/lots/comptes) ; vérifier qu'aucun écran de l'application ne casse face à cet état intermédiaire (ex. dashboard avec copropriété vide)
 - **Priorité** : P2
 - [ ]
 
 ### REG-12 — Vérification d'email suite à inscription bénévole (lien async)
 - **Rôle** : SYNDIC (admin)
-- **Prérequis** : étape 2 complétée (REG-05)
+- **Prérequis** : étape 1 complétée (REG-04)
 - **Étapes** :
-  1. Attendre la réception de l'email de vérification (envoi asynchrone — l'écran de l'étape 2/3 ne doit pas attendre cet envoi)
+  1. Attendre la réception de l'email de vérification (envoi asynchrone — l'écran de l'étape 1/2 ne doit pas attendre cet envoi)
   2. Cliquer le lien `/verify-email?token=...`
 - **Résultat attendu** : email reçu en quelques secondes malgré l'envoi async, compte marqué vérifié après clic
 - **Priorité** : P1

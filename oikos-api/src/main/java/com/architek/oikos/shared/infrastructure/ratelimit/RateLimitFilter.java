@@ -64,8 +64,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final List<String> REGISTRATION = List.of(
             ApiVersion.V1 + "/users/register-property-user",
             ApiVersion.V1 + "/users/register-property-board-admin",
-            ApiVersion.V1 + "/users/register-property-manager-admin",
-            ApiVersion.V1 + "/users/onboarding-leads");
+            ApiVersion.V1 + "/users/register-property-manager-admin");
 
     private final RateLimiter rateLimiter;
     private final RateLimitPolicies policies;

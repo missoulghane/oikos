@@ -16,7 +16,6 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 import com.architek.oikos.user.application.command.AcceptPartyInvitationCommand;
 import com.architek.oikos.user.application.command.ActivateAccountCommand;
-import com.architek.oikos.user.application.command.CaptureOnboardingLeadCommand;
 import com.architek.oikos.user.application.command.RegisterPropertyBoardAdminCommand;
 import com.architek.oikos.user.application.command.RegisterPropertyManagerAdminCommand;
 import com.architek.oikos.user.application.command.RegisterUserCommand;
@@ -24,7 +23,6 @@ import com.architek.oikos.user.application.command.ResendVerificationCommand;
 import com.architek.oikos.user.application.command.VerifyAccountCommand;
 import com.architek.oikos.user.application.port.in.AcceptPartyInvitationUseCase;
 import com.architek.oikos.user.application.port.in.ActivateAccountUseCase;
-import com.architek.oikos.user.application.port.in.CaptureOnboardingLeadUseCase;
 import com.architek.oikos.user.application.port.in.RegisterPropertyBoardAdminUseCase;
 import com.architek.oikos.user.application.port.in.RegisterPropertyManagerAdminUseCase;
 import com.architek.oikos.user.application.port.in.RegisterUserUseCase;
@@ -33,7 +31,6 @@ import com.architek.oikos.user.application.port.in.VerifyAccountUseCase;
 import com.architek.oikos.user.domain.valueobject.UserId;
 import com.architek.oikos.user.web.request.AcceptInvitationRequest;
 import com.architek.oikos.user.web.request.ActivateAccountRequest;
-import com.architek.oikos.user.web.request.CaptureOnboardingLeadRequest;
 import com.architek.oikos.user.web.request.RegisterPropertyBoardAdminRequest;
 import com.architek.oikos.user.web.request.RegisterPropertyManagerAdminRequest;
 import com.architek.oikos.user.web.request.RegisterUserRequest;
@@ -41,7 +38,6 @@ import com.architek.oikos.user.web.request.ResendVerificationRequest;
 import com.architek.oikos.user.web.request.VerifyAccountRequest;
 import com.architek.oikos.user.web.response.MessageResponse;
 import com.architek.oikos.user.web.response.RegisteredBoardAdminResponse;
-import com.architek.oikos.user.application.dto.RegisteredBoardAdminView;
 import com.architek.oikos.auth.application.port.out.JwtTokenPort;
 
 /**
@@ -58,7 +54,6 @@ public class RegistrationController {
     private final ResendVerificationUseCase resendVerificationUseCase;
     private final ActivateAccountUseCase activateAccountUseCase;
     private final AcceptPartyInvitationUseCase acceptPartyInvitationUseCase;
-    private final CaptureOnboardingLeadUseCase captureOnboardingLeadUseCase;
     private final JwtTokenPort jwtTokenPort;
 
     public RegistrationController(RegisterUserUseCase registerUserUseCase,
@@ -68,7 +63,6 @@ public class RegistrationController {
                                    ResendVerificationUseCase resendVerificationUseCase,
                                    ActivateAccountUseCase activateAccountUseCase,
                                    AcceptPartyInvitationUseCase acceptPartyInvitationUseCase,
-                                   CaptureOnboardingLeadUseCase captureOnboardingLeadUseCase,
                                    JwtTokenPort jwtTokenPort) {
         this.registerUserUseCase = registerUserUseCase;
         this.registerPropertyBoardAdminUseCase = registerPropertyBoardAdminUseCase;
@@ -77,20 +71,7 @@ public class RegistrationController {
         this.resendVerificationUseCase = resendVerificationUseCase;
         this.activateAccountUseCase = activateAccountUseCase;
         this.acceptPartyInvitationUseCase = acceptPartyInvitationUseCase;
-        this.captureOnboardingLeadUseCase = captureOnboardingLeadUseCase;
         this.jwtTokenPort = jwtTokenPort;
-    }
-
-    /**
-     * Step 1 of the volunteer-syndic wizard. Always 202: the response must not
-     * reveal whether the address is already known (see CaptureOnboardingLeadService),
-     * and the visitor's next step must never be blocked by this side effect.
-     */
-    @PostMapping("/onboarding-leads")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public void captureOnboardingLead(@Valid @RequestBody CaptureOnboardingLeadRequest request) {
-        captureOnboardingLeadUseCase.capture(new CaptureOnboardingLeadCommand(
-                EmailVO.of(request.email()), request.fullName()));
     }
 
     @PostMapping("/register-property-user")
@@ -109,11 +90,10 @@ public class RegistrationController {
     }
 
     /**
-     * Volunteer syndic board admin - self-managed HOA. Called at the end of
-     * step 2 of the wizard, as soon as the property has a name: the Party
-     * linking the account to its property cannot exist before that.
-     * Answers with the onboarding token the remaining steps need, since the
-     * account is not verified (hence cannot log in) yet.
+     * Volunteer syndic board admin - self-managed HOA. Step 1 of the wizard:
+     * creates the account only (its property comes at step 2, see
+     * BoardAdminOnboardingController). Answers with the onboarding token step 2
+     * needs, since the account is not verified (hence cannot log in) yet.
      */
     @PostMapping("/register-property-board-admin")
     public ResponseEntity<RegisteredBoardAdminResponse> registerPropertyBoardAdmin(
@@ -122,14 +102,11 @@ public class RegistrationController {
                 request.fullName(),
                 EmailVO.of(request.email()),
                 request.phone(),
-                RawPassword.of(request.password()),
-                request.propertyName(),
-                request.propertyAddress(), request.propertyCity());
-        RegisteredBoardAdminView registration = registerPropertyBoardAdminUseCase.register(command);
-        String onboardingToken = jwtTokenPort.generateOnboardingToken(
-                EntityId.of(registration.userId().asUuid()), registration.propertyId());
-        return ResponseEntity.created(URI.create("/api/v1/users/" + registration.userId()))
-                .body(RegisteredBoardAdminResponse.from(registration, onboardingToken,
+                RawPassword.of(request.password()));
+        UserId userId = registerPropertyBoardAdminUseCase.register(command);
+        String onboardingToken = jwtTokenPort.generateAccountOnboardingToken(EntityId.of(userId.asUuid()));
+        return ResponseEntity.created(URI.create("/api/v1/users/" + userId))
+                .body(new RegisteredBoardAdminResponse(userId.toString(), onboardingToken,
                         jwtTokenPort.onboardingTokenTtlSeconds()));
     }
 

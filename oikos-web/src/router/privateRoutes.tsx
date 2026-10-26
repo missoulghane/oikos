@@ -147,9 +147,6 @@ const RecordOwnerPaymentPage = lazy(() =>
 const PropertyUnitTypesTab = lazy(() =>
   import('@/features/property-mngt/properties').then((m) => ({ default: m.PropertyUnitTypesTab })),
 );
-const RecipientGroupsTab = lazy(() =>
-  import('@/features/messaging').then((m) => ({ default: m.RecipientGroupsTab })),
-);
 const PartiesPage = lazy(() =>
   import('@/features/property-mngt/parties').then((m) => ({ default: m.PartiesPage })),
 );
@@ -375,17 +372,6 @@ export const privateRoutes: RouteObject[] = [
                     element: (
                       <Suspense fallback={<Loader />}>
                         <PropertyContactsTab />
-                      </Suspense>
-                    ),
-                  },
-                  {
-                    // Le carnet d'adresses de la messagerie : il appartient à la
-                    // copropriété, il vit donc avec ses contacts, pas dans la
-                    // messagerie qui est transverse.
-                    path: 'messaging-groups',
-                    element: (
-                      <Suspense fallback={<Loader />}>
-                        <RecipientGroupsTab />
                       </Suspense>
                     ),
                   },

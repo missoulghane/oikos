@@ -50,6 +50,7 @@ public interface UserPersistenceMapper {
                 .collect(Collectors.toSet()));
         entity.setVerified(user.isVerified());
         entity.setEnabled(user.isEnabled());
+        entity.setTermsAcceptedAt(user.getTermsAcceptedAt());
         return entity;
     }
 
@@ -72,6 +73,7 @@ public interface UserPersistenceMapper {
                 entity.isVerified(),
                 entity.isEnabled(),
                 entity.getAvatar(),
-                entity.getAvatarContentType());
+                entity.getAvatarContentType(),
+                entity.getTermsAcceptedAt());
     }
 }

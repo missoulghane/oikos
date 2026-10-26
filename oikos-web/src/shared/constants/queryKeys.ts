@@ -105,8 +105,8 @@ export const queryKeys = {
     list: (propertyId: string) => ['board-members', propertyId, 'list'] as const,
   },
   documents: {
-    list: (ownerType: string, ownerId: string, page: number, size: number) =>
-      ['documents', ownerType, ownerId, 'list', page, size] as const,
+    list: (ownerType: string, ownerId: string, page: number, size: number, search = '') =>
+      ['documents', ownerType, ownerId, 'list', page, size, search] as const,
   },
   messaging: {
     conversations: (
@@ -117,7 +117,6 @@ export const queryKeys = {
       readState?: 'READ' | 'UNREAD',
     ) => ['messaging', 'conversations', page, size, search, box, readState] as const,
     unreadSummary: () => ['messaging', 'unread-summary'] as const,
-    recipientGroups: (propertyId: string) => ['messaging', 'recipient-groups', propertyId] as const,
     messages: (conversationId: string) => ['messaging', 'conversations', conversationId, 'messages'] as const,
     recipients: (propertyId: string, search: string | undefined) =>
       ['messaging', 'recipients', propertyId, search] as const,

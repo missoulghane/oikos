@@ -67,6 +67,8 @@ class UploadDocumentServiceTest {
         DocumentView view = service.upload(command(new byte[] {1, 2, 3}, "application/pdf"));
 
         assertThat(view.fileName()).isEqualTo("notice.pdf");
+        // No title given: the file name without its extension stands in for it.
+        assertThat(view.title()).isEqualTo("notice");
         verify(fileStoragePort).store(anyString(), any());
         verify(documentRepository).save(any(Document.class));
     }

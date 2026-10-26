@@ -1,7 +1,9 @@
 package com.architek.oikos.user.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,18 +20,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.architek.oikos.shared.application.port.out.AsyncEmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
-import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 import com.architek.oikos.user.application.command.RegisterPropertyBoardAdminCommand;
-import com.architek.oikos.user.application.port.out.PartyProvisioningDetails;
-import com.architek.oikos.user.application.port.out.PartyProvisioningPort;
-import com.architek.oikos.user.application.port.out.PropertyProvisioningDetails;
-import com.architek.oikos.user.application.port.out.PropertyProvisioningPort;
-import com.architek.oikos.user.domain.model.PropertyRole;
+import com.architek.oikos.user.domain.exception.EmailAlreadyUsedException;
 import com.architek.oikos.user.domain.model.Role;
 import com.architek.oikos.user.domain.model.User;
-import com.architek.oikos.user.domain.repository.OnboardingLeadRepository;
 import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.user.domain.repository.VerificationTokenRepository;
 import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
@@ -37,17 +33,10 @@ import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
 @ExtendWith(MockitoExtension.class)
 class RegisterPropertyBoardAdminServiceTest {
 
+    private static final Instant NOW = Instant.parse("2026-10-09T10:00:00Z");
+
     @Mock
     private UserRepository userRepository;
-
-    @Mock
-    private OnboardingLeadRepository onboardingLeadRepository;
-
-    @Mock
-    private PartyProvisioningPort partyProvisioningPort;
-
-    @Mock
-    private PropertyProvisioningPort propertyProvisioningPort;
 
     @Mock
     private VerificationTokenRepository verificationTokenRepository;
@@ -59,44 +48,44 @@ class RegisterPropertyBoardAdminServiceTest {
     private AsyncEmailSenderPort asyncEmailSender;
 
     private RegisterPropertyBoardAdminService newService() {
-        return new RegisterPropertyBoardAdminService(userRepository, onboardingLeadRepository, partyProvisioningPort, propertyProvisioningPort,
-                verificationTokenRepository, passwordEncoderPort, asyncEmailSender, new VerificationTokenGenerator(),
-                new VerificationEmailComposer("http://localhost/verify"), Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
+        return new RegisterPropertyBoardAdminService(userRepository, verificationTokenRepository, passwordEncoderPort,
+                asyncEmailSender, new VerificationTokenGenerator(), new VerificationEmailComposer("http://localhost/verify"),
+                Clock.fixed(NOW, ZoneOffset.UTC), 24L);
+    }
+
+    private static RegisterPropertyBoardAdminCommand command() {
+        return new RegisterPropertyBoardAdminCommand(
+                "Jane Doe", EmailVO.of("board-admin@oikos.com"), "+212612345678", RawPassword.of("password123"));
     }
 
     @Test
-    void registering_a_property_board_admin_provisions_the_property_first_then_a_scoped_party_and_grants_the_role_through_it() {
-        EntityId propertyId = EntityId.newId();
-        EntityId partyId = EntityId.newId();
-        when(propertyProvisioningPort.provisionProperty(any())).thenReturn(propertyId);
-        when(partyProvisioningPort.createParty(any())).thenReturn(partyId);
+    void registering_creates_the_account_alone_stamped_with_its_terms_acceptance() {
         when(passwordEncoderPort.encode(any())).thenReturn(HashedPassword.of("hashed"));
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        RegisterPropertyBoardAdminCommand command = new RegisterPropertyBoardAdminCommand(
-                "Jane Doe", EmailVO.of("board-admin@oikos.com"), null, RawPassword.of("password123"),
-                "Residence A", "1 rue de Paris", "Casablanca");
-
-        newService().register(command);
+        newService().register(command());
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
-        assertThat(userCaptor.getValue().getRoles()).containsExactly(Role.ROLE_USER);
-        assertThat(userCaptor.getValue().getLinkedPartyIds()).containsExactly(partyId);
-        assertThat(userCaptor.getValue().getPropertyRoleGrants())
-                .extracting("role").containsExactly(PropertyRole.PROPERTY_BOARD_ADMIN);
+        User saved = userCaptor.getValue();
+        assertThat(saved.getRoles()).containsExactly(Role.ROLE_USER);
+        // The property, its party and the board-admin grant all come at step 2.
+        assertThat(saved.getLinkedPartyIds()).isEmpty();
+        assertThat(saved.getPropertyRoleGrants()).isEmpty();
+        assertThat(saved.getTermsAcceptedAt()).isEqualTo(NOW);
+        assertThat(saved.isVerified()).isFalse();
 
-        ArgumentCaptor<PropertyProvisioningDetails> propertyDetailsCaptor =
-                ArgumentCaptor.forClass(PropertyProvisioningDetails.class);
-        verify(propertyProvisioningPort).provisionProperty(propertyDetailsCaptor.capture());
-        assertThat(propertyDetailsCaptor.getValue().name()).isEqualTo("Residence A");
-
-        ArgumentCaptor<PartyProvisioningDetails> partyDetailsCaptor = ArgumentCaptor.forClass(PartyProvisioningDetails.class);
-        verify(partyProvisioningPort).createParty(partyDetailsCaptor.capture());
-        assertThat(partyDetailsCaptor.getValue().propertyId()).isEqualTo(propertyId);
-
-        verify(propertyProvisioningPort).assignPropertyManager(propertyId, partyId);
         verify(verificationTokenRepository).save(any());
         verify(asyncEmailSender).send(any(), any(), any());
+    }
+
+    @Test
+    void registering_with_an_email_already_in_use_creates_nothing() {
+        when(userRepository.existsByEmail("board-admin@oikos.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> newService().register(command())).isInstanceOf(EmailAlreadyUsedException.class);
+
+        verify(userRepository, never()).save(any());
+        verify(asyncEmailSender, never()).send(any(), any(), any());
     }
 }

@@ -3,7 +3,14 @@ import { downloadDocument } from '@/features/property-mngt/documents/api/downloa
 
 export function useDownloadDocument() {
   return useMutation({
-    mutationFn: ({ documentId, fileName }: { documentId: string; fileName: string }) =>
-      downloadDocument(documentId, fileName),
+    mutationFn: ({
+      documentId,
+      fileName,
+      onProgress,
+    }: {
+      documentId: string;
+      fileName: string;
+      onProgress?: (percent: number) => void;
+    }) => downloadDocument(documentId, fileName, onProgress),
   });
 }

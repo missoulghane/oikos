@@ -172,7 +172,7 @@ class ConvocationNotificationFailurePostgresIntegrationTest extends PostgresInte
                 propertyId.value());
 
         meetingId = createGeneralMeetingUseCase.create(new CreateGeneralMeetingCommand(propertyId,
-                MeetingType.ORDINARY, "AG ordinaire 2026", SESSION_DATE, VENUE));
+                MeetingType.ORDINARY, "AG ordinaire 2026", SESSION_DATE, VENUE, null));
         addAgendaItemUseCase.add(new AddAgendaItemCommand(meetingId, "Approbation des comptes 2025", null,
                 MajorityRule.SIMPLE));
         scheduleGeneralMeetingUseCase.schedule(new ScheduleGeneralMeetingCommand(meetingId, SESSION_DATE, VENUE));

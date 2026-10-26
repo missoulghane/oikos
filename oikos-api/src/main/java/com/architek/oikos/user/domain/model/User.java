@@ -1,5 +1,6 @@
 package com.architek.oikos.user.domain.model;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -36,10 +37,12 @@ public final class User {
     private final boolean enabled;
     private final byte[] avatar;
     private final String avatarContentType;
+    private final Instant termsAcceptedAt;
 
     private User(UserId id, EmailVO email, String fullName, String phone, HashedPassword password, Set<Role> roles,
                   Set<EntityId> linkedPartyIds, Set<PropertyRoleGrant> propertyRoleGrants,
-                  boolean verified, boolean enabled, byte[] avatar, String avatarContentType) {
+                  boolean verified, boolean enabled, byte[] avatar, String avatarContentType,
+                  Instant termsAcceptedAt) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.email = Objects.requireNonNull(email, "email must not be null");
         this.fullName = requireNonBlank(fullName, "fullName");
@@ -59,6 +62,9 @@ public final class User {
         // no bytes without a content type - see withAvatar/withoutAvatar.
         this.avatar = avatar == null ? null : avatar.clone();
         this.avatarContentType = avatar == null ? null : avatarContentType;
+        // Null for every account that never went through a sign-up form asking for it
+        // (admin-created, invited, or registered before the terms checkbox existed).
+        this.termsAcceptedAt = termsAcceptedAt;
     }
 
     private static String requireNonBlank(String value, String fieldName) {
@@ -74,7 +80,8 @@ public final class User {
 
     public static User register(UserId id, EmailVO email, String fullName, String phone, HashedPassword password,
                                  Role role) {
-        return new User(id, email, fullName, phone, password, Set.of(role), Set.of(), Set.of(), false, true, null, null);
+        return new User(id, email, fullName, phone, password, Set.of(role), Set.of(), Set.of(), false, true, null, null,
+                null);
     }
 
     /**
@@ -86,15 +93,15 @@ public final class User {
      */
     public static User registerByAdmin(UserId id, EmailVO email, String fullName, HashedPassword password) {
         return new User(id, email, fullName, null, password, Set.of(Role.ROLE_USER), Set.of(), Set.of(), false, true,
-                null, null);
+                null, null, null);
     }
 
     public static User reconstruct(UserId id, EmailVO email, String fullName, String phone, HashedPassword password,
                                     Set<Role> roles, Set<EntityId> linkedPartyIds,
                                     Set<PropertyRoleGrant> propertyRoleGrants, boolean verified, boolean enabled,
-                                    byte[] avatar, String avatarContentType) {
+                                    byte[] avatar, String avatarContentType, Instant termsAcceptedAt) {
         return new User(id, email, fullName, phone, password, roles, linkedPartyIds, propertyRoleGrants, verified,
-                enabled, avatar, avatarContentType);
+                enabled, avatar, avatarContentType, termsAcceptedAt);
     }
 
     public User verify() {
@@ -102,32 +109,32 @@ public final class User {
             return this;
         }
         return new User(id, email, fullName, phone, password, roles, linkedPartyIds, propertyRoleGrants, true,
-                enabled, avatar, avatarContentType);
+                enabled, avatar, avatarContentType, termsAcceptedAt);
     }
 
     public User withPassword(HashedPassword newPassword) {
         return new User(id, email, fullName, phone, newPassword, roles, linkedPartyIds, propertyRoleGrants, verified,
-                enabled, avatar, avatarContentType);
+                enabled, avatar, avatarContentType, termsAcceptedAt);
     }
 
     public User withEmail(EmailVO newEmail) {
         return new User(id, newEmail, fullName, phone, password, roles, linkedPartyIds, propertyRoleGrants, verified,
-                enabled, avatar, avatarContentType);
+                enabled, avatar, avatarContentType, termsAcceptedAt);
     }
 
     public User withFullName(String newFullName) {
         return new User(id, email, newFullName, phone, password, roles, linkedPartyIds, propertyRoleGrants, verified,
-                enabled, avatar, avatarContentType);
+                enabled, avatar, avatarContentType, termsAcceptedAt);
     }
 
     public User withPhone(String newPhone) {
         return new User(id, email, fullName, newPhone, password, roles, linkedPartyIds, propertyRoleGrants, verified,
-                enabled, avatar, avatarContentType);
+                enabled, avatar, avatarContentType, termsAcceptedAt);
     }
 
     public User withRoles(Set<Role> newRoles) {
         return new User(id, email, fullName, phone, password, newRoles, linkedPartyIds, propertyRoleGrants, verified,
-                enabled, avatar, avatarContentType);
+                enabled, avatar, avatarContentType, termsAcceptedAt);
     }
 
     public User withLinkedParty(EntityId partyId) {
@@ -135,21 +142,31 @@ public final class User {
         Set<EntityId> updated = new HashSet<>(linkedPartyIds);
         updated.add(partyId);
         return new User(id, email, fullName, phone, password, roles, updated, propertyRoleGrants, verified, enabled,
-                avatar, avatarContentType);
+                avatar, avatarContentType, termsAcceptedAt);
     }
 
     public User withPropertyRoleGrant(EntityId partyId, EntityId propertyId, PropertyRole role) {
         Set<PropertyRoleGrant> updated = new HashSet<>(propertyRoleGrants);
         updated.add(new PropertyRoleGrant(partyId, propertyId, role));
         return new User(id, email, fullName, phone, password, roles, linkedPartyIds, updated, verified, enabled,
-                avatar, avatarContentType);
+                avatar, avatarContentType, termsAcceptedAt);
+    }
+
+    /**
+     * Records when the account holder accepted the terms of sale and use (CGV/CGU)
+     * - kept as an instant rather than a flag, since the date is what proves it.
+     */
+    public User withTermsAcceptedAt(Instant acceptedAt) {
+        Objects.requireNonNull(acceptedAt, "acceptedAt must not be null");
+        return new User(id, email, fullName, phone, password, roles, linkedPartyIds, propertyRoleGrants, verified,
+                enabled, avatar, avatarContentType, acceptedAt);
     }
 
     public User withAvatar(byte[] newAvatar, String newAvatarContentType) {
         Objects.requireNonNull(newAvatar, "newAvatar must not be null");
         Objects.requireNonNull(newAvatarContentType, "newAvatarContentType must not be null");
         return new User(id, email, fullName, phone, password, roles, linkedPartyIds, propertyRoleGrants, verified,
-                enabled, newAvatar, newAvatarContentType);
+                enabled, newAvatar, newAvatarContentType, termsAcceptedAt);
     }
 
     public User withoutAvatar() {
@@ -157,7 +174,7 @@ public final class User {
             return this;
         }
         return new User(id, email, fullName, phone, password, roles, linkedPartyIds, propertyRoleGrants, verified,
-                enabled, null, null);
+                enabled, null, null, termsAcceptedAt);
     }
 
     /**
@@ -169,7 +186,7 @@ public final class User {
             return this;
         }
         return new User(id, email, fullName, phone, password, roles, linkedPartyIds, propertyRoleGrants, verified,
-                true, avatar, avatarContentType);
+                true, avatar, avatarContentType, termsAcceptedAt);
     }
 
     public User deactivate() {
@@ -177,7 +194,7 @@ public final class User {
             return this;
         }
         return new User(id, email, fullName, phone, password, roles, linkedPartyIds, propertyRoleGrants, verified,
-                false, avatar, avatarContentType);
+                false, avatar, avatarContentType, termsAcceptedAt);
     }
 
     public UserId getId() {
@@ -226,6 +243,10 @@ public final class User {
 
     public String getAvatarContentType() {
         return avatarContentType;
+    }
+
+    public Instant getTermsAcceptedAt() {
+        return termsAcceptedAt;
     }
 
     public boolean hasAvatar() {

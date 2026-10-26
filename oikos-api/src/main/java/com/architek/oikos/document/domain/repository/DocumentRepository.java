@@ -15,7 +15,12 @@ public interface DocumentRepository {
 
     Optional<Document> findById(DocumentId id);
 
-    Page<Document> findAllByOwner(DocumentOwnerType ownerType, EntityId ownerId, PageRequest pageRequest);
+    /**
+     * Most recent first. search, when not blank, keeps the documents whose
+     * title or file name contains it, case-insensitively.
+     */
+    Page<Document> findAllByOwner(DocumentOwnerType ownerType, EntityId ownerId, String search,
+                                  PageRequest pageRequest);
 
     void deleteById(DocumentId id);
 

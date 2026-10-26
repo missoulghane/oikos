@@ -20,6 +20,7 @@ public interface DocumentPersistenceMapper {
         entity.setOwnerType(document.getOwnerType().name());
         entity.setOwnerId(document.getOwnerId().value());
         entity.setFileName(document.getFileName());
+        entity.setTitle(document.getTitle());
         entity.setContentType(document.getContentType());
         entity.setSizeBytes(document.getSizeBytes());
         entity.setStorageKey(document.getStorageKey());
@@ -30,7 +31,7 @@ public interface DocumentPersistenceMapper {
 
     default Document toDomain(DocumentEntity entity) {
         return Document.reconstruct(DocumentId.of(entity.getId()), DocumentOwnerType.valueOf(entity.getOwnerType()),
-                EntityId.of(entity.getOwnerId()), entity.getFileName(), entity.getContentType(),
+                EntityId.of(entity.getOwnerId()), entity.getFileName(), entity.getTitle(), entity.getContentType(),
                 entity.getSizeBytes(), entity.getStorageKey(), entity.getChecksumSha256(),
                 EntityId.of(entity.getUploadedBy()), entity.getCreatedDate());
     }

@@ -12,8 +12,9 @@ Endpoints : `DocumentController` (`POST/GET/DELETE /documents`,
 - **Rôle** : SYNDIC (admin/membre avec droit d'écriture), MANAGER (admin/membre)
 - **Prérequis** : copropriété existante
 - **Étapes** :
-  1. Onglet "documents", déposer un fichier (PDF, image)
-- **Résultat attendu** : `POST /documents` (multipart) enregistre le document, visible immédiatement dans la liste
+  1. Onglet "documents", choisir un ou plusieurs fichiers (PDF, image), saisir un titre pour l'un d'eux et laisser l'autre vide, cliquer « Ajouter »
+  2. Refaire l'essai avec un fichier volumineux
+- **Résultat attendu** : `POST /documents` (multipart, paramètre `title` facultatif) enregistre le document, visible immédiatement dans la liste sous son titre (à défaut : nom du fichier sans extension) ; plus aucune mention « Téléverser » ; une barre de progression indique l'avancement de l'envoi
 - **Priorité** : P2
 - [ ]
 
@@ -21,9 +22,18 @@ Endpoints : `DocumentController` (`POST/GET/DELETE /documents`,
 - **Rôle** : tout rôle ayant `canReadDocument` sur l'entité concernée (SYNDIC, MANAGER, ou OWNER selon le document)
 - **Prérequis** : document déposé (DOC-01)
 - **Étapes** :
-  1. Ouvrir le document depuis la liste (`GET /documents/{id}`)
-  2. Télécharger le contenu (`GET /documents/{id}/content`)
-- **Résultat attendu** : métadonnées correctes, contenu téléchargé intact (pas de corruption)
+  1. Cliquer sur le titre du document dans la liste
+- **Résultat attendu** : le téléchargement démarre directement (`GET /documents/{id}/content`), avec une barre de progression pour un gros fichier ; contenu intact (pas de corruption)
+- **Priorité** : P2
+- [ ]
+
+### DOC-02b — Recherche et pagination
+- **Rôle** : SYNDIC, MANAGER
+- **Prérequis** : plus de 10 documents déposés
+- **Étapes** :
+  1. Parcourir les pages de la liste
+  2. Saisir une partie d'un titre ou d'un nom de fichier dans « Rechercher un document »
+- **Résultat attendu** : 10 documents par page, du plus récent au plus ancien ; la recherche (`GET /documents?search=…`, insensible à la casse, sur le titre et le nom du fichier) repart de la page 1 ; message « Aucun résultat » si rien ne correspond
 - **Priorité** : P2
 - [ ]
 

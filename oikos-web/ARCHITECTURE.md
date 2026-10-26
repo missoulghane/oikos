@@ -313,21 +313,26 @@ n'en ont pas, et l'acceptation d'une invitation en crée sans jamais en demander
 (`features/identity/onboarding`), une URL par étape — d'où le lien profond, le
 bouton « Modifier » du récapitulatif et le retour navigateur gratuits.
 
-Deux écritures serveur seulement, et c'est ce qui structure tout le reste :
+Trois écritures serveur seulement, et c'est ce qui structure tout le reste :
 
-- **Fin de l'étape 1** — `POST /users/onboarding-leads` enregistre l'email
-  seul. Le compte ne peut pas encore exister : une `Party` est portée par une
-  propriété (`party.property_id NOT NULL`), qui n'a pas de nom avant l'étape 2.
-  Sans cette capture, tout visiteur abandonnant entre les étapes 1 et 2 serait
-  perdu.
-- **Fin de l'étape 2** — `POST /users/register-property-board-admin` crée
-  compte + copropriété + party + rôle d'un bloc (couplage conservé) et renvoie
-  un **jeton d'onboarding** : le compte n'étant pas vérifié, il ne peut pas se
-  connecter, et ce jeton de portée réduite (un seul endpoint, une seule
-  propriété, ~2 h) est sa seule autorisation. À partir d'ici, un abandon laisse
-  derrière lui un compte utilisable.
-- **Étapes 3 à 6** — bufferisées côté client (`OnboardingProvider`,
-  `localStorage`). Le mot de passe, lui, reste en mémoire uniquement.
+- **Fin de l'étape 1** — `POST /users/register-property-board-admin` crée le
+  **compte seul** (nom, email, téléphone, mot de passe, horodatage de
+  l'acceptation des CGV/CGU, refusée en 400 si la case n'est pas cochée) et
+  renvoie un **jeton d'onboarding de compte** : le compte n'étant pas vérifié,
+  il ne peut pas se connecter, et ce jeton (un seul endpoint, ~2 h) est sa
+  seule autorisation pour l'étape 2. Le siège au conseil syndical (Syndic par
+  défaut, Président, Trésorier, Secrétaire, Membre) se choisit ici mais part
+  avec l'étape 2. Le mot de passe n'est conservé nulle part côté client.
+- **Fin de l'étape 2** — `POST /users/me/board-admin-property` crée copropriété
+  + party + siège au conseil + rôle `PROPERTY_BOARD_ADMIN` d'un bloc (une
+  `Party` est portée par une propriété, d'où ce second temps) et renvoie un
+  **jeton d'onboarding de copropriété** (un seul endpoint, une seule
+  propriété). L'API refuse en 409 un compte qui administre déjà une
+  copropriété, ce qui rend le double envoi inoffensif. Accepte aussi une
+  session ordinaire : un visiteur parti après l'étape 1 active son compte, se
+  connecte, et `CreatePropertyPrompt` (tableau de bord) le ramène ici.
+- **Étapes 3 à 6** — bufferisées côté client (`OnboardingProvider`, en
+  mémoire).
 - **Étape 7** — `POST /properties/{id}/configuration` commet le tout en une
   transaction (mode, types + prix, bâtiments, lots, comptes bancaires). Un seul
   commit rend les allers-retours depuis le récapitulatif sans effet de bord ;
@@ -338,8 +343,8 @@ Le jeton expiré n'est pas un cul-de-sac : l'endpoint accepte aussi une session
 de syndic ordinaire, et `ResumeOnboardingBanner` (tableau de bord) propose de
 reprendre à un syndic dont la copropriété n'a encore aucun bâtiment.
 
-L'étape 4 est conditionnelle : montants par type au forfait, budget
-prévisionnel en tantièmes (les tantièmes eux-mêmes se saisissent lot par lot
+L'étape 4 est conditionnelle : montants par type au forfait (saisis à côté de
+la case de chaque type coché), budget prévisionnel en tantièmes (les tantièmes eux-mêmes se saisissent lot par lot
 ensuite). Les deux champs d'adresse (voie et ville) sont recomposés en une
 seule chaîne, seul format que l'API stocke (250 caractères, validés sur la
 concaténation).

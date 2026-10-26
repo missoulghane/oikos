@@ -41,6 +41,14 @@ public class JwtService implements JwtTokenPort {
      */
     public static final String ONBOARDING_AUTHORITY_PREFIX = "ONBOARDING_";
 
+    /**
+     * Authority of the token issued at step 1 of the wizard, before the account
+     * has a property. Shares the onboarding prefix on purpose, so every rule but
+     * canCreateBoardAdminProperty denies it the same way; cannot collide with a
+     * property-scoped one, whose suffix is a UUID.
+     */
+    public static final String ACCOUNT_ONBOARDING_AUTHORITY = ONBOARDING_AUTHORITY_PREFIX + "ACCOUNT";
+
     private final SecretKey signingKey;
     private final long accessTokenTtlSeconds;
     private final long onboardingTokenTtlSeconds;
@@ -67,6 +75,17 @@ public class JwtService implements JwtTokenPort {
 
     /**
      * Short-lived token handed to the volunteer-syndic wizard when its account is
+     * created (end of step 1), so step 2 can create the account's property
+     * without the account being verified. Scoped to that single endpoint; the
+     * property-scoped token below takes over once the property exists.
+     */
+    @Override
+    public String generateAccountOnboardingToken(EntityId userId) {
+        return signOnboardingToken(userId, ACCOUNT_ONBOARDING_AUTHORITY);
+    }
+
+    /**
+     * Short-lived token handed to the volunteer-syndic wizard when its property is
      * created (end of step 2), so steps 3 to 7 can post their configuration
      * without the account being verified - and without login being weakened.
      * Scoped to one property and one endpoint; when it expires the visitor simply
@@ -74,10 +93,14 @@ public class JwtService implements JwtTokenPort {
      */
     @Override
     public String generateOnboardingToken(EntityId userId, EntityId propertyId) {
+        return signOnboardingToken(userId, ONBOARDING_AUTHORITY_PREFIX + propertyId);
+    }
+
+    private String signOnboardingToken(EntityId userId, String authority) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(userId.toString())
-                .claim(AUTHORITIES_CLAIM, Set.of(ONBOARDING_AUTHORITY_PREFIX + propertyId))
+                .claim(AUTHORITIES_CLAIM, Set.of(authority))
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(onboardingTokenTtlSeconds)))
                 .signWith(signingKey, Jwts.SIG.HS256)

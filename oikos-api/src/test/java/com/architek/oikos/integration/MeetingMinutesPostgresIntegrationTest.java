@@ -177,7 +177,7 @@ class MeetingMinutesPostgresIntegrationTest extends PostgresIntegrationTestBase 
                 syndicUserId.value(), "syndic." + unique + "@example.com", now, now);
 
         meetingId = createGeneralMeetingUseCase.create(
-                new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG ordinaire 2026", SESSION_DATE, VENUE));
+                new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG ordinaire 2026", SESSION_DATE, VENUE, null));
         itemId = addAgendaItemUseCase.add(new AddAgendaItemCommand(meetingId, "Ravalement de façade", null,
                 MajorityRule.ABSOLUTE)).id();
         scheduleGeneralMeetingUseCase.schedule(new ScheduleGeneralMeetingCommand(meetingId, SESSION_DATE, VENUE));
@@ -300,7 +300,7 @@ class MeetingMinutesPostgresIntegrationTest extends PostgresIntegrationTestBase 
                 UUID.randomUUID(), propertyId.value(), OffsetDateTime.now(ZoneOffset.UTC),
                 OffsetDateTime.now(ZoneOffset.UTC));
         GeneralMeetingId forced = createGeneralMeetingUseCase.create(
-                new CreateGeneralMeetingCommand(propertyId, MeetingType.EXTRAORDINARY, "AG extraordinaire", SESSION_DATE, VENUE));
+                new CreateGeneralMeetingCommand(propertyId, MeetingType.EXTRAORDINARY, "AG extraordinaire", SESSION_DATE, VENUE, null));
         addAgendaItemUseCase.add(new AddAgendaItemCommand(forced, "Point unique", null, MajorityRule.SIMPLE));
         scheduleGeneralMeetingUseCase.schedule(new ScheduleGeneralMeetingCommand(forced, SESSION_DATE, VENUE));
         generateConvocationsUseCase.generate(
@@ -318,7 +318,7 @@ class MeetingMinutesPostgresIntegrationTest extends PostgresIntegrationTestBase 
     @Test
     void the_agenda_appears_in_reading_order_as_numbered_resolutions() {
         GeneralMeetingId multi = createGeneralMeetingUseCase.create(
-                new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG à plusieurs points", SESSION_DATE, VENUE));
+                new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG à plusieurs points", SESSION_DATE, VENUE, null));
         for (String label : List.of("Premier point", "Deuxième point", "Troisième point")) {
             addAgendaItemUseCase.add(new AddAgendaItemCommand(multi, label, null, MajorityRule.SIMPLE));
         }

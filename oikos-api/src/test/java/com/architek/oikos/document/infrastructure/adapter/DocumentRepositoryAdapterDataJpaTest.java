@@ -46,10 +46,27 @@ class DocumentRepositoryAdapterDataJpaTest {
         adapter.save(aDocument(DocumentOwnerType.PROPERTY, EntityId.newId(), "checksum-other-owner"));
         adapter.save(aDocument(DocumentOwnerType.UNIT, ownerId, "checksum-other-type"));
 
-        var page = adapter.findAllByOwner(DocumentOwnerType.PROPERTY, ownerId, PageRequest.of(0, 2));
+        var page = adapter.findAllByOwner(DocumentOwnerType.PROPERTY, ownerId, null, PageRequest.of(0, 2));
 
         assertThat(page.totalElements()).isEqualTo(3);
         assertThat(page.content()).hasSize(2);
+    }
+
+    @Test
+    void findAllByOwner_searches_the_title_and_the_file_name_case_insensitively() {
+        EntityId ownerId = EntityId.newId();
+        adapter.save(Document.create(DocumentOwnerType.PROPERTY, ownerId, "scan-001.pdf", "Règlement de copropriété",
+                "application/pdf", 42L, "checksum-1", EntityId.newId()));
+        adapter.save(Document.create(DocumentOwnerType.PROPERTY, ownerId, "budget-2026.pdf", null,
+                "application/pdf", 42L, "checksum-2", EntityId.newId()));
+
+        assertThat(adapter.findAllByOwner(DocumentOwnerType.PROPERTY, ownerId, "RÈGLEMENT", PageRequest.of(0, 10))
+                .content()).extracting(Document::getFileName).containsExactly("scan-001.pdf");
+        // No title given: the file name stands in for it, and is searchable too.
+        assertThat(adapter.findAllByOwner(DocumentOwnerType.PROPERTY, ownerId, "budget", PageRequest.of(0, 10))
+                .content()).extracting(Document::getTitle).containsExactly("budget-2026");
+        assertThat(adapter.findAllByOwner(DocumentOwnerType.PROPERTY, ownerId, "  ", PageRequest.of(0, 10))
+                .totalElements()).isEqualTo(2);
     }
 
     @Test

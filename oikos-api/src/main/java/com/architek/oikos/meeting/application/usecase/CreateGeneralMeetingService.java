@@ -60,7 +60,10 @@ public class CreateGeneralMeetingService implements CreateGeneralMeetingUseCase 
 
         GeneralMeeting draft = GeneralMeeting.createDraft(GeneralMeetingId.newId(), command.propertyId(),
                 command.meetingType(), command.title(), command.scheduledAt(), command.venue(), quorum,
-                property.votingWeightMode(), newPublicReference());
+                property.votingWeightMode(), newPublicReference())
+                // Through withComment rather than a createDraft parameter: one place decides
+                // that a blank comment is no comment.
+                .withComment(command.comment());
 
         return generalMeetingRepository.save(draft).getId();
     }

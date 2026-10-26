@@ -9,14 +9,15 @@ import com.architek.oikos.property.application.port.in.CreatePropertyUseCase;
 import com.architek.oikos.property.domain.valueobject.BoardRole;
 import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
+import com.architek.oikos.user.application.port.out.BoardSeat;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningDetails;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningPort;
 
 /**
  * Cross-feature adapter: delegates to property's public port-in use cases
  * (CreatePropertyUseCase, AddBoardMemberUseCase), never to property's
- * repositories directly (rule 6). Assigns the newly registered manager's
- * Party as the property's PROPERTY_MANAGER board member.
+ * repositories directly (rule 6). Seats the newly registered account's Party
+ * on the property's board.
  */
 @Component
 public class PropertyProvisioningAdapter implements PropertyProvisioningPort {
@@ -39,7 +40,26 @@ public class PropertyProvisioningAdapter implements PropertyProvisioningPort {
 
     @Override
     public void assignPropertyManager(EntityId propertyId, EntityId partyId) {
+        seatOnBoard(propertyId, partyId, BoardRole.PROPERTY_MANAGER);
+    }
+
+    @Override
+    public void assignBoardMember(EntityId propertyId, EntityId partyId, BoardSeat seat) {
+        seatOnBoard(propertyId, partyId, toBoardRole(seat));
+    }
+
+    private void seatOnBoard(EntityId propertyId, EntityId partyId, BoardRole boardRole) {
         addBoardMemberUseCase.add(new AddBoardMemberCommand(
-                PropertyId.of(propertyId.value()), partyId, null, null, null, BoardRole.PROPERTY_MANAGER));
+                PropertyId.of(propertyId.value()), partyId, null, null, null, boardRole));
+    }
+
+    private static BoardRole toBoardRole(BoardSeat seat) {
+        return switch (seat) {
+            case VOLUNTEER_MANAGER -> BoardRole.VOLUNTEER_MANAGER;
+            case PRESIDENT -> BoardRole.PRESIDENT;
+            case TREASURER -> BoardRole.TREASURER;
+            case SECRETARY -> BoardRole.SECRETARY;
+            case MEMBER -> BoardRole.MEMBER;
+        };
     }
 }

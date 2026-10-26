@@ -1,13 +1,22 @@
 import type { DuesCalculationMode } from '@/features/identity/onboarding/state/onboardingDraft';
+import type { BoardSeat } from '@/features/identity/onboarding/constants/boardSeats';
 
-export interface CaptureOnboardingLeadPayload {
-  email: string;
-  fullName?: string;
-}
-
-/** Réponse de POST /users/register-property-board-admin (fin de l'étape 2). */
+/** Réponse de POST /users/register-property-board-admin (fin de l'étape 1). */
 export interface RegisteredBoardAdmin {
   userId: string;
+  onboardingToken: string;
+  expiresInSeconds: number;
+}
+
+export interface CreateBoardAdminPropertyPayload {
+  propertyName: string;
+  propertyAddress: string;
+  propertyCity: string;
+  boardRole: BoardSeat;
+}
+
+/** Réponse de POST /users/me/board-admin-property (fin de l'étape 2). */
+export interface CreatedBoardAdminProperty {
   propertyId: string;
   onboardingToken: string;
   expiresInSeconds: number;

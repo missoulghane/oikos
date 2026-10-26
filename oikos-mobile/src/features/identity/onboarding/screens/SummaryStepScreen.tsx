@@ -68,8 +68,8 @@ export function SummaryStepScreen({ navigation }: Props) {
   if (!draft.registration) {
     return (
       <AuthLayout scrollable>
-        <WizardShell step="Summary" title="Vérifiez votre configuration" subtitle="Votre compte n'a pas encore été créé.">
-          <Alert message="Reprenez à l'étape « Votre copropriété » pour créer votre compte avant de finaliser." />
+        <WizardShell step="Summary" title="Vérifiez votre configuration" subtitle="Votre copropriété n'a pas encore été créée.">
+          <Alert message="Reprenez à l'étape « Votre copropriété » pour la créer avant de finaliser." />
           <Pressable onPress={() => navigation.navigate('Property')}>
             <Text style={styles.editLink}>Revenir à cette étape</Text>
           </Pressable>

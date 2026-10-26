@@ -7,7 +7,7 @@ import { ControlledInput } from '@/shared/components/Input/ControlledInput';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
-import { useRegisterPropertyBoardAdmin } from '@/features/identity/register/hooks/useRegisterPropertyBoardAdmin';
+import { useCreateBoardAdminProperty } from '@/features/identity/onboarding/hooks/useCreateBoardAdminProperty';
 import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingContext';
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
 import { formatStoredAddress } from '@/features/identity/onboarding/state/onboardingDraft';
@@ -21,8 +21,8 @@ import type { OnboardingStackParamList } from '@/app/navigation/OnboardingNaviga
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Property'>;
 
 export function PropertyStepScreen({ navigation }: Props) {
-  const { draft, update, password } = useOnboarding();
-  const registerBoardAdmin = useRegisterPropertyBoardAdmin();
+  const { draft, update } = useOnboarding();
+  const createProperty = useCreateBoardAdminProperty();
 
   const {
     control,
@@ -35,6 +35,7 @@ export function PropertyStepScreen({ navigation }: Props) {
   });
 
   const alreadyRegistered = draft.registration !== null;
+  const accountRegistration = draft.accountRegistration;
 
   function onSubmit(values: PropertyStepValues) {
     const property = {
@@ -51,30 +52,34 @@ export function PropertyStepScreen({ navigation }: Props) {
     }
     update({ property });
 
-    // Le compte est créé ici, et pas à l'étape 1 : la party qui relie le compte à
-    // sa copropriété ne peut pas exister avant que celle-ci ait un nom. À partir
-    // de maintenant, un abandon laisse un compte utilisable derrière lui.
+    // La copropriété est créée ici, pour le compte né à l'étape 1 : la party qui
+    // relie le compte à sa copropriété ne peut pas exister avant que celle-ci ait
+    // un nom.
     if (alreadyRegistered) {
       navigation.navigate('DuesMode');
       return;
     }
+    if (!accountRegistration) {
+      return;
+    }
 
-    registerBoardAdmin.mutate(
+    createProperty.mutate(
       {
-        fullName: draft.account.fullName,
-        email: draft.account.email,
-        password,
-        propertyName: property.name,
-        propertyAddress: address,
-        propertyCity: property.city,
+        payload: {
+          propertyName: property.name,
+          propertyAddress: address,
+          propertyCity: property.city,
+          boardRole: draft.account.boardRole,
+        },
+        onboardingToken: accountRegistration.onboardingToken,
       },
       {
-        onSuccess: (registration) => {
+        onSuccess: (created) => {
           update({
             property,
             registration: {
-              propertyId: registration.propertyId,
-              onboardingToken: registration.onboardingToken,
+              propertyId: created.propertyId,
+              onboardingToken: created.onboardingToken,
             },
           });
           navigation.navigate('DuesMode');
@@ -92,11 +97,11 @@ export function PropertyStepScreen({ navigation }: Props) {
         onBack={() => navigation.goBack()}
       >
         <View style={styles.form}>
-          {registerBoardAdmin.isError && <Alert message={getErrorMessage(registerBoardAdmin.error)} />}
-          {!password && !alreadyRegistered && (
+          {createProperty.isError && <Alert message={getErrorMessage(createProperty.error)} />}
+          {!accountRegistration && !alreadyRegistered && (
             <Alert
               variant="warning"
-              message="Votre mot de passe n'a pas été conservé. Revenez à l'étape précédente pour le saisir à nouveau."
+              message="Commencez par créer votre compte : revenez à l'étape précédente."
             />
           )}
           <ControlledInput control={control} name="name" label="Nom de la copropriété" errorMessage={errors.name?.message} />
@@ -123,8 +128,8 @@ export function PropertyStepScreen({ navigation }: Props) {
           <ControlledInput control={control} name="city" label="Ville" errorMessage={errors.city?.message} />
           <Button
             onPress={handleSubmit(onSubmit)}
-            isLoading={registerBoardAdmin.isPending}
-            disabled={!password && !alreadyRegistered}
+            isLoading={createProperty.isPending}
+            disabled={!accountRegistration && !alreadyRegistered}
           >
             Continuer
           </Button>

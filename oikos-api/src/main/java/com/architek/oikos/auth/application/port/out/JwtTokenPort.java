@@ -17,5 +17,11 @@ public interface JwtTokenPort {
     /** See JwtService.generateOnboardingToken - scoped to configuring one property. */
     String generateOnboardingToken(EntityId userId, EntityId propertyId);
 
+    /**
+     * See JwtService.generateAccountOnboardingToken - scoped to creating the
+     * property of an account that has none yet.
+     */
+    String generateAccountOnboardingToken(EntityId userId);
+
     long onboardingTokenTtlSeconds();
 }

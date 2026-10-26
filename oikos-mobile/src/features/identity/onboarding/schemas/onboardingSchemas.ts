@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { refinePasswordsMatch } from '@/features/identity/register/schemas/passwordConfirmation';
+import { BOARD_SEATS } from '@/features/identity/onboarding/constants/boardSeats';
 
 /**
  * Unique règle appliquée par l'API (RawPassword.MIN_LENGTH) : la checklist de
@@ -13,8 +14,11 @@ export const accountStepSchema = refinePasswordsMatch(
   z.object({
     fullName: z.string().trim().min(1, 'Le nom complet est requis').max(200, '200 caractères maximum'),
     email: z.string().trim().min(1, "L'email est requis").email('Email invalide').max(150, '150 caractères maximum'),
+    boardRole: z.enum(BOARD_SEATS),
     password: z.string().min(PASSWORD_MIN_LENGTH, `Au moins ${PASSWORD_MIN_LENGTH} caractères`),
     confirmPassword: z.string().min(1, 'La confirmation est requise'),
+    // Même règle que l'API (@AssertTrue) : sans acceptation, pas de compte.
+    acceptedTerms: z.boolean().refine((accepted) => accepted, 'Vous devez accepter les CGV et CGU'),
   }),
 );
 

@@ -21,17 +21,13 @@ const CHOICE_GROUPS: { intent: string; choices: AccountChoice[] }[] = [
   {
     intent: 'Gérer une copropriété',
     choices: [
+      // Le syndic professionnel (/register/manager-admin) n'est plus proposé
+      // pour le moment : sa route reste en place, seule l'entrée est retirée.
       {
         value: 'board-admin',
-        title: 'Syndic bénévole',
-        description: 'Je gère moi-même ma copropriété, sans cabinet professionnel.',
+        title: 'Syndic ou membre du conseil syndical',
+        description: 'Je gère ma copropriété en tant que syndic ou membre du conseil syndical.',
         path: '/register/board-admin',
-      },
-      {
-        value: 'manager-admin',
-        title: 'Syndic professionnel',
-        description: 'Je représente un cabinet de syndic et gère plusieurs copropriétés.',
-        path: '/register/manager-admin',
       },
     ],
   },

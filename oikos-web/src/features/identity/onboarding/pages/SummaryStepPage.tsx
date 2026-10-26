@@ -74,9 +74,9 @@ export function SummaryStepPage() {
       <WizardShell
         step="summary"
         title="Vérifiez votre configuration"
-        subtitle="Votre compte n'a pas encore été créé."
+        subtitle="Votre copropriété n'a pas encore été créée."
       >
-        <Alert message="Reprenez à l'étape « Votre copropriété » pour créer votre compte avant de finaliser." />
+        <Alert message="Reprenez à l'étape « Votre copropriété » pour la créer avant de finaliser." />
         <Link to={stepPath('property')} className="mt-4 inline-block text-sm font-medium underline">
           Revenir à cette étape
         </Link>

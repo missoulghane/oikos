@@ -133,7 +133,7 @@ class ConvocationConfirmationLinkPostgresIntegrationTest extends PostgresIntegra
         insertUnit(secondUnitId, buildingId, unitTypeId, "Appartement 2", new BigDecimal("80.00"), now);
 
         meetingId = createGeneralMeetingUseCase.create(new CreateGeneralMeetingCommand(propertyId,
-                MeetingType.ORDINARY, "AG ordinaire 2026", SESSION_DATE, VENUE));
+                MeetingType.ORDINARY, "AG ordinaire 2026", SESSION_DATE, VENUE, null));
         addAgendaItemUseCase.add(new AddAgendaItemCommand(meetingId, "Approbation des comptes 2025", null,
                 MajorityRule.SIMPLE));
         scheduleGeneralMeetingUseCase.schedule(new ScheduleGeneralMeetingCommand(meetingId, SESSION_DATE, VENUE));
@@ -197,7 +197,7 @@ class ConvocationConfirmationLinkPostgresIntegrationTest extends PostgresIntegra
         // Codes are unique per meeting, not globally - which is only safe because the
         // reference is always presented with them.
         GeneralMeetingId otherMeeting = createGeneralMeetingUseCase.create(new CreateGeneralMeetingCommand(propertyId,
-                MeetingType.ORDINARY, "Autre AG", SESSION_DATE, VENUE));
+                MeetingType.ORDINARY, "Autre AG", SESSION_DATE, VENUE, null));
         addAgendaItemUseCase.add(new AddAgendaItemCommand(otherMeeting, "Point", null, MajorityRule.SIMPLE));
         scheduleGeneralMeetingUseCase.schedule(new ScheduleGeneralMeetingCommand(otherMeeting, SESSION_DATE, VENUE));
         generateConvocationsUseCase.generate(new GenerateConvocationsCommand(otherMeeting));

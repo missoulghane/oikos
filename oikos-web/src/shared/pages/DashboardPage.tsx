@@ -13,6 +13,7 @@ import { useInstallmentCollectionSummary } from '@/features/property-mngt/instal
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
 import { MyUnitsList } from '@/features/property-ownership/units/components/MyUnitsList';
 import { ResumeOnboardingBanner } from '@/features/identity/onboarding/components/ResumeOnboardingBanner';
+import { CreatePropertyPrompt } from '@/features/identity/onboarding/components/CreatePropertyPrompt';
 import { Card } from '@/shared/components/Card/Card';
 import { CardLink } from '@/shared/components/Card/CardLink';
 import { Loader } from '@/shared/components/Loader/Loader';
@@ -281,9 +282,10 @@ function ManagerDashboard() {
  * <p>« Mes lots » a quitté le titre de la page, qui nomme désormais l'espace,
  * et redevient ce qu'il est : l'intitulé de la liste qui suit.
  */
-function OwnerDashboard() {
+function OwnerDashboard({ hasNoProperty }: { hasNoProperty: boolean }) {
   return (
     <>
+      {hasNoProperty && <CreatePropertyPrompt />}
       <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Mes lots</h2>
       <MyUnitsList />
     </>
@@ -321,7 +323,9 @@ export function DashboardPage() {
     ) : effectiveSpace.kind === 'manager' ? (
       <ManagerDashboard />
     ) : (
-      <OwnerDashboard />
+      <OwnerDashboard
+        hasNoProperty={currentUser.data ? Object.keys(currentUser.data.roleByProperty).length === 0 : false}
+      />
     );
 
   const firstName = currentUser.data ? getFirstName(currentUser.data.fullName) : '';

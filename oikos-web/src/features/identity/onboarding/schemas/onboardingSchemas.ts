@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { refinePasswordsMatch } from '@/features/identity/register/schemas/passwordConfirmation';
 import { phoneSchema } from '@/features/identity/register/schemas/phoneSchema';
+import { BOARD_SEATS } from '@/features/identity/onboarding/constants/boardSeats';
 
 /**
  * Unique règle appliquée par l'API (RawPassword.MIN_LENGTH) : l'étape 1 se
@@ -15,8 +16,11 @@ export const accountStepSchema = refinePasswordsMatch(
     fullName: z.string().trim().min(1, 'Le nom complet est requis').max(200, '200 caractères maximum'),
     email: z.string().trim().min(1, "L'email est requis").email('Email invalide').max(150, '150 caractères maximum'),
     phone: phoneSchema,
+    boardRole: z.enum(BOARD_SEATS),
     password: z.string().min(PASSWORD_MIN_LENGTH, `Au moins ${PASSWORD_MIN_LENGTH} caractères`),
     confirmPassword: z.string().min(1, 'La confirmation est requise'),
+    // Même règle que l'API (@AssertTrue) : sans acceptation, pas de compte.
+    acceptedTerms: z.boolean().refine((accepted) => accepted, 'Vous devez accepter les CGV et CGU'),
   }),
 );
 
@@ -29,6 +33,7 @@ export const propertyStepSchema = z.object({
   name: z.string().trim().min(1, 'Le nom est requis').max(100, '100 caractères maximum'),
   address: z.string().trim().min(1, "L'adresse est requise").max(250, '250 caractères maximum'),
   city: z.string().trim().min(1, 'La ville est requise').max(100, '100 caractères maximum'),
+  boardRole: z.enum(BOARD_SEATS),
 });
 
 export type PropertyStepValues = z.infer<typeof propertyStepSchema>;

@@ -17,11 +17,15 @@ import com.architek.oikos.meeting.domain.valueobject.VenueType;
  * <p>Both stay optional here - the aggregate allows a dateless draft, and only
  * scheduling makes them mandatory. Which of venueAddress/venueLink is required
  * for a given venueType is MeetingVenue's rule, not this record's.
+ *
+ * <p>comment is the editor's HTML, capped like UpdateGeneralMeetingCommentRequest
+ * and for the same reasons - it is the same field, only written earlier.
  */
 public record CreateGeneralMeetingRequest(@NotNull MeetingType meetingType,
                                            @NotBlank @Size(max = 200) String title,
                                            Instant scheduledAt,
                                            VenueType venueType,
                                            @Size(max = 250) String venueAddress,
-                                           @Size(max = 500) String venueLink) {
+                                           @Size(max = 500) String venueLink,
+                                           @Size(max = 20000) String comment) {
 }

@@ -18,9 +18,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.architek.oikos.user.application.port.in.AcceptPartyInvitationUseCase;
 import com.architek.oikos.user.application.port.in.ActivateAccountUseCase;
 import com.architek.oikos.auth.infrastructure.security.JwtService;
-import com.architek.oikos.shared.domain.valueobject.EntityId;
-import com.architek.oikos.user.application.dto.RegisteredBoardAdminView;
-import com.architek.oikos.user.application.port.in.CaptureOnboardingLeadUseCase;
 import com.architek.oikos.user.application.port.in.RegisterPropertyBoardAdminUseCase;
 import com.architek.oikos.user.application.port.in.RegisterPropertyManagerAdminUseCase;
 import com.architek.oikos.user.application.port.in.RegisterUserUseCase;
@@ -44,9 +41,6 @@ class RegistrationControllerWebMvcTest {
 
     @MockitoBean
     private RegisterPropertyBoardAdminUseCase registerPropertyBoardAdminUseCase;
-
-    @MockitoBean
-    private CaptureOnboardingLeadUseCase captureOnboardingLeadUseCase;
 
     @MockitoBean
     private RegisterPropertyManagerAdminUseCase registerPropertyManagerAdminUseCase;
@@ -121,29 +115,38 @@ class RegistrationControllerWebMvcTest {
     }
 
     @Test
-    void register_property_board_admin_with_valid_body_returns_201_with_location() throws Exception {
+    void register_property_board_admin_creates_the_account_alone_and_returns_an_account_onboarding_token() throws Exception {
         UserId userId = UserId.newId();
-        EntityId propertyId = EntityId.newId();
-        when(registerPropertyBoardAdminUseCase.register(any()))
-                .thenReturn(new RegisteredBoardAdminView(userId, propertyId));
+        when(registerPropertyBoardAdminUseCase.register(any())).thenReturn(userId);
 
         mockMvc.perform(post("/api/v1/users/register-property-board-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"fullName":"Jane Doe","email":"board-admin@oikos.com","password":"password123",
-                                "propertyName":"Residence A","propertyAddress":"1 rue de Paris"}
+                                "acceptedTerms":true}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/v1/users/" + userId))
-                .andExpect(jsonPath("$.propertyId").value(propertyId.toString()))
+                .andExpect(jsonPath("$.userId").value(userId.toString()))
                 // The wizard cannot log in yet (the account is unverified), so the token
-                // is the only thing letting steps 3 to 7 reach the configuration endpoint.
+                // is the only thing letting step 2 create the account's property.
                 .andExpect(jsonPath("$.onboardingToken").isNotEmpty())
                 .andExpect(jsonPath("$.expiresInSeconds").isNumber());
     }
 
     @Test
-    void register_property_board_admin_with_missing_property_fields_returns_400() throws Exception {
+    void register_property_board_admin_without_accepting_the_terms_returns_400() throws Exception {
+        mockMvc.perform(post("/api/v1/users/register-property-board-admin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fullName":"Jane Doe","email":"board-admin@oikos.com","password":"password123",
+                                "acceptedTerms":false}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void register_property_board_admin_with_the_terms_field_missing_returns_400() throws Exception {
         mockMvc.perform(post("/api/v1/users/register-property-board-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

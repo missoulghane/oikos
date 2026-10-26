@@ -61,7 +61,7 @@ public class UploadDocumentService implements UploadDocumentUseCase {
         }
 
         Document document = Document.create(command.ownerType(), command.ownerId(), command.fileName(),
-                command.contentType(), command.content().length, checksum, command.uploadedBy());
+                command.title(), command.contentType(), command.content().length, checksum, command.uploadedBy());
 
         fileStoragePort.store(document.getStorageKey(), command.content());
         Document saved = documentRepository.save(document);

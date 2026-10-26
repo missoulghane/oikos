@@ -85,6 +85,9 @@ services:
   api:
     build:
       context: ./oikos-api
+      args:
+        # Facultatif, voir oikos-api/Dockerfile et .env.example.
+        RUNTIME_IMAGE: ${API_RUNTIME_IMAGE:-eclipse-temurin:25-jre-alpine}
     depends_on:
       postgres:
         condition: service_healthy

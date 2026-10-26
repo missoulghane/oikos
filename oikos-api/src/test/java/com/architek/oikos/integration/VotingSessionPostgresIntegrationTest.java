@@ -167,7 +167,7 @@ class VotingSessionPostgresIntegrationTest extends PostgresIntegrationTestBase {
                 syndicUserId.value(), "syndic." + unique + "@example.com", now, now);
 
         meetingId = createGeneralMeetingUseCase.create(
-                new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG ordinaire 2026", SESSION_DATE, VENUE));
+                new CreateGeneralMeetingCommand(propertyId, MeetingType.ORDINARY, "AG ordinaire 2026", SESSION_DATE, VENUE, null));
         absoluteItemId = addAgendaItemUseCase.add(new AddAgendaItemCommand(meetingId, "Ravalement de façade", null,
                 MajorityRule.ABSOLUTE)).id();
         simpleItemId = addAgendaItemUseCase.add(new AddAgendaItemCommand(meetingId, "Choix du prestataire", null,

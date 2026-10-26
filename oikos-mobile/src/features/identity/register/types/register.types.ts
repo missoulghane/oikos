@@ -15,6 +15,15 @@ export interface RegisterPropertyAdminPayload extends RegisterUserPayload {
   propertyCity?: string;
 }
 
+/** Étape 1 du wizard du syndic bénévole : le compte seul, sans sa copropriété. */
+export interface RegisterBoardAdminPayload {
+  fullName: string;
+  email: string;
+  password: string;
+  /** Case « J'accepte les CGV et CGU » : l'API refuse l'inscription sans elle. */
+  acceptedTerms: boolean;
+}
+
 export interface VerifyAccountPayload {
   token: string;
 }
