@@ -49,8 +49,9 @@ const linking: LinkingOptions<AuthStackParamList & MainStackParamList> = {
         screens: {
           Account: 'account',
           Property: 'property',
-          DuesMode: 'dues-mode',
           UnitTypes: 'unit-types',
+          DuesMode: 'dues-mode',
+          Pricing: 'pricing',
           Buildings: 'buildings',
           BankAccounts: 'bank-accounts',
           Summary: 'summary',

@@ -38,7 +38,7 @@ export function DuesModeStepScreen({ navigation }: Props) {
             description="Les charges sont réparties selon les tantièmes de chaque lot."
           />
           <Text style={styles.hint}>Vous pourrez modifier ce choix plus tard dans les paramètres de votre copropriété.</Text>
-          <Button onPress={() => navigation.navigate('UnitTypes')}>Continuer</Button>
+          <Button onPress={() => navigation.navigate('Pricing')}>Continuer</Button>
         </View>
       </WizardShell>
     </AuthLayout>

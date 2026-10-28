@@ -5,6 +5,7 @@ import { AccountStepPage } from '@/features/identity/onboarding/pages/AccountSte
 import { PropertyStepPage } from '@/features/identity/onboarding/pages/PropertyStepPage';
 import { DuesModeStepPage } from '@/features/identity/onboarding/pages/DuesModeStepPage';
 import { UnitTypesStepPage } from '@/features/identity/onboarding/pages/UnitTypesStepPage';
+import { PricingStepPage } from '@/features/identity/onboarding/pages/PricingStepPage';
 import { BuildingsStepPage } from '@/features/identity/onboarding/pages/BuildingsStepPage';
 import { BankAccountsStepPage } from '@/features/identity/onboarding/pages/BankAccountsStepPage';
 import { SummaryStepPage } from '@/features/identity/onboarding/pages/SummaryStepPage';
@@ -24,8 +25,9 @@ export function OnboardingWizardPage() {
           <Route index element={<Navigate to="account" replace />} />
           <Route path="account" element={<AccountStepPage />} />
           <Route path="property" element={<PropertyStepPage />} />
-          <Route path="dues-mode" element={<DuesModeStepPage />} />
           <Route path="unit-types" element={<UnitTypesStepPage />} />
+          <Route path="dues-mode" element={<DuesModeStepPage />} />
+          <Route path="pricing" element={<PricingStepPage />} />
           <Route path="buildings" element={<BuildingsStepPage />} />
           <Route path="bank-accounts" element={<BankAccountsStepPage />} />
           <Route path="summary" element={<SummaryStepPage />} />

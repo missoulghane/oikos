@@ -30,7 +30,7 @@ export function ResumeOnboardingBanner({ propertyId }: { propertyId: string }) {
         </p>
       </div>
       <Link
-        to={stepPath('dues-mode')}
+        to={stepPath('unit-types')}
         className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
       >
         Reprendre la configuration

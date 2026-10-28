@@ -9,8 +9,13 @@
 export const ONBOARDING_STEPS = [
   { screen: 'Account', label: 'Votre compte' },
   { screen: 'Property', label: 'Votre copropriété' },
-  { screen: 'DuesMode', label: 'Mode de gestion' },
+  // Même ordre que oikos-web : ce qu'on gère (types), comment on le facture
+  // (mode), puis combien - montants en forfait, budget en tantièmes. La
+  // dernière existe dans les deux modes, pour que le total ne change pas quand
+  // on change de mode.
   { screen: 'UnitTypes', label: 'Types de lots' },
+  { screen: 'DuesMode', label: 'Mode de gestion' },
+  { screen: 'Pricing', label: 'Montants' },
   { screen: 'Buildings', label: 'Bâtiments et lots' },
   { screen: 'BankAccounts', label: 'Comptes bancaires' },
   { screen: 'Summary', label: 'Récapitulatif' },

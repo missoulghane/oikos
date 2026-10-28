@@ -11,9 +11,11 @@ interface WizardShellProps {
   subtitle: string;
   /** Set when there's a previous step to go back to (first step has none). */
   onBack?: () => void;
+  /** Step name shown next to the counter when it depends on a choice ("Budget prévisionnel" in shares mode). */
+  stepLabel?: string;
 }
 
-export function WizardShell({ step, title, subtitle, onBack, children }: PropsWithChildren<WizardShellProps>) {
+export function WizardShell({ step, title, subtitle, onBack, stepLabel, children }: PropsWithChildren<WizardShellProps>) {
   const currentIndex = stepIndexOf(step);
   const progress = ((currentIndex + 1) / ONBOARDING_STEPS.length) * 100;
 
@@ -24,7 +26,7 @@ export function WizardShell({ step, title, subtitle, onBack, children }: PropsWi
           <Text style={styles.progressText}>
             Étape {currentIndex + 1} sur {ONBOARDING_STEPS.length}
           </Text>
-          <Text style={styles.progressText}>{ONBOARDING_STEPS[currentIndex]?.label}</Text>
+          <Text style={styles.progressText}>{stepLabel ?? ONBOARDING_STEPS[currentIndex]?.label}</Text>
         </View>
         <View
           accessibilityRole="progressbar"

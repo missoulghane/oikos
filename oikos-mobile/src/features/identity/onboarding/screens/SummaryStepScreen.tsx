@@ -94,19 +94,31 @@ export function SummaryStepScreen({ navigation }: Props) {
             <RecapLine label="Adresse" value={formatAddress(draft.property)} />
           </RecapSection>
 
-          <RecapSection title="Mode de gestion" onEdit={() => navigation.navigate('DuesMode')}>
-            <Text style={styles.recapText}>{isFlatRate ? 'Forfait' : 'Tantièmes'}</Text>
-            {!isFlatRate && draft.projectedBudget && <RecapLine label="Budget prévisionnel" value={draft.projectedBudget} />}
+          <RecapSection title="Types de lots" onEdit={() => navigation.navigate('UnitTypes')}>
+            <Text style={styles.recapText}>{draft.selectedUnitTypes.join(', ')}</Text>
           </RecapSection>
 
-          <RecapSection title="Types de lots" onEdit={() => navigation.navigate('UnitTypes')}>
-            {draft.selectedUnitTypes.map((name) => (
-              <Text key={name} style={styles.recapText}>
-                {name}
-                {isFlatRate && draft.unitTypePrices[name] ? ` — ${draft.unitTypePrices[name]} MAD` : ''}
-              </Text>
-            ))}
+          <RecapSection title="Mode de gestion" onEdit={() => navigation.navigate('DuesMode')}>
+            <Text style={styles.recapText}>{isFlatRate ? 'Forfait' : 'Tantièmes'}</Text>
           </RecapSection>
+
+          {isFlatRate ? (
+            <RecapSection title="Montants" onEdit={() => navigation.navigate('Pricing')}>
+              {draft.selectedUnitTypes.map((name) => (
+                <RecapLine
+                  key={name}
+                  label={name}
+                  value={draft.unitTypePrices[name] ? `${draft.unitTypePrices[name]} MAD` : 'Non renseigné'}
+                />
+              ))}
+            </RecapSection>
+          ) : (
+            <RecapSection title="Budget prévisionnel" onEdit={() => navigation.navigate('Pricing')}>
+              <Text style={styles.recapText}>
+                {draft.projectedBudget ? `${draft.projectedBudget} MAD` : 'À renseigner plus tard'}
+              </Text>
+            </RecapSection>
+          )}
 
           <RecapSection title="Bâtiments" onEdit={() => navigation.navigate('Buildings')}>
             <Text style={styles.recapMuted}>

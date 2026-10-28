@@ -65,7 +65,21 @@ async function fillPropertyStep(user: ReturnType<typeof userEvent.setup>) {
   // the click resolves before the wizard has moved. Callers that then look for
   // "Continuer" would otherwise match step 2's button, still mounted, re-submit
   // it, and end up asserting against step 3 believing they were on step 4.
+  await screen.findByText('Quels types de lots gérez-vous ?');
+}
+
+/**
+ * Types de lots (Appartement, coché par défaut), mode forfait (le défaut), puis
+ * le montant de l'appartement : le chemin le plus court jusqu'aux bâtiments.
+ */
+async function fillUnitTypesModeAndPricing(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('button', { name: 'Continuer' }));
   await screen.findByText('Comment souhaitez-vous gérer vos charges ?');
+  await user.click(await screen.findByRole('button', { name: 'Continuer' }));
+  await screen.findByText('Quel montant pour chaque type de lot ?');
+  await user.type(await screen.findByLabelText('Montant Appartement'), '50');
+  await user.click(await screen.findByRole('button', { name: 'Continuer' }));
+  await screen.findByText('Structure de votre copropriété');
 }
 
 /**
@@ -76,11 +90,7 @@ async function fillPropertyStep(user: ReturnType<typeof userEvent.setup>) {
 async function goBackToPropertyStepFromRecap(user: ReturnType<typeof userEvent.setup>) {
   await fillAccountStep(user);
   await fillPropertyStep(user);
-  await user.click(await screen.findByRole('button', { name: 'Continuer' }));
-  await screen.findByText('Quels types de lots gérez-vous ?');
-  await user.type(await screen.findByLabelText('Montant Appartement'), '50');
-  await user.click(await screen.findByRole('button', { name: 'Continuer' }));
-  await screen.findByText('Structure de votre copropriété');
+  await fillUnitTypesModeAndPricing(user);
   await user.click(await screen.findByRole('button', { name: 'Continuer' }));
   await user.click(await screen.findByRole('button', { name: 'Passer cette étape' }));
 
@@ -232,28 +242,52 @@ describe('OnboardingWizardPage', () => {
     expect(mockedRegister).toHaveBeenCalledTimes(1);
   });
 
-  it('offers the flat-rate amounts only, and the projected budget in shares mode', async () => {
+  it('asks the unit types, then the mode, then the amounts in flat-rate mode or the budget in shares mode', async () => {
     const user = userEvent.setup();
     renderWizard();
     await fillAccountStep(user);
     await fillPropertyStep(user);
+
+    // Les types se choisissent seuls, sans montant à côté.
+    expect(screen.queryByLabelText('Montant Appartement')).not.toBeInTheDocument();
+    expect(screen.getByText('Étape 3 sur 8')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Continuer' }));
 
     // Forfait est le choix par défaut.
     expect(await screen.findByText('Comment souhaitez-vous gérer vos charges ?')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /Forfait/ })).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
 
-    expect(await screen.findByText('Quels types de lots gérez-vous ?')).toBeInTheDocument();
+    expect(await screen.findByText('Quel montant pour chaque type de lot ?')).toBeInTheDocument();
     expect(screen.getByLabelText('Montant Appartement')).toBeInTheDocument();
-    expect(screen.queryByText('Budget prévisionnel')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Budget prévisionnel annuel')).not.toBeInTheDocument();
+    expect(screen.getByText('Étape 5 sur 8')).toBeInTheDocument();
 
-    // Retour à l'étape précédente pour basculer en tantièmes.
+    // Retour au mode pour basculer en tantièmes : même étape, autre contenu, même total.
     await user.click(screen.getByRole('link', { name: /Revenir à l'étape précédente/ }));
     await user.click(await screen.findByRole('radio', { name: /Tantièmes/ }));
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
 
-    expect(await screen.findByText('Budget prévisionnel')).toBeInTheDocument();
+    expect(await screen.findByText('Quel est votre budget prévisionnel ?')).toBeInTheDocument();
+    expect(screen.getByLabelText('Budget prévisionnel annuel')).toBeInTheDocument();
     expect(screen.queryByLabelText('Montant Appartement')).not.toBeInTheDocument();
+    expect(screen.getByText('Étape 5 sur 8')).toBeInTheDocument();
+  });
+
+  it('requires an amount for every selected unit type in flat-rate mode', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await fillAccountStep(user);
+    await fillPropertyStep(user);
+    await user.click(screen.getByRole('button', { name: 'Continuer' }));
+    await screen.findByText('Comment souhaitez-vous gérer vos charges ?');
+    await user.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    await screen.findByText('Quel montant pour chaque type de lot ?');
+    await user.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    expect(await screen.findByText('Le montant est requis')).toBeInTheDocument();
+    expect(screen.queryByText('Structure de votre copropriété')).not.toBeInTheDocument();
   });
 
   it('shows exactly the selected unit types on the buildings step', async () => {
@@ -261,11 +295,14 @@ describe('OnboardingWizardPage', () => {
     renderWizard();
     await fillAccountStep(user);
     await fillPropertyStep(user);
-    await user.click(await screen.findByRole('button', { name: 'Continuer' }));
 
     // Appartement est coché par défaut ; on ajoute Box, pas Bureau.
     await user.click(await screen.findByRole('checkbox', { name: /Box/ }));
-    // Le montant se saisit à côté de chaque case cochée, et seulement d'elles.
+    await user.click(screen.getByRole('button', { name: 'Continuer' }));
+    await screen.findByText('Comment souhaitez-vous gérer vos charges ?');
+    await user.click(screen.getByRole('button', { name: 'Continuer' }));
+    // Un montant par type coché, et seulement pour eux.
+    await screen.findByText('Quel montant pour chaque type de lot ?');
     expect(screen.queryByLabelText('Montant Bureau')).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('Montant Appartement'), '50');
     await user.type(screen.getByLabelText('Montant Box'), '20');
@@ -282,11 +319,8 @@ describe('OnboardingWizardPage', () => {
     renderWizard();
     await fillAccountStep(user);
     await fillPropertyStep(user);
-    // Mode de gestion (forfait par défaut).
-    await user.click(await screen.findByRole('button', { name: 'Continuer' }));
-    // Types de lots : Appartement seul, à 50.
-    await user.type(await screen.findByLabelText('Montant Appartement'), '50');
-    await user.click(screen.getByRole('button', { name: 'Continuer' }));
+    // Types de lots : Appartement seul ; mode forfait (le défaut) ; montant 50.
+    await fillUnitTypesModeAndPricing(user);
     // Bâtiments : 12 appartements dans l'unique bâtiment, sur 3 étages.
     const floorCount = await screen.findByRole('spinbutton', { name: "Nombre d'étages" });
     await user.clear(floorCount);
@@ -326,11 +360,7 @@ describe('OnboardingWizardPage', () => {
     // Each click waits for the step it lands on before the next one looks for
     // "Continuer" again - otherwise a slow render lets it match the button of
     // the step we just left (the failure mode fillPropertyStep guards against).
-    await user.click(await screen.findByRole('button', { name: 'Continuer' }));
-    await screen.findByText('Quels types de lots gérez-vous ?');
-    await user.type(await screen.findByLabelText('Montant Appartement'), '50');
-    await user.click(await screen.findByRole('button', { name: 'Continuer' }));
-    await screen.findByText('Structure de votre copropriété');
+    await fillUnitTypesModeAndPricing(user);
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
     await user.click(await screen.findByRole('button', { name: 'Passer cette étape' }));
 
@@ -353,9 +383,7 @@ describe('OnboardingWizardPage', () => {
     renderWizard();
     await fillAccountStep(user);
     await fillPropertyStep(user);
-    await user.click(await screen.findByRole('button', { name: 'Continuer' }));
-    await user.type(await screen.findByLabelText('Montant Appartement'), '50');
-    await user.click(screen.getByRole('button', { name: 'Continuer' }));
+    await fillUnitTypesModeAndPricing(user);
     await user.click(await screen.findByRole('button', { name: 'Continuer' }));
     await user.click(await screen.findByRole('button', { name: 'Passer cette étape' }));
     await user.click(await screen.findByRole('button', { name: 'Finaliser ma copropriété' }));

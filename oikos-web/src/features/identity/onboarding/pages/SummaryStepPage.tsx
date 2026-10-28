@@ -115,21 +115,31 @@ export function SummaryStepPage() {
           <RecapLine label="Adresse" value={formatAddress(draft.property)} />
         </RecapSection>
 
-        <RecapSection title="Mode de gestion" editPath={stepPath('dues-mode')}>
-          <p className="text-sm text-gray-900 dark:text-white/90">{isFlatRate ? 'Forfait' : 'Tantièmes'}</p>
-          {!isFlatRate && draft.projectedBudget && (
-            <RecapLine label="Budget prévisionnel" value={draft.projectedBudget} />
-          )}
+        <RecapSection title="Types de lots" editPath={stepPath('unit-types')}>
+          <p className="text-sm text-gray-900 dark:text-white/90">{draft.selectedUnitTypes.join(', ')}</p>
         </RecapSection>
 
-        <RecapSection title="Types de lots" editPath={stepPath('unit-types')}>
-          {draft.selectedUnitTypes.map((name) => (
-            <p key={name} className="text-sm text-gray-900 dark:text-white/90">
-              {name}
-              {isFlatRate && draft.unitTypePrices[name] ? ` — ${draft.unitTypePrices[name]} MAD` : ''}
-            </p>
-          ))}
+        <RecapSection title="Mode de gestion" editPath={stepPath('dues-mode')}>
+          <p className="text-sm text-gray-900 dark:text-white/90">{isFlatRate ? 'Forfait' : 'Tantièmes'}</p>
         </RecapSection>
+
+        {isFlatRate ? (
+          <RecapSection title="Montants" editPath={stepPath('pricing')}>
+            {draft.selectedUnitTypes.map((name) => (
+              <RecapLine
+                key={name}
+                label={name}
+                value={draft.unitTypePrices[name] ? `${draft.unitTypePrices[name]} MAD` : 'Non renseigné'}
+              />
+            ))}
+          </RecapSection>
+        ) : (
+          <RecapSection title="Budget prévisionnel" editPath={stepPath('pricing')}>
+            <p className="text-sm text-gray-900 dark:text-white/90">
+              {draft.projectedBudget ? `${draft.projectedBudget} MAD` : 'À renseigner plus tard'}
+            </p>
+          </RecapSection>
+        )}
 
         <RecapSection title="Bâtiments" editPath={stepPath('buildings')}>
           <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">

@@ -56,7 +56,7 @@ export function PropertyStepScreen({ navigation }: Props) {
     // relie le compte à sa copropriété ne peut pas exister avant que celle-ci ait
     // un nom.
     if (alreadyRegistered) {
-      navigation.navigate('DuesMode');
+      navigation.navigate('UnitTypes');
       return;
     }
     if (!accountRegistration) {
@@ -82,7 +82,7 @@ export function PropertyStepScreen({ navigation }: Props) {
               onboardingToken: created.onboardingToken,
             },
           });
-          navigation.navigate('DuesMode');
+          navigation.navigate('UnitTypes');
         },
       },
     );

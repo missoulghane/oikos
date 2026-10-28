@@ -2,14 +2,22 @@
  * Une URL par étape : le wizard est ainsi profond-linkable, le bouton
  * « Modifier » du récapitulatif n'est qu'une navigation, et le retour arrière du
  * navigateur fait ce qu'on attend de lui.
+ *
+ * Les slugs survivent aux réordonnancements : un brouillon en cours ou un lien
+ * vers une étape doit continuer de mener au même écran. L'ordre, lui, suit la
+ * logique du choix - ce qu'on gère (types), comment on le facture (mode), puis
+ * combien (montants en forfait, budget en tantièmes). Cette dernière étape existe
+ * dans les deux modes : la sauter en tantièmes ferait changer le total d'étapes
+ * au moment même où l'on change de mode.
  */
 export const ONBOARDING_BASE_PATH = '/register/board-admin';
 
 export const ONBOARDING_STEPS = [
   { slug: 'account', label: 'Votre compte' },
   { slug: 'property', label: 'Votre copropriété' },
-  { slug: 'dues-mode', label: 'Mode de gestion' },
   { slug: 'unit-types', label: 'Types de lots' },
+  { slug: 'dues-mode', label: 'Mode de gestion' },
+  { slug: 'pricing', label: 'Montants' },
   { slug: 'buildings', label: 'Bâtiments et lots' },
   { slug: 'bank-accounts', label: 'Comptes bancaires' },
   { slug: 'summary', label: 'Récapitulatif' },

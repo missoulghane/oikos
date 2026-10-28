@@ -2,6 +2,7 @@ export { OnboardingProvider } from '@/features/identity/onboarding/state/Onboard
 export { AccountStepScreen } from '@/features/identity/onboarding/screens/AccountStepScreen';
 export { PropertyStepScreen } from '@/features/identity/onboarding/screens/PropertyStepScreen';
 export { DuesModeStepScreen } from '@/features/identity/onboarding/screens/DuesModeStepScreen';
+export { PricingStepScreen } from '@/features/identity/onboarding/screens/PricingStepScreen';
 export { UnitTypesStepScreen } from '@/features/identity/onboarding/screens/UnitTypesStepScreen';
 export { BuildingsStepScreen } from '@/features/identity/onboarding/screens/BuildingsStepScreen';
 export { BankAccountsStepScreen } from '@/features/identity/onboarding/screens/BankAccountsStepScreen';

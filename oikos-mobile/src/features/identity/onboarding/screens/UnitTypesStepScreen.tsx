@@ -1,15 +1,12 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthLayout } from '@/shared/layouts/AuthLayout';
 import { Button } from '@/shared/components/Button/Button';
-import { Input } from '@/shared/components/Input/Input';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingContext';
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
 import { SelectableCard } from '@/features/identity/onboarding/components/SelectableCard';
 import { UNIT_TYPE_CHOICES } from '@/features/identity/onboarding/state/onboardingDraft';
-import { colors } from '@/shared/theme/colors';
 import type { OnboardingStackParamList } from '@/app/navigation/OnboardingNavigator';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'UnitTypes'>;
@@ -20,26 +17,12 @@ const UNIT_TYPE_DESCRIPTIONS: Record<string, string> = {
   Bureau: 'Locaux professionnels.',
 };
 
+/**
+ * Le choix des types seul : leurs montants viennent deux étapes plus loin, une
+ * fois le mode de gestion connu - en tantièmes, il n'y en a pas.
+ */
 export function UnitTypesStepScreen({ navigation }: Props) {
   const { draft, update } = useOnboarding();
-  const isFlatRate = draft.duesCalculationMode === 'FLAT_RATE';
-  // N'affiche les prix manquants qu'après une tentative de « Continuer » - pas
-  // dès l'arrivée sur l'étape, où aucun champ n'a encore pu être rempli.
-  const [attemptedContinue, setAttemptedContinue] = useState(false);
-
-  function isPriceMissing(name: string) {
-    return (draft.unitTypePrices[name] ?? '') === '';
-  }
-
-  const hasMissingPrice = isFlatRate && draft.selectedUnitTypes.some(isPriceMissing);
-
-  function handleContinue() {
-    if (hasMissingPrice) {
-      setAttemptedContinue(true);
-      return;
-    }
-    navigation.navigate('Buildings');
-  }
 
   function toggleType(name: string) {
     const selected = draft.selectedUnitTypes.includes(name)
@@ -52,79 +35,32 @@ export function UnitTypesStepScreen({ navigation }: Props) {
     update({ selectedUnitTypes: selected });
   }
 
-  function setPrice(name: string, price: string) {
-    update({ unitTypePrices: { ...draft.unitTypePrices, [name]: price } });
-  }
-
   return (
     <AuthLayout scrollable>
       <WizardShell
         step="UnitTypes"
         title="Quels types de lots gérez-vous ?"
-        subtitle={
-          isFlatRate
-            ? 'Sélectionnez les types de lots présents dans votre copropriété et indiquez le montant de chacun.'
-            : 'Sélectionnez les types de lots présents dans votre copropriété.'
-        }
+        subtitle="Sélectionnez les types de lots présents dans votre copropriété."
         onBack={() => navigation.goBack()}
       >
         <View style={styles.container}>
-          {UNIT_TYPE_CHOICES.map((choice) => {
-            const isSelected = draft.selectedUnitTypes.includes(choice.name);
-            return (
-              // Le montant se saisit sur la ligne même du type qu'il chiffre, à côté
-              // de sa case (même disposition que oikos-web). En tantièmes, ce sont le
-              // budget prévisionnel et les tantièmes des lots qui servent au calcul.
-              <View key={choice.name} style={styles.typeRow}>
-                <View style={styles.typeCard}>
-                  <SelectableCard
-                    type="checkbox"
-                    value={choice.name}
-                    checked={isSelected}
-                    onSelect={toggleType}
-                    title={choice.name}
-                    description={UNIT_TYPE_DESCRIPTIONS[choice.name]}
-                  />
-                </View>
-                {isFlatRate && isSelected && (
-                  <View style={styles.priceField}>
-                    <Input
-                      label="Montant (MAD)"
-                      accessibilityLabel={`Montant ${choice.name}`}
-                      keyboardType="decimal-pad"
-                      placeholder="0"
-                      value={draft.unitTypePrices[choice.name] ?? ''}
-                      onChangeText={(text) => setPrice(choice.name, text)}
-                      errorMessage={attemptedContinue && isPriceMissing(choice.name) ? 'Requis' : undefined}
-                    />
-                  </View>
-                )}
-              </View>
-            );
-          })}
+          {UNIT_TYPE_CHOICES.map((choice) => (
+            <SelectableCard
+              key={choice.name}
+              type="checkbox"
+              value={choice.name}
+              checked={draft.selectedUnitTypes.includes(choice.name)}
+              onSelect={toggleType}
+              title={choice.name}
+              description={UNIT_TYPE_DESCRIPTIONS[choice.name]}
+            />
+          ))}
 
           {draft.selectedUnitTypes.length === 0 && (
             <Alert variant="warning" message="Sélectionnez au moins un type de lot pour continuer." />
           )}
 
-          {!isFlatRate && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Budget prévisionnel</Text>
-              <Text style={styles.sectionSubtitle}>
-                En tantièmes, les charges se répartissent à partir de ce budget. Vous pourrez le renseigner plus
-                tard, ainsi que les tantièmes de chaque lot.
-              </Text>
-              <Input
-                label="Budget prévisionnel (optionnel)"
-                keyboardType="decimal-pad"
-                placeholder="0"
-                value={draft.projectedBudget}
-                onChangeText={(text) => update({ projectedBudget: text })}
-              />
-            </View>
-          )}
-
-          <Button disabled={draft.selectedUnitTypes.length === 0} onPress={handleContinue}>
+          <Button disabled={draft.selectedUnitTypes.length === 0} onPress={() => navigation.navigate('DuesMode')}>
             Continuer
           </Button>
         </View>
@@ -136,35 +72,5 @@ export function UnitTypesStepScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     gap: 12,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  typeCard: {
-    flex: 1,
-    minWidth: 0,
-  },
-  priceField: {
-    width: 112,
-  },
-  section: {
-    marginTop: 8,
-    gap: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.gray[200],
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.gray[900],
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: colors.gray[500],
-    marginTop: -8,
   },
 });

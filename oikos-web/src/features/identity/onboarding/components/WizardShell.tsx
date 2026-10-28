@@ -9,6 +9,8 @@ interface WizardShellProps {
   subtitle: string;
   /** Étape précédente, ou null sur la première (aucun retour à afficher). */
   backPath?: string | null;
+  /** Nom d'étape affiché à côté du compteur, quand il dépend d'un choix (« Budget » en tantièmes). */
+  stepLabel?: string;
 }
 
 export function WizardShell({
@@ -16,6 +18,7 @@ export function WizardShell({
   title,
   subtitle,
   backPath,
+  stepLabel,
   children,
 }: PropsWithChildren<WizardShellProps>) {
   const currentIndex = stepIndexOf(step);
@@ -28,7 +31,7 @@ export function WizardShell({
           <span>
             Étape {currentIndex + 1} sur {ONBOARDING_STEPS.length}
           </span>
-          <span>{ONBOARDING_STEPS[currentIndex]?.label}</span>
+          <span>{stepLabel ?? ONBOARDING_STEPS[currentIndex]?.label}</span>
         </div>
         <div
           className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/[0.08]"

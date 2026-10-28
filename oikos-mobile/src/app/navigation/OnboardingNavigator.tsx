@@ -5,6 +5,7 @@ import {
   PropertyStepScreen,
   DuesModeStepScreen,
   UnitTypesStepScreen,
+  PricingStepScreen,
   BuildingsStepScreen,
   BankAccountsStepScreen,
   SummaryStepScreen,
@@ -14,8 +15,9 @@ import {
 export type OnboardingStackParamList = {
   Account: undefined;
   Property: undefined;
-  DuesMode: undefined;
   UnitTypes: undefined;
+  DuesMode: undefined;
+  Pricing: undefined;
   Buildings: undefined;
   BankAccounts: undefined;
   Summary: undefined;
@@ -29,7 +31,7 @@ const Stack = createNativeStackNavigator<OnboardingStackParamList>();
  * step: the draft must survive navigating from one step to the next, exactly
  * like oikos-web's OnboardingProvider wrapping its own nested <Routes>.
  * Registered as a single nested navigator inside AuthNavigator (see
- * AuthNavigator.tsx) rather than flattening these 8 screens into
+ * AuthNavigator.tsx) rather than flattening these 9 screens into
  * AuthStackParamList directly.
  */
 export function OnboardingNavigator() {
@@ -38,8 +40,9 @@ export function OnboardingNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Account" component={AccountStepScreen} />
         <Stack.Screen name="Property" component={PropertyStepScreen} />
-        <Stack.Screen name="DuesMode" component={DuesModeStepScreen} />
         <Stack.Screen name="UnitTypes" component={UnitTypesStepScreen} />
+        <Stack.Screen name="DuesMode" component={DuesModeStepScreen} />
+        <Stack.Screen name="Pricing" component={PricingStepScreen} />
         <Stack.Screen name="Buildings" component={BuildingsStepScreen} />
         <Stack.Screen name="BankAccounts" component={BankAccountsStepScreen} />
         <Stack.Screen name="Summary" component={SummaryStepScreen} />
