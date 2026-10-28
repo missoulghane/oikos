@@ -25,6 +25,8 @@ const AcceptInvitationPage = lazy(() =>
 const InvitationLandingPage = lazy(() =>
   import('@/features/identity/invitations').then((m) => ({ default: m.InvitationLandingPage })),
 );
+const TermsOfUsePage = lazy(() => import('@/features/legal').then((m) => ({ default: m.TermsOfUsePage })));
+const TermsOfSalePage = lazy(() => import('@/features/legal').then((m) => ({ default: m.TermsOfSalePage })));
 const ConvocationConfirmationPage = lazy(() =>
   import('@/features/property-ownership/general-meetings').then((m) => ({ default: m.ConvocationConfirmationPage })),
 );
@@ -132,6 +134,25 @@ export const publicRoutes: RouteObject[] = [
     element: (
       <Suspense fallback={<Loader />}>
         <ConvocationConfirmationPage />
+      </Suspense>
+    ),
+  },
+  {
+    // CGU et CGV : publiques, citées par la case à cocher de l'inscription. Les
+    // chemins sont en dur ici comme partout dans ce fichier ; legalPaths.ts les
+    // porte pour les liens.
+    path: '/cgu',
+    element: (
+      <Suspense fallback={<Loader />}>
+        <TermsOfUsePage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/cgv',
+    element: (
+      <Suspense fallback={<Loader />}>
+        <TermsOfSalePage />
       </Suspense>
     ),
   },

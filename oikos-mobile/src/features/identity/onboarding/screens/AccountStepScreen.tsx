@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,6 +13,7 @@ import { useRegisterPropertyBoardAdmin } from '@/features/identity/register/hook
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
 import { BOARD_SEATS, BOARD_SEAT_LABELS, type BoardSeat } from '@/features/identity/onboarding/constants/boardSeats';
 import { colors } from '@/shared/theme/colors';
+import { WEB_URL } from '@/config/env';
 import {
   accountStepSchema,
   PASSWORD_MIN_LENGTH,
@@ -158,7 +159,18 @@ export function AccountStepScreen({ navigation }: Props) {
                   <View style={[styles.checkbox, value && styles.checkboxChecked]}>
                     {value && <Text style={styles.checkmark}>✓</Text>}
                   </View>
-                  <Text style={styles.termsLabel}>{"J'accepte les CGV et CGU"}</Text>
+                  {/* Les liens ouvrent le navigateur : le Text imbriqué capte le toucher,
+                      la case ne se coche donc pas en les suivant. */}
+                  <Text style={styles.termsLabel}>
+                    {"J'accepte les "}
+                    <Text style={styles.termsLink} onPress={() => Linking.openURL(`${WEB_URL}/cgu`)}>
+                      {"conditions générales d'utilisation"}
+                    </Text>
+                    {' et les '}
+                    <Text style={styles.termsLink} onPress={() => Linking.openURL(`${WEB_URL}/cgv`)}>
+                      conditions générales de vente
+                    </Text>
+                  </Text>
                 </Pressable>
                 {errors.acceptedTerms?.message && <Text style={styles.error}>{errors.acceptedTerms.message}</Text>}
               </View>
@@ -190,7 +202,9 @@ const styles = StyleSheet.create({
   },
   termsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    // Le libellé, avec ses deux liens, tient sur deux lignes : la case s'aligne
+    // sur la première plutôt que de flotter au milieu.
+    alignItems: 'flex-start',
     gap: 8,
   },
   checkbox: {
@@ -212,8 +226,13 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   termsLabel: {
+    flex: 1,
     fontSize: 16,
     color: colors.gray[800],
+  },
+  termsLink: {
+    color: colors.brand[500],
+    textDecorationLine: 'underline',
   },
   error: {
     marginTop: 4,

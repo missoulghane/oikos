@@ -48,7 +48,7 @@ async function fillAccountStep(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('Téléphone'), '0612345678');
   await user.type(screen.getByLabelText('Mot de passe'), 'motdepasse123');
   await user.type(screen.getByLabelText('Confirmation du mot de passe'), 'motdepasse123');
-  await user.click(screen.getByRole('checkbox', { name: "J'accepte les CGV et CGU" }));
+  await user.click(screen.getByRole('checkbox', { name: /J'accepte les conditions générales/ }));
   await user.click(screen.getByRole('button', { name: 'Continuer' }));
   // Même raison que fillPropertyStep : la navigation part du onSuccess de la
   // création du compte, après la résolution du clic.
@@ -137,8 +137,19 @@ describe('OnboardingWizardPage', () => {
     await user.type(screen.getByLabelText('Confirmation du mot de passe'), 'motdepasse123');
     await user.click(screen.getByRole('button', { name: 'Continuer' }));
 
-    expect(await screen.findByText('Vous devez accepter les CGV et CGU')).toBeInTheDocument();
+    expect(await screen.findByText("Vous devez accepter les conditions générales d'utilisation et de vente")).toBeInTheDocument();
     expect(mockedRegister).not.toHaveBeenCalled();
+  });
+
+  it('links the terms to their pages, in a new tab so the step keeps what was typed', () => {
+    renderWizard();
+
+    const termsOfUse = screen.getByRole('link', { name: "conditions générales d'utilisation" });
+    const termsOfSale = screen.getByRole('link', { name: 'conditions générales de vente' });
+    expect(termsOfUse).toHaveAttribute('href', '/cgu');
+    expect(termsOfSale).toHaveAttribute('href', '/cgv');
+    expect(termsOfUse).toHaveAttribute('target', '_blank');
+    expect(termsOfSale).toHaveAttribute('target', '_blank');
   });
 
   it('offers the board seats with « Syndic » selected by default', async () => {

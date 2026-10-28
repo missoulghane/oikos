@@ -18,7 +18,7 @@ export const accountStepSchema = refinePasswordsMatch(
     password: z.string().min(PASSWORD_MIN_LENGTH, `Au moins ${PASSWORD_MIN_LENGTH} caractères`),
     confirmPassword: z.string().min(1, 'La confirmation est requise'),
     // Même règle que l'API (@AssertTrue) : sans acceptation, pas de compte.
-    acceptedTerms: z.boolean().refine((accepted) => accepted, 'Vous devez accepter les CGV et CGU'),
+    acceptedTerms: z.boolean().refine((accepted) => accepted, "Vous devez accepter les conditions générales d'utilisation et de vente"),
   }),
 );
 

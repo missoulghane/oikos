@@ -12,6 +12,7 @@ import { useRegisterPropertyBoardAdmin } from '@/features/identity/register/hook
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
 import { BoardSeatSelect } from '@/features/identity/onboarding/components/BoardSeatSelect';
 import { nextStepPath } from '@/features/identity/onboarding/constants/steps';
+import { TERMS_OF_SALE_PATH, TERMS_OF_USE_PATH } from '@/features/legal';
 import { accountStepSchema, type AccountStepValues } from '@/features/identity/onboarding/schemas/onboardingSchemas';
 
 export function AccountStepPage() {
@@ -148,7 +149,13 @@ export function AccountStepPage() {
           errorMessage={touchedFields.confirmPassword ? errors.confirmPassword?.message : undefined}
         />
         <Checkbox
-          label="J'accepte les CGV et CGU"
+          label={
+            <span>
+              J'accepte les{' '}
+              <TermsLink to={TERMS_OF_USE_PATH}>conditions générales d'utilisation</TermsLink> et les{' '}
+              <TermsLink to={TERMS_OF_SALE_PATH}>conditions générales de vente</TermsLink>
+            </span>
+          }
           {...register('acceptedTerms')}
           errorMessage={errors.acceptedTerms?.message}
         />
@@ -163,5 +170,17 @@ export function AccountStepPage() {
         </Link>
       </p>
     </WizardShell>
+  );
+}
+
+/**
+ * Nouvel onglet : quitter l'étape pour lire les conditions ferait perdre la
+ * saisie en cours, mots de passe compris (ils ne sont jamais conservés).
+ */
+function TermsLink({ to, children }: { to: string; children: string }) {
+  return (
+    <a href={to} target="_blank" rel="noopener noreferrer" className="font-medium text-brand-500 underline dark:text-brand-400">
+      {children}
+    </a>
   );
 }

@@ -1,7 +1,12 @@
-import { forwardRef, type InputHTMLAttributes } from 'react';
+import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react';
 
 interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
-  label: string;
+  /**
+   * Texte, ou contenu riche quand le libellé porte un lien (CGU/CGV à
+   * l'inscription). Un lien dans un <label> se suit sans cocher la case : le
+   * navigateur n'active pas le label depuis un contenu interactif.
+   */
+  label: ReactNode;
   /** Précision affichée sous le libellé : ce que cocher ou décocher déclenche. */
   hint?: string;
   errorMessage?: string;

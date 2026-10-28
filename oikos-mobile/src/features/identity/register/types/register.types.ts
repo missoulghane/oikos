@@ -20,7 +20,7 @@ export interface RegisterBoardAdminPayload {
   fullName: string;
   email: string;
   password: string;
-  /** Case « J'accepte les CGV et CGU » : l'API refuse l'inscription sans elle. */
+  /** Case d'acceptation des CGU et CGV : l'API refuse l'inscription sans elle. */
   acceptedTerms: boolean;
 }
 
