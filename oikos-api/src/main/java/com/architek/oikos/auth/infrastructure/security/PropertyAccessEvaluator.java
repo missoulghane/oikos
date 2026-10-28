@@ -136,13 +136,6 @@ public class PropertyAccessEvaluator {
         this.getConvocationUseCase = getConvocationUseCase;
     }
 
-    /** ADMIN is a global, JWT-embedded authority (same trust boundary as the existing
-     * hasAuthority('ROLE_ADMIN') checks elsewhere) - checked directly off the token so
-     * admins short-circuit every rule below without a DB round-trip. */
-    public boolean isAdmin(Authentication authentication) {
-        return isAdminAuthority(authentication);
-    }
-
     public boolean managesProperty(Authentication authentication, String propertyId) {
         if (isAdminAuthority(authentication)) {
             return true;
@@ -577,6 +570,9 @@ public class PropertyAccessEvaluator {
         return getUserAccessUseCase.getAccess(new GetUserAccessQuery(UserId.of(principal.getUserId())));
     }
 
+    /** ADMIN is a global, JWT-embedded authority (same trust boundary as the existing
+     * hasAuthority('ROLE_ADMIN') checks elsewhere) - checked directly off the token so
+     * admins short-circuit every rule without a DB round-trip. */
     private static boolean isAdminAuthority(Authentication authentication) {
         return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)

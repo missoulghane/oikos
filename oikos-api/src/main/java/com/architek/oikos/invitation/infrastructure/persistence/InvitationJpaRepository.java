@@ -17,8 +17,6 @@ public interface InvitationJpaRepository extends JpaRepository<InvitationEntity,
 
     Page<InvitationEntity> findByPropertyId(UUID propertyId, Pageable pageable);
 
-    List<InvitationEntity> findByPropertyIdAndTypeAndStatus(UUID propertyId, InvitationType type, InvitationStatus status);
-
     /**
      * Trié par date de création : rien n'empêche techniquement deux lignes
      * PUBLIC pour une même copropriété (les bases d'avant cette règle en ont),

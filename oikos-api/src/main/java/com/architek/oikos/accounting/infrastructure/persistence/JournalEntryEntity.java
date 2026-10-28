@@ -34,9 +34,6 @@ public class JournalEntryEntity extends AuditableEntity {
     @Column(name = "exercise_id", nullable = false)
     private UUID exerciseId;
 
-    @Column(name = "period_id", nullable = false)
-    private UUID periodId;
-
     @Column(name = "journal_code", nullable = false)
     private String journalCode;
 

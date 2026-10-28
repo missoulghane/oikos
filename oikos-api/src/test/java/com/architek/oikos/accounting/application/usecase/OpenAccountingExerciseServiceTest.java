@@ -16,7 +16,6 @@ import com.architek.oikos.accounting.application.port.out.PropertyDirectoryPort;
 import com.architek.oikos.accounting.domain.exception.ExerciseAlreadyOpenException;
 import com.architek.oikos.accounting.domain.exception.PropertyNotFoundException;
 import com.architek.oikos.accounting.domain.repository.AccountingExerciseRepository;
-import com.architek.oikos.accounting.domain.repository.PeriodRepository;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -27,13 +26,10 @@ class OpenAccountingExerciseServiceTest {
     private AccountingExerciseRepository accountingExerciseRepository;
 
     @Mock
-    private PeriodRepository periodRepository;
-
-    @Mock
     private PropertyDirectoryPort propertyDirectoryPort;
 
     private OpenAccountingExerciseService newService() {
-        return new OpenAccountingExerciseService(accountingExerciseRepository, periodRepository, propertyDirectoryPort);
+        return new OpenAccountingExerciseService(accountingExerciseRepository, propertyDirectoryPort);
     }
 
     @Test
@@ -72,26 +68,5 @@ class OpenAccountingExerciseServiceTest {
         AccountingExerciseId id = newService().open(command);
 
         org.assertj.core.api.Assertions.assertThat(id).isNotNull();
-    }
-
-    @Test
-    void opening_an_exercise_generates_one_open_period_per_month_spanned() {
-        EntityId propertyId = EntityId.newId();
-        when(propertyDirectoryPort.exists(propertyId)).thenReturn(true);
-        when(accountingExerciseRepository.existsOpenByPropertyId(propertyId)).thenReturn(false);
-        when(accountingExerciseRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        OpenAccountingExerciseCommand command = new OpenAccountingExerciseCommand(propertyId, "Exercice 2026",
-                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 3, 31), null);
-
-        newService().open(command);
-
-        org.mockito.ArgumentCaptor<com.architek.oikos.accounting.domain.model.Period> captor =
-                org.mockito.ArgumentCaptor.forClass(com.architek.oikos.accounting.domain.model.Period.class);
-        org.mockito.Mockito.verify(periodRepository, org.mockito.Mockito.times(3)).save(captor.capture());
-        org.assertj.core.api.Assertions.assertThat(captor.getAllValues())
-                .extracting(com.architek.oikos.accounting.domain.model.Period::getYearMonth)
-                .containsExactly(java.time.YearMonth.of(2026, 1), java.time.YearMonth.of(2026, 2),
-                        java.time.YearMonth.of(2026, 3));
     }
 }

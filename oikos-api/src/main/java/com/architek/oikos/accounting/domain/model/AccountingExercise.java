@@ -10,7 +10,7 @@ import com.architek.oikos.accounting.domain.valueobject.ExerciseStatus;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
- * A property's accounting period: every new accounting operation is attached
+ * A property's accounting exercise: every new accounting operation is attached
  * to the property's single open exercise (RG §3). Closing an exercise (RG
  * §15 - computing closing balances, generating "Report a nouveau" opening
  * entries) is a separate, larger use case not covered by this Phase 1 - only
@@ -82,6 +82,11 @@ public final class AccountingExercise {
 
     public boolean isOpen() {
         return status == ExerciseStatus.OPEN;
+    }
+
+    /** Whether a piece date falls within the exercise, both bounds included. */
+    public boolean covers(LocalDate date) {
+        return !date.isBefore(startDate) && !date.isAfter(endDate);
     }
 
     public AccountingExerciseId getId() {

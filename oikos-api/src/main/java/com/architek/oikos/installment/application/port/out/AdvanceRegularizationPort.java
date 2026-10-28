@@ -2,7 +2,6 @@ package com.architek.oikos.installment.application.port.out;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -17,14 +16,8 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  */
 public interface AdvanceRegularizationPort {
 
-    record UnitAdvance(EntityId unitId, BigDecimal amount) {
-    }
-
     /** Net, un-imputed advance available for this unit (never negative). */
     BigDecimal getAvailableAdvance(EntityId propertyId, EntityId unitId);
-
-    /** Every unit of this property carrying a strictly positive, un-imputed advance. */
-    List<UnitAdvance> listUnitsWithAvailableAdvance(EntityId propertyId);
 
     /** Posts the DEBIT avance / CREDIT creance entry, returns the generic EntityId of the
      * resulting JournalEntry (never accounting's own JournalEntryId). */

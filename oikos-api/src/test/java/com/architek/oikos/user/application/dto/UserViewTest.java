@@ -19,7 +19,7 @@ import com.architek.oikos.user.domain.valueobject.UserId;
 
 /**
  * A caller can hold more than one grant on the same property - e.g. a board
- * member who is also a unit owner (see dev.sql CASE 2/4/6/7) - so
+ * member who is also a unit owner - so
  * UserView.of must expose the full set of roles per property rather than
  * collapsing to a single dominant one.
  */

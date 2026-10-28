@@ -1,8 +1,6 @@
 package com.architek.oikos.shared.infrastructure.whatsapp;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +14,6 @@ import org.springframework.web.client.RestClientResponseException;
 
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import com.architek.oikos.shared.application.port.out.WhatsAppReplyButton;
 import com.architek.oikos.shared.application.port.out.WhatsAppSenderPort;
 import com.architek.oikos.shared.domain.valueobject.PhoneNumberVO;
 import com.architek.oikos.shared.exception.WhatsAppDeliveryException;
@@ -24,8 +21,7 @@ import com.architek.oikos.shared.exception.WhatsAppDeliveryException;
 /**
  * Vonage Messages API adapter (POST {api-region}.nexmo.com/v1/messages, channel
  * "whatsapp") implementing the generic WhatsAppSenderPort. Holds no
- * business/domain concept: the text and the button labels are supplied by the
- * calling feature.
+ * business/domain concept: the text is supplied by the calling feature.
  *
  * <p>Authenticates with HTTP Basic (API key/secret) rather than the JWT scheme:
  * both are accepted by the Messages API, and JWT would add a signing key to
@@ -95,34 +91,6 @@ public class VonageWhatsAppAdapter implements WhatsAppSenderPort {
         Map<String, Object> payload = message(to, "text");
         payload.put("text", text);
         post(to, payload, "text");
-    }
-
-    @Override
-    public void sendReplyButtons(PhoneNumberVO to, String header, String body, String footer,
-                                  List<WhatsAppReplyButton> buttons) {
-        WhatsAppSenderPort.checkReplyButtons(body, buttons);
-
-        // Message interactif = message_type "custom" : l'objet "custom" est repris
-        // tel quel par WhatsApp, Vonage ne fait que le transporter (voir « Working
-        // with WhatsApp Interactive Messages »).
-        Map<String, Object> interactive = new LinkedHashMap<>();
-        interactive.put("type", "button");
-        if (header != null && !header.isBlank()) {
-            interactive.put("header", Map.of("type", "text", "text", header));
-        }
-        interactive.put("body", Map.of("text", body));
-        if (footer != null && !footer.isBlank()) {
-            interactive.put("footer", Map.of("text", footer));
-        }
-        List<Map<String, Object>> replies = new ArrayList<>();
-        for (WhatsAppReplyButton button : buttons) {
-            replies.add(Map.of("type", "reply", "reply", Map.of("id", button.id(), "title", button.title())));
-        }
-        interactive.put("action", Map.of("buttons", replies));
-
-        Map<String, Object> payload = message(to, "custom");
-        payload.put("custom", Map.of("type", "interactive", "interactive", interactive));
-        post(to, payload, "interactive");
     }
 
     /**

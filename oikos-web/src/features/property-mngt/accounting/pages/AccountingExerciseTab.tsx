@@ -3,7 +3,6 @@ import { isAxiosError } from 'axios';
 import { useCurrentUser, canWriteAccounting, canManageProperties } from '@/features/identity/me';
 import { useOpenExercise } from '@/features/property-mngt/accounting/hooks/useOpenExercise';
 import { OpenExerciseForm } from '@/features/property-mngt/accounting/components/OpenExerciseForm';
-import { ClosePeriodForm } from '@/features/property-mngt/accounting/components/ClosePeriodForm';
 import { CloseExerciseForm } from '@/features/property-mngt/accounting/components/CloseExerciseForm';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
@@ -18,8 +17,8 @@ export function AccountingExerciseTab() {
   const currentUser = useCurrentUser();
   const openExercise = useOpenExercise(property.id);
   const canWrite = currentUser.data ? canWriteAccounting(currentUser.data, property.id) : false;
-  // Rouvrir un mois et clôturer l'année relèvent de qui administre la
-  // copropriété, pas de qui tient ses comptes - même partage que côté API.
+  // Clôturer l'année relève de qui administre la copropriété, pas de qui
+  // tient ses comptes - même partage que côté API.
   const canAdminister = currentUser.data ? canManageProperties(currentUser.data) : false;
 
   const hasNoOpenExercise = isAxiosError(openExercise.error) && openExercise.error.response?.status === 400;
@@ -56,10 +55,9 @@ export function AccountingExerciseTab() {
             {openExercise.data.comment && ` · ${openExercise.data.comment}`}
           </p>
 
-          {canWrite && (
+          {canWrite && canAdminister && (
             <div className="flex flex-col gap-4 border-t border-gray-200 pt-4 dark:border-gray-800">
-              <ClosePeriodForm propertyId={property.id} canReopen={canAdminister} />
-              {canAdminister && <CloseExerciseForm propertyId={property.id} exerciseLabel={openExercise.data.label} />}
+              <CloseExerciseForm propertyId={property.id} exerciseLabel={openExercise.data.label} />
             </div>
           )}
         </>

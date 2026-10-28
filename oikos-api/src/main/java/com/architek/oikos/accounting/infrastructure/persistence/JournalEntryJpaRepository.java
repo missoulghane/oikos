@@ -15,7 +15,7 @@ public interface JournalEntryJpaRepository extends JpaRepository<JournalEntryEnt
 
     Page<JournalEntryEntity> findAllByPropertyIdOrderByPieceDateDesc(UUID propertyId, Pageable pageable);
 
-    List<JournalEntryEntity> findAllByPeriodId(UUID periodId);
+    List<JournalEntryEntity> findAllByExerciseId(UUID exerciseId);
 
     /**
      * Matches via the lines, not the entry-level treasuryAccountId: a
@@ -66,20 +66,6 @@ public interface JournalEntryJpaRepository extends JpaRepository<JournalEntryEnt
     BigDecimal sumNetAmountForAuxiliaryUnit(@Param("propertyId") UUID propertyId,
                                              @Param("accountId") UUID accountId, @Param("unitId") UUID unitId);
 
-    /** Same balance as above, grouped by auxiliary unit, keeping only the strictly positive ones -
-     * the property-wide regularisation sweep's starting point. */
-    @Query("""
-            select l.auxiliaryUnitId as unitId,
-                   sum(case when l.direction = 'CREDIT' then l.amount else -l.amount end) as amount
-            from JournalEntryLineEntity l join l.journalEntry j
-            where j.propertyId = :propertyId and j.status = 'POSTED'
-              and l.ledgerAccountId = :accountId and l.auxiliaryUnitId is not null
-            group by l.auxiliaryUnitId
-            having sum(case when l.direction = 'CREDIT' then l.amount else -l.amount end) > 0
-            """)
-    List<AuxiliaryUnitBalanceProjection> sumNetAmountGroupedByAuxiliaryUnit(@Param("propertyId") UUID propertyId,
-                                                                             @Param("accountId") UUID accountId);
-
     /** Ce que la copropriété a mouvementé sur l'exercice, compte par compte. */
     @Query("""
             select l.ledgerAccountId as accountId,
@@ -93,12 +79,6 @@ public interface JournalEntryJpaRepository extends JpaRepository<JournalEntryEnt
 
     interface AccountNetAmountProjection {
         UUID getAccountId();
-
-        BigDecimal getAmount();
-    }
-
-    interface AuxiliaryUnitBalanceProjection {
-        UUID getUnitId();
 
         BigDecimal getAmount();
     }

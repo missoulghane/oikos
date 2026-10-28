@@ -22,7 +22,6 @@ import com.architek.oikos.accounting.domain.valueobject.JournalEntryLineId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryStatus;
 import com.architek.oikos.accounting.domain.valueobject.JournalType;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
@@ -37,12 +36,11 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  *
  * <p>I4 (immutability once posted) follows from this class never exposing a
  * mutator - post()/markReversed() each return a new instance - backed by the
- * DB triggers added in V12 as defense in depth. I5 (piece date must fall in
- * an OPEN period of an OPEN exercise) needs sibling aggregates
- * (Period/AccountingExercise) and is therefore an application-layer
- * precondition, not checked here. Contre-passation (P10) is
+ * DB triggers added in V12 as defense in depth. I5 (piece date must fall
+ * within an OPEN exercise) needs the sibling AccountingExercise aggregate and
+ * is therefore an application-layer precondition, not checked here. Contre-passation (P10) is
  * mirrorLinesForReversal() + markReversed(); building and posting the
- * actual mirror JournalEntry (a fresh id, period, piece number) is the
+ * actual mirror JournalEntry (a fresh id, piece number) is the
  * responsibility of a later phase's use case.
  */
 public final class JournalEntry {
@@ -50,7 +48,6 @@ public final class JournalEntry {
     private final JournalEntryId id;
     private final EntityId propertyId;
     private final AccountingExerciseId exerciseId;
-    private final PeriodId periodId;
     private final JournalCode journalCode;
     private final LedgerAccountId treasuryAccountId;
     private final LocalDate pieceDate;
@@ -61,14 +58,13 @@ public final class JournalEntry {
     private final EntityId createdByUserId;
     private final List<JournalEntryLine> lines;
 
-    private JournalEntry(JournalEntryId id, EntityId propertyId, AccountingExerciseId exerciseId, PeriodId periodId,
+    private JournalEntry(JournalEntryId id, EntityId propertyId, AccountingExerciseId exerciseId,
                           JournalCode journalCode, LedgerAccountId treasuryAccountId, LocalDate pieceDate,
                           Integer pieceNumber, String externalReference, JournalEntryStatus status,
                           JournalEntryId originalEntryId, EntityId createdByUserId, List<JournalEntryLine> lines) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.propertyId = Objects.requireNonNull(propertyId, "propertyId must not be null");
         this.exerciseId = Objects.requireNonNull(exerciseId, "exerciseId must not be null");
-        this.periodId = Objects.requireNonNull(periodId, "periodId must not be null");
         this.journalCode = Objects.requireNonNull(journalCode, "journalCode must not be null");
         this.treasuryAccountId = treasuryAccountId;
         this.pieceDate = Objects.requireNonNull(pieceDate, "pieceDate must not be null");
@@ -86,10 +82,10 @@ public final class JournalEntry {
      * post(), not here.
      */
     public static JournalEntry draft(JournalEntryId id, EntityId propertyId, AccountingExerciseId exerciseId,
-                                      PeriodId periodId, JournalCode journalCode, LedgerAccountId treasuryAccountId,
+                                      JournalCode journalCode, LedgerAccountId treasuryAccountId,
                                       LocalDate pieceDate, String externalReference, EntityId createdByUserId,
                                       List<JournalEntryLine> lines) {
-        return draft(id, propertyId, exerciseId, periodId, journalCode, treasuryAccountId, pieceDate,
+        return draft(id, propertyId, exerciseId, journalCode, treasuryAccountId, pieceDate,
                 externalReference, createdByUserId, lines, null);
     }
 
@@ -100,7 +96,7 @@ public final class JournalEntry {
      * checks (I2, treasury binding, postable journal) as any other entry.
      */
     public static JournalEntry draft(JournalEntryId id, EntityId propertyId, AccountingExerciseId exerciseId,
-                                      PeriodId periodId, JournalCode journalCode, LedgerAccountId treasuryAccountId,
+                                      JournalCode journalCode, LedgerAccountId treasuryAccountId,
                                       LocalDate pieceDate, String externalReference, EntityId createdByUserId,
                                       List<JournalEntryLine> lines, JournalEntryId originalEntryId) {
         if (!journalCode.postable()) {
@@ -121,16 +117,16 @@ public final class JournalEntry {
         } else if (treasuryAccountId != null) {
             throw new IllegalArgumentException("a non-treasury journal entry (" + journalCode + ") must not carry a treasuryAccountId");
         }
-        return new JournalEntry(id, propertyId, exerciseId, periodId, journalCode, treasuryAccountId, pieceDate,
+        return new JournalEntry(id, propertyId, exerciseId, journalCode, treasuryAccountId, pieceDate,
                 null, externalReference, JournalEntryStatus.DRAFT, originalEntryId, createdByUserId, lines);
     }
 
     public static JournalEntry reconstruct(JournalEntryId id, EntityId propertyId, AccountingExerciseId exerciseId,
-                                            PeriodId periodId, JournalCode journalCode, LedgerAccountId treasuryAccountId,
+                                            JournalCode journalCode, LedgerAccountId treasuryAccountId,
                                             LocalDate pieceDate, Integer pieceNumber, String externalReference,
                                             JournalEntryStatus status, JournalEntryId originalEntryId,
                                             EntityId createdByUserId, List<JournalEntryLine> lines) {
-        return new JournalEntry(id, propertyId, exerciseId, periodId, journalCode, treasuryAccountId, pieceDate,
+        return new JournalEntry(id, propertyId, exerciseId, journalCode, treasuryAccountId, pieceDate,
                 pieceNumber, externalReference, status, originalEntryId, createdByUserId, lines);
     }
 
@@ -153,7 +149,7 @@ public final class JournalEntry {
         if (totalDebit.compareTo(totalCredit) != 0) {
             throw new UnbalancedJournalEntryException(id, totalDebit, totalCredit);
         }
-        return new JournalEntry(id, propertyId, exerciseId, periodId, journalCode, treasuryAccountId, pieceDate,
+        return new JournalEntry(id, propertyId, exerciseId, journalCode, treasuryAccountId, pieceDate,
                 pieceNumber, externalReference, JournalEntryStatus.POSTED, originalEntryId, createdByUserId, lines);
     }
 
@@ -193,7 +189,7 @@ public final class JournalEntry {
         if (status != JournalEntryStatus.POSTED) {
             throw new JournalEntryNotPostedException(id, status);
         }
-        return new JournalEntry(id, propertyId, exerciseId, periodId, journalCode, treasuryAccountId, pieceDate,
+        return new JournalEntry(id, propertyId, exerciseId, journalCode, treasuryAccountId, pieceDate,
                 pieceNumber, externalReference, JournalEntryStatus.REVERSED, originalEntryId, createdByUserId, lines);
     }
 
@@ -214,10 +210,6 @@ public final class JournalEntry {
 
     public AccountingExerciseId getExerciseId() {
         return exerciseId;
-    }
-
-    public PeriodId getPeriodId() {
-        return periodId;
     }
 
     public JournalCode getJournalCode() {

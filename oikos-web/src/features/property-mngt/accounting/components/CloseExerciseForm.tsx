@@ -49,7 +49,7 @@ export function CloseExerciseForm({ propertyId, exerciseLabel }: { propertyId: s
             Clôturer l'exercice
           </Button>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Possible une fois tous les mois de l'exercice clôturés.
+            Possible une fois toutes les écritures de l'exercice validées, sans trou de numérotation.
           </p>
         </div>
       )}

@@ -123,30 +123,12 @@ Endpoints : `InstallmentCallController`, `InstallmentController`,
 - **Priorité** : P2
 - [ ]
 
-### FIN-13 — Clôture d'une période comptable
-- **Rôle** : SYNDIC (admin), MANAGER (admin/membre avec `canWriteAccounting`)
-- **Prérequis** : période en cours avec écritures validées
-- **Étapes** :
-  1. `POST /properties/{id}/accounting/periods/{period}/close`
-- **Résultat attendu** : période clôturée, plus d'écriture possible dessus
-- **Priorité** : P2
-- [ ]
-
-### FIN-14 — Réouverture d'une période comptable clôturée
-- **Rôle** : SYNDIC (admin), MANAGER (admin) — droit `managesProperty` (plus restrictif que la clôture)
-- **Prérequis** : période clôturée (FIN-13)
-- **Étapes** :
-  1. `POST /properties/{id}/accounting/periods/{period}/reopen`
-- **Résultat attendu** : réouverture réservée aux profils admin-tier, refusée à un simple membre avec seulement `canWriteAccounting`
-- **Priorité** : P3
-- [ ]
-
 ### FIN-15 — Clôture de l'exercice comptable
 - **Rôle** : SYNDIC (admin), MANAGER (admin) — `managesProperty`
-- **Prérequis** : toutes les périodes de l'exercice clôturées
+- **Prérequis** : exercice ouvert, toutes ses écritures validées (aucun brouillon), numérotation des pièces continue dans chaque journal
 - **Étapes** :
   1. `POST /properties/{id}/accounting/exercises/close`
-- **Résultat attendu** : exercice clôturé, plus aucune écriture possible sans ouverture d'un nouvel exercice
+- **Résultat attendu** : exercice clôturé, plus aucune écriture possible sans ouverture d'un nouvel exercice ; avec un brouillon restant ou un trou de numérotation → 409 listant chaque manquement
 - **Priorité** : P2
 - [ ]
 

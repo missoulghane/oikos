@@ -68,15 +68,6 @@ oikos:
   property:
     configure:
       max-units: 500
-  installment:
-    # Imputation quotidienne des avances sur les échéances arrivées à terme
-    # (RegularizeDueInstallmentsService) : c'est ce qui solde une échéance dont
-    # le lot a déjà payé, le jour où elle échoit, sans action du syndic.
-    # Heure UTC, comme l'horloge de l'application (ClockConfiguration) : la date
-    # balayée est lue dans le même fuseau, les deux ne peuvent pas se contredire
-    # autour de minuit. Une expression pointant une heure jamais atteinte
-    # suffit à neutraliser le balayage sans release.
-    regularization-cron: ${INSTALLMENT_REGULARIZATION_CRON:0 15 1 * * *}
   mail:
     # Set to false to skip real SMTP sending and log the email content instead
     # (see SmtpEmailAdapter / LoggingEmailAdapter). Overridden to false in dev.

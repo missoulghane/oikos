@@ -69,11 +69,4 @@ public class InvitationRepositoryAdapter implements InvitationRepository {
                 .findFirst()
                 .map(mapper::toDomain);
     }
-
-    @Override
-    public List<Invitation> findAllByPropertyIdAndTypeAndStatus(EntityId propertyId, InvitationType type, InvitationStatus status) {
-        return jpaRepository.findByPropertyIdAndTypeAndStatus(propertyId.value(), type, status).stream()
-                .map(mapper::toDomain)
-                .toList();
-    }
 }

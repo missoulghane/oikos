@@ -292,6 +292,7 @@ supplémentaire :
   **`PaymentAllocationCalculator`** (FIFO créance/avance, I8),
   **`AdvanceConsumptionCalculator`** et **`UnitPositionStatus`**/
   **`UnitPositionStatusCalculator`** sont du domaine pur, testés isolément.
+  (Ces deux derniers, jamais câblés, ont depuis été supprimés.)
   Aucun use case ne les appelle encore : la comptabilisation réelle d'un
   règlement (écriture + `Allocation` persistée liant des
   `journal_entry_line`) est différée à la Phase 5/6, une fois l'adapter
@@ -843,36 +844,46 @@ rencontrer. Un syndic qui n'y pensait pas laissait des lots en impayé alors
 qu'ils avaient payé.
 
 Le mécanisme ne change pas — même `RegularizeUnitInstallmentsService`, même
-FIFO, même seuil d'échéance — seul le déclencheur bouge, et il y en a deux :
+FIFO, même seuil d'échéance — seul le déclencheur bouge : la **saisie d'une
+recette sur le lot** (`PaymentAdvanceRegularizationListener`), le moment où
+la position du lot est justement regardée, et où une avance antérieure doit
+se solder.
 
-- **À l'échéance** : `RegularizeDueInstallmentsService`, balayage quotidien
-  (`DueInstallmentRegularizationScheduler`, cron
-  `oikos.installment.regularization-cron`, UTC comme l'horloge de
-  l'application). La date du jour sert de seuil : ce qui échoit ce jour-là
-  est imputé, le reste attend son tour. Rejouer le balayage est sans effet,
-  l'avance ayant déjà été consommée.
-- **À la saisie d'une recette sur le lot**
-  (`PaymentAdvanceRegularizationListener`) : le moment où la position du lot
-  est justement regardée, et où une avance antérieure doit se solder sans
-  attendre la nuit.
-
-Deux conséquences à connaître :
-
-- **Attribution des écritures** : le balayage n'a pas d'auteur humain. Les
-  entrées qu'il poste portent un identifiant système fixe
-  (`DueInstallmentRegularizationScheduler.SYSTEM_USER_ID`) —
-  `journal_entry.created_by_user_id` est NOT NULL mais sans clé étrangère
-  vers `app_user`, contrairement à `document.uploaded_by`. Emprunter
-  l'identité d'un syndic pour une écriture que personne n'a saisie aurait été
-  pire.
-- **Une seule instance API**, comme pour le compteur d'anti-abus en mémoire :
-  deux conteneurs joueraient chacun le balayage, et deux passages
-  concurrents lisant la même avance pourraient l'imputer deux fois. Un
-  second conteneur demanderait un verrou (ShedLock ou équivalent) avant
-  d'activer ceci.
+Un balayage quotidien (`RegularizeDueInstallmentsService`, déclenché par
+`DueInstallmentRegularizationScheduler`) imputait aussi les avances le jour
+où une échéance arrivait à terme. Il a été retiré : une avance n'est donc
+plus imputée sur une échéance devenue échue après coup qu'à la prochaine
+recette saisie sur le lot.
 
 Les deux endpoints `POST …/installments/regularization` (lot et copropriété)
 et leurs écrans disparaissent avec l'action.
+
+## Évolution — suppression des périodes comptables
+
+Les périodes mensuelles (`Period`, clôture P8 et réouverture) sont retirées :
+seul l'exercice comptable reste. Les sections précédentes qui les décrivent
+gardent leur valeur historique mais ne reflètent plus le code.
+
+- **Plus de verrou mensuel.** Une écriture peut être saisie à n'importe
+  quelle date de l'exercice ouvert. I5 devient « la date de pièce tombe dans
+  l'exercice, bornes incluses » (`EnforceExerciseOpenService.requirePieceDateWithin`,
+  `PieceDateOutsideExerciseException`, 409), contrôlé au jour et non plus au
+  mois.
+- **Les contrôles de clôture passent à l'exercice.** `PeriodClosingValidator`
+  devient `ExerciseClosingValidator` et s'exécute à la clôture de l'exercice,
+  sur toutes ses écritures (`JournalEntryRepository.findAllByExerciseId`) :
+  aucun brouillon restant, numérotation continue par journal.
+  `ExerciseNotClosableException` liste ces manquements au lieu des mois
+  encore ouverts. La règle « la période précédente doit être close »
+  disparaît avec les périodes.
+- **Schéma (V15).** `journal_entry.period_id` et la table `period` sont
+  supprimés. Migration irréversible : l'historique de clôture et de
+  réouverture des mois est perdu ; les écritures restent rattachées à leur
+  exercice par `exercise_id`.
+- **API.** Les endpoints `POST …/accounting/periods/{yyyy-MM}/close` et
+  `…/reopen` disparaissent, ainsi que `periodId` dans la réponse des
+  écritures. Côté web, le formulaire de clôture/réouverture de période est
+  retiré de l'onglet Exercice comptable.
 
 ## Questions ouvertes
 

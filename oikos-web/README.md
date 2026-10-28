@@ -49,9 +49,9 @@ réel) plutôt que `npm run dev`, voir
 
 ### Compte de connexion (dev)
 
-En profil `dev`, l'API seed un compte `ROLE_ADMIN` (voir
-`oikos-api/src/main/resources/db/dev/dev.sql`) rattaché au contact
-`oikos@architek.com` — utiliser cet email comme identifiant de connexion.
+En profil `dev`, l'API démarre sans aucun compte : seules les données de
+paramétrage (`oikos-api/src/main/resources/db/seed/`) sont chargées. Créer
+son compte par l'inscription, depuis l'écran de connexion.
 
 ### Autres commandes
 

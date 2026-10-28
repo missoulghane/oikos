@@ -18,11 +18,9 @@ public interface MembershipRequestRepository {
     Page<MembershipRequest> findAllByPropertyId(EntityId propertyId, PageRequest pageRequest);
 
     /**
-     * Unpaged variant, used by ListMembershipRequestsService to merge real
-     * requests with still-outstanding PRIVATE invitations (see
-     * InvitationRepository.findAllByPropertyIdAndTypeAndStatus) into one
-     * unified, in-memory-paginated overview - two independently-paged JPA
-     * queries can't be merged into a single consistent page.
+     * Unpaged variant, used by ListMembershipRequestsService, which filters,
+     * sorts and paginates in memory on columns that do not live in this table
+     * (requester name, unit number).
      */
     List<MembershipRequest> findAllByPropertyId(EntityId propertyId);
 

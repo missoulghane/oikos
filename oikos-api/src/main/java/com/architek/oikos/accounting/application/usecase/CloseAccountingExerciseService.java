@@ -2,7 +2,6 @@ package com.architek.oikos.accounting.application.usecase;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -24,25 +23,25 @@ import com.architek.oikos.accounting.domain.exception.ExerciseNotClosableExcepti
 import com.architek.oikos.accounting.domain.model.AccountNetAmount;
 import com.architek.oikos.accounting.domain.model.AccountingExercise;
 import com.architek.oikos.accounting.domain.model.ExerciseClosingCalculator;
+import com.architek.oikos.accounting.domain.model.ExerciseClosingValidator;
 import com.architek.oikos.accounting.domain.model.JournalEntry;
 import com.architek.oikos.accounting.domain.model.JournalEntryLine;
 import com.architek.oikos.accounting.domain.model.LedgerAccount;
-import com.architek.oikos.accounting.domain.model.Period;
 import com.architek.oikos.accounting.domain.repository.AccountingExerciseRepository;
 import com.architek.oikos.accounting.domain.repository.JournalEntryRepository;
 import com.architek.oikos.accounting.domain.repository.LedgerAccountRepository;
-import com.architek.oikos.accounting.domain.repository.PeriodRepository;
 import com.architek.oikos.accounting.domain.valueobject.AccountNature;
 import com.architek.oikos.accounting.domain.valueobject.EntryDirection;
 import com.architek.oikos.accounting.domain.valueobject.JournalCode;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryLineId;
+import com.architek.oikos.accounting.domain.valueobject.JournalEntryStatus;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
  * P9 : la clôture annuelle. Elle arrête l'exercice en trois gestes - vérifier
- * que tous ses mois sont clos, solder les classes 6 et 7 dans le compte de
+ * que ses écritures sont arrêtées, solder les classes 6 et 7 dans le compte de
  * résultat, puis sceller l'exercice.
  *
  * <p><b>Les soldes viennent des écritures, pas des comptes.</b> Une partie du
@@ -60,18 +59,21 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * deviendront propres à chaque exercice, cette écriture aura un sens - pas
  * avant.
  *
- * <p><b>L'écriture de clôture ne passe pas par la garde de période.</b> Elle est
- * datée du dernier jour de l'exercice, donc dans un mois nécessairement clos
- * puisque c'est la condition même de la clôture. La règle « on ne saisit pas
- * dans une période close » protège la saisie humaine ; l'écriture qui scelle
- * l'exercice est produite par le moteur, et elle est la seule.
+ * <p><b>Les écritures doivent être arrêtées.</b> Aucune ne doit rester en
+ * brouillon - elle ne pourrait plus jamais être comptabilisée une fois
+ * l'exercice clos - et la numérotation des pièces doit être continue dans
+ * chaque journal (ExerciseClosingValidator). Tous les manquements sont
+ * renvoyés ensemble, pas seulement le premier.
+ *
+ * <p><b>L'écriture de clôture ne passe pas par CreateJournalEntryDraft.</b>
+ * Elle est construite par le moteur, datée du dernier jour de l'exercice, et
+ * elle est la seule à l'être ainsi.
  */
 @Component
 public class CloseAccountingExerciseService implements CloseAccountingExerciseUseCase {
 
     private final EnforceExerciseOpenService enforceExerciseOpenService;
     private final AccountingExerciseRepository accountingExerciseRepository;
-    private final PeriodRepository periodRepository;
     private final JournalEntryRepository journalEntryRepository;
     private final LedgerAccountRepository ledgerAccountRepository;
     private final ResultAccountResolver resultAccountResolver;
@@ -79,14 +81,12 @@ public class CloseAccountingExerciseService implements CloseAccountingExerciseUs
 
     public CloseAccountingExerciseService(EnforceExerciseOpenService enforceExerciseOpenService,
                                            AccountingExerciseRepository accountingExerciseRepository,
-                                           PeriodRepository periodRepository,
                                            JournalEntryRepository journalEntryRepository,
                                            LedgerAccountRepository ledgerAccountRepository,
                                            ResultAccountResolver resultAccountResolver,
                                            PostJournalEntryUseCase postJournalEntryUseCase) {
         this.enforceExerciseOpenService = enforceExerciseOpenService;
         this.accountingExerciseRepository = accountingExerciseRepository;
-        this.periodRepository = periodRepository;
         this.journalEntryRepository = journalEntryRepository;
         this.ledgerAccountRepository = ledgerAccountRepository;
         this.resultAccountResolver = resultAccountResolver;
@@ -98,13 +98,15 @@ public class CloseAccountingExerciseService implements CloseAccountingExerciseUs
     public ExerciseClosingView close(CloseAccountingExerciseCommand command) {
         AccountingExercise exercise = enforceExerciseOpenService.requireOpenExercise(command.propertyId());
 
-        List<YearMonth> openPeriods = periodRepository.findAllByExerciseId(exercise.getId()).stream()
-                .filter(Period::isOpen)
-                .map(Period::getYearMonth)
-                .sorted()
-                .toList();
-        if (!openPeriods.isEmpty()) {
-            throw new ExerciseNotClosableException(openPeriods);
+        List<JournalEntry> entries = journalEntryRepository.findAllByExerciseId(exercise.getId());
+        List<JournalEntryStatus> statuses = entries.stream().map(JournalEntry::getStatus).toList();
+        Map<JournalCode, List<Integer>> pieceNumbersByJournal = entries.stream()
+                .filter(entry -> entry.getPieceNumber().isPresent())
+                .collect(Collectors.groupingBy(JournalEntry::getJournalCode,
+                        Collectors.mapping(entry -> entry.getPieceNumber().get(), Collectors.toList())));
+        List<String> violations = ExerciseClosingValidator.violations(statuses, pieceNumbersByJournal, null);
+        if (!violations.isEmpty()) {
+            throw new ExerciseNotClosableException(violations);
         }
 
         List<ExerciseClosingCalculator.AccountBalance> balances = incomeStatementBalances(command.propertyId(),
@@ -173,12 +175,8 @@ public class CloseAccountingExerciseService implements CloseAccountingExerciseUs
         if (lines.isEmpty()) {
             return null;
         }
-        Period lastPeriod = periodRepository
-                .findByExerciseIdAndYearMonth(exercise.getId(), YearMonth.from(exercise.getEndDate()))
-                .orElseThrow(() -> new IllegalStateException(
-                        "L'exercice " + exercise.getId() + " n'a pas de période pour son dernier mois"));
         JournalEntry draft = JournalEntry.draft(JournalEntryId.newId(), command.propertyId(), exercise.getId(),
-                lastPeriod.getId(), JournalCode.OD, null, exercise.getEndDate(),
+                JournalCode.OD, null, exercise.getEndDate(),
                 "CLOTURE-" + exercise.getLabel(), command.closedByUserId(), lines);
         JournalEntryId draftId = journalEntryRepository.save(draft).getId();
         postJournalEntryUseCase.post(new PostJournalEntryCommand(draftId));

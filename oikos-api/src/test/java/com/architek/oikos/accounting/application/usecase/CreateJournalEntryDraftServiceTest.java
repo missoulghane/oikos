@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,10 +20,10 @@ import com.architek.oikos.accounting.application.command.CreateJournalEntryDraft
 import com.architek.oikos.accounting.application.command.CreateJournalEntryLineCommand;
 import com.architek.oikos.accounting.domain.exception.CollectiveAccountRequiresAuxiliaryException;
 import com.architek.oikos.accounting.domain.exception.LedgerAccountNotFoundException;
+import com.architek.oikos.accounting.domain.exception.PieceDateOutsideExerciseException;
 import com.architek.oikos.accounting.domain.model.AccountingExercise;
 import com.architek.oikos.accounting.domain.model.JournalEntry;
 import com.architek.oikos.accounting.domain.model.LedgerAccount;
-import com.architek.oikos.accounting.domain.model.Period;
 import com.architek.oikos.accounting.domain.repository.JournalEntryRepository;
 import com.architek.oikos.accounting.domain.repository.LedgerAccountRepository;
 import com.architek.oikos.accounting.domain.valueobject.AccountNature;
@@ -34,7 +33,6 @@ import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
 import com.architek.oikos.accounting.domain.valueobject.EntryDirection;
 import com.architek.oikos.accounting.domain.valueobject.JournalCode;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,13 +57,11 @@ class CreateJournalEntryDraftServiceTest {
     }
 
     @Test
-    void I5_creates_a_draft_when_the_piece_date_falls_in_an_open_period() {
+    void I5_creates_a_draft_when_the_piece_date_falls_within_the_open_exercise() {
         EntityId propertyId = EntityId.newId();
         AccountingExercise exercise = AccountingExercise.open(AccountingExerciseId.newId(), propertyId, "Exercice 2026",
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
-        Period period = Period.open(PeriodId.newId(), exercise.getId(), YearMonth.of(2026, 8));
         when(enforceExerciseOpenService.requireOpenExercise(propertyId)).thenReturn(exercise);
-        when(enforceExerciseOpenService.requireOpenPeriod(exercise, LocalDate.of(2026, 8, 1))).thenReturn(period);
 
         LedgerAccountId debitAccountId = LedgerAccountId.newId();
         LedgerAccountId creditAccountId = LedgerAccountId.newId();
@@ -88,13 +84,31 @@ class CreateJournalEntryDraftServiceTest {
     }
 
     @Test
+    void I5_a_piece_date_outside_the_exercise_is_rejected_before_anything_is_saved() {
+        EntityId propertyId = EntityId.newId();
+        AccountingExercise exercise = AccountingExercise.open(AccountingExerciseId.newId(), propertyId, "Exercice 2026",
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
+        when(enforceExerciseOpenService.requireOpenExercise(propertyId)).thenReturn(exercise);
+        org.mockito.Mockito.doThrow(new PieceDateOutsideExerciseException(LocalDate.of(2027, 1, 5), exercise.getId()))
+                .when(enforceExerciseOpenService).requirePieceDateWithin(exercise, LocalDate.of(2027, 1, 5));
+
+        CreateJournalEntryDraftCommand command = new CreateJournalEntryDraftCommand(propertyId, JournalCode.OD, null,
+                LocalDate.of(2027, 1, 5), null, EntityId.newId(), List.of(
+                        new CreateJournalEntryLineCommand(LedgerAccountId.newId(), null, null, EntryDirection.DEBIT,
+                                new BigDecimal("100.00"), "Debit"),
+                        new CreateJournalEntryLineCommand(LedgerAccountId.newId(), null, null, EntryDirection.CREDIT,
+                                new BigDecimal("100.00"), "Credit")));
+
+        assertThatThrownBy(() -> newService().create(command)).isInstanceOf(PieceDateOutsideExerciseException.class);
+        org.mockito.Mockito.verify(journalEntryRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
     void a_line_referencing_an_unknown_ledger_account_is_rejected() {
         EntityId propertyId = EntityId.newId();
         AccountingExercise exercise = AccountingExercise.open(AccountingExerciseId.newId(), propertyId, "Exercice 2026",
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
-        Period period = Period.open(PeriodId.newId(), exercise.getId(), YearMonth.of(2026, 8));
         when(enforceExerciseOpenService.requireOpenExercise(propertyId)).thenReturn(exercise);
-        when(enforceExerciseOpenService.requireOpenPeriod(exercise, LocalDate.of(2026, 8, 1))).thenReturn(period);
 
         LedgerAccountId unknownId = LedgerAccountId.newId();
         when(ledgerAccountRepository.findById(unknownId)).thenReturn(Optional.empty());
@@ -114,9 +128,7 @@ class CreateJournalEntryDraftServiceTest {
         EntityId propertyId = EntityId.newId();
         AccountingExercise exercise = AccountingExercise.open(AccountingExerciseId.newId(), propertyId, "Exercice 2026",
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
-        Period period = Period.open(PeriodId.newId(), exercise.getId(), YearMonth.of(2026, 8));
         when(enforceExerciseOpenService.requireOpenExercise(propertyId)).thenReturn(exercise);
-        when(enforceExerciseOpenService.requireOpenPeriod(exercise, LocalDate.of(2026, 8, 1))).thenReturn(period);
 
         LedgerAccountId collectiveId = LedgerAccountId.newId();
         LedgerAccount collective = LedgerAccount.create(collectiveId, null, null, AccountNumber.of("44150000"),

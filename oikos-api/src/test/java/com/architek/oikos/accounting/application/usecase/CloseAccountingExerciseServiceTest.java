@@ -8,11 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,20 +24,21 @@ import com.architek.oikos.accounting.domain.exception.ExerciseNotClosableExcepti
 import com.architek.oikos.accounting.domain.model.AccountNetAmount;
 import com.architek.oikos.accounting.domain.model.AccountingExercise;
 import com.architek.oikos.accounting.domain.model.JournalEntry;
+import com.architek.oikos.accounting.domain.model.JournalEntryLine;
 import com.architek.oikos.accounting.domain.model.LedgerAccount;
-import com.architek.oikos.accounting.domain.model.Period;
 import com.architek.oikos.accounting.domain.repository.AccountingExerciseRepository;
 import com.architek.oikos.accounting.domain.repository.JournalEntryRepository;
 import com.architek.oikos.accounting.domain.repository.LedgerAccountRepository;
-import com.architek.oikos.accounting.domain.repository.PeriodRepository;
 import com.architek.oikos.accounting.domain.valueobject.AccountNature;
 import com.architek.oikos.accounting.domain.valueobject.AccountNumber;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
+import com.architek.oikos.accounting.domain.valueobject.EntryDirection;
 import com.architek.oikos.accounting.domain.valueobject.ExerciseStatus;
 import com.architek.oikos.accounting.domain.valueobject.JournalCode;
+import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
+import com.architek.oikos.accounting.domain.valueobject.JournalEntryLineId;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodStatus;
+import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,9 +59,6 @@ class CloseAccountingExerciseServiceTest {
     private AccountingExerciseRepository accountingExerciseRepository;
 
     @Mock
-    private PeriodRepository periodRepository;
-
-    @Mock
     private JournalEntryRepository journalEntryRepository;
 
     @Mock
@@ -77,7 +72,7 @@ class CloseAccountingExerciseServiceTest {
 
     private CloseAccountingExerciseService newService() {
         return new CloseAccountingExerciseService(enforceExerciseOpenService, accountingExerciseRepository,
-                periodRepository, journalEntryRepository, ledgerAccountRepository, resultAccountResolver,
+                journalEntryRepository, ledgerAccountRepository, resultAccountResolver,
                 postJournalEntryUseCase);
     }
 
@@ -86,9 +81,15 @@ class CloseAccountingExerciseServiceTest {
                 LocalDate.of(2026, 12, 31), null);
     }
 
-    private static Period closedPeriod(YearMonth month) {
-        return Period.reconstruct(PeriodId.newId(), EXERCISE_ID, month, PeriodStatus.CLOSED, Instant.now(),
-                EntityId.newId(), null, null);
+    /** A two-line OD entry, posted under the given piece number, or left DRAFT when it is null. */
+    private static JournalEntry entry(Integer pieceNumber) {
+        JournalEntry draft = JournalEntry.draft(JournalEntryId.newId(), PROPERTY_ID, EXERCISE_ID, JournalCode.OD, null,
+                LocalDate.of(2026, 6, 1), null, USER_ID, List.of(
+                        JournalEntryLine.of(JournalEntryLineId.newId(), BANK, null, null, EntryDirection.DEBIT,
+                                Amount.of(new BigDecimal("100")), "Debit"),
+                        JournalEntryLine.of(JournalEntryLineId.newId(), DUES_INCOME, null, null, EntryDirection.CREDIT,
+                                Amount.of(new BigDecimal("100")), "Credit")));
+        return pieceNumber == null ? draft : draft.post(pieceNumber);
     }
 
     private static LedgerAccount account(LedgerAccountId id, String number, String label, int accountClass,
@@ -97,21 +98,30 @@ class CloseAccountingExerciseServiceTest {
                 false, null, true, BigDecimal.ZERO, null);
     }
 
-    /** Les douze mois clos, ce qui est la condition d'entrée de la clôture. */
-    private void givenAllPeriodsClosed() {
-        when(periodRepository.findAllByExerciseId(EXERCISE_ID)).thenReturn(List.of(
-                closedPeriod(YearMonth.of(2026, 1)), closedPeriod(YearMonth.of(2026, 12))));
+    /** Des écritures toutes comptabilisées et numérotées sans trou : la condition d'entrée de la clôture. */
+    private void givenEntriesReadyForClosing() {
+        when(journalEntryRepository.findAllByExerciseId(EXERCISE_ID)).thenReturn(List.of(entry(1), entry(2)));
     }
 
     @Test
-    void refuses_while_a_month_is_still_open() {
+    void refuses_while_an_entry_is_still_draft() {
         when(enforceExerciseOpenService.requireOpenExercise(PROPERTY_ID)).thenReturn(openExercise());
-        when(periodRepository.findAllByExerciseId(EXERCISE_ID)).thenReturn(List.of(
-                closedPeriod(YearMonth.of(2026, 1)), Period.open(PeriodId.newId(), EXERCISE_ID, YearMonth.of(2026, 11))));
+        when(journalEntryRepository.findAllByExerciseId(EXERCISE_ID)).thenReturn(List.of(entry(1), entry(null)));
 
         assertThatThrownBy(() -> newService().close(new CloseAccountingExerciseCommand(PROPERTY_ID, USER_ID)))
                 .isInstanceOf(ExerciseNotClosableException.class)
-                .hasMessageContaining("2026-11");
+                .hasMessageContaining("DRAFT");
+        verify(accountingExerciseRepository, never()).save(any());
+    }
+
+    @Test
+    void refuses_when_piece_numbering_has_a_gap() {
+        when(enforceExerciseOpenService.requireOpenExercise(PROPERTY_ID)).thenReturn(openExercise());
+        when(journalEntryRepository.findAllByExerciseId(EXERCISE_ID)).thenReturn(List.of(entry(1), entry(3)));
+
+        assertThatThrownBy(() -> newService().close(new CloseAccountingExerciseCommand(PROPERTY_ID, USER_ID)))
+                .isInstanceOf(ExerciseNotClosableException.class)
+                .hasMessageContaining("gap");
         verify(accountingExerciseRepository, never()).save(any());
     }
 
@@ -122,7 +132,7 @@ class CloseAccountingExerciseServiceTest {
         // totalise tout le monde ; seules les écritures de cette copropriété-ci
         // disent ce qu'elle a produit.
         when(enforceExerciseOpenService.requireOpenExercise(PROPERTY_ID)).thenReturn(openExercise());
-        givenAllPeriodsClosed();
+        givenEntriesReadyForClosing();
         when(journalEntryRepository.sumNetAmountByAccountForExercise(PROPERTY_ID, EXERCISE_ID)).thenReturn(List.of(
                 new AccountNetAmount(DUES_INCOME, new BigDecimal("3000")),
                 new AccountNetAmount(MAINTENANCE_EXPENSE, new BigDecimal("-2710")),
@@ -132,9 +142,6 @@ class CloseAccountingExerciseServiceTest {
                 account(MAINTENANCE_EXPENSE, "61500000", "Entretien", 6, AccountNature.EXPENSE),
                 account(BANK, "51400000", "Banque", 5, AccountNature.BALANCE_ASSET)));
         when(resultAccountResolver.resolve(PROPERTY_ID)).thenReturn(RESULT);
-        // L'écriture de clôture est rattachée au dernier mois de l'exercice.
-        when(periodRepository.findByExerciseIdAndYearMonth(EXERCISE_ID, YearMonth.of(2026, 12)))
-                .thenReturn(Optional.of(closedPeriod(YearMonth.of(2026, 12))));
         when(journalEntryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountingExerciseRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -156,7 +163,7 @@ class CloseAccountingExerciseServiceTest {
     @Test
     void seals_the_exercise() {
         when(enforceExerciseOpenService.requireOpenExercise(PROPERTY_ID)).thenReturn(openExercise());
-        givenAllPeriodsClosed();
+        givenEntriesReadyForClosing();
         when(journalEntryRepository.sumNetAmountByAccountForExercise(PROPERTY_ID, EXERCISE_ID)).thenReturn(List.of());
         when(ledgerAccountRepository.findAllVisibleToProperty(PROPERTY_ID)).thenReturn(List.of());
         when(resultAccountResolver.resolve(PROPERTY_ID)).thenReturn(RESULT);
@@ -173,7 +180,7 @@ class CloseAccountingExerciseServiceTest {
         // Une copropriété qui vient d'ouvrir : rien à solder, mais l'exercice
         // doit pouvoir se fermer quand même.
         when(enforceExerciseOpenService.requireOpenExercise(PROPERTY_ID)).thenReturn(openExercise());
-        givenAllPeriodsClosed();
+        givenEntriesReadyForClosing();
         when(journalEntryRepository.sumNetAmountByAccountForExercise(PROPERTY_ID, EXERCISE_ID)).thenReturn(List.of());
         when(ledgerAccountRepository.findAllVisibleToProperty(PROPERTY_ID)).thenReturn(List.of());
         when(resultAccountResolver.resolve(PROPERTY_ID)).thenReturn(RESULT);

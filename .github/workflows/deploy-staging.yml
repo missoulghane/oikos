@@ -125,19 +125,14 @@ jobs:
           # repository no longer contains - which is how the 2026-08-17 squash failed its first
           # deployment: Flyway found the new V1 alongside the stale V2..V15 left by earlier
           # deploys, and replayed ALTERs against a schema that already had them applied.
+          # db/dev (the former demo dataset) is removed from the VPS as well: nothing reads it
+          # any more, and a stale copy left behind would only suggest otherwise.
           ssh -i ~/.ssh/id_deploy ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             "mkdir -p /opt/oikos/oikos-api/src/main/resources/db/migration \
-                      /opt/oikos/oikos-api/src/main/resources/db/dev \
              && rm -f /opt/oikos/oikos-api/src/main/resources/db/migration/*.sql \
-                      /opt/oikos/oikos-api/src/main/resources/db/dev/*.sql"
+             && rm -rf /opt/oikos/oikos-api/src/main/resources/db/dev"
           scp -i ~/.ssh/id_deploy oikos-api/src/main/resources/db/migration/*.sql \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/oikos/oikos-api/src/main/resources/db/migration/
-          # db/dev is only ever read by the `demo-seed` service, which stays off unless
-          # COMPOSE_PROFILES=demo. Copied unconditionally all the same: the switch belongs to
-          # the environment's .env, and a mode that needs a redeploy to become available is a
-          # mode nobody uses.
-          scp -i ~/.ssh/id_deploy oikos-api/src/main/resources/db/dev/*.sql \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/oikos/oikos-api/src/main/resources/db/dev/
       - name: Pull & restart services on VPS
         uses: appleboy/ssh-action@v1
         with:
@@ -148,16 +143,44 @@ jobs:
             set -e
             cd /opt/oikos
             export IMAGE_TAG=sha-${{ github.sha }}
-            docker compose -f docker-compose.yml -f docker-compose.staging.yml pull
+            COMPOSE="docker compose -f docker-compose.yml -f docker-compose.staging.yml"
+            $COMPOSE pull
+
+            # REMISE A ZERO UNIQUE DES DONNEES. DB_EPOCH nomme la generation de la base ;
+            # le VPS garde celle qu'il a deployee en dernier dans .db-epoch. Tant que les
+            # deux concordent, rien n'est touche. Quand DB_EPOCH change dans ce fichier,
+            # le deploiement suivant - et lui seul - supprime la base PostgreSQL et les
+            # documents deposes (volumes postgres-data et api-storage) avant que Flyway
+            # ne reparte de V1. C'est le prix d'un V1__baseline.sql reecrit : une base
+            # existante refuse un V1 dont le checksum a change.
+            # caddy-data n'est pas touche (certificats TLS). Ne changer DB_EPOCH que pour
+            # repartir d'une application vierge : c'est une destruction de donnees.
+            DB_EPOCH=2026-10-28-baseline-squash
+            if [ "$(cat .db-epoch 2>/dev/null)" != "$DB_EPOCH" ]; then
+              PROJECT=$($COMPOSE config | sed -n 's/^name: //p' | head -1)
+              if [ -z "$PROJECT" ]; then
+                echo "::error::nom du projet compose introuvable - remise a zero abandonnee"
+                exit 1
+              fi
+              echo "DB_EPOCH $(cat .db-epoch 2>/dev/null || echo none) -> $DB_EPOCH : remise a zero des volumes de ${PROJECT}"
+              $COMPOSE down
+              for volume in postgres-data api-storage; do
+                if docker volume inspect "${PROJECT}_${volume}" >/dev/null 2>&1; then
+                  docker volume rm "${PROJECT}_${volume}"
+                fi
+              done
+              RESET_DONE=1
+            fi
+
             # flyway est un service one-shot : "up -d" seul ne le relance pas
             # une fois qu'il a déjà tourné (image/mount inchangés d'un point
             # de vue compose), donc les migrations d'un nouveau déploiement
             # ne s'appliqueraient jamais sans ce --force-recreate ciblé.
-            docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --force-recreate flyway
-            docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
-            # demo-seed est one-shot comme flyway, et pour la meme raison il ne se relance pas
-            # tout seul. Sans profil actif la commande ne fait rien (le service n'existe pas),
-            # avec COMPOSE_PROFILES=demo elle rejoue la purge + dev.sql. Place APRES le up -d
-            # general : la purge doit passer sur un schema deja migre.
-            docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --force-recreate demo-seed 2>/dev/null || true
+            $COMPOSE up -d --force-recreate flyway
+            $COMPOSE up -d
+            # Note seulement une fois la pile relancee : si quelque chose echoue avant,
+            # le deploiement suivant refait la remise a zero, sans dommage sur une base vide.
+            if [ -n "${RESET_DONE:-}" ]; then
+              echo "$DB_EPOCH" > .db-epoch
+            fi
             docker image prune -f

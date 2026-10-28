@@ -1,20 +1,17 @@
 package com.architek.oikos.accounting.domain.exception;
 
-import java.time.YearMonth;
 import java.util.List;
 
 import com.architek.oikos.shared.exception.ConflictException;
 
 /**
- * Un exercice ne se clôture qu'une fois tous ses mois clos : le résultat se
- * calcule sur des périodes arrêtées, pas sur des mois encore ouverts à la
- * saisie.
+ * Spec &sect;12 (EXERCICE_NON_CLOTURABLE): one or more blocking checks failed
+ * (ExerciseClosingValidator). Every failing check is listed in the message,
+ * rather than stopping at the first one.
  */
 public class ExerciseNotClosableException extends ConflictException {
 
-    public ExerciseNotClosableException(List<YearMonth> openPeriods) {
-        super("L'exercice ne peut pas être clôturé : "
-                + openPeriods.stream().map(YearMonth::toString).reduce((a, b) -> a + ", " + b).orElse("")
-                + (openPeriods.size() > 1 ? " sont encore ouvertes." : " est encore ouverte."));
+    public ExerciseNotClosableException(List<String> violations) {
+        super("L'exercice ne peut pas être clôturé : " + String.join(", ", violations));
     }
 }

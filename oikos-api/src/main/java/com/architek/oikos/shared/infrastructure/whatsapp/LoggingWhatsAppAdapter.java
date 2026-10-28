@@ -1,13 +1,10 @@
 package com.architek.oikos.shared.infrastructure.whatsapp;
 
-import java.util.List;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import com.architek.oikos.shared.application.port.out.WhatsAppReplyButton;
 import com.architek.oikos.shared.application.port.out.WhatsAppSenderPort;
 import com.architek.oikos.shared.domain.valueobject.PhoneNumberVO;
 
@@ -33,15 +30,5 @@ public class LoggingWhatsAppAdapter implements WhatsAppSenderPort {
         WhatsAppSenderPort.checkText(text);
         log.info("WhatsApp sending disabled - would have sent a text message to: {}", to.value());
         log.debug("Message that would have been sent:\n{}", text);
-    }
-
-    @Override
-    public void sendReplyButtons(PhoneNumberVO to, String header, String body, String footer,
-                                  List<WhatsAppReplyButton> buttons) {
-        WhatsAppSenderPort.checkReplyButtons(body, buttons);
-        log.info("WhatsApp sending disabled - would have sent an interactive message to: {} with {} button(s)",
-                to.value(), buttons.size());
-        log.debug("Message that would have been sent:\nHeader: {}\nBody: {}\nFooter: {}\nButtons: {}",
-                header, body, footer, buttons);
     }
 }

@@ -62,14 +62,14 @@ scratch, autre poste de travail, passage en production) :
 
 - Web : http://localhost:8082
 - API : http://localhost:8080 (Swagger : http://localhost:8080/swagger-ui.html)
-- Comptes de test disponibles dès le premier démarrage (mêmes que
-  `oikos-api/src/main/resources/db/dev/dev.sql`) : `admin@oikos.com` et
-  `user1@oikos.com` à `user8@oikos.com`, mot de passe `Oikos@2026` pour
-  tous.
+- L'application démarre vide : aucun compte ni aucune résidence, seules les
+  données de paramétrage posées par `V1__baseline.sql` (permissions, journaux,
+  canaux, plan de comptes partagé). Le premier compte se crée par
+  l'inscription, depuis l'écran de connexion.
 - Repartir d'une base vide : `docker compose down -v` puis `docker compose
-  up --build` (le seed ne se réinsère proprement que sur un volume vierge —
-  un redémarrage sans `-v` redémarre sans planter mais ne réinsère pas les
-  doublons).
+  up --build` (`-v` détruit aussi les documents téléversés).
+- Recette : la remise à zéro se fait au déploiement, une seule fois, quand
+  `DB_EPOCH` change dans `.github/workflows/deploy-staging.yml`.
 
 ## Documentation par solution
 

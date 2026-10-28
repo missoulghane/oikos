@@ -22,12 +22,10 @@ import com.architek.oikos.property.application.dto.UnitTypePriceView;
 import com.architek.oikos.property.application.dto.UnitView;
 import com.architek.oikos.property.application.port.in.GetPropertyUseCase;
 import com.architek.oikos.property.application.port.in.ListBuildingsByPropertyUseCase;
-import com.architek.oikos.property.application.port.in.ListPropertiesUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitTypePricesByPropertyUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitsByBuildingUseCase;
 import com.architek.oikos.property.application.query.GetPropertyQuery;
 import com.architek.oikos.property.application.query.ListBuildingsByPropertyQuery;
-import com.architek.oikos.property.application.query.ListPropertiesQuery;
 import com.architek.oikos.property.application.query.ListUnitTypePricesByPropertyQuery;
 import com.architek.oikos.property.application.query.ListUnitsByBuildingQuery;
 import com.architek.oikos.property.domain.exception.PropertyNotFoundException;
@@ -56,18 +54,15 @@ public class InstallmentPropertyDirectoryAdapter implements PropertyUnitDirector
     private final ListUnitsByBuildingUseCase listUnitsByBuildingUseCase;
     private final GetPropertyUseCase getPropertyUseCase;
     private final ListUnitTypePricesByPropertyUseCase listUnitTypePricesByPropertyUseCase;
-    private final ListPropertiesUseCase listPropertiesUseCase;
 
     public InstallmentPropertyDirectoryAdapter(ListBuildingsByPropertyUseCase listBuildingsByPropertyUseCase,
                                             ListUnitsByBuildingUseCase listUnitsByBuildingUseCase,
                                             GetPropertyUseCase getPropertyUseCase,
-                                            ListUnitTypePricesByPropertyUseCase listUnitTypePricesByPropertyUseCase,
-                                            ListPropertiesUseCase listPropertiesUseCase) {
+                                            ListUnitTypePricesByPropertyUseCase listUnitTypePricesByPropertyUseCase) {
         this.listBuildingsByPropertyUseCase = listBuildingsByPropertyUseCase;
         this.listUnitsByBuildingUseCase = listUnitsByBuildingUseCase;
         this.getPropertyUseCase = getPropertyUseCase;
         this.listUnitTypePricesByPropertyUseCase = listUnitTypePricesByPropertyUseCase;
-        this.listPropertiesUseCase = listPropertiesUseCase;
     }
 
     @Override
@@ -83,19 +78,6 @@ public class InstallmentPropertyDirectoryAdapter implements PropertyUnitDirector
     @Override
     public String getName(EntityId propertyId) {
         return getPropertyUseCase.getProperty(new GetPropertyQuery(PropertyId.of(propertyId.value()))).name();
-    }
-
-    @Override
-    public List<EntityId> listAllIds() {
-        List<EntityId> propertyIds = new ArrayList<>();
-        int pageNumber = 0;
-        Page<PropertyView> page;
-        do {
-            page = listPropertiesUseCase.listProperties(new ListPropertiesQuery(PageRequest.of(pageNumber, PAGE_SIZE)));
-            page.content().forEach(property -> propertyIds.add(property.id().value()));
-            pageNumber++;
-        } while (page.hasNext());
-        return propertyIds;
     }
 
     @Override

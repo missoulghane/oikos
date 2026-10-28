@@ -25,7 +25,6 @@ import com.architek.oikos.accounting.domain.valueobject.JournalCode;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryLineId;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -45,7 +44,7 @@ class GetJournalEntryServiceTest {
         JournalEntryLine line = JournalEntryLine.of(JournalEntryLineId.newId(), LedgerAccountId.newId(), null, null,
                 EntryDirection.DEBIT, Amount.of(new BigDecimal("100.00")), "Debit");
         JournalEntry entry = JournalEntry.draft(entryId, EntityId.newId(), AccountingExerciseId.newId(),
-                PeriodId.newId(), JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, EntityId.newId(),
+                JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, EntityId.newId(),
                 List.of(line, line));
         when(journalEntryRepository.findById(entryId)).thenReturn(Optional.of(entry));
 

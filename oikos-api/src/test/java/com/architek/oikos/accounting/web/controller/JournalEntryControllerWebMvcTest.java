@@ -33,7 +33,6 @@ import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryLineId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryStatus;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -68,7 +67,7 @@ class JournalEntryControllerWebMvcTest {
     private JournalEntryView sampleView(EntityId propertyId) {
         JournalEntryLineView line = new JournalEntryLineView(JournalEntryLineId.newId(), LedgerAccountId.newId(),
                 null, null, EntryDirection.DEBIT, new BigDecimal("100.00"), "Debit");
-        return new JournalEntryView(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(), PeriodId.newId(),
+        return new JournalEntryView(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(),
                 JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, null, JournalEntryStatus.DRAFT, null,
                 EntityId.newId(), List.of(line, line));
     }

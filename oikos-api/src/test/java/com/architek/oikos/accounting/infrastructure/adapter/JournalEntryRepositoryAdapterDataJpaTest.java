@@ -12,7 +12,6 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
-import com.architek.oikos.accounting.domain.model.AuxiliaryUnitBalance;
 import com.architek.oikos.accounting.domain.model.JournalEntry;
 import com.architek.oikos.accounting.domain.model.JournalEntryLine;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
@@ -24,7 +23,6 @@ import com.architek.oikos.accounting.domain.valueobject.JournalEntrySortField;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryLineId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryStatus;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.accounting.infrastructure.mapper.JournalEntryPersistenceMapperImpl;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.pagination.SortDirection;
@@ -45,7 +43,7 @@ class JournalEntryRepositoryAdapterDataJpaTest {
                 EntryDirection.DEBIT, Amount.of(new BigDecimal("100.00")), "Debit");
         JournalEntryLine credit = JournalEntryLine.of(JournalEntryLineId.newId(), LedgerAccountId.newId(), null, null,
                 EntryDirection.CREDIT, Amount.of(new BigDecimal("100.00")), "Credit");
-        return JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(), PeriodId.newId(),
+        return JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(),
                 JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, EntityId.newId(), List.of(debit, credit));
     }
 
@@ -88,7 +86,7 @@ class JournalEntryRepositoryAdapterDataJpaTest {
     void lists_entries_for_a_property_most_recent_first() {
         EntityId propertyId = EntityId.newId();
         JournalEntry older = JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(),
-                PeriodId.newId(), JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, EntityId.newId(),
+                JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, EntityId.newId(),
                 List.of(JournalEntryLine.of(JournalEntryLineId.newId(), LedgerAccountId.newId(), null, null,
                                 EntryDirection.DEBIT, Amount.of(new BigDecimal("50.00")), "Debit"),
                         JournalEntryLine.of(JournalEntryLineId.newId(), LedgerAccountId.newId(), null, null,
@@ -112,20 +110,20 @@ class JournalEntryRepositoryAdapterDataJpaTest {
         EntityId unitId = EntityId.newId();
 
         JournalEntry credit500 = JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(),
-                PeriodId.newId(), JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, EntityId.newId(),
+                JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, EntityId.newId(),
                 List.of(JournalEntryLine.of(JournalEntryLineId.newId(), LedgerAccountId.newId(), unitId, null,
                                 EntryDirection.DEBIT, Amount.of(new BigDecimal("500.00")), "Debit"),
                         JournalEntryLine.of(JournalEntryLineId.newId(), accountId, unitId, null,
                                 EntryDirection.CREDIT, Amount.of(new BigDecimal("500.00")), "Avance")));
         JournalEntry debit200 = JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(),
-                PeriodId.newId(), JournalCode.OD, null, LocalDate.of(2026, 8, 2), null, EntityId.newId(),
+                JournalCode.OD, null, LocalDate.of(2026, 8, 2), null, EntityId.newId(),
                 List.of(JournalEntryLine.of(JournalEntryLineId.newId(), accountId, unitId, null,
                                 EntryDirection.DEBIT, Amount.of(new BigDecimal("200.00")), "Regularisation"),
                         JournalEntryLine.of(JournalEntryLineId.newId(), LedgerAccountId.newId(), unitId, null,
                                 EntryDirection.CREDIT, Amount.of(new BigDecimal("200.00")), "Regularisation")));
         // A DRAFT entry on the same account/unit must not count.
         JournalEntry draftOnly = JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(),
-                PeriodId.newId(), JournalCode.OD, null, LocalDate.of(2026, 8, 3), null, EntityId.newId(),
+                JournalCode.OD, null, LocalDate.of(2026, 8, 3), null, EntityId.newId(),
                 List.of(JournalEntryLine.of(JournalEntryLineId.newId(), accountId, unitId, null,
                                 EntryDirection.CREDIT, Amount.of(new BigDecimal("999.00")), "Ignored"),
                         JournalEntryLine.of(JournalEntryLineId.newId(), LedgerAccountId.newId(), unitId, null,
@@ -137,11 +135,6 @@ class JournalEntryRepositoryAdapterDataJpaTest {
 
         BigDecimal balance = adapter.sumNetAmountForAuxiliaryUnit(propertyId, accountId, unitId);
         assertThat(balance).isEqualByComparingTo("300.00");
-
-        List<AuxiliaryUnitBalance> grouped = adapter.sumNetAmountGroupedByAuxiliaryUnit(propertyId, accountId);
-        assertThat(grouped).hasSize(1);
-        assertThat(grouped.get(0).unitId()).isEqualTo(unitId);
-        assertThat(grouped.get(0).amount()).isEqualByComparingTo("300.00");
     }
 
     /** Two entries on one treasury account, dated a month apart. */
@@ -153,7 +146,7 @@ class JournalEntryRepositoryAdapterDataJpaTest {
     }
 
     private JournalEntry treasuryEntry(EntityId propertyId, LedgerAccountId treasuryAccountId, LocalDate pieceDate) {
-        return JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(), PeriodId.newId(),
+        return JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(),
                 JournalCode.OD, null, pieceDate, null, EntityId.newId(),
                 List.of(JournalEntryLine.of(JournalEntryLineId.newId(), treasuryAccountId, null, null,
                                 EntryDirection.DEBIT, Amount.of(new BigDecimal("50.00")), "Debit"),

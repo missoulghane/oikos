@@ -8,10 +8,10 @@
 -- already cost the `permission` catalog and the `journal` reference table (both
 -- folded back into V1 - see its header).
 --
--- THIS FILE IS THE SINGLE SOURCE OF THE BUNDLES. db/dev/dev.sql used to carry
--- its own copy "kept in sync manually" - that manual sync is exactly what failed
--- three times, so dev.sql no longer declares them: the dev profile (H2, Flyway
--- disabled) loads this very file through spring.sql.init instead, and
+-- THIS FILE IS THE SINGLE SOURCE OF THE BUNDLES FOR DEV. A demo dataset used to
+-- carry its own copy "kept in sync manually" - that manual sync is exactly what
+-- failed three times: the dev profile (H2, Flyway disabled) loads this very file
+-- through spring.sql.init instead, and
 -- RolePermissionSeedTest fails the build if the catalog, the Permission enum and
 -- these bundles ever drift apart.
 --

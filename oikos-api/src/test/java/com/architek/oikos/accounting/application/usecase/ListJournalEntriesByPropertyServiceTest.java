@@ -22,7 +22,6 @@ import com.architek.oikos.accounting.domain.valueobject.JournalCode;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryLineId;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.Amount;
@@ -44,7 +43,7 @@ class ListJournalEntriesByPropertyServiceTest {
         JournalEntryLine line = JournalEntryLine.of(JournalEntryLineId.newId(), LedgerAccountId.newId(), null, null,
                 EntryDirection.DEBIT, Amount.of(new BigDecimal("100.00")), "Debit");
         JournalEntry entry = JournalEntry.draft(JournalEntryId.newId(), propertyId, AccountingExerciseId.newId(),
-                PeriodId.newId(), JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, EntityId.newId(),
+                JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, EntityId.newId(),
                 List.of(line, line));
         PageRequest pageRequest = PageRequest.defaultRequest();
         when(journalEntryRepository.findPageByPropertyId(propertyId, pageRequest))

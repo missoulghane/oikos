@@ -13,26 +13,25 @@ import com.architek.oikos.installment.domain.exception.NothingToRegularizeExcept
 
 /**
  * Settles what a lot's advance can settle as soon as a recette is recorded on
- * that lot, rather than leaving it to the nightly sweep
- * (RegularizeDueInstallmentsService): recording a recette is precisely the
- * moment the lot's position is looked at.
+ * that lot: recording a recette is precisely the moment the lot's position is
+ * looked at.
  *
  * The gap this closes: PaymentAllocationCalculator only ever imputes the money
  * of the payment being recorded. An advance booked earlier - typically a
  * reglement received before the fund call it was meant for existed - stays
  * un-imputed, so a lot would show unpaid echeances already fallen due while its
- * own advance sat right next to them, until the next nightly sweep.
+ * own advance sat right next to them.
  *
  * AFTER_COMMIT, for two reasons. The advance is read from accounting's journal,
  * and the entry this very payment just posted has to be committed for that
  * figure to be the real remainder rather than the balance from before. And a
  * failure here must never take the payment down with it: an encaissement that
  * really happened cannot be lost because the imputation could not be posted -
- * hence the catch, loud in the logs, and the nightly sweep picks the lot up
- * again once the cause is fixed.
+ * hence the catch, loud in the logs; the lot is picked up again on its next
+ * recette once the cause is fixed.
  *
  * The piece date is the payment's value date, not today's: the regularization
- * entry then lands in the same accounting period as the recette that triggered
+ * entry then lands in the same accounting exercise as the recette that triggered
  * it, and, since RegularizeUnitInstallmentsService applies the same due-date
  * cutoff as the allocation that just ran, the payment's own leftover advance
  * cannot be imputed twice - only an advance from before it can be.

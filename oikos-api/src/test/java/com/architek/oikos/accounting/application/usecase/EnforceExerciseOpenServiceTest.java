@@ -1,6 +1,7 @@
 package com.architek.oikos.accounting.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
@@ -13,13 +14,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.architek.oikos.accounting.domain.exception.NoOpenExerciseException;
-import com.architek.oikos.accounting.domain.exception.PeriodNotOpenException;
+import com.architek.oikos.accounting.domain.exception.PieceDateOutsideExerciseException;
 import com.architek.oikos.accounting.domain.model.AccountingExercise;
-import com.architek.oikos.accounting.domain.model.Period;
 import com.architek.oikos.accounting.domain.repository.AccountingExerciseRepository;
-import com.architek.oikos.accounting.domain.repository.PeriodRepository;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,11 +26,8 @@ class EnforceExerciseOpenServiceTest {
     @Mock
     private AccountingExerciseRepository accountingExerciseRepository;
 
-    @Mock
-    private PeriodRepository periodRepository;
-
     private EnforceExerciseOpenService newService() {
-        return new EnforceExerciseOpenService(accountingExerciseRepository, periodRepository);
+        return new EnforceExerciseOpenService(accountingExerciseRepository);
     }
 
     @Test
@@ -57,39 +52,31 @@ class EnforceExerciseOpenServiceTest {
     }
 
     @Test
-    void I5_returns_the_open_period_covering_the_piece_date() {
-        AccountingExercise exercise = AccountingExercise.open(AccountingExerciseId.newId(), EntityId.newId(),
-                "Exercice 2026", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
-        Period period = Period.open(PeriodId.newId(), exercise.getId(), java.time.YearMonth.of(2026, 8));
-        when(periodRepository.findByExerciseIdAndYearMonth(exercise.getId(), java.time.YearMonth.of(2026, 8)))
-                .thenReturn(Optional.of(period));
+    void I5_accepts_a_piece_date_within_the_exercise_bounds_included() {
+        AccountingExercise exercise = exercise2026();
 
-        Period result = newService().requireOpenPeriod(exercise, LocalDate.of(2026, 8, 15));
-
-        assertThat(result).isEqualTo(period);
+        assertThatCode(() -> newService().requirePieceDateWithin(exercise, LocalDate.of(2026, 1, 1)))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> newService().requirePieceDateWithin(exercise, LocalDate.of(2026, 8, 15)))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> newService().requirePieceDateWithin(exercise, LocalDate.of(2026, 12, 31)))
+                .doesNotThrowAnyException();
     }
 
     @Test
-    void I5_rejects_a_piece_date_with_no_matching_period() {
-        AccountingExercise exercise = AccountingExercise.open(AccountingExerciseId.newId(), EntityId.newId(),
-                "Exercice 2026", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
-        when(periodRepository.findByExerciseIdAndYearMonth(exercise.getId(), java.time.YearMonth.of(2026, 8)))
-                .thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> newService().requireOpenPeriod(exercise, LocalDate.of(2026, 8, 15)))
-                .isInstanceOf(PeriodNotOpenException.class);
+    void I5_rejects_a_piece_date_before_the_exercise_starts() {
+        assertThatThrownBy(() -> newService().requirePieceDateWithin(exercise2026(), LocalDate.of(2025, 12, 31)))
+                .isInstanceOf(PieceDateOutsideExerciseException.class);
     }
 
     @Test
-    void I5_rejects_a_piece_date_whose_period_is_already_closed() {
-        AccountingExercise exercise = AccountingExercise.open(AccountingExerciseId.newId(), EntityId.newId(),
-                "Exercice 2026", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
-        Period closed = Period.open(PeriodId.newId(), exercise.getId(), java.time.YearMonth.of(2026, 8))
-                .close(java.time.Instant.now(), EntityId.newId());
-        when(periodRepository.findByExerciseIdAndYearMonth(exercise.getId(), java.time.YearMonth.of(2026, 8)))
-                .thenReturn(Optional.of(closed));
+    void I5_rejects_a_piece_date_after_the_exercise_ends() {
+        assertThatThrownBy(() -> newService().requirePieceDateWithin(exercise2026(), LocalDate.of(2027, 1, 1)))
+                .isInstanceOf(PieceDateOutsideExerciseException.class);
+    }
 
-        assertThatThrownBy(() -> newService().requireOpenPeriod(exercise, LocalDate.of(2026, 8, 15)))
-                .isInstanceOf(PeriodNotOpenException.class);
+    private static AccountingExercise exercise2026() {
+        return AccountingExercise.open(AccountingExerciseId.newId(), EntityId.newId(), "Exercice 2026",
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
     }
 }

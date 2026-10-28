@@ -5,14 +5,12 @@ import java.util.List;
 import java.util.Optional;
 
 import com.architek.oikos.accounting.domain.model.AccountNetAmount;
-import com.architek.oikos.accounting.domain.model.AuxiliaryUnitBalance;
 import com.architek.oikos.accounting.domain.model.JournalEntry;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
 import com.architek.oikos.accounting.domain.valueobject.JournalCode;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryFilter;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -29,8 +27,8 @@ public interface JournalEntryRepository {
     /** Most recent piece date first. */
     Page<JournalEntry> findPageByPropertyId(EntityId propertyId, PageRequest pageRequest);
 
-    /** Every entry attached to a period, regardless of status - used by P8's closing checks. */
-    List<JournalEntry> findAllByPeriodId(PeriodId periodId);
+    /** Every entry attached to an exercise, regardless of status - used by the exercise closing checks. */
+    List<JournalEntry> findAllByExerciseId(AccountingExerciseId exerciseId);
 
     /** Operations of a single treasury account (accounting overview "click an account" flow),
      * most recent piece date first, narrowed by filter. */
@@ -41,11 +39,6 @@ public interface JournalEntryRepository {
      * auxiliary unit - e.g. how much of the global "avances et acomptes recus" account belongs to
      * this lot (regularisation flow: how much advance is available to impute on its unpaid calls). */
     BigDecimal sumNetAmountForAuxiliaryUnit(EntityId propertyId, LedgerAccountId accountId, EntityId unitId);
-
-    /** Same balance as sumNetAmountForAuxiliaryUnit, for every auxiliary unit that carries a
-     * strictly positive one on this account - the property-wide regularisation sweep's starting
-     * point (only units with something to reconcile are returned). */
-    List<AuxiliaryUnitBalance> sumNetAmountGroupedByAuxiliaryUnit(EntityId propertyId, LedgerAccountId accountId);
 
     /**
      * Solde net (crédits moins débits, écritures comptabilisées) de chaque compte

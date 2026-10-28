@@ -28,22 +28,17 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * owner payment (PaymentAllocationCalculator), except the "amount received"
  * is the unit's own already-recorded, still-unclaimed advance instead of a
  * fresh payment - so a fund call generated after an advance was booked is
- * settled from it, without waiting for a new payment. Nobody triggers this by
- * hand: RegularizeDueInstallmentsService runs it the day an echeance falls due,
- * and PaymentAdvanceRegularizationListener when a recette is recorded on the lot.
+ * settled from it. Nobody triggers this by hand:
+ * PaymentAdvanceRegularizationListener runs it when a recette is recorded on
+ * the lot.
  * Same due-date cutoff as a payment, on the piece date: this is the mechanism
  * that eventually imputes an advance onto a call left out at payment time, once
  * that call has actually fallen due.
- * REQUIRES_NEW: RegularizePropertyInstallmentsService's sweep calls this
- * once per unit and catches NothingToRegularizeException to skip units with
- * nothing to do, but a plain @Transactional here would still mark the
- * *shared* transaction rollback-only the moment that exception is thrown
- * (Spring's default, regardless of whether the caller catches it) - the
- * sweep's own commit would then fail with UnexpectedRollbackException even
- * though every individual regularize() call "succeeded" from the caller's
- * point of view. Each unit's regularization must commit (or roll back)
- * independently, which is also the semantically correct behaviour for a
- * bulk sweep: one unit's failure must never undo another's.
+ * REQUIRES_NEW: its caller, PaymentAdvanceRegularizationListener, runs
+ * AFTER_COMMIT, when the payment's transaction is already committed but still
+ * bound to the thread. A plain @Transactional here would join that finished
+ * transaction and its writes would never be committed; this regularization
+ * needs a transaction of its own.
  */
 @Component
 public class RegularizeUnitInstallmentsService implements RegularizeUnitInstallmentsUseCase {

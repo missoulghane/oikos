@@ -17,7 +17,6 @@ import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryLineId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryStatus;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -25,7 +24,6 @@ class JournalEntryReversalTest {
 
     private final EntityId propertyId = EntityId.newId();
     private final AccountingExerciseId exerciseId = AccountingExerciseId.newId();
-    private final PeriodId periodId = PeriodId.newId();
     private final EntityId createdByUserId = EntityId.newId();
     private final LedgerAccountId debitAccountId = LedgerAccountId.newId();
     private final LedgerAccountId creditAccountId = LedgerAccountId.newId();
@@ -36,7 +34,7 @@ class JournalEntryReversalTest {
     }
 
     private JournalEntry postedEntry() {
-        JournalEntry draft = JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId, periodId,
+        JournalEntry draft = JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId,
                 JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, createdByUserId, List.of(
                         line(debitAccountId, EntryDirection.DEBIT, "150.00", "Facture entretien"),
                         line(creditAccountId, EntryDirection.CREDIT, "150.00", "Fournisseur")));
@@ -63,7 +61,7 @@ class JournalEntryReversalTest {
         List<JournalEntryLine> mirrored = original.mirrorLinesForReversal(
                 List.of(JournalEntryLineId.newId(), JournalEntryLineId.newId()));
 
-        JournalEntry reversal = JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId, periodId,
+        JournalEntry reversal = JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId,
                 JournalCode.OD, null, LocalDate.of(2026, 8, 15), null, createdByUserId, mirrored, original.getId())
                 .post(13);
 
@@ -83,7 +81,7 @@ class JournalEntryReversalTest {
 
     @Test
     void P10_only_a_posted_entry_can_be_reversed() {
-        JournalEntry draft = JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId, periodId,
+        JournalEntry draft = JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId,
                 JournalCode.OD, null, LocalDate.of(2026, 8, 1), null, createdByUserId, List.of(
                         line(debitAccountId, EntryDirection.DEBIT, "150.00", "Facture entretien"),
                         line(creditAccountId, EntryDirection.CREDIT, "150.00", "Fournisseur")));

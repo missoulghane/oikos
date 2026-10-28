@@ -22,12 +22,10 @@ import com.architek.oikos.property.application.dto.UnitTypePriceView;
 import com.architek.oikos.property.application.dto.UnitView;
 import com.architek.oikos.property.application.port.in.GetPropertyUseCase;
 import com.architek.oikos.property.application.port.in.ListBuildingsByPropertyUseCase;
-import com.architek.oikos.property.application.port.in.ListPropertiesUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitTypePricesByPropertyUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitsByBuildingUseCase;
 import com.architek.oikos.property.application.query.GetPropertyQuery;
 import com.architek.oikos.property.application.query.ListBuildingsByPropertyQuery;
-import com.architek.oikos.property.application.query.ListPropertiesQuery;
 import com.architek.oikos.property.application.query.ListUnitTypePricesByPropertyQuery;
 import com.architek.oikos.property.application.query.ListUnitsByBuildingQuery;
 import com.architek.oikos.property.application.dto.PropertyView;
@@ -58,34 +56,9 @@ class InstallmentPropertyDirectoryAdapterTest {
     @Mock
     private ListUnitTypePricesByPropertyUseCase listUnitTypePricesByPropertyUseCase;
 
-    @Mock
-    private ListPropertiesUseCase listPropertiesUseCase;
-
     private InstallmentPropertyDirectoryAdapter newAdapter() {
         return new InstallmentPropertyDirectoryAdapter(listBuildingsByPropertyUseCase, listUnitsByBuildingUseCase,
-                getPropertyUseCase, listUnitTypePricesByPropertyUseCase, listPropertiesUseCase);
-    }
-
-    private static PropertyView propertyView(PropertyId id) {
-        return new PropertyView(id, "Residence " + id, "1 rue Test", "Casablanca",
-                com.architek.oikos.property.domain.valueobject.DuesCalculationMode.FLAT_RATE, null);
-    }
-
-    /**
-     * The nightly imputation sweep reads every copropriété through this method,
-     * and the list use case is paginated: stopping at the first page would leave
-     * every property beyond it unregularized, silently.
-     */
-    @Test
-    void list_all_ids_walks_every_page() {
-        PropertyId first = PropertyId.newId();
-        PropertyId second = PropertyId.newId();
-        when(listPropertiesUseCase.listProperties(new ListPropertiesQuery(PageRequest.of(0, 100))))
-                .thenReturn(Page.of(List.of(propertyView(first)), 0, 100, 101));
-        when(listPropertiesUseCase.listProperties(new ListPropertiesQuery(PageRequest.of(1, 100))))
-                .thenReturn(Page.of(List.of(propertyView(second)), 1, 100, 101));
-
-        assertThat(newAdapter().listAllIds()).containsExactly(first.value(), second.value());
+                getPropertyUseCase, listUnitTypePricesByPropertyUseCase);
     }
 
     @Test

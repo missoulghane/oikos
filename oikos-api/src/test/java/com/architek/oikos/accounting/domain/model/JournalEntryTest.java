@@ -21,7 +21,6 @@ import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryLineId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryStatus;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -29,7 +28,6 @@ class JournalEntryTest {
 
     private final EntityId propertyId = EntityId.newId();
     private final AccountingExerciseId exerciseId = AccountingExerciseId.newId();
-    private final PeriodId periodId = PeriodId.newId();
     private final EntityId createdByUserId = EntityId.newId();
     private final LedgerAccountId debitAccountId = LedgerAccountId.newId();
     private final LedgerAccountId creditAccountId = LedgerAccountId.newId();
@@ -40,7 +38,7 @@ class JournalEntryTest {
     }
 
     private JournalEntry newDraft(List<JournalEntryLine> lines) {
-        return JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId, periodId, JournalCode.OD, null,
+        return JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId, JournalCode.OD, null,
                 LocalDate.of(2026, 8, 1), null, createdByUserId, lines);
     }
 
@@ -94,7 +92,7 @@ class JournalEntryTest {
 
     @Test
     void a_non_postable_journal_is_rejected_at_draft() {
-        assertThatThrownBy(() -> JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId, periodId,
+        assertThatThrownBy(() -> JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId,
                 JournalCode.AN, null, LocalDate.of(2026, 8, 1), null, createdByUserId, List.of(
                         line(debitAccountId, EntryDirection.DEBIT, "100.00"),
                         line(creditAccountId, EntryDirection.CREDIT, "100.00"))))
@@ -103,7 +101,7 @@ class JournalEntryTest {
 
     @Test
     void a_treasury_journal_entry_requires_a_treasury_account_id() {
-        assertThatThrownBy(() -> JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId, periodId,
+        assertThatThrownBy(() -> JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId,
                 JournalCode.BQ, null, LocalDate.of(2026, 8, 1), null, createdByUserId, List.of(
                         line(debitAccountId, EntryDirection.DEBIT, "100.00"),
                         line(creditAccountId, EntryDirection.CREDIT, "100.00"))))
@@ -112,7 +110,7 @@ class JournalEntryTest {
 
     @Test
     void a_treasury_journal_entry_needs_exactly_one_line_on_the_treasury_account() {
-        assertThatThrownBy(() -> JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId, periodId,
+        assertThatThrownBy(() -> JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId,
                 JournalCode.BQ, debitAccountId, LocalDate.of(2026, 8, 1), null, createdByUserId, List.of(
                         line(creditAccountId, EntryDirection.DEBIT, "100.00"),
                         line(creditAccountId, EntryDirection.CREDIT, "100.00"))))
@@ -121,7 +119,7 @@ class JournalEntryTest {
 
     @Test
     void a_treasury_journal_entry_with_exactly_one_matching_line_is_accepted() {
-        JournalEntry entry = JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId, periodId,
+        JournalEntry entry = JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId,
                 JournalCode.BQ, debitAccountId, LocalDate.of(2026, 8, 1), null, createdByUserId, List.of(
                         line(debitAccountId, EntryDirection.DEBIT, "100.00"),
                         line(creditAccountId, EntryDirection.CREDIT, "100.00")));
@@ -131,7 +129,7 @@ class JournalEntryTest {
 
     @Test
     void a_non_treasury_journal_entry_must_not_carry_a_treasury_account_id() {
-        assertThatThrownBy(() -> JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId, periodId,
+        assertThatThrownBy(() -> JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId,
                 JournalCode.OD, debitAccountId, LocalDate.of(2026, 8, 1), null, createdByUserId, List.of(
                         line(debitAccountId, EntryDirection.DEBIT, "100.00"),
                         line(creditAccountId, EntryDirection.CREDIT, "100.00"))))

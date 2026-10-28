@@ -9,8 +9,8 @@ import com.architek.oikos.accounting.domain.valueobject.JournalCode;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryStatus;
 
 /**
- * P8: the blocking checks run before a period can be closed (spec &sect;6) -
- * global balance, no DRAFT entries left, no gap in piece numbering,
+ * The blocking checks run before an exercise can be closed (spec &sect;6) -
+ * no DRAFT entries left, no gap in piece numbering,
  * theoretical treasury balance consistent with the last reconciliation if
  * one exists. Pure function over pre-fetched data (the caller resolves
  * entry statuses/piece numbers/balances via the repositories) returning the
@@ -25,9 +25,9 @@ import com.architek.oikos.accounting.domain.valueobject.JournalEntryStatus;
  * interleaving - each journal's own numbers must be checked for
  * contiguity independently of every other journal's.
  */
-public final class PeriodClosingValidator {
+public final class ExerciseClosingValidator {
 
-    private PeriodClosingValidator() {
+    private ExerciseClosingValidator() {
     }
 
     public record TreasuryReconciliation(BigDecimal theoreticalBalance, BigDecimal lastReconciledBalance) {
@@ -40,7 +40,7 @@ public final class PeriodClosingValidator {
         if (entryStatuses.stream().anyMatch(status -> status == JournalEntryStatus.DRAFT)) {
             violations.add("At least one journal entry is still DRAFT");
         }
-        if (allocatedPieceNumbersByJournal.values().stream().anyMatch(PeriodClosingValidator::hasGap)) {
+        if (allocatedPieceNumbersByJournal.values().stream().anyMatch(ExerciseClosingValidator::hasGap)) {
             violations.add("Piece numbering has a gap");
         }
         if (treasuryReconciliation != null

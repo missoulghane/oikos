@@ -36,7 +36,6 @@ class RolePermissionSeedTest {
     private static final Path RESOURCES = resolveModuleRoot().resolve("src/main/resources");
     private static final Path MIGRATIONS = RESOURCES.resolve("db/migration");
     private static final Path SEEDS = RESOURCES.resolve("db/seed");
-    private static final Path DEV_SEED = RESOURCES.resolve("db/dev/dev.sql");
     private static final Path DEV_PROFILE = RESOURCES.resolve("application-dev.yml");
 
     /**
@@ -96,19 +95,6 @@ class RolePermissionSeedTest {
 
     private static Set<String> keysGrantedTo(String roleName) throws IOException {
         return matchesIn(bundleStatements(), "\\('" + roleName + "',\\s*'([^']+)'\\)");
-    }
-
-    /**
-     * dev.sql used to keep its own copy of the bundles, "kept in sync manually".
-     * That is the sync that drifted; the dev profile now loads V2 itself through
-     * spring.sql.init. Re-introducing a copy here would also break the docker
-     * profile, which applies V2 via Flyway *and* runs dev.sql.
-     */
-    @Test
-    void dev_seed_does_not_declare_its_own_bundles() throws IOException {
-        assertThat(Files.readString(DEV_SEED))
-                .as("db/dev/dev.sql must not seed role_permission - the migrations are the single source")
-                .doesNotContain("INSERT INTO role_permission");
     }
 
     /**

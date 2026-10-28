@@ -5,7 +5,6 @@ import type {
   ExerciseStatus,
   JournalCode,
   JournalEntryStatus,
-  PeriodStatus,
 } from '@/features/property-mngt/accounting/types/accounting.types';
 
 export const JOURNAL_CODE_LABELS: Record<JournalCode, string> = {
@@ -47,11 +46,6 @@ export const EXERCISE_STATUS_LABELS: Record<ExerciseStatus, string> = {
 export const EXERCISE_STATUS_BADGE_COLORS: Record<ExerciseStatus, 'success' | 'light'> = {
   OPEN: 'success',
   CLOSED: 'light',
-};
-
-export const PERIOD_STATUS_LABELS: Record<PeriodStatus, string> = {
-  OPEN: 'Ouverte',
-  CLOSED: 'Fermée',
 };
 
 export const JOURNAL_ENTRY_STATUS_LABELS: Record<JournalEntryStatus, string> = {

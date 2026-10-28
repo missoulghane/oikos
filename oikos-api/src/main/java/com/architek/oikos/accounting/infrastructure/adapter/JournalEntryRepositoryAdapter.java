@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.accounting.domain.model.AccountNetAmount;
-import com.architek.oikos.accounting.domain.model.AuxiliaryUnitBalance;
 import com.architek.oikos.accounting.domain.model.JournalEntry;
 import com.architek.oikos.accounting.domain.repository.JournalEntryRepository;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
@@ -20,7 +19,6 @@ import com.architek.oikos.accounting.domain.valueobject.JournalEntrySortField;
 import com.architek.oikos.shared.domain.pagination.SortDirection;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.accounting.infrastructure.mapper.JournalEntryPersistenceMapper;
 import com.architek.oikos.accounting.infrastructure.persistence.JournalEntryEntity;
 import com.architek.oikos.accounting.infrastructure.persistence.JournalEntryJpaRepository;
@@ -86,8 +84,8 @@ public class JournalEntryRepositoryAdapter implements JournalEntryRepository {
     }
 
     @Override
-    public List<JournalEntry> findAllByPeriodId(PeriodId periodId) {
-        return jpaRepository.findAllByPeriodId(periodId.asUuid()).stream().map(mapper::toDomain).toList();
+    public List<JournalEntry> findAllByExerciseId(AccountingExerciseId exerciseId) {
+        return jpaRepository.findAllByExerciseId(exerciseId.asUuid()).stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -132,13 +130,6 @@ public class JournalEntryRepositoryAdapter implements JournalEntryRepository {
     @Override
     public BigDecimal sumNetAmountForAuxiliaryUnit(EntityId propertyId, LedgerAccountId accountId, EntityId unitId) {
         return jpaRepository.sumNetAmountForAuxiliaryUnit(propertyId.value(), accountId.asUuid(), unitId.value());
-    }
-
-    @Override
-    public List<AuxiliaryUnitBalance> sumNetAmountGroupedByAuxiliaryUnit(EntityId propertyId, LedgerAccountId accountId) {
-        return jpaRepository.sumNetAmountGroupedByAuxiliaryUnit(propertyId.value(), accountId.asUuid()).stream()
-                .map(row -> new AuxiliaryUnitBalance(EntityId.of(row.getUnitId()), row.getAmount()))
-                .toList();
     }
 
     @Override

@@ -12,7 +12,6 @@ export type AccountRole =
   | 'STAFF_PAYABLE';
 export type JournalCode = 'VT' | 'BQ' | 'CA' | 'AC' | 'OD' | 'AN';
 export type ExerciseStatus = 'OPEN' | 'CLOSED';
-export type PeriodStatus = 'OPEN' | 'CLOSED';
 export type JournalEntryStatus = 'DRAFT' | 'POSTED' | 'REVERSED';
 
 export interface LedgerAccount {
@@ -44,17 +43,6 @@ export interface AccountingExercise {
   comment: string | null;
 }
 
-export interface Period {
-  id: string;
-  exerciseId: string;
-  yearMonth: string;
-  status: PeriodStatus;
-  closedAt: string | null;
-  closedByUserId: string | null;
-  /** Dernière réouverture, s'il y en a eu une. Conservée même après une nouvelle clôture. */
-  reopenedAt: string | null;
-}
-
 export interface ExerciseClosing {
   exercise: AccountingExercise;
   netResult: number;
@@ -76,7 +64,6 @@ export interface JournalEntry {
   id: string;
   propertyId: string;
   exerciseId: string;
-  periodId: string;
   journalCode: JournalCode;
   treasuryAccountId: string | null;
   pieceDate: string;

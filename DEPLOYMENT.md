@@ -217,8 +217,9 @@ efface la ligne d'échec ; il reste à vérifier à la main ce qu'elle avait dé
 
 **Une base antérieure à un squash de migrations** — le cas le plus déroutant,
 parce que `info` affiche « Success » partout. Les migrations ont été
-refondues en un seul `V1__baseline.sql` à deux reprises (commits `e11c281` et
-`bfb0226`) : une base migrée avant garde dans son historique des versions
+refondues en un seul `V1__baseline.sql` à plusieurs reprises (commits `e11c281`,
+`bfb0226`, puis la refonte du 2026-10-28 qui a aussi vidé l'application de ses
+données de test) : une base migrée avant garde dans son historique des versions
 2, 3, … dont les fichiers n'existent plus, et dont les numéros sont désormais
 repris par d'autres migrations. Celles du dépôt ne s'appliqueront donc
 jamais — Flyway les croit déjà passées.
@@ -227,9 +228,13 @@ Le signe qui ne trompe pas : la colonne `Description` de `info` ne
 correspond pas au nom des fichiers présents dans `db/migration/`.
 
 - **En local** : recréer le volume, c'est la seule issue raisonnable.
-  `docker compose down -v && docker compose up -d` — les données de dev sont
-  reséedées depuis `db/dev/dev.sql`. Attention, `-v` détruit aussi
+  `docker compose down -v && docker compose up -d` — l'application repart
+  vide, avec ses seules données de paramétrage. Attention, `-v` détruit aussi
   `api-storage` (les documents téléversés en local).
+- **Sur la recette** : le workflow de déploiement le fait lui-même, une seule
+  fois, quand `DB_EPOCH` change dans `.github/workflows/deploy-staging.yml`
+  (volumes `postgres-data` et `api-storage` supprimés, `caddy-data` conservé).
+  Le VPS garde la génération déployée dans `/opt/oikos/.db-epoch`.
 - **Sur un environnement dont les données comptent** : ne rien détruire.
   Comparer d'abord le schéma réel à celui que produit `V1__baseline.sql`,
   puis renuméroter les migrations en attente au-dessus du dernier numéro

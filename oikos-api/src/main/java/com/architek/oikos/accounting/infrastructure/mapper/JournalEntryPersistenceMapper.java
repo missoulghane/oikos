@@ -15,7 +15,6 @@ import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryLineId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryStatus;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.accounting.infrastructure.persistence.JournalEntryEntity;
 import com.architek.oikos.accounting.infrastructure.persistence.JournalEntryLineEntity;
 import com.architek.oikos.shared.domain.valueobject.Amount;
@@ -58,7 +57,6 @@ public interface JournalEntryPersistenceMapper {
         entity.setId(entry.getId().asUuid());
         entity.setPropertyId(entry.getPropertyId().value());
         entity.setExerciseId(entry.getExerciseId().asUuid());
-        entity.setPeriodId(entry.getPeriodId().asUuid());
         entity.setJournalCode(entry.getJournalCode().name());
         entity.setTreasuryAccountId(entry.getTreasuryAccountId().map(LedgerAccountId::asUuid).orElse(null));
         entity.setPieceDate(entry.getPieceDate());
@@ -76,7 +74,7 @@ public interface JournalEntryPersistenceMapper {
         UUID treasuryAccountId = entity.getTreasuryAccountId();
         UUID originalEntryId = entity.getOriginalEntryId();
         return JournalEntry.reconstruct(JournalEntryId.of(entity.getId()), EntityId.of(entity.getPropertyId()),
-                AccountingExerciseId.of(entity.getExerciseId()), PeriodId.of(entity.getPeriodId()),
+                AccountingExerciseId.of(entity.getExerciseId()),
                 JournalCode.valueOf(entity.getJournalCode()), treasuryAccountId == null ? null : LedgerAccountId.of(treasuryAccountId),
                 entity.getPieceDate(), entity.getPieceNumber(), entity.getExternalReference(),
                 JournalEntryStatus.valueOf(entity.getStatus()), originalEntryId == null ? null : JournalEntryId.of(originalEntryId),

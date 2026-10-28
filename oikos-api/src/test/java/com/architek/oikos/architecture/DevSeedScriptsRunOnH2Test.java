@@ -37,9 +37,7 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
  * POSITION. The application simply refused to boot in dev.
  *
  * <p>Discovered from application-dev.yml rather than listed here, so a seed
- * added tomorrow and forgotten is covered the day it is registered. db/dev/dev.sql
- * is excluded: it is demo data with its own ordering and foreign keys, not a
- * catalog, and its failure would say nothing about the schema. Since the
+ * added tomorrow and forgotten is covered the day it is registered. Since the
  * 2026-08-17 squash these scripts live in db/seed/ rather than db/migration/ -
  * the single remaining migration is V1__baseline.sql, which this profile cannot
  * run at all.

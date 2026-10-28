@@ -29,16 +29,12 @@ spring:
   # only validates here (ddl-auto: validate above), it never migrates.
   flyway:
     enabled: false
-  # Seeds the same test accounts as the dev profile (db/dev/dev.sql) so a
-  # freshly started recette environment has usable logins right away. Not
-  # idempotent (plain INSERTs) - continue-on-error means a restart against
-  # an already-seeded volume just logs the failed inserts instead of
-  # crashing startup. Run `docker compose down -v` for a truly clean reseed.
+  # No sql.init here: everything the application needs - schema and reference
+  # data - comes from V1__baseline.sql through that Flyway service. A deployed
+  # environment carries no test data; its users register themselves.
   sql:
     init:
-      mode: always
-      continue-on-error: true
-      data-locations: classpath:db/dev/dev.sql
+      mode: never
 
 oikos:
   mail:

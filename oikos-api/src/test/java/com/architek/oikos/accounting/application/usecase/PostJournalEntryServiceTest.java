@@ -34,7 +34,6 @@ import com.architek.oikos.accounting.domain.valueobject.JournalEntryId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryLineId;
 import com.architek.oikos.accounting.domain.valueobject.JournalEntryStatus;
 import com.architek.oikos.accounting.domain.valueobject.LedgerAccountId;
-import com.architek.oikos.accounting.domain.valueobject.PeriodId;
 import com.architek.oikos.shared.domain.valueobject.Amount;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
@@ -57,7 +56,7 @@ class PostJournalEntryServiceTest {
                 EntryDirection.DEBIT, Amount.of(new BigDecimal("100.00")), "Debit");
         JournalEntryLine credit = JournalEntryLine.of(JournalEntryLineId.newId(), creditAccountId, null, null,
                 EntryDirection.CREDIT, Amount.of(new BigDecimal("100.00")), "Credit");
-        return JournalEntry.draft(id, propertyId, AccountingExerciseId.newId(), PeriodId.newId(), JournalCode.OD,
+        return JournalEntry.draft(id, propertyId, AccountingExerciseId.newId(), JournalCode.OD,
                 null, LocalDate.of(2026, 8, 1), null, EntityId.newId(), List.of(debit, credit));
     }
 
