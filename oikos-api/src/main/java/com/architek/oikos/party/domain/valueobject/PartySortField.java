@@ -7,5 +7,6 @@ package com.architek.oikos.party.domain.valueobject;
  */
 public enum PartySortField {
     FULL_NAME,
-    EMAIL
+    EMAIL,
+    PHONE
 }

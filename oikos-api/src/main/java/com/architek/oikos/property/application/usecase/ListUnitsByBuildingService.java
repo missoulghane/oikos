@@ -27,6 +27,7 @@ import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.pagination.SortDirection;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -83,7 +84,8 @@ public class ListUnitsByBuildingService implements ListUnitsByBuildingUseCase {
      * happens in memory over every unit of the building, same
      * in-memory-filter assumption as ListContactsByPropertyService. Sorting
      * joins them for a different reason: ordering the rows of the current page
-     * only would order nothing at all.
+     * only would order nothing at all - and the type, owner and ownership
+     * columns are among the things a sort can be asked on.
      */
     private Page<UnitView> filterInMemory(ListUnitsByBuildingQuery query, Map<UnitTypeDefinitionId, String> namesByUnitTypeId) {
         String pattern = query.search() == null || query.search().isBlank()
@@ -98,7 +100,7 @@ public class ListUnitsByBuildingService implements ListUnitsByBuildingUseCase {
         List<Unit> matchingUnits = allUnits.stream()
                 .filter(unit -> matchesStatus(ownershipsByUnitId.get(unit.getId()), query.ownershipStatus()))
                 .filter(unit -> matchesSearch(unit, ownershipsByUnitId.get(unit.getId()), pattern, partyDetailsCache))
-                .sorted(comparator(query))
+                .sorted(comparator(query, ownershipsByUnitId, namesByUnitTypeId, partyDetailsCache))
                 .toList();
 
         int pageSize = query.pageRequest().pageSize();
@@ -112,62 +114,41 @@ public class ListUnitsByBuildingService implements ListUnitsByBuildingUseCase {
         return Page.of(content, query.pageRequest().pageNumber(), pageSize, matchingUnits.size());
     }
 
-    /** Repository order preserved when no sort is asked for. */
-    private static Comparator<Unit> comparator(ListUnitsByBuildingQuery query) {
+    /**
+     * Repository order preserved when no sort is asked for. Every other column
+     * falls back on the lot number, ascending, between equal rows: without it a
+     * page boundary could fall between two lots of the same type differently on
+     * each request. Owners compare on the first name shown in the column.
+     */
+    private Comparator<Unit> comparator(ListUnitsByBuildingQuery query, Map<UnitId, List<UnitOwnership>> ownershipsByUnitId,
+                                        Map<UnitTypeDefinitionId, String> namesByUnitTypeId,
+                                        Map<EntityId, PartyDetails> partyDetailsCache) {
         if (query.sortField() == null) {
             return (left, right) -> 0;
         }
-        Comparator<Unit> comparator = query.sortField() == UnitSortField.SHARES
-                ? Comparator.comparing(unit -> unit.getShares().value())
-                : Comparator.comparing(Unit::getUnitNumber, ListUnitsByBuildingService::compareNaturally);
-        return query.sortDirection() == SortDirection.DESC ? comparator.reversed() : comparator;
+        SortDirection direction = query.sortDirection();
+        Comparator<Unit> byNumber = Comparator.comparing(Unit::getUnitNumber, NaturalOrder::compare);
+        Comparator<Unit> primary = switch (query.sortField()) {
+            case UNIT_NUMBER -> direction == SortDirection.DESC ? byNumber.reversed() : byNumber;
+            case SHARES -> NaturalOrder.<Unit, BigDecimal>byKey(unit -> unit.getShares().value(),
+                    Comparator.naturalOrder(), direction);
+            case UNIT_TYPE -> NaturalOrder.byKey(unit -> namesByUnitTypeId.get(unit.getUnitTypeId()),
+                    String.CASE_INSENSITIVE_ORDER, direction);
+            case FLOOR -> NaturalOrder.<Unit, Integer>byKey(Unit::getFloor, Comparator.naturalOrder(), direction);
+            case OWNERS -> NaturalOrder.byKey(unit -> firstOwnerName(ownershipsByUnitId.get(unit.getId()), partyDetailsCache),
+                    String.CASE_INSENSITIVE_ORDER, direction);
+            // Affecté before Non affecté when ascending.
+            case OWNERSHIP_STATUS -> NaturalOrder.<Unit, Boolean>byKey(unit -> ownershipsByUnitId.get(unit.getId()).isEmpty(),
+                    Comparator.naturalOrder(), direction);
+        };
+        return primary.thenComparing(byNumber);
     }
 
-    /**
-     * Digit runs compared as numbers, so lot A2 comes before A10. Plain
-     * lexicographic order would put A10 in between A1 and A2, which reads as a
-     * broken sort on the very column a syndic scans most.
-     */
-    private static int compareNaturally(String left, String right) {
-        if (left == null || right == null) {
-            return left == null ? (right == null ? 0 : -1) : 1;
-        }
-        int i = 0;
-        int j = 0;
-        while (i < left.length() && j < right.length()) {
-            char leftChar = left.charAt(i);
-            char rightChar = right.charAt(j);
-            if (Character.isDigit(leftChar) && Character.isDigit(rightChar)) {
-                int startI = i;
-                int startJ = j;
-                while (i < left.length() && Character.isDigit(left.charAt(i))) {
-                    i++;
-                }
-                while (j < right.length() && Character.isDigit(right.charAt(j))) {
-                    j++;
-                }
-                // Compared as text once the leading zeroes are gone: a lot number
-                // can be longer than an int.
-                String leftDigits = left.substring(startI, i).replaceFirst("^0+(?=.)", "");
-                String rightDigits = right.substring(startJ, j).replaceFirst("^0+(?=.)", "");
-                int byLength = Integer.compare(leftDigits.length(), rightDigits.length());
-                if (byLength != 0) {
-                    return byLength;
-                }
-                int byValue = leftDigits.compareTo(rightDigits);
-                if (byValue != 0) {
-                    return byValue;
-                }
-            } else {
-                int byChar = Character.compare(Character.toLowerCase(leftChar), Character.toLowerCase(rightChar));
-                if (byChar != 0) {
-                    return byChar;
-                }
-                i++;
-                j++;
-            }
-        }
-        return Integer.compare(left.length() - i, right.length() - j);
+    private String firstOwnerName(List<UnitOwnership> ownerships, Map<EntityId, PartyDetails> partyDetailsCache) {
+        return ownerships.stream()
+                .map(ownership -> partyDetails(ownership.getPartyId(), partyDetailsCache).fullName())
+                .findFirst()
+                .orElse(null);
     }
 
     private UnitView toView(Unit unit, List<UnitOwnership> ownerships, Map<UnitTypeDefinitionId, String> namesByUnitTypeId,

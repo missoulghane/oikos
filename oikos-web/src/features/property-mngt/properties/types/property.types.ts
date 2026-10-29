@@ -52,7 +52,14 @@ export interface UnitTypeDefinition {
   name: string;
 }
 
-export const UNIT_SORT_FIELDS = ['UNIT_NUMBER', 'SHARES'] as const;
+export const UNIT_SORT_FIELDS = [
+  'UNIT_NUMBER',
+  'UNIT_TYPE',
+  'FLOOR',
+  'SHARES',
+  'OWNERS',
+  'OWNERSHIP_STATUS',
+] as const;
 export type UnitSortField = (typeof UNIT_SORT_FIELDS)[number];
 
 /** Criteria of a lots listing, passed whole to the query key - see queryKeys. */
@@ -63,7 +70,7 @@ export interface UnitListFilters {
   sortDirection?: 'ASC' | 'DESC';
 }
 
-export const CONTACT_SORT_FIELDS = ['FULL_NAME', 'ACCOUNT_STATUS'] as const;
+export const CONTACT_SORT_FIELDS = ['FULL_NAME', 'PHONE', 'UNITS', 'ACCOUNT_STATUS'] as const;
 export type ContactSortField = (typeof CONTACT_SORT_FIELDS)[number];
 
 /** Criteria of a contacts listing, passed whole to the query key - see queryKeys. */

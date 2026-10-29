@@ -102,14 +102,29 @@ export function ConvocationTrackingTable({
               <SortableColumnHeader field="LOT" activeField={sortBy} direction={sortDirection} onSort={onSort}>
                 Lot
               </SortableColumnHeader>
-              <th className="py-2 pr-4 font-normal">Copropriétaire(s)</th>
+              <SortableColumnHeader
+                field="OWNERS"
+                activeField={sortBy}
+                direction={sortDirection}
+                onSort={onSort}
+                className="pr-4"
+              >
+                Copropriétaire(s)
+              </SortableColumnHeader>
               <SortableColumnHeader field="WEIGHT" activeField={sortBy} direction={sortDirection} onSort={onSort}>
                 Voix
               </SortableColumnHeader>
               <SortableColumnHeader field="SENT_AT" activeField={sortBy} direction={sortDirection} onSort={onSort}>
                 Envoi
               </SortableColumnHeader>
-              <th className="py-2 font-normal">Réponse</th>
+              <SortableColumnHeader
+                field="REPLY"
+                activeField={sortBy}
+                direction={sortDirection}
+                onSort={onSort}
+              >
+                Réponse
+              </SortableColumnHeader>
             </tr>
           </thead>
           <tbody>

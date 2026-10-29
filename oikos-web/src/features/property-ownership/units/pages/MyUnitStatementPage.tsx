@@ -3,16 +3,38 @@ import { useUnitInstallments } from '@/features/property-mngt/installments/hooks
 import { useUnitPayments } from '@/features/property-mngt/installments/hooks/useUnitPayments';
 import { useMyUnits } from '@/features/property-ownership/units/hooks/useMyUnits';
 import { formatUnitLabel } from '@/features/property-ownership/units/utils/formatUnitLabel';
-import { buildAccountStatement, statementTotals } from '@/features/property-ownership/units/utils/accountStatement';
+import {
+  buildAccountStatement,
+  statementTotals,
+  type StatementLine,
+} from '@/features/property-ownership/units/utils/accountStatement';
 import { getUnitBalanceColorClass } from '@/features/property-ownership/units/utils/unitBalance';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { EmptyState } from '@/shared/components/EmptyState/EmptyState';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
+import { SortableColumnHeader } from '@/shared/components/SortableColumnHeader/SortableColumnHeader';
+import { useTableSort } from '@/shared/hooks/useTableSort';
 
 const formatAmount = (amount: number) => `${amount.toLocaleString('fr-FR')} MAD`;
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('fr-FR');
+
+type StatementSortField = 'DATE' | 'LABEL' | 'DEBIT' | 'CREDIT';
+
+/** A zero is an empty cell on screen (see the debit/credit cells): sorted like one, last. */
+function statementSortKey(line: StatementLine, field: StatementSortField) {
+  switch (field) {
+    case 'LABEL':
+      return line.label;
+    case 'DEBIT':
+      return line.debit > 0 ? line.debit : null;
+    case 'CREDIT':
+      return line.credit > 0 ? line.credit : null;
+    default:
+      return line.date;
+  }
+}
 
 /**
  * Le relevé de compte d'un lot : ce qui a été appelé et échu au débit, ce qui a
@@ -38,6 +60,11 @@ export function MyUnitStatementPage() {
   const lotLabel = ownedUnit ? formatUnitLabel(ownedUnit) : '—';
   const lines = buildAccountStatement(installments.data ?? [], payments.data ?? [], id);
   const totals = statementTotals(lines);
+  // Chronological by default, as a statement reads.
+  const { sorted, sortBy, sortDirection, onSort } = useTableSort(lines, statementSortKey, {
+    field: 'DATE' as StatementSortField,
+    direction: 'ASC',
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -72,15 +99,49 @@ export function MyUnitStatementPage() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
               <thead>
                 <tr className="text-left text-gray-500 dark:text-gray-400">
-                  <th className="py-2 pr-4 font-medium">Date d'opération</th>
-                  <th className="py-2 pr-4 font-medium">Nature</th>
+                  <SortableColumnHeader
+                    field="DATE"
+                    activeField={sortBy}
+                    direction={sortDirection}
+                    onSort={onSort}
+                    className="pr-4"
+                  >
+                    Date d'opération
+                  </SortableColumnHeader>
+                  <SortableColumnHeader
+                    field="LABEL"
+                    activeField={sortBy}
+                    direction={sortDirection}
+                    onSort={onSort}
+                    className="pr-4"
+                  >
+                    Nature
+                  </SortableColumnHeader>
+                  {/* Not sortable: every line of a lot's statement is that same lot. */}
                   <th className="py-2 pr-4 font-medium">Lot</th>
-                  <th className="py-2 pr-4 text-right font-medium">Débit</th>
-                  <th className="py-2 text-right font-medium">Crédit</th>
+                  <SortableColumnHeader
+                    field="DEBIT"
+                    activeField={sortBy}
+                    direction={sortDirection}
+                    onSort={onSort}
+                    align="right"
+                    className="pr-4"
+                  >
+                    Débit
+                  </SortableColumnHeader>
+                  <SortableColumnHeader
+                    field="CREDIT"
+                    activeField={sortBy}
+                    direction={sortDirection}
+                    onSort={onSort}
+                    align="right"
+                  >
+                    Crédit
+                  </SortableColumnHeader>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {lines.map((line) => (
+                {sorted.map((line) => (
                   // Toute la ligne est cliquable, comme sur Mes échéances, mais
                   // la nature porte un vrai lien : c'est lui qui rend la ligne
                   // atteignable au clavier, là où un onClick sur le <tr> ne

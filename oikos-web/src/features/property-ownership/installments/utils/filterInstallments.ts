@@ -2,6 +2,7 @@ import type { OwnedInstallment } from '@/features/property-ownership/installment
 import { isNotYetDue, isUnsettled } from '@/features/property-ownership/installments/utils/installmentTotals';
 import { INSTALLMENT_STATUS_LABELS } from '@/features/property-mngt/installments/constants/installmentStatusLabels';
 import { matchesSearch } from '@/shared/utils/normalizeForSearch';
+import { compareSortValues, type SortValue } from '@/shared/utils/sorting';
 
 /** '' means "no filter" for every field, matching the InstallmentFilters convention. */
 export interface MyInstallmentFiltersValue {
@@ -22,7 +23,7 @@ export interface MyInstallmentFiltersValue {
   dueDateFrom: string;
   dueDateTo: string;
   search: string;
-  sortBy: 'DUE_DATE' | 'AMOUNT';
+  sortBy: 'DUE_DATE' | 'UNIT' | 'AMOUNT' | 'OUTSTANDING_AMOUNT' | 'STATUS';
   sortDirection: 'ASC' | 'DESC';
 }
 
@@ -90,13 +91,38 @@ export function filterInstallments(
     return true;
   });
 
-  const direction = filters.sortDirection === 'ASC' ? 1 : -1;
+  // Due date, most recent first, between equal rows - the list's default order.
   return filtered.sort((a, b) => {
-    if (filters.sortBy === 'AMOUNT') {
-      return (a.amount - b.amount) * direction;
-    }
-    return a.dueDate.localeCompare(b.dueDate) * direction;
+    const primary = compareSortValues(sortKey(a, filters.sortBy, unitLabelById), sortKey(b, filters.sortBy, unitLabelById),
+      filters.sortDirection);
+    return primary !== 0 ? primary : b.dueDate.localeCompare(a.dueDate);
   });
+}
+
+/** À régler, partiellement réglée, réglée when ascending: what is still owed first. */
+const STATUS_RANK: Record<OwnedInstallment['status'], number> = {
+  NOT_SETTLED: 0,
+  PARTIALLY_SETTLED: 1,
+  SETTLED: 2,
+};
+
+function sortKey(
+  installment: OwnedInstallment,
+  sortBy: MyInstallmentFiltersValue['sortBy'],
+  unitLabelById: ReadonlyMap<string, string>,
+): SortValue {
+  switch (sortBy) {
+    case 'UNIT':
+      return unitLabelById.get(installment.unitId);
+    case 'AMOUNT':
+      return installment.amount;
+    case 'OUTSTANDING_AMOUNT':
+      return installment.outstandingAmount;
+    case 'STATUS':
+      return STATUS_RANK[installment.status];
+    default:
+      return installment.dueDate;
+  }
 }
 
 /**

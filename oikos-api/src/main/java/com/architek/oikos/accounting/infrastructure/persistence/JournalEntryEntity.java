@@ -1,5 +1,6 @@
 package com.architek.oikos.accounting.infrastructure.persistence;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +14,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Formula;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -67,6 +70,15 @@ public class JournalEntryEntity extends AuditableEntity {
      * a mappedBy association, HHH160246) reads back in the order the mapper
      * assigned via JournalEntryLineEntity.lineOrder at first save.
      */
+    /**
+     * The amount the journal table shows - the sum of the debit lines - so the
+     * listing can be ordered on it by the database, before pagination. Read
+     * only: computed on every load, never written.
+     */
+    @Formula("(select coalesce(sum(l.amount), 0) from journal_entry_line l "
+            + "where l.journal_entry_id = id and l.direction = 'DEBIT')")
+    private BigDecimal debitTotal;
+
     @OneToMany(mappedBy = "journalEntry", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("lineOrder ASC")
     private List<JournalEntryLineEntity> lines = new ArrayList<>();

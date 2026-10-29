@@ -82,6 +82,31 @@ class InstallmentRepositoryAdapterFindPageByUnitIdsDataJpaTest {
     }
 
     @Test
+    void sorts_by_status_unpaid_first_then_due_date_between_equals() {
+        seed();
+
+        Page<Installment> page = installmentAdapter.findPageByUnitIds(List.of(unitA, unitB),
+                new InstallmentFilter(Set.of(), null, null, InstallmentSortField.STATUS, SortDirection.ASC),
+                PageRequest.of(0, 10));
+
+        // Not settled (by due date: +10 then +20), partially settled, settled.
+        assertThat(page.content()).extracting(Installment::getId)
+                .containsExactly(notSettled.getId(), otherNotSettled.getId(), partiallySettled.getId(), settled.getId());
+    }
+
+    @Test
+    void sorts_by_outstanding_amount_descending() {
+        seed();
+
+        Page<Installment> page = installmentAdapter.findPageByUnitIds(List.of(unitA, unitB),
+                new InstallmentFilter(Set.of(), null, null, InstallmentSortField.OUTSTANDING_AMOUNT, SortDirection.DESC),
+                PageRequest.of(0, 10));
+
+        assertThat(page.content()).extracting(i -> i.getOutstandingAmount().doubleValue())
+                .containsExactly(300d, 100d, 80d, 0d);
+    }
+
+    @Test
     void filters_by_status_matching_InstallmentStatusCalculator_semantics() {
         seed();
         List<EntityId> unitIds = List.of(unitA, unitB);

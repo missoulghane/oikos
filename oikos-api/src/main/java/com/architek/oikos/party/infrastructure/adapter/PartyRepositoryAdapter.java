@@ -89,7 +89,11 @@ public class PartyRepositoryAdapter implements PartyRepository {
         if (criteria.sortField() == null) {
             return Sort.unsorted();
         }
-        String property = criteria.sortField() == PartySortField.EMAIL ? "email" : "fullName";
+        String property = switch (criteria.sortField()) {
+            case EMAIL -> "email";
+            case PHONE -> "phone";
+            case FULL_NAME -> "fullName";
+        };
         Sort.Direction direction = criteria.sortDirection() == SortDirection.DESC
                 ? Sort.Direction.DESC
                 : Sort.Direction.ASC;

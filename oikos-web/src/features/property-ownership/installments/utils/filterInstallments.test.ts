@@ -163,4 +163,18 @@ describe('notYetDueHiddenCount', () => {
 
     expect(notYetDueHiddenCount(withNotYetDue, filters)).toBe(0);
   });
+
+  it('sorts on every column: status, what is left to pay, and lot in natural order', () => {
+    const sortBy = (field: typeof DEFAULT_MY_INSTALLMENT_FILTERS.sortBy, direction: 'ASC' | 'DESC') =>
+      ({ ...DEFAULT_MY_INSTALLMENT_FILTERS, sortBy: field, sortDirection: direction });
+    const labels = new Map([
+      ['unit-1', 'Lot 10'],
+      ['unit-2', 'Lot 2'],
+    ]);
+
+    expect(ids(filterInstallments(installments, sortBy('STATUS', 'ASC')))).toEqual(['a', 'b', 'c']);
+    expect(ids(filterInstallments(installments, sortBy('OUTSTANDING_AMOUNT', 'DESC')))).toEqual(['a', 'b', 'c']);
+    // Lot 2 before Lot 10; the two lines of Lot 10 by due date, most recent first.
+    expect(ids(filterInstallments(installments, sortBy('UNIT', 'ASC'), labels))).toEqual(['b', 'c', 'a']);
+  });
 });

@@ -10,5 +10,8 @@ package com.architek.oikos.accounting.domain.valueobject;
  */
 public enum JournalEntrySortField {
     PIECE_DATE,
-    PIECE_NUMBER
+    PIECE_NUMBER,
+    REFERENCE,
+    AMOUNT,
+    STATUS
 }

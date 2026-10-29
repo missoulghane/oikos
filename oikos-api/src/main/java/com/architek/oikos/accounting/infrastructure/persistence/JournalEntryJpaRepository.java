@@ -38,10 +38,10 @@ public interface JournalEntryJpaRepository extends JpaRepository<JournalEntryEnt
      * </ul>
      */
     @Query("""
-            select distinct j from JournalEntryEntity j
-            join j.lines l
+            select j from JournalEntryEntity j
             where j.propertyId = :propertyId
-              and l.ledgerAccountId = :treasuryAccountId
+              and exists (select 1 from JournalEntryLineEntity l
+                          where l.journalEntry = j and l.ledgerAccountId = :treasuryAccountId)
               and (cast(:pieceDateFrom as LocalDate) is null or j.pieceDate >= :pieceDateFrom)
               and (cast(:pieceDateTo as LocalDate) is null or j.pieceDate <= :pieceDateTo)
               and (cast(:search as String) is null

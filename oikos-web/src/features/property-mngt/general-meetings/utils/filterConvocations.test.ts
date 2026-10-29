@@ -194,4 +194,32 @@ describe('pendingCountOn', () => {
 
     expect(pendingCountOn([chased], 'EMAIL')).toBe(0);
   });
+
+  it('sorts on the first owner, lots without one last, and on the reply', () => {
+    const zoe = convocation({ unitNumber: 'A1', recipients: [{ fullName: 'Zoé Martin', email: null }] as never });
+    const unassigned = convocation({ unitNumber: 'A2', recipients: [] });
+    const amina = convocation({
+      unitNumber: 'A3',
+      recipients: [{ fullName: 'amina El Idrissi', email: null }] as never,
+      attendanceReply: 'ATTENDING',
+    });
+    const rows = [zoe, unassigned, amina];
+
+    expect(lotsOf(filterAndSortConvocations(rows, withFilters({ sortBy: 'OWNERS', sortDirection: 'ASC' })))).toEqual([
+      'A3',
+      'A1',
+      'A2',
+    ]);
+    expect(lotsOf(filterAndSortConvocations(rows, withFilters({ sortBy: 'OWNERS', sortDirection: 'DESC' })))).toEqual([
+      'A1',
+      'A3',
+      'A2',
+    ]);
+    // Présent first, then the lots still without an answer, by lot.
+    expect(lotsOf(filterAndSortConvocations(rows, withFilters({ sortBy: 'REPLY', sortDirection: 'ASC' })))).toEqual([
+      'A3',
+      'A1',
+      'A2',
+    ]);
+  });
 });

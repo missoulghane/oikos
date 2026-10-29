@@ -115,8 +115,24 @@ export function UnitList({ buildingId, propertyId, showShares }: UnitListProps) 
                   >
                     Lot
                   </SortableColumnHeader>
-                  <th className="px-3 py-2 font-medium">Type</th>
-                  <th className="px-3 py-2 font-medium">Étage</th>
+                  <SortableColumnHeader
+                    field="UNIT_TYPE"
+                    activeField={sortBy}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="px-3"
+                  >
+                    Type
+                  </SortableColumnHeader>
+                  <SortableColumnHeader
+                    field="FLOOR"
+                    activeField={sortBy}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="px-3"
+                  >
+                    Étage
+                  </SortableColumnHeader>
                   {/* Only sortable when it is displayed - a header for a hidden
                       column would sort on something the reader cannot see. */}
                   {showShares && (
@@ -131,8 +147,24 @@ export function UnitList({ buildingId, propertyId, showShares }: UnitListProps) 
                       Tantièmes
                     </SortableColumnHeader>
                   )}
-                  <th className="px-3 py-2 font-medium">Propriétaires</th>
-                  <th className="px-3 py-2 font-medium">Affectation</th>
+                  <SortableColumnHeader
+                    field="OWNERS"
+                    activeField={sortBy}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="px-3"
+                  >
+                    Propriétaires
+                  </SortableColumnHeader>
+                  <SortableColumnHeader
+                    field="OWNERSHIP_STATUS"
+                    activeField={sortBy}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="px-3"
+                  >
+                    Affectation
+                  </SortableColumnHeader>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">

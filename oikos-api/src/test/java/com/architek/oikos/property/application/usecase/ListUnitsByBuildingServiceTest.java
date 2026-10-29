@@ -225,6 +225,76 @@ class ListUnitsByBuildingServiceTest {
         assertThat(page.totalElements()).isEqualTo(3);
     }
 
+    @Test
+    void sorting_by_floor_keeps_the_lots_without_a_floor_last_in_both_directions() {
+        PropertyId propertyId = PropertyId.newId();
+        BuildingId buildingId = BuildingId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        Unit ground = Unit.create(UnitId.newId(), buildingId, propertyId, "A1", unitTypeId, Shares.of(BigDecimal.TEN), 0);
+        Unit unknown = Unit.create(UnitId.newId(), buildingId, propertyId, "A2", unitTypeId, Shares.of(BigDecimal.TEN));
+        Unit third = Unit.create(UnitId.newId(), buildingId, propertyId, "A3", unitTypeId, Shares.of(BigDecimal.TEN), 3);
+        seedBuilding(propertyId, buildingId, unitTypeId, List.of(unknown, third, ground));
+
+        var ascending = newService().listUnits(new ListUnitsByBuildingQuery(buildingId, PageRequest.of(0, 20), null,
+                null, UnitSortField.FLOOR, SortDirection.ASC));
+        var descending = newService().listUnits(new ListUnitsByBuildingQuery(buildingId, PageRequest.of(0, 20), null,
+                null, UnitSortField.FLOOR, SortDirection.DESC));
+
+        assertThat(ascending.content()).extracting(view -> view.unitNumber()).containsExactly("A1", "A3", "A2");
+        assertThat(descending.content()).extracting(view -> view.unitNumber()).containsExactly("A3", "A1", "A2");
+    }
+
+    @Test
+    void sorting_by_type_orders_on_the_type_name_then_on_the_lot_number() {
+        PropertyId propertyId = PropertyId.newId();
+        BuildingId buildingId = BuildingId.newId();
+        UnitTypeDefinitionId parking = UnitTypeDefinitionId.newId();
+        UnitTypeDefinitionId apartment = UnitTypeDefinitionId.newId();
+        Unit p1 = Unit.create(UnitId.newId(), buildingId, propertyId, "P1", parking, Shares.of(BigDecimal.TEN));
+        Unit a10 = Unit.create(UnitId.newId(), buildingId, propertyId, "A10", apartment, Shares.of(BigDecimal.TEN));
+        Unit a2 = Unit.create(UnitId.newId(), buildingId, propertyId, "A2", apartment, Shares.of(BigDecimal.TEN));
+        seedBuilding(propertyId, buildingId, apartment, List.of(p1, a10, a2));
+        when(unitTypeDefinitionRepository.findAllByPropertyId(propertyId)).thenReturn(List.of(
+                UnitTypeDefinition.create(parking, propertyId, "Parking"),
+                UnitTypeDefinition.create(apartment, propertyId, "Appartement")));
+
+        var page = newService().listUnits(new ListUnitsByBuildingQuery(buildingId, PageRequest.of(0, 20), null, null,
+                UnitSortField.UNIT_TYPE, SortDirection.ASC));
+
+        assertThat(page.content()).extracting(view -> view.unitNumber()).containsExactly("A2", "A10", "P1");
+    }
+
+    @Test
+    void sorting_by_owners_orders_on_the_first_owner_name_and_puts_lots_without_owner_last() {
+        PropertyId propertyId = PropertyId.newId();
+        BuildingId buildingId = BuildingId.newId();
+        UnitTypeDefinitionId unitTypeId = UnitTypeDefinitionId.newId();
+        Unit zoe = Unit.create(UnitId.newId(), buildingId, propertyId, "A1", unitTypeId, Shares.of(BigDecimal.TEN));
+        Unit free = Unit.create(UnitId.newId(), buildingId, propertyId, "A2", unitTypeId, Shares.of(BigDecimal.TEN));
+        Unit amina = Unit.create(UnitId.newId(), buildingId, propertyId, "A3", unitTypeId, Shares.of(BigDecimal.TEN));
+        seedBuilding(propertyId, buildingId, unitTypeId, List.of(zoe, free, amina));
+        ownedBy(zoe, propertyId, "zoé Martin");
+        ownedBy(amina, propertyId, "Amina El Idrissi");
+
+        var ascending = newService().listUnits(new ListUnitsByBuildingQuery(buildingId, PageRequest.of(0, 20), null,
+                null, UnitSortField.OWNERS, SortDirection.ASC));
+        var byStatus = newService().listUnits(new ListUnitsByBuildingQuery(buildingId, PageRequest.of(0, 20), null,
+                null, UnitSortField.OWNERSHIP_STATUS, SortDirection.ASC));
+
+        assertThat(ascending.content()).extracting(view -> view.unitNumber()).containsExactly("A3", "A1", "A2");
+        // Affecté first when ascending, lot number between equals.
+        assertThat(byStatus.content()).extracting(view -> view.unitNumber()).containsExactly("A1", "A3", "A2");
+    }
+
+    private void ownedBy(Unit unit, PropertyId propertyId, String fullName) {
+        EntityId partyId = EntityId.newId();
+        when(unitOwnershipRepository.findAllByUnitId(unit.getId())).thenReturn(List.of(
+                UnitOwnership.create(UnitOwnershipId.newId(), unit.getId(), partyId, propertyId,
+                        OwnershipShare.of(new BigDecimal("100")))));
+        org.mockito.Mockito.lenient().when(partyDirectoryPort.getPartyById(partyId))
+                .thenReturn(new PartyDetails(fullName, PartyType.INDIVIDUAL, null, null));
+    }
+
     /** Building, unit types and ownership-free units - the shape every sort test needs. */
     private void seedBuilding(PropertyId propertyId, BuildingId buildingId, UnitTypeDefinitionId unitTypeId,
                                List<Unit> units) {

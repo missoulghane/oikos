@@ -5,10 +5,16 @@ package com.architek.oikos.property.domain.valueobject;
  * property name: the sort comes from a query parameter, and anything the client
  * can name it can also use to probe the model.
  *
- * Only fields the unit itself carries. Ordering by owner would mean ordering on
- * data that lives behind PartyDirectoryPort, whose page is not the unit page.
+ * One per column of the lots table. Type, owners and ownership come from
+ * outside the unit row (type definitions, PartyDirectoryPort, UnitOwnership):
+ * a sort on them runs in memory over the whole building, as filtering already
+ * did, so it orders the building and not only the page shown.
  */
 public enum UnitSortField {
     UNIT_NUMBER,
-    SHARES
+    UNIT_TYPE,
+    FLOOR,
+    SHARES,
+    OWNERS,
+    OWNERSHIP_STATUS
 }

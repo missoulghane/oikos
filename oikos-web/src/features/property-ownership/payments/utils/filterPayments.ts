@@ -1,6 +1,7 @@
 import type { Payment, PaymentMode } from '@/features/property-mngt/installments/types/payment.types';
 import { PAYMENT_MODE_LABELS } from '@/features/property-mngt/installments/constants/paymentModeLabels';
 import { matchesSearch } from '@/shared/utils/normalizeForSearch';
+import { compareSortValues, type SortValue } from '@/shared/utils/sorting';
 
 /**
  * There is deliberately no status filter: a payment has no lifecycle status in
@@ -13,7 +14,7 @@ export interface MyPaymentFiltersValue {
   valueDateFrom: string;
   valueDateTo: string;
   search: string;
-  sortBy: 'VALUE_DATE' | 'AMOUNT';
+  sortBy: 'VALUE_DATE' | 'UNIT' | 'MODE' | 'AMOUNT';
   sortDirection: 'ASC' | 'DESC';
 }
 
@@ -65,13 +66,26 @@ export function filterPayments(
     return true;
   });
 
-  const direction = filters.sortDirection === 'ASC' ? 1 : -1;
+  // Value date, most recent first, between equal rows - the list's default order.
   return filtered.sort((a, b) => {
-    if (filters.sortBy === 'AMOUNT') {
-      return (a.amount - b.amount) * direction;
-    }
-    return a.valueDate.localeCompare(b.valueDate) * direction;
+    const primary = compareSortValues(sortKey(a, filters.sortBy, unitLabelById), sortKey(b, filters.sortBy, unitLabelById),
+      filters.sortDirection);
+    return primary !== 0 ? primary : b.valueDate.localeCompare(a.valueDate);
   });
+}
+
+function sortKey(payment: Payment, sortBy: MyPaymentFiltersValue['sortBy'], unitLabelById: ReadonlyMap<string, string>): SortValue {
+  switch (sortBy) {
+    case 'UNIT':
+      return unitLabelById.get(payment.unitId);
+    // On the label shown, not the code: the column reads « Chèque », « Espèces »…
+    case 'MODE':
+      return PAYMENT_MODE_LABELS[payment.mode];
+    case 'AMOUNT':
+      return payment.amount;
+    default:
+      return payment.valueDate;
+  }
 }
 
 export function paymentsTotal(payments: readonly Payment[]): number {

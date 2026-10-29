@@ -53,9 +53,34 @@ export function JournalEntryTable({ entries, propertyId, sortBy, sortDirection, 
             >
               Pièce
             </SortableColumnHeader>
-            <th className="px-3 py-2 font-medium">Référence</th>
-            <th className="px-3 py-2 text-right font-medium">Montant</th>
-            <th className="px-3 py-2 font-medium">Statut</th>
+            <SortableColumnHeader
+              field="REFERENCE"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              className="px-3"
+            >
+              Référence
+            </SortableColumnHeader>
+            <SortableColumnHeader
+              field="AMOUNT"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              align="right"
+              className="px-3"
+            >
+              Montant
+            </SortableColumnHeader>
+            <SortableColumnHeader
+              field="STATUS"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              className="px-3"
+            >
+              Statut
+            </SortableColumnHeader>
             <th className="px-3 py-2">
               <span className="sr-only">Détail</span>
             </th>

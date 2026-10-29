@@ -129,7 +129,7 @@ export interface AddBankAccountPayload {
   bankAccountNumber?: string;
 }
 
-export const JOURNAL_ENTRY_SORT_FIELDS = ['PIECE_DATE', 'PIECE_NUMBER'] as const;
+export const JOURNAL_ENTRY_SORT_FIELDS = ['PIECE_DATE', 'PIECE_NUMBER', 'REFERENCE', 'AMOUNT', 'STATUS'] as const;
 export type JournalEntrySortField = (typeof JOURNAL_ENTRY_SORT_FIELDS)[number];
 
 export interface JournalEntryListFilters {

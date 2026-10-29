@@ -60,10 +60,43 @@ export function InstallmentList({
             >
               Montant
             </SortableColumnHeader>
-            <th className="px-3 py-2 font-medium">Lot</th>
-            <th className="px-3 py-2 text-right font-medium">Reste à payer</th>
-            <th className="px-3 py-2 font-medium">Appel de fonds</th>
-            <th className="px-3 py-2 font-medium">Statut</th>
+            <SortableColumnHeader
+              field="UNIT"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              className="px-3"
+            >
+              Lot
+            </SortableColumnHeader>
+            <SortableColumnHeader
+              field="OUTSTANDING_AMOUNT"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              align="right"
+              className="px-3"
+            >
+              Reste à payer
+            </SortableColumnHeader>
+            <SortableColumnHeader
+              field="CALL_PERIOD"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              className="px-3"
+            >
+              Appel de fonds
+            </SortableColumnHeader>
+            <SortableColumnHeader
+              field="STATUS"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              className="px-3"
+            >
+              Statut
+            </SortableColumnHeader>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -87,7 +120,6 @@ export function InstallmentList({
                 )}
               </td>
               <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300">{installment.amount} MAD</td>
-              {/* Not sortable: the lot is resolved alongside the page, not a column the API orders on. */}
               <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{installment.unitNumber ?? '—'}</td>
               <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300">
                 {installment.outstandingAmount} MAD

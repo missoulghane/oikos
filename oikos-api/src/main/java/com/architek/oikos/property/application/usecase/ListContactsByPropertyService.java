@@ -70,14 +70,14 @@ public class ListContactsByPropertyService implements ListContactsByPropertyUseC
         this.accountLinkingPort = accountLinkingPort;
     }
 
+    private record UnitInfo(String unitNumber, String buildingName) {
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Page<PropertyContactView> listContacts(ListContactsByPropertyQuery query) {
         propertyRepository.findById(query.propertyId())
                 .orElseThrow(() -> new PropertyNotFoundException(query.propertyId()));
-
-        record UnitInfo(String unitNumber, String buildingName) {
-        }
 
         Map<UnitId, UnitInfo> unitInfoById = new HashMap<>();
         for (Building building : listAllBuildings(query.propertyId())) {
@@ -102,7 +102,7 @@ public class ListContactsByPropertyService implements ListContactsByPropertyUseC
         List<EntityId> matchingPartyIds = partyDetailsById.entrySet().stream()
                 .filter(entry -> matchesAccountFilter(linkedPartyIds.contains(entry.getKey()), query.hasLinkedAccount()))
                 .filter(entry -> matchesSearch(entry.getValue(), query.search()))
-                .sorted(comparator(query, linkedPartyIds))
+                .sorted(comparator(query, linkedPartyIds, ownershipsByPartyId, unitInfoById))
                 .map(Map.Entry::getKey)
                 .toList();
 
@@ -126,18 +126,33 @@ public class ListContactsByPropertyService implements ListContactsByPropertyUseC
     /**
      * Name is the tie-breaker whatever the column: ordering on the account flag
      * alone would reshuffle each block on every request, nothing else deciding
-     * between two contacts that share it.
+     * between two contacts that share it. Lots compare on the first lot shown
+     * for the contact, in natural order (A2 before A10).
      */
     private static Comparator<Map.Entry<EntityId, PartyDetails>> comparator(ListContactsByPropertyQuery query,
-                                                                             Set<EntityId> linkedPartyIds) {
+                                                                             Set<EntityId> linkedPartyIds,
+                                                                             Map<EntityId, List<UnitOwnership>> ownershipsByPartyId,
+                                                                             Map<UnitId, UnitInfo> unitInfoById) {
         Comparator<Map.Entry<EntityId, PartyDetails>> byName =
                 Comparator.comparing(entry -> entry.getValue().fullName(), String.CASE_INSENSITIVE_ORDER);
-        if (query.sortField() != ContactSortField.ACCOUNT_STATUS) {
-            return query.sortDirection() == SortDirection.DESC ? byName.reversed() : byName;
+        SortDirection direction = query.sortDirection();
+        if (query.sortField() == null || query.sortField() == ContactSortField.FULL_NAME) {
+            return direction == SortDirection.DESC ? byName.reversed() : byName;
         }
-        Comparator<Map.Entry<EntityId, PartyDetails>> byAccount =
-                Comparator.comparing(entry -> linkedPartyIds.contains(entry.getKey()));
-        return (query.sortDirection() == SortDirection.DESC ? byAccount.reversed() : byAccount).thenComparing(byName);
+        Comparator<Map.Entry<EntityId, PartyDetails>> primary = switch (query.sortField()) {
+            case ACCOUNT_STATUS -> NaturalOrder.<Map.Entry<EntityId, PartyDetails>, Boolean>byKey(
+                    entry -> linkedPartyIds.contains(entry.getKey()),
+                    Comparator.naturalOrder(), direction);
+            case PHONE -> NaturalOrder.byKey(entry -> entry.getValue().phone(), Comparator.<String>naturalOrder(),
+                    direction);
+            case UNITS -> NaturalOrder.byKey(entry -> ownershipsByPartyId.get(entry.getKey()).stream()
+                            .map(ownership -> unitInfoById.get(ownership.getUnitId()).unitNumber())
+                            .findFirst()
+                            .orElse(null),
+                    NaturalOrder::compare, direction);
+            case FULL_NAME -> byName;
+        };
+        return primary.thenComparing(byName);
     }
 
     /**

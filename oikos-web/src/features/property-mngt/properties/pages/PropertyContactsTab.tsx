@@ -145,8 +145,24 @@ export function PropertyContactsTab() {
                   >
                     Contact
                   </SortableColumnHeader>
-                  <th className="px-3 py-2 font-medium">Téléphone</th>
-                  <th className="px-3 py-2 font-medium">Lots</th>
+                  <SortableColumnHeader
+                    field="PHONE"
+                    activeField={sortBy}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="px-3"
+                  >
+                    Téléphone
+                  </SortableColumnHeader>
+                  <SortableColumnHeader
+                    field="UNITS"
+                    activeField={sortBy}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="px-3"
+                  >
+                    Lots
+                  </SortableColumnHeader>
                   <SortableColumnHeader
                     field="ACCOUNT_STATUS"
                     activeField={sortBy}

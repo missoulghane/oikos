@@ -23,14 +23,28 @@ export function MyPaymentsTable({ payments, unitsById, sortBy, sortDirection, on
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
         <thead>
-          {/* Lot and Mode are not sortable: the sort runs on the raw payload,
-              which carries neither the lot label nor a rank for the mode. */}
           <tr className="text-left text-gray-500 dark:text-gray-400">
             <SortableColumnHeader field="VALUE_DATE" activeField={sortBy} direction={sortDirection} onSort={onSort}>
               Date de valeur
             </SortableColumnHeader>
-            <th className="py-2 pr-4 font-medium">Lot</th>
-            <th className="py-2 pr-4 font-medium">Mode</th>
+            <SortableColumnHeader
+              field="UNIT"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              className="pr-4"
+            >
+              Lot
+            </SortableColumnHeader>
+            <SortableColumnHeader
+              field="MODE"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              className="pr-4"
+            >
+              Mode
+            </SortableColumnHeader>
             <SortableColumnHeader
               field="AMOUNT"
               activeField={sortBy}

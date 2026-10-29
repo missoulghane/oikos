@@ -63,4 +63,21 @@ describe('paymentsTotal', () => {
   it('is 0 for an empty list', () => {
     expect(paymentsTotal([])).toBe(0);
   });
+
+  it('sorts by lot in natural order and by mode as labelled on screen', () => {
+    const labels = new Map([
+      ['unit-1', 'Lot 10'],
+      ['unit-2', 'Lot 2'],
+    ]);
+
+    expect(
+      ids(filterPayments(payments, { ...DEFAULT_MY_PAYMENT_FILTERS, sortBy: 'UNIT', sortDirection: 'ASC' }, labels)),
+    ).toEqual(['b', 'c', 'a']);
+    // Virement, Espèces, Chèque: descending on the French labels, not on the codes.
+    expect(ids(filterPayments(payments, { ...DEFAULT_MY_PAYMENT_FILTERS, sortBy: 'MODE', sortDirection: 'DESC' }))).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
+  });
 });

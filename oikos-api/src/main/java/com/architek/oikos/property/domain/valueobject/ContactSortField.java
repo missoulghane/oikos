@@ -6,9 +6,12 @@ package com.architek.oikos.property.domain.valueobject;
  *
  * ACCOUNT_STATUS orders on whether the contact already has a user account -
  * ascending puts the ones still to invite first, which is the list a syndic
- * works through.
+ * works through. UNITS orders on the contact's first lot, PHONE on the number
+ * as stored (international format).
  */
 public enum ContactSortField {
     FULL_NAME,
+    PHONE,
+    UNITS,
     ACCOUNT_STATUS
 }

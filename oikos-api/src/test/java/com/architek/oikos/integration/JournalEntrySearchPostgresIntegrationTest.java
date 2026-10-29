@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -42,9 +44,20 @@ class JournalEntrySearchPostgresIntegrationTest extends PostgresIntegrationTestB
     @Test
     void searchByTreasuryAccount_executes_when_the_order_by_comes_from_the_pageable() {
         // The query carries no `order by` of its own any more: Spring appends one
-        // from the Pageable. On PostgreSQL a SELECT DISTINCT may only be ordered
-        // by expressions of its select list, which is what this checks.
+        // from the Pageable, which this checks PostgreSQL accepts.
         assertThat(repository.searchByTreasuryAccount(UUID.randomUUID(), UUID.randomUUID(), null, null, null, null,
                 PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "pieceNumber")))).isEmpty();
+    }
+
+    /**
+     * Every column the journal table sorts on, the amount included: it is a
+     * subquery over the lines (@Formula), which an empty table still makes
+     * PostgreSQL parse and plan.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"pieceDate", "pieceNumber", "externalReference", "debitTotal", "status"})
+    void searchByTreasuryAccount_executes_with_each_sortable_column(String property) {
+        assertThat(repository.searchByTreasuryAccount(UUID.randomUUID(), UUID.randomUUID(), null, null, null, null,
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, property).and(Sort.by("pieceDate"))))).isEmpty();
     }
 }

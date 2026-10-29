@@ -97,4 +97,21 @@ describe('UnitList', () => {
       ),
     );
   });
+
+  it.each([
+    ['Type', 'UNIT_TYPE'],
+    ['Étage', 'FLOOR'],
+    ['Propriétaires', 'OWNERS'],
+    ['Affectation', 'OWNERSHIP_STATUS'],
+  ])('sorts on the %s column too', async (header, field) => {
+    const user = userEvent.setup();
+    renderList();
+    await screen.findByText(/A12/);
+
+    await user.click(screen.getByRole('button', { name: new RegExp(`^${header}$`) }));
+
+    await waitFor(() =>
+      expect(mockedGetUnits).toHaveBeenLastCalledWith(expect.objectContaining({ sortBy: field, sortDirection: 'DESC' })),
+    );
+  });
 });

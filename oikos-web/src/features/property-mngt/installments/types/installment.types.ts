@@ -17,7 +17,14 @@ export interface Installment {
 
 export type PagedInstallments = Paged<Installment>;
 
-export const INSTALLMENT_SORT_FIELDS = ['DUE_DATE', 'AMOUNT'] as const;
+export const INSTALLMENT_SORT_FIELDS = [
+  'DUE_DATE',
+  'AMOUNT',
+  'UNIT',
+  'OUTSTANDING_AMOUNT',
+  'CALL_PERIOD',
+  'STATUS',
+] as const;
 export type InstallmentSortField = (typeof INSTALLMENT_SORT_FIELDS)[number];
 
 export type SortDirection = 'ASC' | 'DESC';

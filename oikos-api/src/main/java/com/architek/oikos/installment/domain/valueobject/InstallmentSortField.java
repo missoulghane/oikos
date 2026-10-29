@@ -7,5 +7,9 @@ package com.architek.oikos.installment.domain.valueobject;
  */
 public enum InstallmentSortField {
     DUE_DATE,
-    AMOUNT
+    AMOUNT,
+    UNIT,
+    OUTSTANDING_AMOUNT,
+    CALL_PERIOD,
+    STATUS
 }

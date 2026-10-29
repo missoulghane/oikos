@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.architek.oikos.installment.domain.repository.InstallmentRepository;
@@ -71,5 +73,17 @@ class InstallmentSearchPostgresIntegrationTest extends PostgresIntegrationTestBa
     void searches_with_the_cutoff_set_and_the_dates_lifted() {
         assertThatCode(() -> search(new InstallmentFilter(Set.of(), null, null, InstallmentSortField.DUE_DATE,
                 SortDirection.ASC, null, TODAY))).doesNotThrowAnyException();
+    }
+
+    /**
+     * Every column the installments table sorts on. Lot, fund call and status
+     * are computed (@Formula subqueries and a CASE), which an empty table still
+     * makes PostgreSQL parse and plan.
+     */
+    @ParameterizedTest
+    @EnumSource(InstallmentSortField.class)
+    void searches_with_each_sortable_column(InstallmentSortField sortField) {
+        assertThatCode(() -> search(new InstallmentFilter(Set.of(), null, null, sortField, SortDirection.DESC)))
+                .doesNotThrowAnyException();
     }
 }

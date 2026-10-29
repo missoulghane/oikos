@@ -32,13 +32,19 @@ export function MyInstallmentsTable({
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
         <thead>
-          {/* Lot and Statut are not sortable: the sort runs on the raw payload,
-              which carries neither the lot label nor a rank for the status. */}
           <tr className="text-left text-gray-500 dark:text-gray-400">
             <SortableColumnHeader field="DUE_DATE" activeField={sortBy} direction={sortDirection} onSort={onSort}>
               Échéance
             </SortableColumnHeader>
-            <th className="py-2 pr-4 font-medium">Lot</th>
+            <SortableColumnHeader
+              field="UNIT"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              className="pr-4"
+            >
+              Lot
+            </SortableColumnHeader>
             <SortableColumnHeader
               field="AMOUNT"
               activeField={sortBy}
@@ -48,8 +54,24 @@ export function MyInstallmentsTable({
             >
               Montant
             </SortableColumnHeader>
-            <th className="py-2 pr-4 text-right font-medium">Reste à payer</th>
-            <th className="py-2 font-medium">Statut</th>
+            <SortableColumnHeader
+              field="OUTSTANDING_AMOUNT"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              align="right"
+              className="pr-4"
+            >
+              Reste à payer
+            </SortableColumnHeader>
+            <SortableColumnHeader
+              field="STATUS"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+            >
+              Statut
+            </SortableColumnHeader>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">

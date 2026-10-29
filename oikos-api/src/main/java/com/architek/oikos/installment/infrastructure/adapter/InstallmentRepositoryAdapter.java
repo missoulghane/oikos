@@ -106,7 +106,15 @@ public class InstallmentRepositoryAdapter implements InstallmentRepository {
 
     private static Sort toSort(InstallmentFilter filter) {
         Sort.Direction direction = filter.sortDirection() == SortDirection.DESC ? Sort.Direction.DESC : Sort.Direction.ASC;
-        String property = filter.sortField() == InstallmentSortField.AMOUNT ? "amount" : "dueDate";
-        return Sort.by(direction, property);
+        Sort primary = switch (filter.sortField() == null ? InstallmentSortField.DUE_DATE : filter.sortField()) {
+            case DUE_DATE -> Sort.by(direction, "dueDate");
+            case AMOUNT -> Sort.by(direction, "amount");
+            case UNIT -> Sort.by(direction, "unitNumberLength", "unitNumber");
+            case OUTSTANDING_AMOUNT -> Sort.by(direction, "outstandingAmount");
+            case CALL_PERIOD -> Sort.by(direction, "callPeriod");
+            case STATUS -> Sort.by(direction, "statusRank");
+        };
+        // Due date, then lot, between equal rows: a stable order from one page to the next.
+        return primary.and(Sort.by(Sort.Direction.ASC, "dueDate", "unitNumberLength", "unitNumber"));
     }
 }

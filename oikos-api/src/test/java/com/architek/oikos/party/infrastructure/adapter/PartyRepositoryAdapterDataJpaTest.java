@@ -169,6 +169,19 @@ class PartyRepositoryAdapterDataJpaTest {
     }
 
     @Test
+    void findAll_sorts_by_phone() {
+        adapter.save(Party.create(PartyId.newId(), propertyId, "Alice", PartyType.INDIVIDUAL,
+                EmailVO.of("alice@oikos.com"), "+212699999999"));
+        adapter.save(Party.create(PartyId.newId(), propertyId, "Bob", PartyType.INDIVIDUAL,
+                EmailVO.of("bob@oikos.com"), "+212611111111"));
+
+        var page = adapter.findAll(PageRequest.of(0, 20),
+                new PartySearchCriteria(propertyId, null, PartySortField.PHONE, SortDirection.ASC));
+
+        assertThat(page.content()).extracting(Party::getFullName).containsExactly("Bob", "Alice");
+    }
+
+    @Test
     void deleteById_removes_the_party() {
         Party party = newParty();
         adapter.save(party);

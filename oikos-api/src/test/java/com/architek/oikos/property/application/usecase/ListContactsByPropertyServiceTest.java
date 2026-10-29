@@ -261,11 +261,45 @@ class ListContactsByPropertyServiceTest {
                 .containsExactly("John Smith", "Jane Doe");
     }
 
+    @Test
+    void sorting_by_lots_descending_puts_the_contact_of_the_highest_lot_first() {
+        PropertyId propertyId = PropertyId.newId();
+        seedTwoContacts(propertyId);
+
+        var page = newService().listContacts(new ListContactsByPropertyQuery(propertyId, PageRequest.of(0, 20),
+                null, null, ContactSortField.UNITS, SortDirection.DESC));
+
+        // John Smith holds A13, Jane Doe A12.
+        assertThat(page.content()).extracting(PropertyContactView::partyFullName)
+                .containsExactly("John Smith", "Jane Doe");
+    }
+
+    @Test
+    void sorting_by_phone_keeps_the_contacts_without_one_last_in_both_directions() {
+        PropertyId propertyId = PropertyId.newId();
+        seedTwoContacts(propertyId, null, "+212612345678");
+
+        var ascending = newService().listContacts(new ListContactsByPropertyQuery(propertyId, PageRequest.of(0, 20),
+                null, null, ContactSortField.PHONE, SortDirection.ASC));
+        var descending = newService().listContacts(new ListContactsByPropertyQuery(propertyId, PageRequest.of(0, 20),
+                null, null, ContactSortField.PHONE, SortDirection.DESC));
+
+        assertThat(ascending.content()).extracting(PropertyContactView::partyFullName)
+                .containsExactly("John Smith", "Jane Doe");
+        assertThat(descending.content()).extracting(PropertyContactView::partyFullName)
+                .containsExactly("John Smith", "Jane Doe");
+    }
+
     private record SortFixture(EntityId linkedPartyId, EntityId unlinkedPartyId) {
     }
 
     /** Jane Doe (account linked) and John Smith (no account), one lot each. */
     private SortFixture seedTwoContacts(PropertyId propertyId) {
+        return seedTwoContacts(propertyId, null, null);
+    }
+
+    /** Same, with Jane on lot A12 and John on lot A13, each with the phone given. */
+    private SortFixture seedTwoContacts(PropertyId propertyId, String janePhone, String johnPhone) {
         when(propertyRepository.findById(propertyId)).thenReturn(
                 Optional.of(Property.create(propertyId, "Copro Test", "1 rue de la Paix")));
 
@@ -289,9 +323,9 @@ class ListContactsByPropertyServiceTest {
                 UnitOwnership.create(UnitOwnershipId.newId(), unitId2, unlinkedPartyId, propertyId,
                         OwnershipShare.of(new BigDecimal("50")))));
         when(partyDirectoryPort.getPartyById(linkedPartyId)).thenReturn(
-                new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"), null));
+                new PartyDetails("Jane Doe", PartyType.INDIVIDUAL, EmailVO.of("jane.doe@example.com"), janePhone));
         when(partyDirectoryPort.getPartyById(unlinkedPartyId)).thenReturn(
-                new PartyDetails("John Smith", PartyType.INDIVIDUAL, EmailVO.of("john.smith@example.com"), null));
+                new PartyDetails("John Smith", PartyType.INDIVIDUAL, EmailVO.of("john.smith@example.com"), johnPhone));
         when(accountLinkingPort.findLinkedPartyIds(anyList())).thenReturn(Set.of(linkedPartyId));
 
         return new SortFixture(linkedPartyId, unlinkedPartyId);

@@ -6,9 +6,9 @@ import type {
 } from '@/features/property-mngt/general-meetings/types/convocation.types';
 import { formatLotLabel } from '@/features/property-mngt/general-meetings/utils/formatMeeting';
 import { matchesSearch } from '@/shared/utils/normalizeForSearch';
-import type { SortDirection } from '@/shared/utils/sorting';
+import { compareSortValues, type SortDirection } from '@/shared/utils/sorting';
 
-export type ConvocationSortField = 'LOT' | 'SENT_AT' | 'WEIGHT';
+export type ConvocationSortField = 'LOT' | 'OWNERS' | 'WEIGHT' | 'SENT_AT' | 'REPLY';
 
 export interface ConvocationFiltersValue {
   /**
@@ -80,6 +80,9 @@ function compareSentAt(a: Convocation, b: Convocation, direction: SortDirection)
   return direction === 'ASC' ? chronological : -chronological;
 }
 
+/** Présent, Absent, Sans réponse when ascending: the answers first, the lots still to chase last. */
+const REPLY_RANK: Record<Convocation['attendanceReply'], number> = { ATTENDING: 0, NOT_ATTENDING: 1, NO_REPLY: 2 };
+
 function compare(a: Convocation, b: Convocation, filters: ConvocationFiltersValue): number {
   const byLot = lotLabelOf(a).localeCompare(lotLabelOf(b), 'fr', { numeric: true });
   switch (filters.sortBy) {
@@ -93,6 +96,15 @@ function compare(a: Convocation, b: Convocation, filters: ConvocationFiltersValu
       const byWeight = a.votingWeight - b.votingWeight;
       const directed = filters.sortDirection === 'ASC' ? byWeight : -byWeight;
       return directed !== 0 ? directed : byLot;
+    }
+    case 'OWNERS': {
+      // First owner shown in the column; lots with no owner last.
+      const byOwners = compareSortValues(a.recipients[0]?.fullName, b.recipients[0]?.fullName, filters.sortDirection);
+      return byOwners !== 0 ? byOwners : byLot;
+    }
+    case 'REPLY': {
+      const byReply = compareSortValues(REPLY_RANK[a.attendanceReply], REPLY_RANK[b.attendanceReply], filters.sortDirection);
+      return byReply !== 0 ? byReply : byLot;
     }
     default:
       // "Appartement 10" must come after "Appartement 2", hence numeric collation.

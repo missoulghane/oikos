@@ -1,5 +1,9 @@
+import { SortableColumnHeader } from '@/shared/components/SortableColumnHeader/SortableColumnHeader';
+import { useTableSort } from '@/shared/hooks/useTableSort';
 import { ENTRY_DIRECTION_LABELS } from '@/features/property-mngt/accounting/constants/accountingLabels';
 import type { JournalEntryLine, LedgerAccount } from '@/features/property-mngt/accounting/types/accounting.types';
+
+type LineSortField = 'ACCOUNT' | 'AUXILIARY' | 'LABEL' | 'DIRECTION' | 'AMOUNT';
 
 interface JournalEntryLinesTableProps {
   lines: JournalEntryLine[];
@@ -15,20 +19,83 @@ export function JournalEntryLinesTable({ lines, ledgerAccounts = [] }: JournalEn
     return account ? `${account.accountNumber} — ${account.label}` : ledgerAccountId;
   }
 
+  // Line order by default: the order the entry was written in, debits first.
+  const { sorted, sortBy, sortDirection, onSort } = useTableSort<JournalEntryLine, LineSortField | 'NONE'>(
+    lines,
+    (line, field) => {
+      switch (field) {
+        case 'ACCOUNT':
+          return accountLabel(line.ledgerAccountId);
+        case 'AUXILIARY':
+          return line.auxiliaryUnitId ?? line.auxiliaryPartyId;
+        case 'LABEL':
+          return line.label;
+        case 'DIRECTION':
+          return ENTRY_DIRECTION_LABELS[line.direction];
+        case 'AMOUNT':
+          return line.amount;
+        default:
+          return null;
+      }
+    },
+    { field: 'NONE', direction: 'ASC' },
+  );
+
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
         <thead>
           <tr className="text-left text-gray-500 dark:text-gray-400">
-            <th className="py-2 pr-4 font-medium">Compte</th>
-            <th className="py-2 pr-4 font-medium">Auxiliaire</th>
-            <th className="py-2 pr-4 font-medium">Libellé</th>
-            <th className="py-2 pr-4 font-medium">Sens</th>
-            <th className="py-2 pr-4 text-right font-medium">Montant</th>
+            <SortableColumnHeader
+              field="ACCOUNT"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              className="pr-4"
+            >
+              Compte
+            </SortableColumnHeader>
+            <SortableColumnHeader
+              field="AUXILIARY"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              className="pr-4"
+            >
+              Auxiliaire
+            </SortableColumnHeader>
+            <SortableColumnHeader
+              field="LABEL"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              className="pr-4"
+            >
+              Libellé
+            </SortableColumnHeader>
+            <SortableColumnHeader
+              field="DIRECTION"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              className="pr-4"
+            >
+              Sens
+            </SortableColumnHeader>
+            <SortableColumnHeader
+              field="AMOUNT"
+              activeField={sortBy}
+              direction={sortDirection}
+              onSort={onSort}
+              align="right"
+              className="pr-4"
+            >
+              Montant
+            </SortableColumnHeader>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-          {lines.map((line) => (
+          {sorted.map((line) => (
             <tr key={line.id} className="text-gray-800 dark:text-white/90">
               <td className="py-2 pr-4">{accountLabel(line.ledgerAccountId)}</td>
               <td className="py-2 pr-4 font-mono text-xs text-gray-500 dark:text-gray-400">

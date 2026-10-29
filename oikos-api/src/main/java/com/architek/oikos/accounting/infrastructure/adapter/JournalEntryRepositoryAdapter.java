@@ -120,11 +120,20 @@ public class JournalEntryRepositoryAdapter implements JournalEntryRepository {
         Sort.Direction direction = filter.sortDirection() == SortDirection.ASC
                 ? Sort.Direction.ASC
                 : Sort.Direction.DESC;
-        if (filter.sortField() == JournalEntrySortField.PIECE_NUMBER) {
-            return Sort.by(direction, "pieceNumber");
+        if (filter.sortField() == null) {
+            // No sort asked for: the default the query used to carry itself.
+            return Sort.by(Sort.Direction.DESC, "pieceDate");
         }
-        // No sort asked for: the default the query used to carry itself.
-        return Sort.by(filter.sortField() == null ? Sort.Direction.DESC : direction, "pieceDate");
+        String property = switch (filter.sortField()) {
+            case PIECE_DATE -> "pieceDate";
+            case PIECE_NUMBER -> "pieceNumber";
+            case REFERENCE -> "externalReference";
+            case AMOUNT -> "debitTotal";
+            // DRAFT, POSTED, REVERSED: alphabetical is also the life-cycle order.
+            case STATUS -> "status";
+        };
+        // Most recent first between equal rows, as by default.
+        return Sort.by(direction, property).and(Sort.by(Sort.Direction.DESC, "pieceDate"));
     }
 
     @Override
