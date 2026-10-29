@@ -137,6 +137,35 @@ class JournalEntryRepositoryAdapterDataJpaTest {
         assertThat(balance).isEqualByComparingTo("300.00");
     }
 
+    @Test
+    void P10_a_reversed_entry_and_its_mirror_cancel_out_in_the_sums() {
+        // L'original passe REVERSED, son extourne reste POSTED : ne compter que
+        // les POSTED ferait apparaître l'extourne seule, avec le signe opposé.
+        EntityId propertyId = EntityId.newId();
+        AccountingExerciseId exerciseId = AccountingExerciseId.newId();
+        LedgerAccountId receivable = LedgerAccountId.newId();
+        LedgerAccountId income = LedgerAccountId.newId();
+        EntityId unitId = EntityId.newId();
+        JournalEntry original = JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId, JournalCode.VT,
+                null, LocalDate.of(2026, 8, 1), "Appel de fonds 2026-08", EntityId.newId(),
+                List.of(JournalEntryLine.of(JournalEntryLineId.newId(), receivable, unitId, null,
+                                EntryDirection.DEBIT, Amount.of(new BigDecimal("300.00")), "Appel de fonds"),
+                        JournalEntryLine.of(JournalEntryLineId.newId(), income, null, null,
+                                EntryDirection.CREDIT, Amount.of(new BigDecimal("300.00")), "Cotisations")))
+                .post(1);
+        adapter.save(original);
+        JournalEntry mirror = JournalEntry.draft(JournalEntryId.newId(), propertyId, exerciseId, JournalCode.VT, null,
+                LocalDate.of(2026, 8, 1), "EXTOURNE Appel de fonds 2026-08", EntityId.newId(),
+                original.mirrorLinesForReversal(List.of(JournalEntryLineId.newId(), JournalEntryLineId.newId())),
+                original.getId()).post(2);
+        adapter.save(mirror);
+        adapter.save(original.markReversed());
+
+        assertThat(adapter.sumNetAmountForAuxiliaryUnit(propertyId, receivable, unitId)).isEqualByComparingTo("0");
+        assertThat(adapter.sumNetAmountByAccountForExercise(propertyId, exerciseId))
+                .allSatisfy(net -> assertThat(net.creditMinusDebit()).isEqualByComparingTo("0"));
+    }
+
     /** Two entries on one treasury account, dated a month apart. */
     private LedgerAccountId seedTwoTreasuryEntries(EntityId propertyId) {
         LedgerAccountId treasuryAccountId = LedgerAccountId.newId();

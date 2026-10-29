@@ -57,7 +57,7 @@ public class PaymentAdvanceRegularizationListener {
             // the ordinary outcome of a payment that covered exactly what was owed.
         } catch (RuntimeException e) {
             log.error("Advance regularization failed for unit {} after payment {} - the payment itself stands, "
-                    + "regularize from the lot or the property when the cause is fixed", event.unitId(),
+                    + "the daily sweep or the lot's regularization action will retry", event.unitId(),
                     event.paymentId(), e);
         }
     }

@@ -5,6 +5,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
@@ -24,11 +26,13 @@ import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.document.application.port.in.DownloadDocumentUseCase;
 import com.architek.oikos.document.application.port.in.ListDocumentsByOwnerUseCase;
 import com.architek.oikos.installment.application.dto.PaymentView;
+import com.architek.oikos.installment.application.dto.RegularizeUnitInstallmentsResult;
 import com.architek.oikos.installment.application.port.in.GeneratePaymentReceiptUseCase;
 import com.architek.oikos.installment.application.port.in.GetLatestPaymentByPropertyUseCase;
 import com.architek.oikos.installment.application.port.in.GetPaymentUseCase;
 import com.architek.oikos.installment.application.port.in.ListPaymentsByUnitUseCase;
 import com.architek.oikos.installment.application.port.in.RecordOwnerPaymentUseCase;
+import com.architek.oikos.installment.application.port.in.RegularizeAdvancesUseCase;
 import com.architek.oikos.installment.domain.valueobject.PaymentId;
 import com.architek.oikos.installment.domain.valueobject.PaymentMode;
 import com.architek.oikos.shared.domain.valueobject.PartyType;
@@ -93,6 +97,9 @@ class PaymentReceiptControllerWebMvcTest {
     private GetPaymentUseCase getPaymentUseCase;
 
     @MockitoBean
+    private RegularizeAdvancesUseCase regularizeAdvancesUseCase;
+
+    @MockitoBean
     private GetUserAccessUseCase getUserAccessUseCase;
 
     @MockitoBean
@@ -145,5 +152,25 @@ class PaymentReceiptControllerWebMvcTest {
     @Test
     void anonymous_request_is_rejected() throws Exception {
         mockMvc.perform(get("/api/v1/payments/" + PAYMENT + "/receipt")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void an_admin_can_regularize_a_lot_on_demand() throws Exception {
+        when(regularizeAdvancesUseCase.regularizeUnit(any(), any(), any())).thenReturn(
+                new RegularizeUnitInstallmentsResult(PAID_UNIT, EntityId.newId(), new BigDecimal("300.00"), List.of()));
+        String adminToken = "Bearer " + jwtService.generateAccessToken(EntityId.newId(), Set.of("ROLE_ADMIN"));
+
+        mockMvc.perform(post("/api/v1/properties/" + PROPERTY + "/units/" + PAID_UNIT + "/regularization")
+                        .header("Authorization", adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.amountApplied").value(300.00));
+    }
+
+    @Test
+    void a_coproprietaire_cannot_trigger_a_regularization() throws Exception {
+        mockMvc.perform(post("/api/v1/properties/" + PROPERTY + "/units/" + PAID_UNIT + "/regularization")
+                        .header("Authorization", bearerFor(OWNER_PARTY)))
+                .andExpect(status().isForbidden());
+        verify(regularizeAdvancesUseCase, never()).regularizeUnit(any(), any(), any());
     }
 }

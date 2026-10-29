@@ -20,7 +20,7 @@ import com.architek.oikos.accounting.application.command.CreateJournalEntryDraft
 import com.architek.oikos.accounting.application.command.CreateJournalEntryLineCommand;
 import com.architek.oikos.accounting.domain.exception.CollectiveAccountRequiresAuxiliaryException;
 import com.architek.oikos.accounting.domain.exception.LedgerAccountNotFoundException;
-import com.architek.oikos.accounting.domain.exception.PieceDateOutsideExerciseException;
+import com.architek.oikos.accounting.domain.exception.NoExerciseCoveringDateException;
 import com.architek.oikos.accounting.domain.model.AccountingExercise;
 import com.architek.oikos.accounting.domain.model.JournalEntry;
 import com.architek.oikos.accounting.domain.model.LedgerAccount;
@@ -57,11 +57,12 @@ class CreateJournalEntryDraftServiceTest {
     }
 
     @Test
-    void I5_creates_a_draft_when_the_piece_date_falls_within_the_open_exercise() {
+    void I5_creates_a_draft_in_the_open_exercise_covering_the_piece_date() {
         EntityId propertyId = EntityId.newId();
         AccountingExercise exercise = AccountingExercise.open(AccountingExerciseId.newId(), propertyId, "Exercice 2026",
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
-        when(enforceExerciseOpenService.requireOpenExercise(propertyId)).thenReturn(exercise);
+        when(enforceExerciseOpenService.requireOpenExerciseCovering(propertyId, LocalDate.of(2026, 8, 1)))
+                .thenReturn(exercise);
 
         LedgerAccountId debitAccountId = LedgerAccountId.newId();
         LedgerAccountId creditAccountId = LedgerAccountId.newId();
@@ -84,13 +85,10 @@ class CreateJournalEntryDraftServiceTest {
     }
 
     @Test
-    void I5_a_piece_date_outside_the_exercise_is_rejected_before_anything_is_saved() {
+    void I5_a_piece_date_no_open_exercise_covers_is_rejected_before_anything_is_saved() {
         EntityId propertyId = EntityId.newId();
-        AccountingExercise exercise = AccountingExercise.open(AccountingExerciseId.newId(), propertyId, "Exercice 2026",
-                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
-        when(enforceExerciseOpenService.requireOpenExercise(propertyId)).thenReturn(exercise);
-        org.mockito.Mockito.doThrow(new PieceDateOutsideExerciseException(LocalDate.of(2027, 1, 5), exercise.getId()))
-                .when(enforceExerciseOpenService).requirePieceDateWithin(exercise, LocalDate.of(2027, 1, 5));
+        when(enforceExerciseOpenService.requireOpenExerciseCovering(propertyId, LocalDate.of(2027, 1, 5)))
+                .thenThrow(new NoExerciseCoveringDateException(propertyId, LocalDate.of(2027, 1, 5)));
 
         CreateJournalEntryDraftCommand command = new CreateJournalEntryDraftCommand(propertyId, JournalCode.OD, null,
                 LocalDate.of(2027, 1, 5), null, EntityId.newId(), List.of(
@@ -99,7 +97,7 @@ class CreateJournalEntryDraftServiceTest {
                         new CreateJournalEntryLineCommand(LedgerAccountId.newId(), null, null, EntryDirection.CREDIT,
                                 new BigDecimal("100.00"), "Credit")));
 
-        assertThatThrownBy(() -> newService().create(command)).isInstanceOf(PieceDateOutsideExerciseException.class);
+        assertThatThrownBy(() -> newService().create(command)).isInstanceOf(NoExerciseCoveringDateException.class);
         org.mockito.Mockito.verify(journalEntryRepository, org.mockito.Mockito.never()).save(any());
     }
 
@@ -108,7 +106,8 @@ class CreateJournalEntryDraftServiceTest {
         EntityId propertyId = EntityId.newId();
         AccountingExercise exercise = AccountingExercise.open(AccountingExerciseId.newId(), propertyId, "Exercice 2026",
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
-        when(enforceExerciseOpenService.requireOpenExercise(propertyId)).thenReturn(exercise);
+        when(enforceExerciseOpenService.requireOpenExerciseCovering(propertyId, LocalDate.of(2026, 8, 1)))
+                .thenReturn(exercise);
 
         LedgerAccountId unknownId = LedgerAccountId.newId();
         when(ledgerAccountRepository.findById(unknownId)).thenReturn(Optional.empty());
@@ -128,7 +127,8 @@ class CreateJournalEntryDraftServiceTest {
         EntityId propertyId = EntityId.newId();
         AccountingExercise exercise = AccountingExercise.open(AccountingExerciseId.newId(), propertyId, "Exercice 2026",
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
-        when(enforceExerciseOpenService.requireOpenExercise(propertyId)).thenReturn(exercise);
+        when(enforceExerciseOpenService.requireOpenExerciseCovering(propertyId, LocalDate.of(2026, 8, 1)))
+                .thenReturn(exercise);
 
         LedgerAccountId collectiveId = LedgerAccountId.newId();
         LedgerAccount collective = LedgerAccount.create(collectiveId, null, null, AccountNumber.of("44150000"),

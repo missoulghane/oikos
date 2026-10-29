@@ -22,9 +22,9 @@ import com.architek.oikos.accounting.domain.repository.LedgerAccountRepository;
  * account's persisted balance (Partie: solde persiste) - this is the single
  * choke point every write flow (P1-P7, the generic entries endpoint) goes
  * through to reach POSTED, so it is the only place this needs to happen.
- * Reversal (JournalEntry.markReversed()) is not wired to any use case in
- * production, so an entry never leaves POSTED once reached here - no
- * decrement path is needed (yet).
+ * Reversal (ReverseJournalEntryService) needs no decrement path either: the
+ * mirror entry is posted through here like any other, and its flipped lines
+ * move the balances back.
  */
 @Component
 public class PostJournalEntryService implements PostJournalEntryUseCase {

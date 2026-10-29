@@ -9,7 +9,7 @@ export function useOpenAccountingExercise(propertyId: string) {
   return useMutation({
     mutationFn: (payload: OpenExercisePayload) => openExercise(propertyId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.properties.accountingOpenExercise(propertyId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.properties.accountingExercises(propertyId) });
     },
   });
 }

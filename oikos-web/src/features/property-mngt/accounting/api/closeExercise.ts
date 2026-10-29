@@ -1,8 +1,10 @@
 import { httpClient } from '@/shared/api/httpClient';
 import type { ExerciseClosing } from '@/features/property-mngt/accounting/types/accounting.types';
 
-/** Porte sur l'exercice ouvert de la copropriété - il n'y en a qu'un, d'où l'absence d'identifiant. */
-export async function closeExercise(propertyId: string): Promise<ExerciseClosing> {
-  const { data } = await httpClient.post<ExerciseClosing>(`/properties/${propertyId}/accounting/exercises/close`);
+/** Deux exercices pouvant être ouverts à la fois, celui qu'on clôture est désigné - l'API n'accepte que le plus ancien. */
+export async function closeExercise(propertyId: string, exerciseId: string): Promise<ExerciseClosing> {
+  const { data } = await httpClient.post<ExerciseClosing>(
+    `/properties/${propertyId}/accounting/exercises/${exerciseId}/close`,
+  );
   return data;
 }

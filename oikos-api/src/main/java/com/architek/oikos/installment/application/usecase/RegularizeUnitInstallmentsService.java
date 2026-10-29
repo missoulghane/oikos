@@ -28,17 +28,18 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * owner payment (PaymentAllocationCalculator), except the "amount received"
  * is the unit's own already-recorded, still-unclaimed advance instead of a
  * fresh payment - so a fund call generated after an advance was booked is
- * settled from it. Nobody triggers this by hand:
- * PaymentAdvanceRegularizationListener runs it when a recette is recorded on
- * the lot.
+ * settled from it. Four triggers: PaymentAdvanceRegularizationListener when
+ * a recette is recorded on the lot, InstallmentCallAdvanceRegularizationListener
+ * when a call charges it, and RegularizeAdvancesUseCase - the daily sweep and
+ * the back-office's per-lot action.
  * Same due-date cutoff as a payment, on the piece date: this is the mechanism
  * that eventually imputes an advance onto a call left out at payment time, once
  * that call has actually fallen due.
- * REQUIRES_NEW: its caller, PaymentAdvanceRegularizationListener, runs
- * AFTER_COMMIT, when the payment's transaction is already committed but still
- * bound to the thread. A plain @Transactional here would join that finished
+ * REQUIRES_NEW: its listener callers run AFTER_COMMIT, when the triggering
+ * transaction is already committed but still bound to the thread. A plain @Transactional here would join that finished
  * transaction and its writes would never be committed; this regularization
- * needs a transaction of its own.
+ * needs a transaction of its own. The sweep relies on it too: one lot per
+ * transaction.
  */
 @Component
 public class RegularizeUnitInstallmentsService implements RegularizeUnitInstallmentsUseCase {
@@ -64,7 +65,7 @@ public class RegularizeUnitInstallmentsService implements RegularizeUnitInstallm
         if (!propertyDirectoryPort.exists(command.propertyId())) {
             throw new PropertyNotFoundException(command.propertyId());
         }
-        if (!unitDirectoryPort.exists(command.unitId())) {
+        if (!unitDirectoryPort.existsInProperty(command.unitId(), command.propertyId())) {
             throw new UnitNotFoundException(command.unitId());
         }
 

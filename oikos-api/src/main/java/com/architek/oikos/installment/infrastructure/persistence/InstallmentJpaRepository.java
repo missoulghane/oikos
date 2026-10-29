@@ -84,4 +84,19 @@ public interface InstallmentJpaRepository extends JpaRepository<InstallmentEntit
             """)
     InstallmentCollectionProjection summariseCollectible(@Param("unitIds") List<UUID> unitIds,
                                                           @Param("asOf") LocalDate asOf);
+
+    /**
+     * Every unit that still owes something already due as of asOf, with its
+     * property (read from the installment's call). The property is not on the
+     * installment itself, hence the join.
+     */
+    @Query("""
+            select distinct new com.architek.oikos.installment.infrastructure.persistence.UnitOfPropertyProjection(
+                       c.propertyId, i.unitId)
+            from InstallmentEntity i, InstallmentCallEntity c
+            where i.installmentCallId = c.id
+              and i.outstandingAmount > 0
+              and i.dueDate <= :asOf
+            """)
+    List<UnitOfPropertyProjection> findUnitsWithOutstandingDue(@Param("asOf") LocalDate asOf);
 }

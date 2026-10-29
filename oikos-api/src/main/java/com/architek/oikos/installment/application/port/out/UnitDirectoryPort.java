@@ -10,7 +10,13 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  */
 public interface UnitDirectoryPort {
 
-    boolean exists(EntityId unitId);
+    /**
+     * Whether the unit exists and belongs to that property. The property comes
+     * from the request path and is what access was checked against: a unit of
+     * another property must be treated as not found, never charged or settled
+     * under the wrong copropriété.
+     */
+    boolean existsInProperty(EntityId unitId, EntityId propertyId);
 
     /** Lot number as printed on documents ("A12"). */
     String getUnitNumber(EntityId unitId);

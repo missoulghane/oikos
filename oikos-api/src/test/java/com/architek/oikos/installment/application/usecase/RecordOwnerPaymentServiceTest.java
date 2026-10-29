@@ -68,7 +68,7 @@ class RecordOwnerPaymentServiceTest {
 
     private void stubDirectories(EntityId propertyId, EntityId unitId) {
         when(propertyDirectoryPort.exists(propertyId)).thenReturn(true);
-        when(unitDirectoryPort.exists(unitId)).thenReturn(true);
+        when(unitDirectoryPort.existsInProperty(unitId, propertyId)).thenReturn(true);
         when(receiptNumberSequenceRepository.allocate(any(), anyInt())).thenReturn(new ReceiptNumber(2026, 1));
     }
 
@@ -201,11 +201,11 @@ class RecordOwnerPaymentServiceTest {
     }
 
     @Test
-    void a_payment_for_a_missing_unit_is_rejected() {
+    void a_payment_for_a_missing_unit_or_a_unit_of_another_property_is_rejected() {
         EntityId propertyId = EntityId.newId();
         EntityId unitId = EntityId.newId();
         when(propertyDirectoryPort.exists(propertyId)).thenReturn(true);
-        when(unitDirectoryPort.exists(unitId)).thenReturn(false);
+        when(unitDirectoryPort.existsInProperty(unitId, propertyId)).thenReturn(false);
 
         RecordOwnerPaymentCommand command = new RecordOwnerPaymentCommand(propertyId, unitId, PaymentMode.CASH,
                 EntityId.newId(), LocalDate.of(2026, 2, 10), new BigDecimal("100.00"), EntityId.newId());

@@ -5,8 +5,9 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 
 import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
+import com.architek.oikos.installment.domain.valueobject.InstallmentCallStatus;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 public record InstallmentCallSummaryView(InstallmentCallId id, EntityId propertyId, YearMonth period, LocalDate dueDate,
-                                            int unitCount, BigDecimal totalAmount) {
+                                            InstallmentCallStatus status, int unitCount, BigDecimal totalAmount) {
 }

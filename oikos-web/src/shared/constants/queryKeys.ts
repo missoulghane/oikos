@@ -32,8 +32,8 @@ export const queryKeys = {
     /** Filters passed whole, for the reason given on `installments` below. */
     contacts: (propertyId: string, page: number, size: number, filters: object) =>
       ['properties', propertyId, 'contacts', page, size, filters] as const,
-    accountingOpenExercise: (propertyId: string) =>
-      ['properties', propertyId, 'accounting', 'open-exercise'] as const,
+    /** Every exercise of the property - up to two may be open at once (N awaiting its closing, N+1). */
+    accountingExercises: (propertyId: string) => ['properties', propertyId, 'accounting', 'exercises'] as const,
     accountingLedgerAccounts: (propertyId: string) =>
       ['properties', propertyId, 'accounting', 'ledger-accounts'] as const,
     accountingJournalEntries: (propertyId: string, page: number, size: number) =>

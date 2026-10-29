@@ -14,16 +14,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.architek.oikos.installment.application.command.GenerateInstallmentCallCommand;
 import com.architek.oikos.installment.application.dto.GenerateInstallmentCallResult;
+import com.architek.oikos.installment.application.event.InstallmentCallGeneratedEvent;
 import com.architek.oikos.installment.application.port.out.FundCallJournalEntryPort;
 import com.architek.oikos.installment.application.port.out.PropertyDirectoryPort;
 import com.architek.oikos.installment.application.port.out.PropertyDuesConfigurationView;
 import com.architek.oikos.installment.application.port.out.PropertyUnitPricingPort;
 import com.architek.oikos.installment.application.port.out.UnitPriceLine;
 import com.architek.oikos.installment.application.port.out.UnitShareLine;
+import com.architek.oikos.installment.domain.exception.DueDateBeforePeriodException;
 import com.architek.oikos.installment.domain.exception.InstallmentCallAlreadyExistsException;
+import com.architek.oikos.installment.domain.exception.NoChargeableUnitException;
 import com.architek.oikos.installment.domain.exception.NoUnitSharesConfiguredException;
 import com.architek.oikos.installment.domain.exception.ProjectedBudgetNotConfiguredException;
 import com.architek.oikos.installment.domain.exception.PropertyNotFoundException;
@@ -50,9 +54,12 @@ class GenerateInstallmentCallServiceTest {
     @Mock
     private FundCallJournalEntryPort fundCallJournalEntryPort;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private GenerateInstallmentCallService newService() {
         return new GenerateInstallmentCallService(propertyDirectoryPort, propertyUnitPricingPort, installmentCallRepository,
-                installmentRepository, fundCallJournalEntryPort);
+                installmentRepository, fundCallJournalEntryPort, eventPublisher);
     }
 
     private void stubHappyPath(EntityId propertyId) {
@@ -113,22 +120,66 @@ class GenerateInstallmentCallServiceTest {
     }
 
     @Test
-    void a_call_with_no_charged_units_does_not_post_any_journal_entry() {
+    void a_call_with_no_chargeable_unit_is_refused_rather_than_saved_empty() {
         EntityId propertyId = EntityId.newId();
         when(propertyDirectoryPort.exists(propertyId)).thenReturn(true);
         when(propertyDirectoryPort.getDuesConfiguration(propertyId))
                 .thenReturn(new PropertyDuesConfigurationView(DuesCalculationMode.FLAT_RATE, null));
         when(installmentCallRepository.existsByPropertyIdAndPeriod(any(), any())).thenReturn(false);
-        when(installmentCallRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(propertyUnitPricingPort.listUnitPrices(propertyId)).thenReturn(List.of(
                 new UnitPriceLine(EntityId.newId(), null)));
 
         GenerateInstallmentCallCommand command = new GenerateInstallmentCallCommand(propertyId, YearMonth.of(2026, 1),
                 LocalDate.of(2026, 2, 5), EntityId.newId());
 
-        newService().generate(command);
-
+        assertThatThrownBy(() -> newService().generate(command)).isInstanceOf(NoChargeableUnitException.class);
+        org.mockito.Mockito.verify(installmentCallRepository, org.mockito.Mockito.never()).save(any());
         org.mockito.Mockito.verifyNoInteractions(fundCallJournalEntryPort);
+    }
+
+    @Test
+    void a_due_date_before_the_billed_period_is_refused() {
+        EntityId propertyId = EntityId.newId();
+        when(propertyDirectoryPort.exists(propertyId)).thenReturn(true);
+
+        GenerateInstallmentCallCommand command = new GenerateInstallmentCallCommand(propertyId, YearMonth.of(2026, 3),
+                LocalDate.of(2026, 2, 28), EntityId.newId());
+
+        assertThatThrownBy(() -> newService().generate(command)).isInstanceOf(DueDateBeforePeriodException.class);
+    }
+
+    @Test
+    void a_due_date_after_the_exercise_end_still_posts_on_the_billed_period() {
+        // Décembre payable en janvier : le produit reste rattaché à l'exercice de décembre.
+        EntityId propertyId = EntityId.newId();
+        stubHappyPath(propertyId);
+        when(propertyUnitPricingPort.listUnitPrices(propertyId)).thenReturn(List.of(
+                new UnitPriceLine(EntityId.newId(), new BigDecimal("300"))));
+
+        newService().generate(new GenerateInstallmentCallCommand(propertyId, YearMonth.of(2026, 12),
+                LocalDate.of(2027, 1, 5), EntityId.newId()));
+
+        org.mockito.Mockito.verify(fundCallJournalEntryPort).postFundCallEntry(org.mockito.ArgumentMatchers.eq(propertyId),
+                org.mockito.ArgumentMatchers.eq(LocalDate.of(2026, 12, 1)), any(), any(), any());
+    }
+
+    @Test
+    void publishes_the_charged_units_for_advance_regularization() {
+        EntityId propertyId = EntityId.newId();
+        stubHappyPath(propertyId);
+        EntityId pricedUnitId = EntityId.newId();
+        EntityId userId = EntityId.newId();
+        when(propertyUnitPricingPort.listUnitPrices(propertyId)).thenReturn(List.of(
+                new UnitPriceLine(pricedUnitId, new BigDecimal("300"))));
+
+        newService().generate(new GenerateInstallmentCallCommand(propertyId, YearMonth.of(2026, 1),
+                LocalDate.of(2026, 2, 5), userId));
+
+        org.mockito.ArgumentCaptor<InstallmentCallGeneratedEvent> eventCaptor =
+                org.mockito.ArgumentCaptor.forClass(InstallmentCallGeneratedEvent.class);
+        org.mockito.Mockito.verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().chargedUnitIds()).containsExactly(pricedUnitId);
+        assertThat(eventCaptor.getValue().generatedByUserId()).isEqualTo(userId);
     }
 
     @Test

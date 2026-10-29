@@ -11,16 +11,23 @@ import {
 } from '@/features/property-mngt/accounting/schemas/openExerciseSchema';
 import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
-export function OpenExerciseForm({ propertyId }: { propertyId: string }) {
+interface OpenExerciseFormProps {
+  propertyId: string;
+  /** Pré-remplissage du prochain exercice : il doit commencer le lendemain de la fin du précédent. */
+  defaultValues?: OpenExerciseFormValues;
+  onOpened?: () => void;
+}
+
+export function OpenExerciseForm({ propertyId, defaultValues, onOpened }: OpenExerciseFormProps) {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<OpenExerciseFormValues>({ resolver: zodResolver(openExerciseSchema) });
+  } = useForm<OpenExerciseFormValues>({ resolver: zodResolver(openExerciseSchema), defaultValues });
   const { mutate, isPending, error } = useOpenAccountingExercise(propertyId);
 
   function onSubmit(values: OpenExerciseFormValues) {
-    mutate(values);
+    mutate(values, { onSuccess: () => onOpened?.() });
   }
 
   return (

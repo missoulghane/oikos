@@ -38,13 +38,31 @@ class AccountingExerciseRepositoryAdapterDataJpaTest {
     }
 
     @Test
-    void finds_the_open_exercise_of_a_property() {
+    void lists_the_exercises_of_a_property_oldest_first() {
+        EntityId propertyId = EntityId.newId();
+        adapter.save(AccountingExercise.open(AccountingExerciseId.newId(), propertyId, "Exercice 2027",
+                LocalDate.of(2027, 1, 1), LocalDate.of(2027, 12, 31), null));
+        adapter.save(AccountingExercise.open(AccountingExerciseId.newId(), propertyId, "Exercice 2026",
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null));
+        adapter.save(AccountingExercise.open(AccountingExerciseId.newId(), EntityId.newId(), "Ailleurs",
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null));
+
+        assertThat(adapter.findAllByPropertyId(propertyId)).extracting(AccountingExercise::getLabel)
+                .containsExactly("Exercice 2026", "Exercice 2027");
+    }
+
+    @Test
+    void finds_the_exercise_covering_a_date_bounds_included() {
         EntityId propertyId = EntityId.newId();
         adapter.save(AccountingExercise.open(AccountingExerciseId.newId(), propertyId, "Exercice 2026",
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null));
+        adapter.save(AccountingExercise.open(AccountingExerciseId.newId(), propertyId, "Exercice 2027",
+                LocalDate.of(2027, 1, 1), LocalDate.of(2027, 12, 31), null));
 
-        assertThat(adapter.findOpenByPropertyId(propertyId)).isPresent();
-        assertThat(adapter.existsOpenByPropertyId(propertyId)).isTrue();
-        assertThat(adapter.existsOpenByPropertyId(EntityId.newId())).isFalse();
+        assertThat(adapter.findCoveringDate(propertyId, LocalDate.of(2026, 12, 31))).get()
+                .extracting(AccountingExercise::getLabel).isEqualTo("Exercice 2026");
+        assertThat(adapter.findCoveringDate(propertyId, LocalDate.of(2027, 1, 1))).get()
+                .extracting(AccountingExercise::getLabel).isEqualTo("Exercice 2027");
+        assertThat(adapter.findCoveringDate(propertyId, LocalDate.of(2028, 1, 1))).isEmpty();
     }
 }

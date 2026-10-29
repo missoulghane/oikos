@@ -1,5 +1,7 @@
 package com.architek.oikos.accounting.infrastructure.adapter;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Component;
@@ -7,7 +9,6 @@ import org.springframework.stereotype.Component;
 import com.architek.oikos.accounting.domain.model.AccountingExercise;
 import com.architek.oikos.accounting.domain.repository.AccountingExerciseRepository;
 import com.architek.oikos.accounting.domain.valueobject.AccountingExerciseId;
-import com.architek.oikos.accounting.domain.valueobject.ExerciseStatus;
 import com.architek.oikos.accounting.infrastructure.mapper.AccountingExercisePersistenceMapper;
 import com.architek.oikos.accounting.infrastructure.persistence.AccountingExerciseEntity;
 import com.architek.oikos.accounting.infrastructure.persistence.AccountingExerciseJpaRepository;
@@ -39,12 +40,14 @@ public class AccountingExerciseRepositoryAdapter implements AccountingExerciseRe
     }
 
     @Override
-    public Optional<AccountingExercise> findOpenByPropertyId(EntityId propertyId) {
-        return jpaRepository.findByPropertyIdAndStatus(propertyId.value(), ExerciseStatus.OPEN).map(mapper::toDomain);
+    public List<AccountingExercise> findAllByPropertyId(EntityId propertyId) {
+        return jpaRepository.findAllByPropertyIdOrderByStartDateAsc(propertyId.value()).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
-    public boolean existsOpenByPropertyId(EntityId propertyId) {
-        return jpaRepository.existsByPropertyIdAndStatus(propertyId.value(), ExerciseStatus.OPEN);
+    public Optional<AccountingExercise> findCoveringDate(EntityId propertyId, LocalDate date) {
+        return jpaRepository.findCoveringDate(propertyId.value(), date).map(mapper::toDomain);
     }
 }

@@ -40,6 +40,7 @@ public class ListInstallmentCallsByPropertyService implements ListInstallmentCal
                 .map(installment -> installment.getAmount().value())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new InstallmentCallSummaryView(installmentCall.getId(), installmentCall.getPropertyId(),
-                installmentCall.getPeriod(), installmentCall.getDueDate(), installments.size(), totalAmount);
+                installmentCall.getPeriod(), installmentCall.getDueDate(), installmentCall.getStatus(), installments.size(),
+                totalAmount);
     }
 }

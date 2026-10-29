@@ -19,7 +19,10 @@ import com.architek.oikos.accounting.application.dto.AccountingExerciseView;
 import com.architek.oikos.accounting.application.dto.ExerciseClosingView;
 import com.architek.oikos.accounting.application.port.in.CloseAccountingExerciseUseCase;
 import com.architek.oikos.accounting.application.port.in.PostJournalEntryUseCase;
+import com.architek.oikos.accounting.domain.exception.AccountingExerciseClosedException;
+import com.architek.oikos.accounting.domain.exception.AccountingExerciseNotFoundException;
 import com.architek.oikos.accounting.domain.exception.ExerciseNotClosableException;
+import com.architek.oikos.accounting.domain.exception.ExerciseNotOldestOpenException;
 import com.architek.oikos.accounting.domain.model.AccountNetAmount;
 import com.architek.oikos.accounting.domain.model.AccountingExercise;
 import com.architek.oikos.accounting.domain.model.ExerciseClosingCalculator;
@@ -65,6 +68,11 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * chaque journal (ExerciseClosingValidator). Tous les manquements sont
  * renvoyés ensemble, pas seulement le premier.
  *
+ * <p><b>Les exercices se clôturent dans l'ordre.</b> Deux peuvent être ouverts à
+ * la fois (N en attente d'approbation, N+1 déjà mouvementé) : l'exercice visé est
+ * donc désigné par son identifiant, et seul le plus ancien des ouverts peut être
+ * clôturé. Les écritures de N+1 ne gênent pas : le calcul ne lit que celles de N.
+ *
  * <p><b>L'écriture de clôture ne passe pas par CreateJournalEntryDraft.</b>
  * Elle est construite par le moteur, datée du dernier jour de l'exercice, et
  * elle est la seule à l'être ainsi.
@@ -72,20 +80,17 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 @Component
 public class CloseAccountingExerciseService implements CloseAccountingExerciseUseCase {
 
-    private final EnforceExerciseOpenService enforceExerciseOpenService;
     private final AccountingExerciseRepository accountingExerciseRepository;
     private final JournalEntryRepository journalEntryRepository;
     private final LedgerAccountRepository ledgerAccountRepository;
     private final ResultAccountResolver resultAccountResolver;
     private final PostJournalEntryUseCase postJournalEntryUseCase;
 
-    public CloseAccountingExerciseService(EnforceExerciseOpenService enforceExerciseOpenService,
-                                           AccountingExerciseRepository accountingExerciseRepository,
+    public CloseAccountingExerciseService(AccountingExerciseRepository accountingExerciseRepository,
                                            JournalEntryRepository journalEntryRepository,
                                            LedgerAccountRepository ledgerAccountRepository,
                                            ResultAccountResolver resultAccountResolver,
                                            PostJournalEntryUseCase postJournalEntryUseCase) {
-        this.enforceExerciseOpenService = enforceExerciseOpenService;
         this.accountingExerciseRepository = accountingExerciseRepository;
         this.journalEntryRepository = journalEntryRepository;
         this.ledgerAccountRepository = ledgerAccountRepository;
@@ -96,7 +101,7 @@ public class CloseAccountingExerciseService implements CloseAccountingExerciseUs
     @Override
     @Transactional
     public ExerciseClosingView close(CloseAccountingExerciseCommand command) {
-        AccountingExercise exercise = enforceExerciseOpenService.requireOpenExercise(command.propertyId());
+        AccountingExercise exercise = requireClosable(command);
 
         List<JournalEntry> entries = journalEntryRepository.findAllByExerciseId(exercise.getId());
         List<JournalEntryStatus> statuses = entries.stream().map(JournalEntry::getStatus).toList();
@@ -124,6 +129,23 @@ public class CloseAccountingExerciseService implements CloseAccountingExerciseUs
         AccountingExercise closed = accountingExerciseRepository.save(
                 exercise.close(Instant.now(), command.closedByUserId()));
         return new ExerciseClosingView(AccountingExerciseView.from(closed), closing.netResult(), closingEntryId);
+    }
+
+    private AccountingExercise requireClosable(CloseAccountingExerciseCommand command) {
+        AccountingExercise exercise = accountingExerciseRepository.findById(command.exerciseId())
+                .filter(candidate -> candidate.getPropertyId().equals(command.propertyId()))
+                .orElseThrow(() -> new AccountingExerciseNotFoundException(command.exerciseId()));
+        if (!exercise.isOpen()) {
+            throw new AccountingExerciseClosedException(exercise.getId());
+        }
+        accountingExerciseRepository.findAllByPropertyId(command.propertyId()).stream()
+                .filter(AccountingExercise::isOpen)
+                .filter(other -> other.getStartDate().isBefore(exercise.getStartDate()))
+                .findFirst()
+                .ifPresent(older -> {
+                    throw new ExerciseNotOldestOpenException(exercise.getId(), older.getId());
+                });
+        return exercise;
     }
 
     /**

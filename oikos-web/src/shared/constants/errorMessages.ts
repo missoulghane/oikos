@@ -56,4 +56,19 @@ export const CODE_ERROR_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: AUTH_ERROR_MESSAGES.invalidCredentials,
   ACCOUNT_NOT_ACTIVATED: AUTH_ERROR_MESSAGES.accountNotActivated,
   INVALID_LINK: ERROR_MESSAGES.invalidLink,
+  NO_EXERCISE_FOR_DATE:
+    'Aucun exercice comptable ne couvre cette date. Ouvrez l’exercice correspondant dans Comptabilité › Exercice comptable, puis réessayez.',
+  EXERCISE_CLOSED_FOR_DATE:
+    'L’exercice comptable qui couvre cette date est clôturé : il n’accepte plus aucune écriture.',
+  EXERCISE_NOT_CONTIGUOUS:
+    'Le nouvel exercice doit commencer le lendemain de la fin du précédent, sans trou ni chevauchement.',
+  TOO_MANY_OPEN_EXERCISES:
+    'Deux exercices sont déjà ouverts. Clôturez le plus ancien avant d’en ouvrir un nouveau.',
+  EXERCISE_NOT_OLDEST_OPEN: 'Un exercice plus ancien est encore ouvert : les exercices se clôturent dans l’ordre.',
+  INSTALLMENT_CALL_SETTLED:
+    'Cet appel de fonds a déjà reçu des règlements : il ne peut plus être annulé.',
+  NO_CHARGEABLE_UNIT:
+    'Aucun lot n’a de montant à appeler. Renseignez les tarifs par type de lot ou les tantièmes, puis réessayez.',
+  DUE_DATE_BEFORE_PERIOD: 'L’échéance ne peut pas précéder le début de la période appelée.',
+  NOTHING_TO_REGULARIZE: 'Rien à imputer : le lot n’a pas d’avance, ou aucune échéance exigible à régler.',
 };

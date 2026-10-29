@@ -17,7 +17,7 @@ function setup(state: Record<string, unknown> = {}) {
     error: null,
     ...state,
   } as never);
-  render(<CloseExerciseForm propertyId="p-1" exerciseLabel="2026" />);
+  render(<CloseExerciseForm propertyId="p-1" exerciseId="e-2026" exerciseLabel="2026" />);
 }
 
 describe('CloseExerciseForm', () => {
@@ -42,7 +42,7 @@ describe('CloseExerciseForm', () => {
     await user.click(screen.getByRole('button', { name: "Clôturer l'exercice" }));
     await user.click(screen.getByRole('button', { name: 'Confirmer la clôture' }));
 
-    await waitFor(() => expect(mutate).toHaveBeenCalled());
+    await waitFor(() => expect(mutate).toHaveBeenCalledWith('e-2026'));
   });
 
   it('annonce le résultat arrêté, et son sens', () => {

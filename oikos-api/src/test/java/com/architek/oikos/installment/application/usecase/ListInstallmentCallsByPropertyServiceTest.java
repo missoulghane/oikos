@@ -39,8 +39,8 @@ class ListInstallmentCallsByPropertyServiceTest {
     void lists_installment_calls_with_their_unit_count_and_total_amount() {
         EntityId propertyId = EntityId.newId();
         InstallmentCallId installmentCallId = InstallmentCallId.newId();
-        InstallmentCall installmentCall = InstallmentCall.create(installmentCallId, propertyId, YearMonth.of(2026, 1),
-                LocalDate.of(2026, 2, 5));
+        InstallmentCall installmentCall = InstallmentCall.draft(installmentCallId, propertyId, YearMonth.of(2026, 1),
+                LocalDate.of(2026, 2, 5)).issue().post(EntityId.newId());
         when(installmentCallRepository.findPageByPropertyId(propertyId, PageRequest.of(0, 20)))
                 .thenReturn(Page.of(List.of(installmentCall), 0, 20, 1));
 

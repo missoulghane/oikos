@@ -21,6 +21,14 @@ export interface RecordOwnerPaymentResult {
   advanceAmount: number;
 }
 
+/** What a regularization imputed: part of the lot's advance, spread over its due échéances. */
+export interface RegularizeUnitInstallmentsResult {
+  unitId: string;
+  journalEntryId: string;
+  amountApplied: number;
+  allocations: InstallmentAllocation[];
+}
+
 export interface RecordOwnerPaymentPayload {
   mode: PaymentMode;
   treasuryAccountId: string;

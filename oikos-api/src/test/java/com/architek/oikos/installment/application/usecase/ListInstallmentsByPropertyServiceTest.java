@@ -114,7 +114,7 @@ class ListInstallmentsByPropertyServiceTest {
         InstallmentCallId callId = InstallmentCallId.newId();
         Installment installment = Installment.create(InstallmentId.newId(), unitId,
                 LocalDate.of(2026, 8, 1), Amount.of(new BigDecimal("150")), callId);
-        InstallmentCall installmentCall = InstallmentCall.create(callId, propertyId, YearMonth.of(2026, 8), LocalDate.of(2026, 8, 5));
+        InstallmentCall installmentCall = InstallmentCall.draft(callId, propertyId, YearMonth.of(2026, 8), LocalDate.of(2026, 8, 5)).issue().post(EntityId.newId());
 
         InstallmentFilter filter = InstallmentFilter.defaultFilter();
         PageRequest pageRequest = PageRequest.of(0, 20);

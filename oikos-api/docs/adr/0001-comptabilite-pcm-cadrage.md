@@ -288,6 +288,11 @@ supplémentaire :
   `GenerateInstallmentCallService`/`RecordInstallmentCallService` ; un
   nouveau facteur `draft(...)` prépare le vrai flux P1
   (émission/comptabilisation) qu'une phase ultérieure câblera.
+  (Depuis, `GenerateInstallmentCallService` enchaîne draft → issue → post
+  dans une transaction ; `create(...)` et `RecordInstallmentCallService`,
+  qui produisaient un appel POSTED sans écriture, ont été supprimés. Un
+  appel POSTED s'annule par contre-passation de son écriture VT -
+  `cancelPosted()` - et reste en base au statut CANCELLED.)
 - **`Payment`/`PaymentMode`/`PaymentRepository`** et
   **`PaymentAllocationCalculator`** (FIFO créance/avance, I8),
   **`AdvanceConsumptionCalculator`** et **`UnitPositionStatus`**/

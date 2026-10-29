@@ -1,5 +1,7 @@
 package com.architek.oikos.accounting.domain.repository;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import com.architek.oikos.accounting.domain.model.AccountingExercise;
@@ -12,7 +14,13 @@ public interface AccountingExerciseRepository {
 
     Optional<AccountingExercise> findById(AccountingExerciseId id);
 
-    Optional<AccountingExercise> findOpenByPropertyId(EntityId propertyId);
+    /** Every exercise of the property, open or closed, oldest first (by start date). */
+    List<AccountingExercise> findAllByPropertyId(EntityId propertyId);
 
-    boolean existsOpenByPropertyId(EntityId propertyId);
+    /**
+     * The exercise whose dates cover the given day, whatever its status. At most
+     * one: a property's exercises never overlap (enforced on opening, and by an
+     * exclusion constraint in the database).
+     */
+    Optional<AccountingExercise> findCoveringDate(EntityId propertyId, LocalDate date);
 }

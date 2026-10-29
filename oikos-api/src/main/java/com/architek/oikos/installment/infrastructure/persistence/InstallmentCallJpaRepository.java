@@ -11,7 +11,7 @@ public interface InstallmentCallJpaRepository extends JpaRepository<InstallmentC
 
     // findAllById(Iterable<UUID>) from JpaRepository already covers the batch lookup by id.
 
-    boolean existsByPropertyIdAndPeriod(UUID propertyId, LocalDate period);
+    boolean existsByPropertyIdAndPeriodAndStatusNot(UUID propertyId, LocalDate period, String status);
 
     Page<InstallmentCallEntity> findAllByPropertyId(UUID propertyId, Pageable pageable);
 }

@@ -14,9 +14,17 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * accounting's repository/domain model directly (rule 4/6). Returns the
  * generic EntityId of the resulting JournalEntry, never accounting's own
  * JournalEntryId.
+ *
+ * <p>reverseFundCallEntry is the contre-passation used when a posted call is
+ * cancelled: it posts the mirror of the call's VT entry (accounting's
+ * ReverseJournalEntryUseCase) and returns the mirror's id. reversalDate only
+ * applies when the call's exercise is already closed.
  */
 public interface FundCallJournalEntryPort {
 
     EntityId postFundCallEntry(EntityId propertyId, LocalDate pieceDate, String externalReference,
                                EntityId createdByUserId, List<FundCallLine> lines);
+
+    EntityId reverseFundCallEntry(EntityId propertyId, EntityId journalEntryId, LocalDate reversalDate,
+                                  EntityId reversedByUserId);
 }

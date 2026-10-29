@@ -1,9 +1,9 @@
 -- V1 baseline
 --
--- Consolidated schema. FOURTH consolidation of this file, 2026-10-28: the
--- former V2..V15 migrations folded back in by hand, each one checked against the
--- statement it replaced (no PostgreSQL instance was available to dump from this
--- time). FlywayMigrationPostgresIntegrationTest applies this file to a real
+-- Consolidated schema. FIFTH consolidation of this file, 2026-10-29: the
+-- former V2 (exercise overlap, cancellable fund calls) folded back in by hand on
+-- top of the 2026-10-28 consolidation of V2..V15, each one checked against the
+-- statement it replaced (no PostgreSQL instance was available to dump from). FlywayMigrationPostgresIntegrationTest applies this file to a real
 -- PostgreSQL 16 and has Hibernate validate the result - it is the check that
 -- stands in for the dump, and it runs in CI before every deployment.
 --
@@ -14,7 +14,13 @@
 -- .github/workflows/deploy-staging.yml): this squash ships together with an
 -- empty application, not as an upgrade of an existing one.
 --
--- WHAT WAS FOLDED IN:
+-- WHAT WAS FOLDED IN (2026-10-29):
+--   * V2     - accounting_exercise: up to two exercises open at once, never
+--              overlapping (exclusion constraint, hence btree_gist) instead of
+--              "a single OPEN exercise per property"; installment_call: a
+--              CANCELLED call frees its period (partial unique index).
+--
+-- WHAT WAS FOLDED IN (2026-10-28):
 --   * V2/V13 - onboarding_lead is gone altogether; app_user.terms_accepted_at;
 --   * V3     - password_reset_token.token became token_hash, uniquely indexed;
 --   * V4/V5  - property.city; party.email nullable;
@@ -80,6 +86,12 @@ BEGIN
     RAISE EXCEPTION 'journal_entry % is not DRAFT and cannot be mutated except DRAFT->POSTED or POSTED->REVERSED (I4/ADR 0001)', OLD.id;
 END;
 $$;
+
+
+-- btree_gist backs the accounting_exercise exclusion constraint (property_id
+-- WITH =). A "trusted" extension since PostgreSQL 13: the database owner can
+-- create it without being a superuser.
+CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
 
 
 SET default_tablespace = '';
@@ -1446,13 +1458,6 @@ ALTER TABLE ONLY public.general_meeting
     ADD CONSTRAINT uk_general_meeting_public_reference UNIQUE (public_reference);
 
 
---
--- Name: installment_call uk_installment_call_property_period; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.installment_call
-    ADD CONSTRAINT uk_installment_call_property_period UNIQUE (property_id, period);
-
 
 --
 -- Name: invitation uk_invitation_token; Type: CONSTRAINT; Schema: public; Owner: -
@@ -1964,10 +1969,22 @@ CREATE INDEX idx_verification_token_user_id ON public.verification_token USING b
 
 
 --
--- Name: uk_accounting_exercise_property_open; Type: INDEX; Schema: public; Owner: -
+-- Name: accounting_exercise ex_accounting_exercise_property_no_overlap; Type: CONSTRAINT; Schema: public; Owner: -
 --
+-- A property's exercises never overlap, whatever their status: an entry belongs
+-- without ambiguity to the exercise covering its piece date.
 
-CREATE UNIQUE INDEX uk_accounting_exercise_property_open ON public.accounting_exercise USING btree (property_id) WHERE ((status)::text = 'OPEN'::text);
+ALTER TABLE ONLY public.accounting_exercise
+    ADD CONSTRAINT ex_accounting_exercise_property_no_overlap
+        EXCLUDE USING gist (property_id WITH =, daterange(start_date, end_date, '[]') WITH &&);
+
+
+--
+-- Name: uk_installment_call_property_period; Type: INDEX; Schema: public; Owner: -
+--
+-- A CANCELLED call stays in the table but frees its period.
+
+CREATE UNIQUE INDEX uk_installment_call_property_period ON public.installment_call USING btree (property_id, period) WHERE ((status)::text <> 'CANCELLED'::text);
 
 
 --

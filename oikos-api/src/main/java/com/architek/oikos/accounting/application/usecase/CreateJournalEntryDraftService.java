@@ -25,7 +25,7 @@ import com.architek.oikos.shared.domain.valueobject.Amount;
  * LedgerAccount ids directly, chosen by the caller - unlike the higher-level
  * P1-P10 business use cases (a later phase), which resolve accounts via
  * AccountRole and call JournalEntry.draft() themselves. I5 is enforced here
- * (open exercise, piece date within it); I2/I3/treasury-binding/non-postable are enforced
+ * (the exercise covering the piece date, which must be open); I2/I3/treasury-binding/non-postable are enforced
  * by JournalEntry.draft() itself; I6 is enforced per line via
  * LedgerAccountAuxiliaryRule since this is the first place a resolved
  * LedgerAccount and its line are both available together.
@@ -48,8 +48,8 @@ public class CreateJournalEntryDraftService implements CreateJournalEntryDraftUs
     @Override
     @Transactional
     public JournalEntryId create(CreateJournalEntryDraftCommand command) {
-        AccountingExercise exercise = enforceExerciseOpenService.requireOpenExercise(command.propertyId());
-        enforceExerciseOpenService.requirePieceDateWithin(exercise, command.pieceDate());
+        AccountingExercise exercise = enforceExerciseOpenService.requireOpenExerciseCovering(command.propertyId(),
+                command.pieceDate());
 
         List<JournalEntryLine> lines = command.lines().stream().map(this::toLine).toList();
 

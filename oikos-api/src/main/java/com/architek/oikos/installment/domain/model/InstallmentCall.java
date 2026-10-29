@@ -21,14 +21,13 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * <p>Lifecycle (spec &sect;4.1/P1): DRAFT -&gt; ISSUED ("emission", ventilation
  * frozen) -&gt; POSTED ("comptabilisation", journalEntryId set once the VT
  * journal entry - accounting's aggregate, referenced only by its generic
- * EntityId per the cross-module convention - has been generated, a later
- * phase). create(...) still defaults to POSTED with no journalEntryId,
- * matching today's actual behaviour (GenerateInstallmentCallService/
- * RecordInstallmentCallService already charge units immediately, with no
- * separate review step yet) - draft(...) is for the full P1 flow a later
- * phase will wire up. journalEntryId is a generic EntityId, never
- * accounting's own JournalEntryId (cross-module convention, see
- * docs/NOMENCLATURE.md).
+ * EntityId per the cross-module convention - has been generated).
+ * GenerateInstallmentCallService runs the three steps in one transaction.
+ * CANCELLED is reached directly from DRAFT/ISSUED (cancel()), or from POSTED
+ * once the VT entry has been reversed (cancelPosted()) - the call then keeps
+ * its journalEntryId, the trail to the reversed entry and its mirror.
+ * journalEntryId is a generic EntityId, never accounting's own JournalEntryId
+ * (cross-module convention, see docs/NOMENCLATURE.md).
  * Immutable: every mutation returns a new instance. Entity semantics:
  * equals/hashCode are identity-based (on id), not value-based.
  */
@@ -49,10 +48,6 @@ public final class InstallmentCall {
         this.dueDate = Objects.requireNonNull(dueDate, "dueDate must not be null");
         this.status = Objects.requireNonNull(status, "status must not be null");
         this.journalEntryId = journalEntryId;
-    }
-
-    public static InstallmentCall create(InstallmentCallId id, EntityId propertyId, YearMonth period, LocalDate dueDate) {
-        return new InstallmentCall(id, propertyId, period, dueDate, InstallmentCallStatus.POSTED, null);
     }
 
     public static InstallmentCall draft(InstallmentCallId id, EntityId propertyId, YearMonth period, LocalDate dueDate) {
@@ -81,7 +76,7 @@ public final class InstallmentCall {
                 Objects.requireNonNull(journalEntryId, "journalEntryId must not be null"));
     }
 
-    /** Direct cancellation is only valid before posting; a POSTED call needs a contre-passation (a later phase). */
+    /** Direct cancellation is only valid before posting; a POSTED call goes through cancelPosted(). */
     public InstallmentCall cancel() {
         if (status == InstallmentCallStatus.POSTED) {
             throw new InvalidInstallmentCallTransitionException(id, status,
@@ -91,6 +86,23 @@ public final class InstallmentCall {
             throw new InvalidInstallmentCallTransitionException(id, status, "be cancelled again");
         }
         return new InstallmentCall(id, propertyId, period, dueDate, InstallmentCallStatus.CANCELLED, null);
+    }
+
+    /**
+     * Cancels a POSTED call whose VT entry the caller has just reversed
+     * (contre-passation). journalEntryId is kept: it leads to the reversed
+     * entry, whose mirror references it in turn.
+     */
+    public InstallmentCall cancelPosted() {
+        if (status != InstallmentCallStatus.POSTED) {
+            throw new InvalidInstallmentCallTransitionException(id, status,
+                    "be cancelled by contre-passation (must be POSTED)");
+        }
+        return new InstallmentCall(id, propertyId, period, dueDate, InstallmentCallStatus.CANCELLED, journalEntryId);
+    }
+
+    public boolean isCancelled() {
+        return status == InstallmentCallStatus.CANCELLED;
     }
 
     public InstallmentCallId getId() {

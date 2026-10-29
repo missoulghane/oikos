@@ -15,10 +15,10 @@ Endpoints : `InstallmentCallController`, `InstallmentController`,
 
 ### FIN-01 — Ouverture d'un exercice comptable
 - **Rôle** : SYNDIC (admin), MANAGER (admin/membre avec droit `canWriteAccounting`)
-- **Prérequis** : copropriété sans exercice ouvert
+- **Prérequis** : copropriété sans exercice
 - **Étapes** :
   1. `/property-mngt/properties/:id/accounting-exercise`, ouvrir un exercice
-- **Résultat attendu** : `POST /properties/{id}/accounting/exercises` crée l'exercice, `GET .../exercises/open` le renvoie
+- **Résultat attendu** : `POST /properties/{id}/accounting/exercises` crée l'exercice, `GET .../exercises` le liste
 - **Priorité** : P1
 - [ ]
 
@@ -123,12 +123,41 @@ Endpoints : `InstallmentCallController`, `InstallmentController`,
 - **Priorité** : P2
 - [ ]
 
+### FIN-01b — Ouverture de l'exercice suivant avant la clôture
+- **Rôle** : SYNDIC (admin), MANAGER (admin/membre avec droit `canWriteAccounting`)
+- **Prérequis** : un exercice ouvert (ex. 2026)
+- **Étapes** :
+  1. `/property-mngt/properties/:id/accounting-exercise`, « Ouvrir l'exercice suivant » (dates pré-remplies)
+  2. Générer un appel de fonds de janvier 2027, puis un de décembre 2026
+- **Résultat attendu** : deux exercices ouverts ; l'appel de janvier 2027 est rattaché à 2027, celui de décembre 2026 à 2026. Un exercice qui ne commence pas le lendemain du précédent est refusé (409), un troisième exercice ouvert aussi
+- **Priorité** : P1
+- [ ]
+
+### FIN-03b — Annulation d'un appel de fonds
+- **Rôle** : SYNDIC (admin), MANAGER (admin/membre)
+- **Prérequis** : un appel de fonds sans aucun règlement, un autre partiellement réglé
+- **Étapes** :
+  1. `/property-mngt/properties/:id/installments/calls`, « Annuler l'appel » sur le premier, puis sur le second
+- **Résultat attendu** : `POST /installment-calls/{id}/cancellation` passe une extourne au journal VT (l'écriture d'origine passe « Extournée »), l'appel reste listé « Annulé », ses échéances disparaissent et la période peut être regénérée. Le second est refusé (409 : appel déjà réglé)
+- **Priorité** : P1
+- [ ]
+
+### FIN-05b — Imputation d'une avance sur un appel ultérieur
+- **Rôle** : SYNDIC (admin), MANAGER (admin/membre)
+- **Prérequis** : un lot ayant payé d'avance (règlement supérieur à ce qui était dû)
+- **Étapes** :
+  1. Générer un appel dont l'échéance est déjà passée
+  2. Sur la fiche du lot, « Imputer l'avance du lot » (`POST /properties/{id}/units/{unitId}/regularization`)
+- **Résultat attendu** : l'avance est imputée dès la génération de l'appel (sinon par le bouton, ou par le balayage quotidien à 2 h 30 UTC) ; une écriture OD est passée, l'échéance est réglée
+- **Priorité** : P2
+- [ ]
+
 ### FIN-15 — Clôture de l'exercice comptable
 - **Rôle** : SYNDIC (admin), MANAGER (admin) — `managesProperty`
 - **Prérequis** : exercice ouvert, toutes ses écritures validées (aucun brouillon), numérotation des pièces continue dans chaque journal
 - **Étapes** :
-  1. `POST /properties/{id}/accounting/exercises/close`
-- **Résultat attendu** : exercice clôturé, plus aucune écriture possible sans ouverture d'un nouvel exercice ; avec un brouillon restant ou un trou de numérotation → 409 listant chaque manquement
+  1. `POST /properties/{id}/accounting/exercises/{exerciseId}/close`
+- **Résultat attendu** : exercice clôturé, plus aucune écriture datée dans sa période ; avec un brouillon restant ou un trou de numérotation → 409 listant chaque manquement. Avec deux exercices ouverts, seul le plus ancien peut être clôturé (409 sur le plus récent)
 - **Priorité** : P2
 - [ ]
 

@@ -37,6 +37,12 @@ oikos:
       token-attempt-per-ip: 20
       registration-per-ip: 10
       email-send-per-address: 3
+  installment:
+    # Le balayage planifié n'a rien à faire dans la suite : les tests appellent
+    # RegularizeAdvancesUseCase directement.
+    advance-regularization:
+      enabled: false
+      cron: "-"
   property:
     configure:
       max-units: 500

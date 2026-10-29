@@ -31,11 +31,13 @@ import com.architek.oikos.installment.application.port.in.GeneratePaymentReceipt
 import com.architek.oikos.installment.application.port.in.GetLatestPaymentByPropertyUseCase;
 import com.architek.oikos.installment.application.port.in.ListPaymentsByUnitUseCase;
 import com.architek.oikos.installment.application.port.in.RecordOwnerPaymentUseCase;
+import com.architek.oikos.installment.application.port.in.RegularizeAdvancesUseCase;
 import com.architek.oikos.installment.application.query.GetLatestPaymentByPropertyQuery;
 import com.architek.oikos.installment.application.query.ListPaymentsByUnitQuery;
 import com.architek.oikos.installment.web.request.RecordOwnerPaymentRequest;
 import com.architek.oikos.installment.web.response.PaymentResponse;
 import com.architek.oikos.installment.web.response.RecordOwnerPaymentResponse;
+import com.architek.oikos.installment.web.response.RegularizeUnitInstallmentsResponse;
 import com.architek.oikos.installment.domain.exception.PaymentReceiptNotFoundException;
 import com.architek.oikos.installment.domain.valueobject.PaymentId;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
@@ -49,6 +51,7 @@ public class PaymentController {
     private final ListDocumentsByOwnerUseCase listDocumentsByOwnerUseCase;
 
     private final RecordOwnerPaymentUseCase recordOwnerPaymentUseCase;
+    private final RegularizeAdvancesUseCase regularizeAdvancesUseCase;
     private final ListPaymentsByUnitUseCase listPaymentsByUnitUseCase;
     private final GetLatestPaymentByPropertyUseCase getLatestPaymentByPropertyUseCase;
 
@@ -57,8 +60,10 @@ public class PaymentController {
                               GetLatestPaymentByPropertyUseCase getLatestPaymentByPropertyUseCase,
                               GeneratePaymentReceiptUseCase generatePaymentReceiptUseCase,
                               DownloadDocumentUseCase downloadDocumentUseCase,
-                              ListDocumentsByOwnerUseCase listDocumentsByOwnerUseCase) {
+                              ListDocumentsByOwnerUseCase listDocumentsByOwnerUseCase,
+                              RegularizeAdvancesUseCase regularizeAdvancesUseCase) {
         this.recordOwnerPaymentUseCase = recordOwnerPaymentUseCase;
+        this.regularizeAdvancesUseCase = regularizeAdvancesUseCase;
         this.listPaymentsByUnitUseCase = listPaymentsByUnitUseCase;
         this.getLatestPaymentByPropertyUseCase = getLatestPaymentByPropertyUseCase;
         this.generatePaymentReceiptUseCase = generatePaymentReceiptUseCase;
@@ -77,6 +82,19 @@ public class PaymentController {
                         EntityId.of(request.treasuryAccountId()), request.valueDate(), request.amount(),
                         EntityId.of(authentication.getName()))));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Impute l'avance du lot sur ses échéances exigibles, à la date du jour. Le
+     * même geste tourne chaque nuit et après chaque règlement ; il est exposé
+     * pour relancer à la main une imputation qui a échoué.
+     */
+    @PreAuthorize("@propertyAccess.canWriteInstallmentCall(authentication, #propertyId)")
+    @PostMapping("/properties/{propertyId}/units/{unitId}/regularization")
+    public RegularizeUnitInstallmentsResponse regularize(@PathVariable String propertyId, @PathVariable String unitId,
+                                                         Authentication authentication) {
+        return RegularizeUnitInstallmentsResponse.from(regularizeAdvancesUseCase.regularizeUnit(
+                EntityId.of(propertyId), EntityId.of(unitId), EntityId.of(authentication.getName())));
     }
 
     @PreAuthorize("@propertyAccess.managesUnit(authentication, #unitId) or @propertyAccess.ownsUnit(authentication, #unitId)")

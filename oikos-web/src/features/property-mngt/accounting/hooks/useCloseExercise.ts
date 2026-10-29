@@ -12,10 +12,10 @@ export function useCloseExercise(propertyId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => closeExercise(propertyId),
+    mutationFn: (exerciseId: string) => closeExercise(propertyId, exerciseId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.properties.detail(propertyId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.properties.accountingOpenExercise(propertyId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.properties.accountingExercises(propertyId) });
     },
   });
 }

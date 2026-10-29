@@ -9,6 +9,7 @@ import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentCollectionSummary;
 import com.architek.oikos.installment.domain.valueobject.InstallmentFilter;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
+import com.architek.oikos.installment.domain.valueobject.UnitOfProperty;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -34,4 +35,7 @@ public interface InstallmentRepository {
     InstallmentCollectionSummary summariseCollectible(List<EntityId> unitIds, LocalDate asOf);
 
     void deleteAllByInstallmentCallId(InstallmentCallId installmentCallId);
+
+    /** Units that still owe part of an installment already due as of asOf - the regularization sweep's candidates. */
+    List<UnitOfProperty> findUnitsWithOutstandingDue(LocalDate asOf);
 }

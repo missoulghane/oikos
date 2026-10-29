@@ -4,18 +4,19 @@ import java.time.LocalDate;
 
 import org.springframework.stereotype.Component;
 
-import com.architek.oikos.accounting.domain.exception.NoOpenExerciseException;
-import com.architek.oikos.accounting.domain.exception.PieceDateOutsideExerciseException;
+import com.architek.oikos.accounting.domain.exception.NoExerciseCoveringDateException;
+import com.architek.oikos.accounting.domain.exception.PieceDateInClosedExerciseException;
 import com.architek.oikos.accounting.domain.model.AccountingExercise;
 import com.architek.oikos.accounting.domain.repository.AccountingExerciseRepository;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
- * Enforces "every new accounting operation is attached to the property's
- * open exercise, dated within it" (spec &sect;3/I5): every write use case
- * calls this first to resolve the exercise its new entries belong to, or
- * fail fast if it is missing/closed. A small dedicated rule-check component
- * invoked at the top of each use case.
+ * Enforces "every new accounting operation is attached to the exercise its
+ * piece date falls in, and that exercise is open" (spec &sect;3/I5): every
+ * write use case calls this first to resolve the exercise its new entries
+ * belong to, or fail fast. The exercise is found by date, not as "the" open
+ * one: two exercises can be open at once (N awaiting its closing, N+1 already
+ * in use), and an operation belongs to whichever of them covers its date.
  */
 @Component
 public class EnforceExerciseOpenService {
@@ -26,19 +27,12 @@ public class EnforceExerciseOpenService {
         this.accountingExerciseRepository = accountingExerciseRepository;
     }
 
-    public AccountingExercise requireOpenExercise(EntityId propertyId) {
-        AccountingExercise exercise = accountingExerciseRepository.findOpenByPropertyId(propertyId)
-                .orElseThrow(() -> new NoOpenExerciseException(propertyId));
+    public AccountingExercise requireOpenExerciseCovering(EntityId propertyId, LocalDate pieceDate) {
+        AccountingExercise exercise = accountingExerciseRepository.findCoveringDate(propertyId, pieceDate)
+                .orElseThrow(() -> new NoExerciseCoveringDateException(propertyId, pieceDate));
         if (!exercise.isOpen()) {
-            throw new NoOpenExerciseException(propertyId);
+            throw new PieceDateInClosedExerciseException(pieceDate, exercise.getId());
         }
         return exercise;
-    }
-
-    /** I5: pieceDate must fall within the given (already-open) exercise. */
-    public void requirePieceDateWithin(AccountingExercise exercise, LocalDate pieceDate) {
-        if (!exercise.covers(pieceDate)) {
-            throw new PieceDateOutsideExerciseException(pieceDate, exercise.getId());
-        }
     }
 }

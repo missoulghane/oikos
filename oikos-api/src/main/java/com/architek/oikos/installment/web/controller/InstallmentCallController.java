@@ -1,13 +1,11 @@
 package com.architek.oikos.installment.web.controller;
 
 import java.time.YearMonth;
-import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,25 +15,18 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
-import com.architek.oikos.installment.application.command.InstallmentCallLine;
-import com.architek.oikos.installment.application.command.DeleteInstallmentCallCommand;
+import com.architek.oikos.installment.application.command.CancelInstallmentCallCommand;
 import com.architek.oikos.installment.application.command.GenerateInstallmentCallCommand;
-import com.architek.oikos.installment.application.command.RecordInstallmentCallCommand;
-import com.architek.oikos.installment.application.port.in.DeleteInstallmentCallUseCase;
+import com.architek.oikos.installment.application.port.in.CancelInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.GenerateInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.GetInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.ListInstallmentCallsByPropertyUseCase;
-import com.architek.oikos.installment.application.port.in.RecordInstallmentCallUseCase;
 import com.architek.oikos.installment.application.query.GetInstallmentCallQuery;
 import com.architek.oikos.installment.application.query.ListInstallmentCallsByPropertyQuery;
 import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
-import com.architek.oikos.installment.domain.valueobject.InstallmentId;
-import com.architek.oikos.installment.web.request.InstallmentCallLineRequest;
 import com.architek.oikos.installment.web.request.GenerateInstallmentCallRequest;
-import com.architek.oikos.installment.web.request.RecordInstallmentCallRequest;
-import com.architek.oikos.installment.web.response.InstallmentCallDetailResponse;
-import com.architek.oikos.installment.web.response.InstallmentCallResponse;
 import com.architek.oikos.installment.web.response.GenerateInstallmentCallResponse;
+import com.architek.oikos.installment.web.response.InstallmentCallDetailResponse;
 import com.architek.oikos.installment.web.response.PagedInstallmentCallResponse;
 import com.architek.oikos.shared.domain.pagination.PageRequest;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -43,34 +34,19 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 @RestController
 public class InstallmentCallController {
 
-    private final RecordInstallmentCallUseCase recordInstallmentCallUseCase;
     private final GenerateInstallmentCallUseCase generateInstallmentCallUseCase;
     private final ListInstallmentCallsByPropertyUseCase listInstallmentCallsByPropertyUseCase;
     private final GetInstallmentCallUseCase getInstallmentCallUseCase;
-    private final DeleteInstallmentCallUseCase deleteInstallmentCallUseCase;
+    private final CancelInstallmentCallUseCase cancelInstallmentCallUseCase;
 
-    public InstallmentCallController(RecordInstallmentCallUseCase recordInstallmentCallUseCase,
-                                     GenerateInstallmentCallUseCase generateInstallmentCallUseCase,
+    public InstallmentCallController(GenerateInstallmentCallUseCase generateInstallmentCallUseCase,
                                      ListInstallmentCallsByPropertyUseCase listInstallmentCallsByPropertyUseCase,
                                      GetInstallmentCallUseCase getInstallmentCallUseCase,
-                                     DeleteInstallmentCallUseCase deleteInstallmentCallUseCase) {
-        this.recordInstallmentCallUseCase = recordInstallmentCallUseCase;
+                                     CancelInstallmentCallUseCase cancelInstallmentCallUseCase) {
         this.generateInstallmentCallUseCase = generateInstallmentCallUseCase;
         this.listInstallmentCallsByPropertyUseCase = listInstallmentCallsByPropertyUseCase;
         this.getInstallmentCallUseCase = getInstallmentCallUseCase;
-        this.deleteInstallmentCallUseCase = deleteInstallmentCallUseCase;
-    }
-
-    // No propertyId in the path here (the request body carries arbitrary unitIds
-    // potentially spanning properties) - restricted to ADMIN until per-line
-    // property validation is built; a MANAGER should use the property-scoped
-    // /properties/{propertyId}/installment-calls "generate" endpoint below instead.
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    @PostMapping("/installment-calls")
-    public ResponseEntity<InstallmentCallResponse> create(@Valid @RequestBody RecordInstallmentCallRequest request) {
-        List<InstallmentId> installmentIds = recordInstallmentCallUseCase.record(new RecordInstallmentCallCommand(
-                request.dueDate(), request.lines().stream().map(InstallmentCallController::toLine).toList()));
-        return ResponseEntity.status(HttpStatus.CREATED).body(InstallmentCallResponse.from(installmentIds));
+        this.cancelInstallmentCallUseCase = cancelInstallmentCallUseCase;
     }
 
     @PreAuthorize("@propertyAccess.canWriteInstallmentCall(authentication, #propertyId)")
@@ -100,14 +76,15 @@ public class InstallmentCallController {
                 getInstallmentCallUseCase.getInstallmentCall(new GetInstallmentCallQuery(InstallmentCallId.of(id))));
     }
 
+    /**
+     * Annule un appel : son écriture VT est contre-passée et il reste listé,
+     * au statut CANCELLED. Un appel n'est jamais supprimé - il a été comptabilisé.
+     */
     @PreAuthorize("@propertyAccess.managesInstallmentCall(authentication, #id)")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @DeleteMapping("/installment-calls/{id}")
-    public void delete(@PathVariable String id) {
-        deleteInstallmentCallUseCase.delete(new DeleteInstallmentCallCommand(InstallmentCallId.of(id)));
-    }
-
-    private static InstallmentCallLine toLine(InstallmentCallLineRequest request) {
-        return new InstallmentCallLine(EntityId.of(request.unitId()), request.amount());
+    @PostMapping("/installment-calls/{id}/cancellation")
+    public void cancel(@PathVariable String id, Authentication authentication) {
+        cancelInstallmentCallUseCase.cancel(new CancelInstallmentCallCommand(InstallmentCallId.of(id),
+                EntityId.of(authentication.getName())));
     }
 }

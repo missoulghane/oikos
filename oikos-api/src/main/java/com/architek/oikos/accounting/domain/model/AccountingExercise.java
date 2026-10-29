@@ -11,10 +11,10 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
  * A property's accounting exercise: every new accounting operation is attached
- * to the property's single open exercise (RG §3). Closing an exercise (RG
- * §15 - computing closing balances, generating "Report a nouveau" opening
- * entries) is a separate, larger use case not covered by this Phase 1 - only
- * opening and enforcing "open" as a precondition for writes is in scope.
+ * to the exercise covering its piece date, which must be open (RG §3). A
+ * property's exercises follow one another with no gap or overlap, and up to
+ * two may be open at once (N awaiting its closing, N+1 already in use) - see
+ * OpenAccountingExerciseService and CloseAccountingExerciseService.
  * Immutable: every mutation returns a new instance. Entity semantics:
  * equals/hashCode are identity-based (on id), not value-based.
  */

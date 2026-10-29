@@ -8,8 +8,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +22,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.architek.oikos.accounting.application.command.CloseAccountingExerciseCommand;
 import com.architek.oikos.accounting.application.dto.ExerciseClosingView;
 import com.architek.oikos.accounting.application.port.in.PostJournalEntryUseCase;
+import com.architek.oikos.accounting.domain.exception.AccountingExerciseClosedException;
+import com.architek.oikos.accounting.domain.exception.AccountingExerciseNotFoundException;
 import com.architek.oikos.accounting.domain.exception.ExerciseNotClosableException;
+import com.architek.oikos.accounting.domain.exception.ExerciseNotOldestOpenException;
 import com.architek.oikos.accounting.domain.model.AccountNetAmount;
 import com.architek.oikos.accounting.domain.model.AccountingExercise;
 import com.architek.oikos.accounting.domain.model.JournalEntry;
@@ -53,9 +58,6 @@ class CloseAccountingExerciseServiceTest {
     private static final LedgerAccountId RESULT = LedgerAccountId.newId();
 
     @Mock
-    private EnforceExerciseOpenService enforceExerciseOpenService;
-
-    @Mock
     private AccountingExerciseRepository accountingExerciseRepository;
 
     @Mock
@@ -71,7 +73,7 @@ class CloseAccountingExerciseServiceTest {
     private PostJournalEntryUseCase postJournalEntryUseCase;
 
     private CloseAccountingExerciseService newService() {
-        return new CloseAccountingExerciseService(enforceExerciseOpenService, accountingExerciseRepository,
+        return new CloseAccountingExerciseService(accountingExerciseRepository,
                 journalEntryRepository, ledgerAccountRepository, resultAccountResolver,
                 postJournalEntryUseCase);
     }
@@ -79,6 +81,17 @@ class CloseAccountingExerciseServiceTest {
     private static AccountingExercise openExercise() {
         return AccountingExercise.open(EXERCISE_ID, PROPERTY_ID, "2026", LocalDate.of(2026, 1, 1),
                 LocalDate.of(2026, 12, 31), null);
+    }
+
+    private static CloseAccountingExerciseCommand command() {
+        return new CloseAccountingExerciseCommand(PROPERTY_ID, EXERCISE_ID, USER_ID);
+    }
+
+    /** L'exercice visé, ouvert et seul ouvert : la clôture peut porter sur lui. */
+    private void givenOpenExercise() {
+        AccountingExercise exercise = openExercise();
+        when(accountingExerciseRepository.findById(EXERCISE_ID)).thenReturn(Optional.of(exercise));
+        when(accountingExerciseRepository.findAllByPropertyId(PROPERTY_ID)).thenReturn(List.of(exercise));
     }
 
     /** A two-line OD entry, posted under the given piece number, or left DRAFT when it is null. */
@@ -105,10 +118,10 @@ class CloseAccountingExerciseServiceTest {
 
     @Test
     void refuses_while_an_entry_is_still_draft() {
-        when(enforceExerciseOpenService.requireOpenExercise(PROPERTY_ID)).thenReturn(openExercise());
+        givenOpenExercise();
         when(journalEntryRepository.findAllByExerciseId(EXERCISE_ID)).thenReturn(List.of(entry(1), entry(null)));
 
-        assertThatThrownBy(() -> newService().close(new CloseAccountingExerciseCommand(PROPERTY_ID, USER_ID)))
+        assertThatThrownBy(() -> newService().close(command()))
                 .isInstanceOf(ExerciseNotClosableException.class)
                 .hasMessageContaining("DRAFT");
         verify(accountingExerciseRepository, never()).save(any());
@@ -116,10 +129,10 @@ class CloseAccountingExerciseServiceTest {
 
     @Test
     void refuses_when_piece_numbering_has_a_gap() {
-        when(enforceExerciseOpenService.requireOpenExercise(PROPERTY_ID)).thenReturn(openExercise());
+        givenOpenExercise();
         when(journalEntryRepository.findAllByExerciseId(EXERCISE_ID)).thenReturn(List.of(entry(1), entry(3)));
 
-        assertThatThrownBy(() -> newService().close(new CloseAccountingExerciseCommand(PROPERTY_ID, USER_ID)))
+        assertThatThrownBy(() -> newService().close(command()))
                 .isInstanceOf(ExerciseNotClosableException.class)
                 .hasMessageContaining("gap");
         verify(accountingExerciseRepository, never()).save(any());
@@ -131,7 +144,7 @@ class CloseAccountingExerciseServiceTest {
         // partagé entre toutes les copropriétés. Le solde porté par le compte
         // totalise tout le monde ; seules les écritures de cette copropriété-ci
         // disent ce qu'elle a produit.
-        when(enforceExerciseOpenService.requireOpenExercise(PROPERTY_ID)).thenReturn(openExercise());
+        givenOpenExercise();
         givenEntriesReadyForClosing();
         when(journalEntryRepository.sumNetAmountByAccountForExercise(PROPERTY_ID, EXERCISE_ID)).thenReturn(List.of(
                 new AccountNetAmount(DUES_INCOME, new BigDecimal("3000")),
@@ -145,7 +158,7 @@ class CloseAccountingExerciseServiceTest {
         when(journalEntryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountingExerciseRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ExerciseClosingView view = newService().close(new CloseAccountingExerciseCommand(PROPERTY_ID, USER_ID));
+        ExerciseClosingView view = newService().close(command());
 
         assertThat(view.netResult()).isEqualByComparingTo("290");
         ArgumentCaptor<JournalEntry> captor = ArgumentCaptor.forClass(JournalEntry.class);
@@ -162,14 +175,14 @@ class CloseAccountingExerciseServiceTest {
 
     @Test
     void seals_the_exercise() {
-        when(enforceExerciseOpenService.requireOpenExercise(PROPERTY_ID)).thenReturn(openExercise());
+        givenOpenExercise();
         givenEntriesReadyForClosing();
         when(journalEntryRepository.sumNetAmountByAccountForExercise(PROPERTY_ID, EXERCISE_ID)).thenReturn(List.of());
         when(ledgerAccountRepository.findAllVisibleToProperty(PROPERTY_ID)).thenReturn(List.of());
         when(resultAccountResolver.resolve(PROPERTY_ID)).thenReturn(RESULT);
         when(accountingExerciseRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ExerciseClosingView view = newService().close(new CloseAccountingExerciseCommand(PROPERTY_ID, USER_ID));
+        ExerciseClosingView view = newService().close(command());
 
         assertThat(view.exercise().status()).isEqualTo(ExerciseStatus.CLOSED);
         assertThat(view.exercise().closedByUserId()).isEqualTo(USER_ID);
@@ -179,18 +192,69 @@ class CloseAccountingExerciseServiceTest {
     void an_exercise_without_a_single_movement_closes_without_an_entry() {
         // Une copropriété qui vient d'ouvrir : rien à solder, mais l'exercice
         // doit pouvoir se fermer quand même.
-        when(enforceExerciseOpenService.requireOpenExercise(PROPERTY_ID)).thenReturn(openExercise());
+        givenOpenExercise();
         givenEntriesReadyForClosing();
         when(journalEntryRepository.sumNetAmountByAccountForExercise(PROPERTY_ID, EXERCISE_ID)).thenReturn(List.of());
         when(ledgerAccountRepository.findAllVisibleToProperty(PROPERTY_ID)).thenReturn(List.of());
         when(resultAccountResolver.resolve(PROPERTY_ID)).thenReturn(RESULT);
         when(accountingExerciseRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ExerciseClosingView view = newService().close(new CloseAccountingExerciseCommand(PROPERTY_ID, USER_ID));
+        ExerciseClosingView view = newService().close(command());
 
         assertThat(view.closingEntryId()).isNull();
         assertThat(view.netResult()).isEqualByComparingTo("0");
         verify(journalEntryRepository, never()).save(any());
         verify(postJournalEntryUseCase, never()).post(any());
+    }
+
+    @Test
+    void refuses_an_exercise_of_another_property() {
+        AccountingExercise foreign = AccountingExercise.open(EXERCISE_ID, EntityId.newId(), "2026",
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null);
+        when(accountingExerciseRepository.findById(EXERCISE_ID)).thenReturn(Optional.of(foreign));
+
+        assertThatThrownBy(() -> newService().close(command()))
+                .isInstanceOf(AccountingExerciseNotFoundException.class);
+    }
+
+    @Test
+    void refuses_an_exercise_already_closed() {
+        AccountingExercise closed = openExercise().close(Instant.parse("2027-03-01T10:00:00Z"), USER_ID);
+        when(accountingExerciseRepository.findById(EXERCISE_ID)).thenReturn(Optional.of(closed));
+
+        assertThatThrownBy(() -> newService().close(command()))
+                .isInstanceOf(AccountingExerciseClosedException.class);
+    }
+
+    @Test
+    void refuses_the_newer_of_two_open_exercises() {
+        // N+1 ne se clôture pas avant N : l'ordre des exercices est celui des comptes approuvés.
+        AccountingExercise older = AccountingExercise.open(AccountingExerciseId.newId(), PROPERTY_ID, "2025",
+                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31), null);
+        AccountingExercise target = openExercise();
+        when(accountingExerciseRepository.findById(EXERCISE_ID)).thenReturn(Optional.of(target));
+        when(accountingExerciseRepository.findAllByPropertyId(PROPERTY_ID)).thenReturn(List.of(older, target));
+
+        assertThatThrownBy(() -> newService().close(command()))
+                .isInstanceOf(ExerciseNotOldestOpenException.class);
+        verify(journalEntryRepository, never()).findAllByExerciseId(any());
+    }
+
+    @Test
+    void closes_the_older_of_two_open_exercises() {
+        AccountingExercise newer = AccountingExercise.open(AccountingExerciseId.newId(), PROPERTY_ID, "2027",
+                LocalDate.of(2027, 1, 1), LocalDate.of(2027, 12, 31), null);
+        AccountingExercise target = openExercise();
+        when(accountingExerciseRepository.findById(EXERCISE_ID)).thenReturn(Optional.of(target));
+        when(accountingExerciseRepository.findAllByPropertyId(PROPERTY_ID)).thenReturn(List.of(target, newer));
+        givenEntriesReadyForClosing();
+        when(journalEntryRepository.sumNetAmountByAccountForExercise(PROPERTY_ID, EXERCISE_ID)).thenReturn(List.of());
+        when(ledgerAccountRepository.findAllVisibleToProperty(PROPERTY_ID)).thenReturn(List.of());
+        when(resultAccountResolver.resolve(PROPERTY_ID)).thenReturn(RESULT);
+        when(accountingExerciseRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ExerciseClosingView view = newService().close(command());
+
+        assertThat(view.exercise().status()).isEqualTo(ExerciseStatus.CLOSED);
     }
 }

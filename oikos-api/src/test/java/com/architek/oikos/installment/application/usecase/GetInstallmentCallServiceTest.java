@@ -44,7 +44,7 @@ class GetInstallmentCallServiceTest {
     void returns_the_installment_call_with_its_installments() {
         InstallmentCallId id = InstallmentCallId.newId();
         EntityId propertyId = EntityId.newId();
-        InstallmentCall installmentCall = InstallmentCall.create(id, propertyId, YearMonth.of(2026, 1), LocalDate.of(2026, 2, 5));
+        InstallmentCall installmentCall = InstallmentCall.draft(id, propertyId, YearMonth.of(2026, 1), LocalDate.of(2026, 2, 5)).issue().post(EntityId.newId());
         when(installmentCallRepository.findById(id)).thenReturn(Optional.of(installmentCall));
 
         Installment installment = Installment.create(InstallmentId.newId(), EntityId.newId(),

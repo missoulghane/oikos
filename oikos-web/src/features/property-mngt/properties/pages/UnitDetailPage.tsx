@@ -6,6 +6,8 @@ import { UnitOwnersSection } from '@/features/property-mngt/properties/component
 import { EditUnitSharesForm } from '@/features/property-mngt/properties/components/EditUnitSharesForm';
 import { UnitInstallmentsSection } from '@/features/property-mngt/installments/components/UnitInstallmentsSection';
 import { UnitPaymentsSection } from '@/features/property-mngt/installments/components/UnitPaymentsSection';
+import { RegularizeUnitAdvanceButton } from '@/features/property-mngt/installments/components/RegularizeUnitAdvanceButton';
+import { useCurrentUser, canWriteAccounting } from '@/features/identity/me';
 import { Button } from '@/shared/components/Button/Button';
 import { Card } from '@/shared/components/Card/Card';
 import { Loader } from '@/shared/components/Loader/Loader';
@@ -24,6 +26,8 @@ export function UnitDetailPage() {
   const unit = useUnit(id);
   const property = useProperty(propertyId ?? '');
   const [isEditingShares, setIsEditingShares] = useState(false);
+  const currentUser = useCurrentUser();
+  const canRegularize = currentUser.data ? canWriteAccounting(currentUser.data, propertyId ?? '') : false;
   const showShares = property.data?.duesCalculationMode === 'SHARES';
 
   if (unit.isLoading) {
@@ -82,6 +86,7 @@ export function UnitDetailPage() {
       <Card className="flex flex-col gap-2">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Échéances</h2>
         <UnitInstallmentsSection propertyId={propertyId ?? ''} unitId={id} />
+        {canRegularize && <RegularizeUnitAdvanceButton propertyId={propertyId ?? ''} unitId={id} />}
       </Card>
 
       <Card className="flex flex-col gap-2">

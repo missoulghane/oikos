@@ -4,11 +4,13 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.installment.application.command.GenerateInstallmentCallCommand;
 import com.architek.oikos.installment.application.dto.FundCallLine;
+import com.architek.oikos.installment.application.event.InstallmentCallGeneratedEvent;
 import com.architek.oikos.installment.application.dto.InstallmentCallView;
 import com.architek.oikos.installment.application.dto.GenerateInstallmentCallResult;
 import com.architek.oikos.installment.application.port.in.GenerateInstallmentCallUseCase;
@@ -19,7 +21,9 @@ import com.architek.oikos.installment.application.port.out.PropertyUnitPricingPo
 import com.architek.oikos.installment.application.port.out.UnitPriceLine;
 import com.architek.oikos.installment.application.port.out.UnitShareLine;
 import com.architek.oikos.shared.domain.valueobject.Amount;
+import com.architek.oikos.installment.domain.exception.DueDateBeforePeriodException;
 import com.architek.oikos.installment.domain.exception.InstallmentCallAlreadyExistsException;
+import com.architek.oikos.installment.domain.exception.NoChargeableUnitException;
 import com.architek.oikos.installment.domain.exception.NoUnitSharesConfiguredException;
 import com.architek.oikos.installment.domain.exception.ProjectedBudgetNotConfiguredException;
 import com.architek.oikos.installment.domain.exception.PropertyNotFoundException;
@@ -39,7 +43,16 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
  * projected budget prorated by each unit's shares/tantiemes). A unit is
  * skipped and reported rather than blocking the whole property when it has
  * no basis to be charged (no price configured for its type, or zero shares -
- * not an error either way, see UnitTypePricing / Unit.shares).
+ * not an error either way, see UnitTypePricing / Unit.shares). When no unit at
+ * all can be charged, the call is refused rather than saved empty: an empty
+ * call would carry no journal entry and still hold the period.
+ *
+ * <p>The VT entry is dated on the first day of the billed period, not on the
+ * due date: an appel provisionnel funds the budget of the period it calls, so
+ * it belongs to the exercise covering that period, even when it is payable
+ * after the exercise ends. The due date only governs when the installment can
+ * be settled (PaymentAllocationCalculator's cutoff) - hence it may not precede
+ * the period.
  */
 @Component
 public class GenerateInstallmentCallService implements GenerateInstallmentCallUseCase {
@@ -49,17 +62,20 @@ public class GenerateInstallmentCallService implements GenerateInstallmentCallUs
     private final InstallmentCallRepository installmentCallRepository;
     private final InstallmentRepository installmentRepository;
     private final FundCallJournalEntryPort fundCallJournalEntryPort;
+    private final ApplicationEventPublisher eventPublisher;
 
     public GenerateInstallmentCallService(PropertyDirectoryPort propertyDirectoryPort,
                                          PropertyUnitPricingPort propertyUnitPricingPort,
                                          InstallmentCallRepository installmentCallRepository,
                                          InstallmentRepository installmentRepository,
-                                         FundCallJournalEntryPort fundCallJournalEntryPort) {
+                                         FundCallJournalEntryPort fundCallJournalEntryPort,
+                                         ApplicationEventPublisher eventPublisher) {
         this.propertyDirectoryPort = propertyDirectoryPort;
         this.propertyUnitPricingPort = propertyUnitPricingPort;
         this.installmentCallRepository = installmentCallRepository;
         this.installmentRepository = installmentRepository;
         this.fundCallJournalEntryPort = fundCallJournalEntryPort;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -67,6 +83,9 @@ public class GenerateInstallmentCallService implements GenerateInstallmentCallUs
     public GenerateInstallmentCallResult generate(GenerateInstallmentCallCommand command) {
         if (!propertyDirectoryPort.exists(command.propertyId())) {
             throw new PropertyNotFoundException(command.propertyId());
+        }
+        if (command.dueDate().isBefore(command.period().atDay(1))) {
+            throw new DueDateBeforePeriodException(command.dueDate(), command.period());
         }
         if (installmentCallRepository.existsByPropertyIdAndPeriod(command.propertyId(), command.period())) {
             throw new InstallmentCallAlreadyExistsException(command.propertyId(), command.period());
@@ -81,11 +100,12 @@ public class GenerateInstallmentCallService implements GenerateInstallmentCallUs
         List<EntityId> skippedUnitIds = new ArrayList<>(unitPrices.stream().filter(line -> line.price() == null)
                 .map(UnitPriceLine::unitId).toList());
 
-        InstallmentCallId callId = InstallmentCallId.newId();
-        InstallmentCall call = priced.isEmpty()
-                ? InstallmentCall.create(callId, command.propertyId(), command.period(), command.dueDate())
-                : InstallmentCall.draft(callId, command.propertyId(), command.period(), command.dueDate()).issue();
-        InstallmentCall savedCall = installmentCallRepository.save(call);
+        if (priced.isEmpty()) {
+            throw new NoChargeableUnitException(command.propertyId(), command.period());
+        }
+
+        InstallmentCall savedCall = installmentCallRepository.save(InstallmentCall.draft(InstallmentCallId.newId(),
+                command.propertyId(), command.period(), command.dueDate()).issue());
 
         List<EntityId> chargedUnitIds = new ArrayList<>();
         List<FundCallLine> fundCallLines = new ArrayList<>();
@@ -98,14 +118,15 @@ public class GenerateInstallmentCallService implements GenerateInstallmentCallUs
             fundCallLines.add(new FundCallLine(line.unitId(), line.price()));
         }
 
-        if (!fundCallLines.isEmpty()) {
-            // P1 (spec S6): the entry is dated on the period being billed, not the
-            // (possibly later) due date.
-            EntityId journalEntryId = fundCallJournalEntryPort.postFundCallEntry(command.propertyId(),
-                    command.period().atDay(1), "Appel de fonds " + command.period(), command.createdByUserId(),
-                    fundCallLines);
-            savedCall = installmentCallRepository.save(savedCall.post(journalEntryId));
-        }
+        // P1 (spec S6): the entry is dated on the period being billed, not the
+        // (possibly later) due date - see the class comment.
+        EntityId journalEntryId = fundCallJournalEntryPort.postFundCallEntry(command.propertyId(),
+                command.period().atDay(1), "Appel de fonds " + command.period(), command.createdByUserId(),
+                fundCallLines);
+        savedCall = installmentCallRepository.save(savedCall.post(journalEntryId));
+
+        eventPublisher.publishEvent(new InstallmentCallGeneratedEvent(savedCall.getId(), command.propertyId(),
+                List.copyOf(chargedUnitIds), command.createdByUserId()));
 
         return new GenerateInstallmentCallResult(InstallmentCallView.from(savedCall), chargedUnitIds, skippedUnitIds);
     }

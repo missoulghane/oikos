@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import com.architek.oikos.installment.domain.model.InstallmentCall;
 import com.architek.oikos.installment.domain.repository.InstallmentCallRepository;
 import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
+import com.architek.oikos.installment.domain.valueobject.InstallmentCallStatus;
 import com.architek.oikos.installment.infrastructure.mapper.InstallmentCallPersistenceMapper;
 import com.architek.oikos.installment.infrastructure.persistence.InstallmentCallEntity;
 import com.architek.oikos.installment.infrastructure.persistence.InstallmentCallJpaRepository;
@@ -45,11 +46,6 @@ public class InstallmentCallRepositoryAdapter implements InstallmentCallReposito
     }
 
     @Override
-    public void deleteById(InstallmentCallId id) {
-        jpaRepository.deleteById(id.asUuid());
-    }
-
-    @Override
     public List<InstallmentCall> findAllByIds(Collection<InstallmentCallId> ids) {
         List<UUID> uuids = ids.stream().map(InstallmentCallId::asUuid).toList();
         return jpaRepository.findAllById(uuids).stream().map(mapper::toDomain).toList();
@@ -57,7 +53,8 @@ public class InstallmentCallRepositoryAdapter implements InstallmentCallReposito
 
     @Override
     public boolean existsByPropertyIdAndPeriod(EntityId propertyId, YearMonth period) {
-        return jpaRepository.existsByPropertyIdAndPeriod(propertyId.value(), period.atDay(1));
+        return jpaRepository.existsByPropertyIdAndPeriodAndStatusNot(propertyId.value(), period.atDay(1),
+                InstallmentCallStatus.CANCELLED.name());
     }
 
     @Override

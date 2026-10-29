@@ -35,9 +35,10 @@ public interface JournalEntryRepository {
     Page<JournalEntry> findPageByTreasuryAccount(EntityId propertyId, LedgerAccountId treasuryAccountId,
                                                   JournalEntryFilter filter, PageRequest pageRequest);
 
-    /** Net balance (sum of CREDIT minus DEBIT, POSTED entries only) of a collective account for one
+    /** Net balance (sum of CREDIT minus DEBIT, POSTED and REVERSED entries) of a collective account for one
      * auxiliary unit - e.g. how much of the global "avances et acomptes recus" account belongs to
-     * this lot (regularisation flow: how much advance is available to impute on its unpaid calls). */
+     * this lot (regularisation flow: how much advance is available to impute on its unpaid calls).
+     * A REVERSED entry is cancelled by its posted mirror, not by being left out. */
     BigDecimal sumNetAmountForAuxiliaryUnit(EntityId propertyId, LedgerAccountId accountId, EntityId unitId);
 
     /**

@@ -155,7 +155,7 @@ jobs:
             # existante refuse un V1 dont le checksum a change.
             # caddy-data n'est pas touche (certificats TLS). Ne changer DB_EPOCH que pour
             # repartir d'une application vierge : c'est une destruction de donnees.
-            DB_EPOCH=2026-10-28-baseline-squash
+            DB_EPOCH=2026-10-29-exercise-overlap-squash
             if [ "$(cat .db-epoch 2>/dev/null)" != "$DB_EPOCH" ]; then
               PROJECT=$($COMPOSE config | sed -n 's/^name: //p' | head -1)
               if [ -z "$PROJECT" ]; then

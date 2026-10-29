@@ -1,15 +1,22 @@
 package com.architek.oikos.accounting.infrastructure.persistence;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import com.architek.oikos.accounting.domain.valueobject.ExerciseStatus;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface AccountingExerciseJpaRepository extends JpaRepository<AccountingExerciseEntity, UUID> {
 
-    Optional<AccountingExerciseEntity> findByPropertyIdAndStatus(UUID propertyId, ExerciseStatus status);
+    List<AccountingExerciseEntity> findAllByPropertyIdOrderByStartDateAsc(UUID propertyId);
 
-    boolean existsByPropertyIdAndStatus(UUID propertyId, ExerciseStatus status);
+    @Query("""
+            select e from AccountingExerciseEntity e
+            where e.propertyId = :propertyId and e.startDate <= :date and e.endDate >= :date
+            """)
+    Optional<AccountingExerciseEntity> findCoveringDate(@Param("propertyId") UUID propertyId,
+                                                         @Param("date") LocalDate date);
 }

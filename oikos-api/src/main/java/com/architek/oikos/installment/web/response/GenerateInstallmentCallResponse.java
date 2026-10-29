@@ -6,7 +6,7 @@ import java.util.List;
 import com.architek.oikos.installment.application.dto.GenerateInstallmentCallResult;
 
 public record GenerateInstallmentCallResponse(String id, String propertyId, String period, LocalDate dueDate,
-                                                 List<String> chargedUnitIds, List<String> skippedUnitIds) {
+                                                 String status, List<String> chargedUnitIds, List<String> skippedUnitIds) {
 
     public static GenerateInstallmentCallResponse from(GenerateInstallmentCallResult result) {
         return new GenerateInstallmentCallResponse(
@@ -14,6 +14,7 @@ public record GenerateInstallmentCallResponse(String id, String propertyId, Stri
                 result.installmentCall().propertyId().toString(),
                 result.installmentCall().period().toString(),
                 result.installmentCall().dueDate(),
+                result.installmentCall().status().name(),
                 result.chargedUnitIds().stream().map(Object::toString).toList(),
                 result.skippedUnitIds().stream().map(Object::toString).toList());
     }

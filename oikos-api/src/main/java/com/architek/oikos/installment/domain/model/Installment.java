@@ -11,9 +11,11 @@ import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
  * A due amount raised for a unit (RG003).
- * installmentCallId is nullable: set when raised in bulk by
- * GenerateInstallmentCallUseCase, left null for the manual, line-by-line
- * RecordInstallmentCallUseCase (no batch to attach to).
+ * Every installment is raised by GenerateInstallmentCallUseCase, as part of a
+ * call whose VT entry carries its receivable. installmentCallId stays
+ * nullable only for the rows the former manual, line-by-line path created
+ * (no call, no journal entry) - create(...) without a call id is kept for
+ * tests that do not need one.
  * outstandingAmount is kept in sync by accounting (via
  * UpdateInstallmentSettlementUseCase) every time a lettrage validation
  * settles some or all of this installment's fund call - a plain BigDecimal,

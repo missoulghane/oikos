@@ -50,10 +50,10 @@ public class InstallmentUnitDirectoryAdapter implements UnitDirectoryPort {
     }
 
     @Override
-    public boolean exists(EntityId unitId) {
+    public boolean existsInProperty(EntityId unitId, EntityId propertyId) {
         try {
-            getUnitUseCase.getUnit(new GetUnitQuery(UnitId.of(unitId.value())));
-            return true;
+            return getUnitUseCase.getUnit(new GetUnitQuery(UnitId.of(unitId.value()))).propertyId().value()
+                    .equals(propertyId);
         } catch (UnitNotFoundException e) {
             return false;
         }

@@ -19,9 +19,8 @@ public interface InstallmentCallRepository {
 
     List<InstallmentCall> findAllByIds(Collection<InstallmentCallId> ids);
 
+    /** Whether a live (non-CANCELLED) call already covers this period - a cancelled one frees it. */
     boolean existsByPropertyIdAndPeriod(EntityId propertyId, YearMonth period);
 
     Page<InstallmentCall> findPageByPropertyId(EntityId propertyId, PageRequest pageRequest);
-
-    void deleteById(InstallmentCallId id);
 }

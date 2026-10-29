@@ -16,6 +16,7 @@ import com.architek.oikos.installment.domain.valueobject.InstallmentFilter;
 import com.architek.oikos.installment.domain.valueobject.InstallmentId;
 import com.architek.oikos.installment.domain.valueobject.InstallmentSortField;
 import com.architek.oikos.installment.domain.valueobject.InstallmentStatus;
+import com.architek.oikos.installment.domain.valueobject.UnitOfProperty;
 import com.architek.oikos.installment.infrastructure.mapper.InstallmentPersistenceMapper;
 import com.architek.oikos.installment.infrastructure.persistence.InstallmentCollectionProjection;
 import com.architek.oikos.installment.infrastructure.persistence.InstallmentEntity;
@@ -94,6 +95,13 @@ public class InstallmentRepositoryAdapter implements InstallmentRepository {
         InstallmentCollectionProjection projection = jpaRepository
                 .summariseCollectible(unitIds.stream().map(EntityId::value).toList(), asOf);
         return new InstallmentCollectionSummary(projection.count(), projection.amount());
+    }
+
+    @Override
+    public List<UnitOfProperty> findUnitsWithOutstandingDue(LocalDate asOf) {
+        return jpaRepository.findUnitsWithOutstandingDue(asOf).stream()
+                .map(row -> new UnitOfProperty(EntityId.of(row.propertyId()), EntityId.of(row.unitId())))
+                .toList();
     }
 
     private static Sort toSort(InstallmentFilter filter) {

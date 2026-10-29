@@ -2,7 +2,6 @@ package com.architek.oikos.installment.web.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -26,13 +25,12 @@ import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.installment.application.dto.InstallmentCallDetailView;
 import com.architek.oikos.installment.application.dto.InstallmentCallView;
 import com.architek.oikos.installment.application.dto.GenerateInstallmentCallResult;
-import com.architek.oikos.installment.application.port.in.DeleteInstallmentCallUseCase;
+import com.architek.oikos.installment.application.port.in.CancelInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.GenerateInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.GetInstallmentCallUseCase;
 import com.architek.oikos.installment.application.port.in.ListInstallmentCallsByPropertyUseCase;
-import com.architek.oikos.installment.application.port.in.RecordInstallmentCallUseCase;
 import com.architek.oikos.installment.domain.valueobject.InstallmentCallId;
-import com.architek.oikos.installment.domain.valueobject.InstallmentId;
+import com.architek.oikos.installment.domain.valueobject.InstallmentCallStatus;
 import com.architek.oikos.shared.domain.pagination.Page;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.testsupport.WebSecuritySliceTestConfiguration;
@@ -54,9 +52,6 @@ class InstallmentCallControllerWebMvcTest {
     private GetUserAccessUseCase getUserAccessUseCase;
 
     @MockitoBean
-    private RecordInstallmentCallUseCase recordInstallmentCallUseCase;
-
-    @MockitoBean
     private GenerateInstallmentCallUseCase generateInstallmentCallUseCase;
 
     @MockitoBean
@@ -66,7 +61,7 @@ class InstallmentCallControllerWebMvcTest {
     private GetInstallmentCallUseCase getInstallmentCallUseCase;
 
     @MockitoBean
-    private DeleteInstallmentCallUseCase deleteInstallmentCallUseCase;
+    private CancelInstallmentCallUseCase cancelInstallmentCallUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
@@ -74,43 +69,20 @@ class InstallmentCallControllerWebMvcTest {
 
     @Test
     void anonymous_request_is_rejected_with_401() throws Exception {
-        mockMvc.perform(post("/api/v1/installment-calls")
+        mockMvc.perform(post("/api/v1/properties/" + EntityId.newId() + "/installment-calls")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"dueDate":"2027-01-01","lines":[]}
+                                {"period":"2026-01","dueDate":"2026-02-05"}
                                 """))
                 .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void records_a_installment_call() throws Exception {
-        when(recordInstallmentCallUseCase.record(any())).thenReturn(List.of(InstallmentId.newId()));
-
-        mockMvc.perform(post("/api/v1/installment-calls")
-                        .header("Authorization", bearerToken("ROLE_ADMIN"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"dueDate":"2027-01-01","lines":[{"unitId":"%s","amount":250}]}
-                                """.formatted(EntityId.newId())))
-                .andExpect(status().isCreated());
-    }
-
-    @Test
-    void a_installment_call_without_any_line_returns_400() throws Exception {
-        mockMvc.perform(post("/api/v1/installment-calls")
-                        .header("Authorization", bearerToken("ROLE_USER"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"dueDate":"2027-01-01","lines":[]}
-                                """))
-                .andExpect(status().isBadRequest());
     }
 
     @Test
     void generates_a_installment_call_for_a_property() throws Exception {
         EntityId propertyId = EntityId.newId();
         InstallmentCallView view = new InstallmentCallView(InstallmentCallId.newId(), propertyId, YearMonth.of(2026, 1),
-                LocalDate.of(2026, 2, 5));
+                LocalDate.of(2026, 2, 5),
+                InstallmentCallStatus.POSTED);
         when(generateInstallmentCallUseCase.generate(any()))
                 .thenReturn(new GenerateInstallmentCallResult(view, List.of(EntityId.newId()), List.of()));
 
@@ -146,7 +118,8 @@ class InstallmentCallControllerWebMvcTest {
     @Test
     void gets_a_installment_call_by_id() throws Exception {
         InstallmentCallId id = InstallmentCallId.newId();
-        InstallmentCallView view = new InstallmentCallView(id, EntityId.newId(), YearMonth.of(2026, 1), LocalDate.of(2026, 2, 5));
+        InstallmentCallView view = new InstallmentCallView(id, EntityId.newId(), YearMonth.of(2026, 1), LocalDate.of(2026, 2, 5),
+                InstallmentCallStatus.POSTED);
         when(getInstallmentCallUseCase.getInstallmentCall(any())).thenReturn(new InstallmentCallDetailView(view, List.of()));
 
         mockMvc.perform(get("/api/v1/installment-calls/" + id).header("Authorization", bearerToken("ROLE_ADMIN")))
@@ -154,35 +127,38 @@ class InstallmentCallControllerWebMvcTest {
     }
 
     @Test
-    void admin_can_delete_a_installment_call() throws Exception {
-        mockMvc.perform(delete("/api/v1/installment-calls/" + InstallmentCallId.newId())
+    void admin_can_cancel_a_installment_call() throws Exception {
+        mockMvc.perform(post("/api/v1/installment-calls/" + InstallmentCallId.newId() + "/cancellation")
                         .header("Authorization", bearerToken("ROLE_ADMIN")))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    void property_manager_can_delete_a_managed_installment_call() throws Exception {
+    void property_manager_can_cancel_a_managed_installment_call() throws Exception {
         InstallmentCallId id = InstallmentCallId.newId();
         String propertyId = UUID.randomUUID().toString();
         InstallmentCallView view = new InstallmentCallView(id, EntityId.of(propertyId), YearMonth.of(2026, 1),
-                LocalDate.of(2026, 2, 5));
+                LocalDate.of(2026, 2, 5),
+                InstallmentCallStatus.POSTED);
         when(getInstallmentCallUseCase.getInstallmentCall(any())).thenReturn(new InstallmentCallDetailView(view, List.of()));
         when(getUserAccessUseCase.getAccess(any()))
                 .thenReturn(new UserAccessView(Set.of(), Map.of(propertyId, Set.of(PropertyRole.PROPERTY_BOARD_ADMIN)),
                         Map.of(), Set.of(), Set.of()));
 
-        mockMvc.perform(delete("/api/v1/installment-calls/" + id)
+        mockMvc.perform(post("/api/v1/installment-calls/" + id + "/cancellation")
                         .header("Authorization", bearerToken("PROPERTY_BOARD_ADMIN")))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    void regular_user_is_forbidden_from_deleting_a_installment_call_of_a_property_they_do_not_manage() throws Exception {
+    void regular_user_is_forbidden_from_cancelling_a_installment_call_of_a_property_they_do_not_manage() throws Exception {
         InstallmentCallId id = InstallmentCallId.newId();
-        InstallmentCallView view = new InstallmentCallView(id, EntityId.newId(), YearMonth.of(2026, 1), LocalDate.of(2026, 2, 5));
+        InstallmentCallView view = new InstallmentCallView(id, EntityId.newId(), YearMonth.of(2026, 1), LocalDate.of(2026, 2, 5),
+                InstallmentCallStatus.POSTED);
         when(getInstallmentCallUseCase.getInstallmentCall(any())).thenReturn(new InstallmentCallDetailView(view, List.of()));
 
-        mockMvc.perform(delete("/api/v1/installment-calls/" + id).header("Authorization", bearerToken("ROLE_USER")))
+        mockMvc.perform(post("/api/v1/installment-calls/" + id + "/cancellation")
+                        .header("Authorization", bearerToken("ROLE_USER")))
                 .andExpect(status().isForbidden());
     }
 }

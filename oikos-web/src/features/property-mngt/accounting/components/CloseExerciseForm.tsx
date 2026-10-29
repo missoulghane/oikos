@@ -9,7 +9,13 @@ import { useCloseExercise } from '@/features/property-mngt/accounting/hooks/useC
  * confirmation, parce que le geste ne se défait pas - il solde les comptes de
  * charges et de produits, arrête le résultat et scelle l'exercice.
  */
-export function CloseExerciseForm({ propertyId, exerciseLabel }: { propertyId: string; exerciseLabel: string }) {
+interface CloseExerciseFormProps {
+  propertyId: string;
+  exerciseId: string;
+  exerciseLabel: string;
+}
+
+export function CloseExerciseForm({ propertyId, exerciseId, exerciseLabel }: CloseExerciseFormProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const { mutate, isPending, isSuccess, data, error } = useCloseExercise(propertyId);
 
@@ -35,7 +41,7 @@ export function CloseExerciseForm({ propertyId, exerciseLabel }: { propertyId: s
             message={`Clôturer l'exercice ${exerciseLabel} soldera les comptes de charges et de produits, arrêtera le résultat et scellera l'exercice. Ce geste ne se défait pas.`}
           />
           <div className="flex flex-wrap gap-2">
-            <Button type="button" isLoading={isPending} onClick={() => mutate()}>
+            <Button type="button" isLoading={isPending} onClick={() => mutate(exerciseId)}>
               Confirmer la clôture
             </Button>
             <Button type="button" variant="secondary" onClick={() => setIsConfirming(false)}>

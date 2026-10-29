@@ -79,7 +79,7 @@ public class RecordOwnerPaymentService implements RecordOwnerPaymentUseCase {
         if (!propertyDirectoryPort.exists(command.propertyId())) {
             throw new PropertyNotFoundException(command.propertyId());
         }
-        if (!unitDirectoryPort.exists(command.unitId())) {
+        if (!unitDirectoryPort.existsInProperty(command.unitId(), command.propertyId())) {
             throw new UnitNotFoundException(command.unitId());
         }
 

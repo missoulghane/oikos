@@ -56,22 +56,30 @@ public interface JournalEntryJpaRepository extends JpaRepository<JournalEntryEnt
                                                        @Param("status") String status,
                                                        Pageable pageable);
 
-    /** Net balance (CREDIT minus DEBIT, POSTED only) of one account for one auxiliary unit. */
+    /**
+     * Net balance (CREDIT minus DEBIT) of one account for one auxiliary unit.
+     * A REVERSED entry still counts: its lines stand, and its posted mirror is
+     * what cancels them - leaving it out would count the mirror alone.
+     */
     @Query("""
             select coalesce(sum(case when l.direction = 'CREDIT' then l.amount else -l.amount end), 0)
             from JournalEntryLineEntity l join l.journalEntry j
-            where j.propertyId = :propertyId and j.status = 'POSTED'
+            where j.propertyId = :propertyId and j.status in ('POSTED', 'REVERSED')
               and l.ledgerAccountId = :accountId and l.auxiliaryUnitId = :unitId
             """)
     BigDecimal sumNetAmountForAuxiliaryUnit(@Param("propertyId") UUID propertyId,
                                              @Param("accountId") UUID accountId, @Param("unitId") UUID unitId);
 
-    /** Ce que la copropriété a mouvementé sur l'exercice, compte par compte. */
+    /**
+     * Ce que la copropriété a mouvementé sur l'exercice, compte par compte. Une
+     * écriture extournée compte toujours : c'est son extourne qui l'annule.
+     */
     @Query("""
             select l.ledgerAccountId as accountId,
                    sum(case when l.direction = 'CREDIT' then l.amount else -l.amount end) as amount
             from JournalEntryLineEntity l join l.journalEntry j
-            where j.propertyId = :propertyId and j.exerciseId = :exerciseId and j.status = 'POSTED'
+            where j.propertyId = :propertyId and j.exerciseId = :exerciseId
+              and j.status in ('POSTED', 'REVERSED')
             group by l.ledgerAccountId
             """)
     List<AccountNetAmountProjection> sumNetAmountByAccountForExercise(@Param("propertyId") UUID propertyId,
