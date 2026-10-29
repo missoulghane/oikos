@@ -8,6 +8,9 @@ export function useBoardRoles() {
     queryKey: queryKeys.reference.boardRoles(),
     queryFn: getBoardRoles,
     staleTime: Infinity,
+    // Plus patient que le défaut (1) : sans ce catalogue, l'écran qui le propose
+    // ne peut rien faire - autant laisser passer un redémarrage de l'API.
+    retry: 3,
   });
 }
 

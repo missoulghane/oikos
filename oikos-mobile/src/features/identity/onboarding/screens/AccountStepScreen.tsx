@@ -13,6 +13,7 @@ import { useRegisterPropertyBoardAdmin } from '@/features/identity/register/hook
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
 import type { BoardSeat } from '@/features/identity/onboarding/constants/boardSeats';
 import { useBoardRoles } from '@/shared/hooks/useBoardRoles';
+import { CatalogLoadState } from '@/shared/components/CatalogLoadState/CatalogLoadState';
 import { colors } from '@/shared/theme/colors';
 import { WEB_URL } from '@/config/env';
 import {
@@ -116,19 +117,27 @@ export function AccountStepScreen({ navigation }: Props) {
             autoComplete="email"
             errorMessage={errors.email?.message}
           />
-          <Controller
-            control={control}
-            name="boardRole"
-            render={({ field: { value, onChange } }) => (
-              <Select
-                label="Votre rôle dans le conseil syndical"
-                value={value}
-                onChange={(seat) => onChange(seat as BoardSeat)}
-                options={boardSeatOptions}
-                errorMessage={errors.boardRole?.message}
-              />
-            )}
-          />
+          {boardRoles.data ? (
+            <Controller
+              control={control}
+              name="boardRole"
+              render={({ field: { value, onChange } }) => (
+                <Select
+                  label="Votre rôle dans le conseil syndical"
+                  value={value}
+                  onChange={(seat) => onChange(seat as BoardSeat)}
+                  options={boardSeatOptions}
+                  errorMessage={errors.boardRole?.message}
+                />
+              )}
+            />
+          ) : (
+            <CatalogLoadState
+              query={boardRoles}
+              loadingLabel="Chargement des rôles…"
+              errorMessage="Impossible de charger la liste des rôles. Vérifiez votre connexion, puis réessayez."
+            />
+          )}
           <ControlledInput
             control={control}
             name="password"

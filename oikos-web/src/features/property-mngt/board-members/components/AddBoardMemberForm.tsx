@@ -5,7 +5,7 @@ import { Input } from '@/shared/components/Input/Input';
 import { PhoneField } from '@/shared/components/PhoneField/PhoneField';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
-import { Loader } from '@/shared/components/Loader/Loader';
+import { CatalogLoadState } from '@/shared/components/CatalogLoadState/CatalogLoadState';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { useAddBoardMember } from '@/features/property-mngt/board-members/hooks/useAddBoardMember';
 import { useBoardMembers } from '@/features/property-mngt/board-members/hooks/useBoardMembers';
@@ -162,7 +162,7 @@ export function AddBoardMemberForm({ propertyId, onSuccess, onCancel }: AddBoard
           ))}
         </Select>
       ) : (
-        <Loader label="Chargement des rôles…" />
+        <CatalogLoadState query={boardRoles} loadingLabel="Chargement des rôles…" errorMessage="Impossible de charger la liste des rôles. Vérifiez votre connexion, puis réessayez." />
       )}
 
       <div className="flex gap-2">

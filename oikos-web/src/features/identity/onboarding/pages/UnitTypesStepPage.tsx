@@ -5,7 +5,7 @@ import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingCo
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
 import { SelectableCard } from '@/shared/components/SelectableCard/SelectableCard';
 import { nextStepPath, previousStepPath } from '@/features/identity/onboarding/constants/steps';
-import { Loader } from '@/shared/components/Loader/Loader';
+import { CatalogLoadState } from '@/shared/components/CatalogLoadState/CatalogLoadState';
 import { useUnitTypeChoices } from '@/shared/hooks/useUnitTypeChoices';
 
 /**
@@ -38,7 +38,13 @@ export function UnitTypesStepPage() {
       backPath={previousStepPath('unit-types')}
     >
       <div className="flex flex-col gap-3">
-        {unitTypeChoices.isLoading && <Loader label="Chargement des types de lots…" />}
+        {!unitTypeChoices.data && (
+          <CatalogLoadState
+            query={unitTypeChoices}
+            loadingLabel="Chargement des types de lots…"
+            errorMessage="Impossible de charger les types de lots. Vérifiez votre connexion, puis réessayez."
+          />
+        )}
         {choices.map((choice) => (
           <SelectableCard
             key={choice.name}

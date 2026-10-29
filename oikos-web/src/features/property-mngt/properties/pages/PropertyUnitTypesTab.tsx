@@ -4,6 +4,7 @@ import { Card } from '@/shared/components/Card/Card';
 import { Checkbox } from '@/shared/components/Checkbox/Checkbox';
 import { Button } from '@/shared/components/Button/Button';
 import { Loader } from '@/shared/components/Loader/Loader';
+import { CatalogLoadState } from '@/shared/components/CatalogLoadState/CatalogLoadState';
 import { Alert } from '@/shared/components/Alert/Alert';
 import { useUnitTypeDefinitions } from '@/features/property-mngt/properties/hooks/useUnitTypeDefinitions';
 import { useAddUnitTypeDefinition } from '@/features/property-mngt/properties/hooks/useAddUnitTypeDefinition';
@@ -56,7 +57,16 @@ export function PropertyUnitTypesTab() {
 
   const choices = unitTypeChoices.data;
 
-  if (unitTypes.isLoading || !defined || !choices) {
+  if (!choices) {
+    return (
+      <CatalogLoadState
+        query={unitTypeChoices}
+        loadingLabel="Chargement des types de lots…"
+        errorMessage="Impossible de charger les types de lots. Vérifiez votre connexion, puis réessayez."
+      />
+    );
+  }
+  if (unitTypes.isLoading || !defined) {
     return <Loader label="Chargement des types de lots…" />;
   }
 

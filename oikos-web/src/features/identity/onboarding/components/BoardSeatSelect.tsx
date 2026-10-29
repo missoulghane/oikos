@@ -1,6 +1,6 @@
 import { forwardRef, type SelectHTMLAttributes } from 'react';
 import { Select } from '@/shared/components/Select/Select';
-import { Loader } from '@/shared/components/Loader/Loader';
+import { CatalogLoadState } from '@/shared/components/CatalogLoadState/CatalogLoadState';
 import { useBoardRoles } from '@/shared/hooks/useBoardRoles';
 
 type BoardSeatSelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'children'> & { errorMessage?: string };
@@ -14,7 +14,9 @@ type BoardSeatSelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'child
 export const BoardSeatSelect = forwardRef<HTMLSelectElement, BoardSeatSelectProps>((props, ref) => {
   const boardRoles = useBoardRoles();
   if (!boardRoles.data) {
-    return <Loader label="Chargement des rôles…" />;
+    return (
+      <CatalogLoadState query={boardRoles} loadingLabel="Chargement des rôles…" errorMessage="Impossible de charger la liste des rôles. Vérifiez votre connexion, puis réessayez." />
+    );
   }
   return (
     <Select ref={ref} label="Votre rôle dans le conseil syndical" {...props}>

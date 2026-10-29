@@ -13,7 +13,11 @@ import { WizardShell } from '@/features/identity/onboarding/components/WizardShe
 import { BoardSeatSelect } from '@/features/identity/onboarding/components/BoardSeatSelect';
 import { nextStepPath } from '@/features/identity/onboarding/constants/steps';
 import { TERMS_OF_SALE_PATH, TERMS_OF_USE_PATH } from '@/features/legal';
-import { accountStepSchema, type AccountStepValues } from '@/features/identity/onboarding/schemas/onboardingSchemas';
+import {
+  accountStepSchema,
+  PASSWORD_MIN_LENGTH,
+  type AccountStepValues,
+} from '@/features/identity/onboarding/schemas/onboardingSchemas';
 
 export function AccountStepPage() {
   const navigate = useNavigate();
@@ -104,8 +108,23 @@ export function AccountStepPage() {
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
         {registerAccount.isError && <Alert message={getErrorMessage(registerAccount.error)} />}
-        <Input label="Nom complet" autoComplete="name" {...register('fullName')} errorMessage={errors.fullName?.message} />
-        <Input label="Adresse email" type="email" autoComplete="email" {...register('email')} errorMessage={errors.email?.message} />
+        {/* Chaque champ montre un exemple grisé, comme le téléphone (« 612345678 ») :
+            un seul champ qui en porte un donnait l'air d'un oubli sur les autres. */}
+        <Input
+          label="Nom complet"
+          autoComplete="name"
+          placeholder="Amina El Idrissi"
+          {...register('fullName')}
+          errorMessage={errors.fullName?.message}
+        />
+        <Input
+          label="Adresse email"
+          type="email"
+          autoComplete="email"
+          placeholder="nom@exemple.com"
+          {...register('email')}
+          errorMessage={errors.email?.message}
+        />
         <Controller
           control={control}
           name="phone"
@@ -132,6 +151,7 @@ export function AccountStepPage() {
           label="Mot de passe"
           type="password"
           autoComplete="new-password"
+          placeholder={`${PASSWORD_MIN_LENGTH} caractères minimum`}
           // deps : corriger le premier champ doit rafraîchir l'erreur de
           // concordance portée par le second, qui sinon resterait affichée
           // alors que les deux saisies viennent de redevenir identiques.
@@ -142,6 +162,7 @@ export function AccountStepPage() {
           label="Confirmation du mot de passe"
           type="password"
           autoComplete="new-password"
+          placeholder="Saisissez-le à nouveau"
           {...register('confirmPassword')}
           // Revalider ce champ dès que le mot de passe change (deps ci-dessus) sert
           // à rafraîchir une erreur de concordance déjà affichée - pas à en faire

@@ -4,7 +4,7 @@ import { Select } from '@/shared/components/Select/Select';
 import { Input } from '@/shared/components/Input/Input';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
-import { Loader } from '@/shared/components/Loader/Loader';
+import { CatalogLoadState } from '@/shared/components/CatalogLoadState/CatalogLoadState';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { useCreateBoardInvitation } from '@/features/property-mngt/board-members/hooks/useCreateBoardInvitation';
 import {
@@ -67,7 +67,7 @@ export function CreateBoardInvitationForm({
           ))}
         </Select>
       ) : (
-        <Loader label="Chargement des rôles…" />
+        <CatalogLoadState query={boardRoles} loadingLabel="Chargement des rôles…" errorMessage="Impossible de charger la liste des rôles. Vérifiez votre connexion, puis réessayez." />
       )}
 
       <div className="flex gap-2">
