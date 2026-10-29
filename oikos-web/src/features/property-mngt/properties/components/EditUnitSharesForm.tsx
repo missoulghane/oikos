@@ -24,6 +24,9 @@ export function EditUnitSharesForm({ unit, onSuccess, onCancel }: EditUnitShares
     formState: { errors },
   } = useForm<UpdateUnitSharesFormValues>({
     resolver: zodResolver(updateUnitSharesSchema),
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     defaultValues: { shares: unit.shares },
   });
   const { mutate, isPending, error } = useUpdateUnitShares(unit.id);
@@ -37,6 +40,7 @@ export function EditUnitSharesForm({ unit, onSuccess, onCancel }: EditUnitShares
       {error && <Alert message={getErrorMessage(error)} />}
       <Input
         label="Tantièmes"
+        required
         type="number"
         min={0}
         step="any"

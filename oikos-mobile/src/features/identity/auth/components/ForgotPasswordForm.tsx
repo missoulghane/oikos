@@ -21,6 +21,9 @@ export function ForgotPasswordForm({ onSubmit, isSubmitting, errorMessage }: For
     handleSubmit,
     formState: { errors },
   } = useForm<ForgotPasswordFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
   });

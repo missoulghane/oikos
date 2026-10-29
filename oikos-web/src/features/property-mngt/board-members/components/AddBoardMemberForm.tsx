@@ -64,6 +64,9 @@ export function AddBoardMemberForm({ propertyId, onSuccess, onCancel }: AddBoard
     handleSubmit,
     formState: { errors },
   } = useForm<AddBoardMemberFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(addBoardMemberSchema),
     defaultValues: { fullName: '', email: '', phone: '', boardRole: 'MEMBER' },
   });

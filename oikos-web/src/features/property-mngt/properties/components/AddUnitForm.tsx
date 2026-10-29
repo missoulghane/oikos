@@ -30,6 +30,9 @@ export function AddUnitForm({ building, showShares, onSuccess, onCancel }: AddUn
     formState: { errors },
   } = useForm<AddUnitFormValues>({
     resolver: zodResolver(addUnitSchema(building.floorCount)),
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     defaultValues: { unitTypeId: '', shares: 0, floor: null },
   });
   const { mutate, isPending, error } = useAddUnit(building.id);

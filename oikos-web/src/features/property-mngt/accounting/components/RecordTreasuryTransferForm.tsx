@@ -38,6 +38,9 @@ export function RecordTreasuryTransferForm({
     handleSubmit,
     formState: { errors },
   } = useForm<RecordTreasuryTransferFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(recordTreasuryTransferSchema),
     defaultValues: defaultSourceAccountId ? { sourceAccountId: defaultSourceAccountId } : undefined,
   });

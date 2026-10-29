@@ -22,7 +22,7 @@ export function GenerateInstallmentCallForm({ propertyId, onGenerated }: Generat
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<GenerateInstallmentCallFormValues>({ resolver: zodResolver(generateInstallmentCallSchema) });
+  } = useForm<GenerateInstallmentCallFormValues>({ mode: 'onTouched', resolver: zodResolver(generateInstallmentCallSchema) });
   const { mutate, isPending, error } = useGenerateInstallmentCall(propertyId);
 
   function onSubmit(values: GenerateInstallmentCallFormValues) {

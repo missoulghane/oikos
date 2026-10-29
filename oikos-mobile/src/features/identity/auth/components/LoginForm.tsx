@@ -17,7 +17,7 @@ export function LoginForm({ onSubmit, isSubmitting, errorMessage }: LoginFormPro
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema), defaultValues: { identifier: '', password: '' } });
+  } = useForm<LoginFormValues>({ mode: 'onTouched', resolver: zodResolver(loginSchema), defaultValues: { identifier: '', password: '' } });
 
   return (
     <View style={styles.form}>

@@ -21,6 +21,9 @@ export function RegisterUserForm({ onSubmit, isSubmitting, errorMessage }: Regis
     handleSubmit,
     formState: { errors },
   } = useForm<RegisterUserFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(registerUserSchema),
     defaultValues: { fullName: '', email: '', password: '', confirmPassword: '' },
   });

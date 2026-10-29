@@ -22,7 +22,7 @@ export function RecordPayrollExpenseForm({ propertyId }: { propertyId: string })
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<RecordPayrollExpenseFormValues>({ resolver: zodResolver(recordPayrollExpenseSchema) });
+  } = useForm<RecordPayrollExpenseFormValues>({ mode: 'onTouched', resolver: zodResolver(recordPayrollExpenseSchema) });
   const { mutate, isPending, error } = useRecordPayrollExpense(propertyId);
 
   function onSubmit(values: RecordPayrollExpenseFormValues) {

@@ -23,7 +23,7 @@ export function OpenExerciseForm({ propertyId, defaultValues, onOpened }: OpenEx
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<OpenExerciseFormValues>({ resolver: zodResolver(openExerciseSchema), defaultValues });
+  } = useForm<OpenExerciseFormValues>({ mode: 'onTouched', resolver: zodResolver(openExerciseSchema), defaultValues });
   const { mutate, isPending, error } = useOpenAccountingExercise(propertyId);
 
   function onSubmit(values: OpenExerciseFormValues) {

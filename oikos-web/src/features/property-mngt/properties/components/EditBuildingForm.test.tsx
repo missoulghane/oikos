@@ -63,6 +63,17 @@ describe('EditBuildingForm', () => {
     expect(mutate).not.toHaveBeenCalled();
   });
 
+  it('signale le nom manquant dès la sortie du champ, sans attendre « Enregistrer »', async () => {
+    const user = userEvent.setup();
+    setup();
+
+    await user.clear(screen.getByLabelText("Nom de l'immeuble"));
+    await user.tab();
+
+    expect(await screen.findByText("Le nom de l'immeuble est requis")).toBeInTheDocument();
+    expect(mutate).not.toHaveBeenCalled();
+  });
+
   it('refuse un nombre d’étages négatif', async () => {
     const user = userEvent.setup();
     setup();

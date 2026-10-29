@@ -27,7 +27,7 @@ export function RegisterPropertyAdminForm({
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<RegisterPropertyAdminFormValues>({ resolver: zodResolver(registerPropertyAdminSchema) });
+  } = useForm<RegisterPropertyAdminFormValues>({ mode: 'onTouched', resolver: zodResolver(registerPropertyAdminSchema) });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>

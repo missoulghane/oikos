@@ -9,7 +9,6 @@ import {
   addBuildingSchema,
   type AddBuildingFormValues,
 } from '@/features/property-mngt/properties/schemas/addBuildingSchema';
-import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 interface AddBuildingFormProps {
   propertyId: string;
@@ -22,7 +21,12 @@ export function AddBuildingForm({ propertyId, onSuccess, onCancel }: AddBuilding
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<AddBuildingFormValues>({ resolver: zodResolver(addBuildingSchema) });
+  } = useForm<AddBuildingFormValues>({
+    resolver: zodResolver(addBuildingSchema),
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
+  });
   const { mutate, isPending, error } = useAddBuilding(propertyId);
 
   function onSubmit(values: AddBuildingFormValues) {
@@ -34,7 +38,6 @@ export function AddBuildingForm({ propertyId, onSuccess, onCancel }: AddBuilding
     // AddBuildingPage, qui les porte pour lui - deux cadres imbriqués sinon.
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
-      <RequiredFieldsHint />
       <Input label="Nom de l'immeuble" required {...register('name')} errorMessage={errors.name?.message} />
       <Input
         label="Nombre d'étages"

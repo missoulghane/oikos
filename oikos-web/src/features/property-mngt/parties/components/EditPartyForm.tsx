@@ -37,6 +37,9 @@ export function EditPartyForm({ party, onSuccess, onCancel }: EditPartyFormProps
     handleSubmit,
     formState: { errors },
   } = useForm<UpdatePartyFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(updatePartySchema),
     defaultValues: {
       fullName: party.fullName,

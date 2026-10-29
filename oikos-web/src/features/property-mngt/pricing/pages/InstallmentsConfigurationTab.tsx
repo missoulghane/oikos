@@ -63,6 +63,9 @@ export function InstallmentsConfigurationTab() {
     reset,
     formState: { errors },
   } = useForm<InstallmentsConfigurationFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(installmentsConfigurationSchema),
     defaultValues: { mode: property.duesCalculationMode, projectedBudget: property.projectedBudget ?? DEFAULT_PRICE, prices: [] },
   });

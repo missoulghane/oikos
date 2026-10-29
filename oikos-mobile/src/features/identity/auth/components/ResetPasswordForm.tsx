@@ -21,6 +21,9 @@ export function ResetPasswordForm({ onSubmit, isSubmitting, errorMessage }: Rese
     handleSubmit,
     formState: { errors },
   } = useForm<ResetPasswordFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: { password: '', confirmPassword: '' },
   });

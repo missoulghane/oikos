@@ -186,7 +186,7 @@ class PropertyControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Copro Renamed","address":"New address"}
+                                {"name":"Copro Renamed","address":"New address","city":"Casablanca"}
                                 """))
                 .andExpect(status().isOk());
     }
@@ -197,7 +197,18 @@ class PropertyControllerWebMvcTest {
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":" ","address":"New address"}
+                                {"name":" ","address":"New address","city":"Casablanca"}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updating_a_property_without_a_city_returns_400() throws Exception {
+        mockMvc.perform(put("/api/v1/properties/" + PropertyId.newId())
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Copro Renamed","address":"New address","city":" "}
                                 """))
                 .andExpect(status().isBadRequest());
     }

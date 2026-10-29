@@ -18,7 +18,7 @@ export function RegisterUserForm({ onSubmit, isSubmitting, errorMessage }: Regis
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<RegisterUserFormValues>({ resolver: zodResolver(registerUserSchema) });
+  } = useForm<RegisterUserFormValues>({ mode: 'onTouched', resolver: zodResolver(registerUserSchema) });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>

@@ -24,6 +24,9 @@ export function EditBuildingForm({ building, onSuccess, onCancel }: EditBuilding
     formState: { errors },
   } = useForm<UpdateBuildingFormValues>({
     resolver: zodResolver(updateBuildingSchema),
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     defaultValues: { name: building.name, floorCount: building.floorCount },
   });
   const { mutate, isPending, error } = useUpdateBuilding(building.propertyId, building.id);
@@ -35,9 +38,10 @@ export function EditBuildingForm({ building, onSuccess, onCancel }: EditBuilding
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       {error && <Alert message={getErrorMessage(error)} />}
-      <Input label="Nom de l'immeuble" {...register('name')} errorMessage={errors.name?.message} />
+      <Input label="Nom de l'immeuble" required {...register('name')} errorMessage={errors.name?.message} />
       <Input
         label="Nombre d'étages"
+        required
         type="number"
         min={0}
         // valueAsNumber : sans lui le champ rend une chaîne, que le schéma

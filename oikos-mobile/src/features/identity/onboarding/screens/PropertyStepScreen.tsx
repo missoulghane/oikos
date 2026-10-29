@@ -30,6 +30,9 @@ export function PropertyStepScreen({ navigation }: Props) {
     setError,
     formState: { errors },
   } = useForm<PropertyStepValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(propertyStepSchema),
     defaultValues: draft.property,
   });

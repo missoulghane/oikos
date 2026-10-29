@@ -23,7 +23,7 @@ export function RecordBankChargeForm({ propertyId }: { propertyId: string }) {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<RecordBankChargeFormValues>({ resolver: zodResolver(recordBankChargeSchema) });
+  } = useForm<RecordBankChargeFormValues>({ mode: 'onTouched', resolver: zodResolver(recordBankChargeSchema) });
   const { mutate, isPending, error } = useRecordBankCharge(propertyId);
 
   function onSubmit(values: RecordBankChargeFormValues) {

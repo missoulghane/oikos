@@ -38,6 +38,9 @@ export function RecordSupplierPaymentForm({
     handleSubmit,
     formState: { errors },
   } = useForm<RecordSupplierPaymentFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(recordSupplierPaymentSchema),
     defaultValues: fixedTreasuryAccountId ? { treasuryAccountId: fixedTreasuryAccountId } : undefined,
   });

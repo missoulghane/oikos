@@ -40,6 +40,9 @@ export function CreatePartyForm({ propertyId, onSuccess, onCancel }: CreateParty
     handleSubmit,
     formState: { errors },
   } = useForm<CreatePartyFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(createPartySchema),
     // Particulier par défaut : c'est le cas de l'écrasante majorité des
     // contacts, et un type non pré-rempli est un champ de plus à chaque saisie.

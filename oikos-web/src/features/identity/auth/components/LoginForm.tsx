@@ -16,7 +16,7 @@ export function LoginForm({ onSubmit, isSubmitting, errorMessage }: LoginFormPro
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) });
+  } = useForm<LoginFormValues>({ mode: 'onTouched', resolver: zodResolver(loginSchema) });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>

@@ -65,6 +65,9 @@ export function AddUnitOwnerForm({ unitId, propertyId, onSuccess, onCancel }: Ad
     handleSubmit,
     formState: { errors },
   } = useForm<AddUnitOwnerFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(addUnitOwnerSchema),
     // Particulier par défaut : c'est l'écrasante majorité des copropriétaires,
     // et un type non pré-rempli est un champ de plus à renseigner à chaque lot.

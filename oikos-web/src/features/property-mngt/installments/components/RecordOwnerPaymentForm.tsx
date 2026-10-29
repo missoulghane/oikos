@@ -47,6 +47,9 @@ export function RecordOwnerPaymentForm({
     resetField,
     formState: { errors },
   } = useForm<RecordOwnerPaymentFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(recordOwnerPaymentSchema),
     defaultValues: fixedTreasuryAccountId ? { treasuryAccountId: fixedTreasuryAccountId } : undefined,
   });

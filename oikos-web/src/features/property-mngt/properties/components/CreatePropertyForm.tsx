@@ -20,7 +20,7 @@ export function CreatePropertyForm({ onSubmit, isSubmitting, errorMessage }: Cre
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<CreatePropertyFormValues>({ resolver: zodResolver(createPropertySchema) });
+  } = useForm<CreatePropertyFormValues>({ mode: 'onTouched', resolver: zodResolver(createPropertySchema) });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>

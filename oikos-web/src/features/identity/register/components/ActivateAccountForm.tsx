@@ -19,7 +19,7 @@ export function ActivateAccountForm({ onSubmit, isSubmitting, errorMessage }: Ac
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ActivateAccountFormValues>({ resolver: zodResolver(activateAccountSchema) });
+  } = useForm<ActivateAccountFormValues>({ mode: 'onTouched', resolver: zodResolver(activateAccountSchema) });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>

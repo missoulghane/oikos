@@ -23,6 +23,9 @@ export function EditPartyPhoneForm({ partyId, currentPhone, onSuccess, onCancel 
     handleSubmit,
     formState: { errors },
   } = useForm<UpdatePartyPhoneFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(updatePartyPhoneSchema),
     defaultValues: { phone: currentPhone ?? '' },
   });

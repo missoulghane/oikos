@@ -19,7 +19,7 @@ export function ForgotPasswordForm({ onSubmit, isSubmitting, errorMessage }: For
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ForgotPasswordFormValues>({ resolver: zodResolver(forgotPasswordSchema) });
+  } = useForm<ForgotPasswordFormValues>({ mode: 'onTouched', resolver: zodResolver(forgotPasswordSchema) });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>

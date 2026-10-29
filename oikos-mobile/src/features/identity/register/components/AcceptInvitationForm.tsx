@@ -22,6 +22,9 @@ export function AcceptInvitationForm({ onSubmit, isSubmitting, errorMessage }: A
     handleSubmit,
     formState: { errors },
   } = useForm<AcceptInvitationFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(acceptInvitationSchema),
     defaultValues: { password: '' },
   });

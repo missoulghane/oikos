@@ -19,7 +19,7 @@ export function ResetPasswordForm({ onSubmit, isSubmitting, errorMessage }: Rese
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ResetPasswordFormValues>({ resolver: zodResolver(resetPasswordSchema) });
+  } = useForm<ResetPasswordFormValues>({ mode: 'onTouched', resolver: zodResolver(resetPasswordSchema) });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>

@@ -73,6 +73,9 @@ export function NewConversationScreen({ route, navigation }: Props) {
     getValues,
     formState: { errors },
   } = useForm<StartConversationFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(startConversationSchema),
     defaultValues: { subject: '', body: '' },
   });

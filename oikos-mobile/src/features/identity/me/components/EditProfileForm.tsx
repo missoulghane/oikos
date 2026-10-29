@@ -18,6 +18,9 @@ export function EditProfileForm({ user }: { user: CurrentUser }) {
     handleSubmit,
     formState: { errors },
   } = useForm<UpdateProfileFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(updateProfileSchema),
     defaultValues: { fullName: user.fullName, email: user.email, phone: user.phone ?? '' },
   });

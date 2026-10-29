@@ -34,6 +34,9 @@ export function CreateBoardInvitationForm({
     handleSubmit,
     formState: { errors },
   } = useForm<CreateBoardInvitationFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(createBoardInvitationSchema),
     defaultValues: { targetEmail: defaultTargetEmail ?? '', boardRole: defaultBoardRole ?? 'MEMBER' },
   });

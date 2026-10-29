@@ -42,6 +42,9 @@ export function AccountStepScreen({ navigation }: Props) {
     watch,
     formState: { errors },
   } = useForm<AccountStepValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(accountStepSchema),
     // Le mot de passe n'est jamais prérempli : il part vers l'API à la
     // soumission de cette étape et n'est conservé nulle part ensuite.

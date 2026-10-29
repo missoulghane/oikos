@@ -40,6 +40,9 @@ export function AgendaItemForm({
     reset,
     formState: { errors },
   } = useForm<AgendaItemFormValues>({
+    // Erreurs signalées à la sortie du champ, puis à chaque frappe - comme sur
+    // tous les formulaires - plutôt que seulement à la validation.
+    mode: 'onTouched',
     resolver: zodResolver(agendaItemSchema),
     defaultValues: {
       label: item?.label ?? '',

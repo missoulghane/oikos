@@ -22,7 +22,7 @@ export function AddBankAccountForm({ propertyId, onCreated }: AddBankAccountForm
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<AddBankAccountFormValues>({ resolver: zodResolver(addBankAccountSchema) });
+  } = useForm<AddBankAccountFormValues>({ mode: 'onTouched', resolver: zodResolver(addBankAccountSchema) });
   const { mutate, isPending, error } = useAddBankAccount(propertyId);
 
   function onSubmit(values: AddBankAccountFormValues) {
