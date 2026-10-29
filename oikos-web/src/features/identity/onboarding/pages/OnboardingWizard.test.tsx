@@ -162,13 +162,14 @@ describe('OnboardingWizardPage', () => {
     expect(termsOfSale).toHaveAttribute('target', '_blank');
   });
 
-  it('offers the board seats with « Syndic » selected by default', async () => {
+  it('offers the board seats open at sign-up, from the catalog, with « Syndic bénévole » selected by default', async () => {
     renderWizard();
 
-    const seat = screen.getByLabelText('Votre rôle dans le conseil syndical');
-    expect(seat).toHaveDisplayValue('Syndic');
+    // « Gestionnaire » est au catalogue mais fermé à l'inscription (cabinet professionnel).
+    const seat = await screen.findByLabelText('Votre rôle dans le conseil syndical');
+    expect(seat).toHaveDisplayValue('Syndic bénévole');
     expect(within(seat).getAllByRole('option').map((option) => option.textContent)).toEqual([
-      'Syndic',
+      'Syndic bénévole',
       'Président',
       'Trésorier',
       'Secrétaire',
@@ -205,7 +206,7 @@ describe('OnboardingWizardPage', () => {
     const user = userEvent.setup();
     renderWizard();
 
-    await user.selectOptions(screen.getByLabelText('Votre rôle dans le conseil syndical'), 'Trésorier');
+    await user.selectOptions(await screen.findByLabelText('Votre rôle dans le conseil syndical'), 'Trésorier');
     await fillAccountStep(user);
     await user.type(await screen.findByLabelText('Nom de la copropriété'), 'Résidence Exemple');
     await user.type(screen.getByLabelText('Adresse'), '12 rue Exemple');

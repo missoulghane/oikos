@@ -29,7 +29,7 @@ page finale `/done`. Le syndic professionnel n'est plus proposé sur `/register`
 - **Étapes** :
   1. Aller sur `/register/user`
   2. Remplir le formulaire (`RegisterUserForm`) et valider
-- **Résultat attendu** : `POST /users/register-property-user` réussit, email de vérification envoyé, compte utilisable après clic sur le lien
+- **Résultat attendu** : `POST /users/register-property-user` répond 202 (sans `Location`), email de vérification au gabarit HTML commun envoyé, compte utilisable après clic sur le lien. Avec une adresse déjà inscrite : même réponse 202 et même écran, aucun compte créé ; la boîte reçoit « Vous avez déjà un compte » (liens connexion / mot de passe oublié)
 - **Priorité** : P2
 - [ ]
 
@@ -39,7 +39,7 @@ page finale `/done`. Le syndic professionnel n'est plus proposé sur `/register`
 - **Étapes** :
   1. Aller sur `/register/manager-admin`
   2. Remplir le formulaire (`RegisterPropertyAdminForm`) et valider
-- **Résultat attendu** : `POST /users/register-property-manager-admin` crée le compte + la copropriété en un seul appel (contrairement au wizard bénévole, page unique, pas multi-étapes), email de vérification envoyé **de façon synchrone**
+- **Résultat attendu** : `POST /users/register-property-manager-admin` répond 202 (sans `Location`) et crée le compte + la copropriété en un seul appel (contrairement au wizard bénévole, page unique, pas multi-étapes), email de vérification envoyé **de façon synchrone**. Adresse déjà inscrite : même réponse, rien de créé, email « Vous avez déjà un compte »
 - **Priorité** : P1
 - [ ]
 
@@ -48,9 +48,10 @@ page finale `/done`. Le syndic professionnel n'est plus proposé sur `/register`
 - **Prérequis** : aucun
 - **Étapes** :
   1. Aller sur `/register/board-admin/account`
-  2. Saisir nom/email/téléphone/mot de passe, choisir son rôle dans le conseil syndical (« Syndic » par défaut), cocher « J'accepte les CGV et CGU », cliquer "Continuer"
+  2. Saisir nom/email/téléphone/mot de passe, choisir son rôle dans le conseil syndical (« Syndic bénévole » par défaut ; mêmes libellés que « Ajouter un membre », sans « Gestionnaire »), cocher « J'accepte les CGV et CGU » (mention en petit et en gris), cliquer "Continuer"
   3. Refaire l'essai sans cocher la case CGV/CGU
-- **Résultat attendu** : `POST /users/register-property-board-admin` (201) crée le compte seul (`app_user.terms_accepted_at` renseigné), renvoie un jeton d'onboarding de compte, email de vérification envoyé de façon asynchrone ; redirection vers l'étape 2. Sans la case cochée : message « Vous devez accepter les CGV et CGU », aucun appel. Revenir à l'étape 1 affiche « Votre compte est créé » sans recréer le compte
+  4. Refaire l'essai avec une adresse déjà inscrite
+- **Résultat attendu** : `POST /users/register-property-board-admin` (201) crée le compte seul (`app_user.terms_accepted_at` renseigné), renvoie un jeton d'onboarding de compte, email de vérification (gabarit HTML commun) envoyé de façon asynchrone ; redirection vers l'étape 2. Sans la case cochée : message « Vous devez accepter les CGV et CGU », aucun appel. Adresse déjà inscrite : refus, aucun compte créé. Revenir à l'étape 1 affiche « Votre compte est créé » sans recréer le compte
 - **Priorité** : P1
 - [ ]
 
@@ -77,7 +78,7 @@ page finale `/done`. Le syndic professionnel n'est plus proposé sur `/register`
 - **Prérequis** : étape 3 complétée
 - **Étapes** :
   1. Sur `/register/board-admin/unit-types`, définir un ou plusieurs types de lots
-- **Résultat attendu** : au forfait, le champ montant s'affiche à côté de la case de chaque type coché ; données conservées en état local, navigation vers l'étape 5
+- **Résultat attendu** : les types et leurs descriptions viennent de la table `unit_type_choice` (Appartement, Parking, Box, Bureau - chacun avec sa description) ; mêmes types que l'onglet Configuration de la copropriété ; données conservées en état local, navigation vers l'étape suivante
 - **Priorité** : P2
 - [ ]
 
@@ -129,13 +130,13 @@ page finale `/done`. Le syndic professionnel n'est plus proposé sur `/register`
 - **Priorité** : P2
 - [ ]
 
-### REG-12 — Vérification d'email suite à inscription bénévole (lien async)
+### REG-12 — Vérification d'email suite à inscription bénévole (lien async, gabarit HTML)
 - **Rôle** : SYNDIC (admin)
 - **Prérequis** : étape 1 complétée (REG-04)
 - **Étapes** :
   1. Attendre la réception de l'email de vérification (envoi asynchrone — l'écran de l'étape 1/2 ne doit pas attendre cet envoi)
-  2. Cliquer le lien `/verify-email?token=...`
-- **Résultat attendu** : email reçu en quelques secondes malgré l'envoi async, compte marqué vérifié après clic
+  2. L'ouvrir dans Gmail (web et mobile) et Outlook, puis cliquer « Confirmer mon adresse email »
+- **Résultat attendu** : email reçu en quelques secondes malgré l'envoi async, au gabarit commun (`templates/email/layout.html` : en-tête Daba Syndic, cadre blanc, bouton, lien de secours, pied de page « Merci de ne pas y répondre ») ; compte marqué vérifié après clic. Même gabarit pour tous les emails : vérification, réinitialisation de mot de passe, activation, invitations (copropriétaire et conseil syndical), décisions d'adhésion, convocations et rappels d'AG
 - **Priorité** : P1
 - [ ]
 

@@ -9,13 +9,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.architek.oikos.shared.application.port.out.EmailSendQuotaPort;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.user.application.command.RegisterUserCommand;
 import com.architek.oikos.user.application.port.in.RegisterUserUseCase;
 import com.architek.oikos.user.application.port.out.MembershipRequestSubmissionPort;
-import com.architek.oikos.user.domain.exception.EmailAlreadyUsedException;
 import com.architek.oikos.user.domain.exception.RoleNotAllowedException;
 import com.architek.oikos.user.domain.model.RegistrableRoles;
 import com.architek.oikos.user.domain.model.Role;
@@ -35,6 +35,8 @@ public class RegisterUserService implements RegisterUserUseCase {
     private static final Pattern RETURN_TO_PATTERN = Pattern.compile("^/(?!/).*");
 
     private final UserRepository userRepository;
+    private final EmailSendQuotaPort emailSendQuotaPort;
+    private final AccountAlreadyExistsEmailComposer accountExistsEmailComposer;
     private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordEncoderPort passwordEncoderPort;
     private final EmailSenderPort emailSenderPort;
@@ -45,6 +47,8 @@ public class RegisterUserService implements RegisterUserUseCase {
     private final Duration verificationTokenTtl;
 
     public RegisterUserService(UserRepository userRepository,
+                               EmailSendQuotaPort emailSendQuotaPort,
+                               AccountAlreadyExistsEmailComposer accountExistsEmailComposer,
                                 VerificationTokenRepository verificationTokenRepository,
                                 PasswordEncoderPort passwordEncoderPort,
                                 EmailSenderPort emailSenderPort,
@@ -54,6 +58,8 @@ public class RegisterUserService implements RegisterUserUseCase {
                                 Clock clock,
                                 @Value("${oikos.mail.verification-token-ttl-hours}") long verificationTokenTtlHours) {
         this.userRepository = userRepository;
+        this.emailSendQuotaPort = emailSendQuotaPort;
+        this.accountExistsEmailComposer = accountExistsEmailComposer;
         this.verificationTokenRepository = verificationTokenRepository;
         this.passwordEncoderPort = passwordEncoderPort;
         this.emailSenderPort = emailSenderPort;
@@ -66,13 +72,19 @@ public class RegisterUserService implements RegisterUserUseCase {
 
     @Override
     @Transactional
-    public UserId register(RegisterUserCommand command) {
-        if (userRepository.existsByEmail(command.email().value())) {
-            throw new EmailAlreadyUsedException(command.email().value());
-        }
+    public void register(RegisterUserCommand command) {
+        // Before the lookup: refused only for new addresses, it would tell them apart.
         Role role = command.role() != null ? command.role() : Role.ROLE_USER;
         if (!RegistrableRoles.isAllowed(role)) {
             throw new RoleNotAllowedException(role);
+        }
+        emailSendQuotaPort.requireQuota(command.email().value());
+        if (userRepository.existsByEmail(command.email().value())) {
+            // Hashed anyway, so that a known address does not answer faster.
+            passwordEncoderPort.encode(command.password());
+            emailSenderPort.send(command.email(), accountExistsEmailComposer.subject(),
+                    accountExistsEmailComposer.htmlBody());
+            return;
         }
         HashedPassword hashedPassword = passwordEncoderPort.encode(command.password());
         User user = User.register(UserId.newId(), command.email(), command.fullName(), command.phone(),
@@ -95,7 +107,6 @@ public class RegisterUserService implements RegisterUserUseCase {
 
         emailSenderPort.send(command.email(), emailComposer.subject(),
                 emailComposer.htmlBody(rawToken, sanitizeReturnTo(command.returnTo())));
-        return savedUser.getId();
     }
 
     private static String sanitizeReturnTo(String returnTo) {

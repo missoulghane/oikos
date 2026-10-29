@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.architek.oikos.shared.application.port.out.EmailSendQuotaPort;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
@@ -18,7 +19,6 @@ import com.architek.oikos.user.application.port.out.PartyProvisioningDetails;
 import com.architek.oikos.user.application.port.out.PartyProvisioningPort;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningDetails;
 import com.architek.oikos.user.application.port.out.PropertyProvisioningPort;
-import com.architek.oikos.user.domain.exception.EmailAlreadyUsedException;
 import com.architek.oikos.user.domain.model.PropertyRole;
 import com.architek.oikos.user.domain.model.Role;
 import com.architek.oikos.user.domain.model.User;
@@ -45,6 +45,8 @@ import com.architek.oikos.user.domain.valueobject.UserId;
 public class RegisterPropertyManagerAdminService implements RegisterPropertyManagerAdminUseCase {
 
     private final UserRepository userRepository;
+    private final EmailSendQuotaPort emailSendQuotaPort;
+    private final AccountAlreadyExistsEmailComposer accountExistsEmailComposer;
     private final PartyProvisioningPort partyProvisioningPort;
     private final PropertyProvisioningPort propertyProvisioningPort;
     private final VerificationTokenRepository verificationTokenRepository;
@@ -56,6 +58,8 @@ public class RegisterPropertyManagerAdminService implements RegisterPropertyMana
     private final Duration verificationTokenTtl;
 
     public RegisterPropertyManagerAdminService(UserRepository userRepository,
+                                               EmailSendQuotaPort emailSendQuotaPort,
+                                               AccountAlreadyExistsEmailComposer accountExistsEmailComposer,
                                                 PartyProvisioningPort partyProvisioningPort,
                                                 PropertyProvisioningPort propertyProvisioningPort,
                                                 VerificationTokenRepository verificationTokenRepository,
@@ -66,6 +70,8 @@ public class RegisterPropertyManagerAdminService implements RegisterPropertyMana
                                                 Clock clock,
                                                 @Value("${oikos.mail.verification-token-ttl-hours}") long verificationTokenTtlHours) {
         this.userRepository = userRepository;
+        this.emailSendQuotaPort = emailSendQuotaPort;
+        this.accountExistsEmailComposer = accountExistsEmailComposer;
         this.partyProvisioningPort = partyProvisioningPort;
         this.propertyProvisioningPort = propertyProvisioningPort;
         this.verificationTokenRepository = verificationTokenRepository;
@@ -79,9 +85,14 @@ public class RegisterPropertyManagerAdminService implements RegisterPropertyMana
 
     @Override
     @Transactional
-    public UserId register(RegisterPropertyManagerAdminCommand command) {
+    public void register(RegisterPropertyManagerAdminCommand command) {
+        emailSendQuotaPort.requireQuota(command.email().value());
         if (userRepository.existsByEmail(command.email().value())) {
-            throw new EmailAlreadyUsedException(command.email().value());
+            // Hashed anyway, so that a known address does not answer faster.
+            passwordEncoderPort.encode(command.password());
+            emailSenderPort.send(command.email(), accountExistsEmailComposer.subject(),
+                    accountExistsEmailComposer.htmlBody());
+            return;
         }
         EntityId propertyId = propertyProvisioningPort.provisionProperty(
                 new PropertyProvisioningDetails(command.propertyName(), command.propertyAddress(), command.propertyCity()));
@@ -102,6 +113,5 @@ public class RegisterPropertyManagerAdminService implements RegisterPropertyMana
         verificationTokenRepository.save(verificationToken);
 
         emailSenderPort.send(command.email(), emailComposer.subject(), emailComposer.htmlBody(rawToken, null));
-        return savedUser.getId();
     }
 }

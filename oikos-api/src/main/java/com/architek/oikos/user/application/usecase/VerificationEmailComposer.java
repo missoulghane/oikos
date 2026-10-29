@@ -2,21 +2,27 @@ package com.architek.oikos.user.application.usecase;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.architek.oikos.shared.application.port.out.EmailTemplateRendererPort;
+
 /**
- * Composes the subject/body of the account-verification email. Package-private:
+ * Composes the subject/body (template email/account-verification.html) of the account-verification email. Package-private:
  * only used internally by RegisterUserService and ResendVerificationService.
  */
 @Component
 class VerificationEmailComposer {
 
     private final String verificationBaseUrl;
+    private final EmailTemplateRendererPort templateRenderer;
 
-    VerificationEmailComposer(@Value("${oikos.mail.verification-base-url}") String verificationBaseUrl) {
+    VerificationEmailComposer(@Value("${oikos.mail.verification-base-url}") String verificationBaseUrl,
+            EmailTemplateRendererPort templateRenderer) {
         this.verificationBaseUrl = verificationBaseUrl;
+        this.templateRenderer = templateRenderer;
     }
 
     String subject() {
@@ -32,11 +38,6 @@ class VerificationEmailComposer {
     String htmlBody(String token, String returnTo) {
         String link = verificationBaseUrl + "?token=" + token
                 + (returnTo != null ? "&returnTo=" + URLEncoder.encode(returnTo, StandardCharsets.UTF_8) : "");
-        return """
-                <p>Bienvenue sur Daba Syndic,</p>
-                <p>Merci de confirmer votre adresse email en cliquant sur le lien ci-dessous :</p>
-                <p><a href="%s">Confirmer mon compte</a></p>
-                <p>Ce lien expire dans 24 heures.</p>
-                """.formatted(link);
+        return templateRenderer.render("account-verification", Map.of("link", link));
     }
 }

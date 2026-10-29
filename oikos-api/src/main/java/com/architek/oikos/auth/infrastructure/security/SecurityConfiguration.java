@@ -121,6 +121,9 @@ public class SecurityConfiguration {
                         // one lot's convocation, no identifiers returned, no answer once the
                         // session has opened.
                         .requestMatchers("/api/v1/convocations/by-token/**").permitAll()
+                        // The product's own pick lists, which the sign-up wizard shows before
+                        // any account exists - see ReferenceCatalogController.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/board-roles", "/api/v1/unit-type-choices").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()

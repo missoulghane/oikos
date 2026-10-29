@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!--
+  Gabarit commun à tous les emails : en-tête, cadre, pied de page. Chaque email
+  (templates/email/*.html) n'apporte que son titre et son contenu, insérés ici
+  par th:replace. Changer l'apparence de tous les emails se fait dans ce fichier.
+
+  Contraintes des clients de messagerie (Gmail, Outlook) : mise en page en
+  tableaux, styles en ligne, aucune feuille de style ni police externe, aucune
+  image distante (souvent bloquée par défaut).
+  Variables communes, posées par ThymeleafEmailTemplateRenderer : brandName,
+  publicBaseUrl.
+-->
+<html xmlns:th="http://www.thymeleaf.org" lang="fr" th:fragment="layout(title, content)">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title th:replace="${title}">Daba Syndic</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f2f4f7;font-family:Helvetica,Arial,sans-serif;color:#101828;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f2f4f7;">
+    <tr>
+        <td align="center" style="padding:32px 16px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="max-width:560px;background-color:#ffffff;border-radius:12px;border:1px solid #e4e7ec;">
+                <tr>
+                    <td style="padding:24px 32px;border-bottom:1px solid #e4e7ec;">
+                        <span style="font-size:20px;font-weight:bold;color:#465fff;" th:text="${brandName}">Daba Syndic</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:32px;font-size:15px;line-height:24px;" th:insert="${content}">
+                        Contenu de l'email
+                    </td>
+                </tr>
+            </table>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+                <tr>
+                    <td style="padding:16px 32px;font-size:12px;line-height:18px;color:#667085;text-align:center;">
+                        Cet email vous a été envoyé automatiquement par
+                        <a th:href="${publicBaseUrl}" th:text="${brandName}" style="color:#667085;">Daba Syndic</a>.
+                        Merci de ne pas y répondre.
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

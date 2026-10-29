@@ -1,19 +1,26 @@
 package com.architek.oikos.auth.application.usecase;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.architek.oikos.shared.application.port.out.EmailTemplateRendererPort;
+
 /**
- * Composes the subject/body of the password-reset email. Package-private: only used
+ * Composes the subject/body (template email/password-reset.html) of the password-reset email. Package-private: only used
  * internally by RequestPasswordResetService.
  */
 @Component
 class PasswordResetEmailComposer {
 
     private final String passwordResetBaseUrl;
+    private final EmailTemplateRendererPort templateRenderer;
 
-    PasswordResetEmailComposer(@Value("${oikos.mail.password-reset-base-url}") String passwordResetBaseUrl) {
+    PasswordResetEmailComposer(@Value("${oikos.mail.password-reset-base-url}") String passwordResetBaseUrl,
+            EmailTemplateRendererPort templateRenderer) {
         this.passwordResetBaseUrl = passwordResetBaseUrl;
+        this.templateRenderer = templateRenderer;
     }
 
     String subject() {
@@ -22,11 +29,6 @@ class PasswordResetEmailComposer {
 
     String htmlBody(String token) {
         String link = passwordResetBaseUrl + "?token=" + token;
-        return """
-                <p>Vous avez demandé la réinitialisation de votre mot de passe Daba Syndic.</p>
-                <p>Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe :</p>
-                <p><a href="%s">Réinitialiser mon mot de passe</a></p>
-                <p>Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
-                """.formatted(link);
+        return templateRenderer.render("password-reset", Map.of("link", link));
     }
 }

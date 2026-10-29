@@ -1,4 +1,9 @@
 export const queryKeys = {
+  /** Catalogues du produit, globaux : ni copropriété ni utilisateur dans la clé. */
+  reference: {
+    boardRoles: () => ['reference', 'board-roles'] as const,
+    unitTypeChoices: () => ['reference', 'unit-type-choices'] as const,
+  },
   me: {
     detail: () => ['me', 'detail'] as const,
     units: () => ['me', 'units'] as const,

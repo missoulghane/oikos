@@ -58,30 +58,25 @@ class RegistrationControllerWebMvcTest {
     private AcceptPartyInvitationUseCase acceptPartyInvitationUseCase;
 
     @Test
-    void register_with_valid_body_returns_201_with_location() throws Exception {
-        UserId userId = UserId.newId();
-        when(registerUserUseCase.register(any())).thenReturn(userId);
-
+    void register_with_valid_body_returns_202_without_location() throws Exception {
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"fullName":"Jane Doe","email":"user@oikos.com","password":"password123"}
                                 """))
-                .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/users/" + userId));
+                // Same answer for a known address: no Location, which would name a new account.
+                .andExpect(status().isAccepted())
+                .andExpect(header().doesNotExist("Location"));
     }
 
     @Test
-    void register_with_valid_role_returns_201() throws Exception {
-        UserId userId = UserId.newId();
-        when(registerUserUseCase.register(any())).thenReturn(userId);
-
+    void register_with_valid_role_returns_202() throws Exception {
         mockMvc.perform(post("/api/v1/users/register-property-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"fullName":"Jane Doe","email":"user@oikos.com","password":"password123","role":"ROLE_USER"}
                                 """))
-                .andExpect(status().isCreated());
+                .andExpect(status().isAccepted());
     }
 
     @Test
@@ -156,18 +151,15 @@ class RegistrationControllerWebMvcTest {
     }
 
     @Test
-    void register_property_manager_admin_with_valid_body_returns_201_with_location() throws Exception {
-        UserId userId = UserId.newId();
-        when(registerPropertyManagerAdminUseCase.register(any())).thenReturn(userId);
-
+    void register_property_manager_admin_with_valid_body_returns_202_without_location() throws Exception {
         mockMvc.perform(post("/api/v1/users/register-property-manager-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"fullName":"Jane Doe","email":"manager-admin@oikos.com","password":"password123",
                                 "propertyName":"Residence A","propertyAddress":"1 rue de Paris"}
                                 """))
-                .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/users/" + userId));
+                .andExpect(status().isAccepted())
+                .andExpect(header().doesNotExist("Location"));
     }
 
     @Test

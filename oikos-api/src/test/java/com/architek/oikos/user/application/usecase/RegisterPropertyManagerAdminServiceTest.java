@@ -15,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.architek.oikos.shared.application.port.out.EmailSendQuotaPort;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
@@ -32,12 +33,16 @@ import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.user.domain.repository.VerificationTokenRepository;
 import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
+import com.architek.oikos.testsupport.TestEmailTemplates;
 
 @ExtendWith(MockitoExtension.class)
 class RegisterPropertyManagerAdminServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private EmailSendQuotaPort emailSendQuotaPort;
 
     @Mock
     private PartyProvisioningPort partyProvisioningPort;
@@ -55,9 +60,10 @@ class RegisterPropertyManagerAdminServiceTest {
     private EmailSenderPort emailSenderPort;
 
     private RegisterPropertyManagerAdminService newService() {
-        return new RegisterPropertyManagerAdminService(userRepository, partyProvisioningPort, propertyProvisioningPort,
+        return new RegisterPropertyManagerAdminService(userRepository, emailSendQuotaPort,
+                new AccountAlreadyExistsEmailComposer("http://localhost:5173", TestEmailTemplates.renderer()), partyProvisioningPort, propertyProvisioningPort,
                 verificationTokenRepository, passwordEncoderPort, emailSenderPort, new VerificationTokenGenerator(),
-                new VerificationEmailComposer("http://localhost/verify"), Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
+                new VerificationEmailComposer("http://localhost/verify", TestEmailTemplates.renderer()), Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
     }
 
     @Test

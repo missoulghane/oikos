@@ -32,7 +32,7 @@ Deux mécanismes distincts à ne pas confondre à la recette :
 - **Prérequis** : copropriété existante
 - **Étapes** :
   1. Inviter une personne à rejoindre le conseil syndical (board-invitation)
-- **Résultat attendu** : `POST /properties/{id}/board-invitations` crée l'invitation avec le bon rôle cible (`PROPERTY_BOARD_MEMBER`)
+- **Résultat attendu** : `POST /properties/{id}/board-invitations` crée l'invitation avec le bon rôle cible (`PROPERTY_BOARD_MEMBER`) ; la personne invitée reçoit un email (gabarit commun) « Invitation au conseil syndical de … » qui nomme la copropriété et le siège avec le libellé du catalogue (ex. « Trésorier »), avec le lien d'invitation et sa durée de validité
 - **Priorité** : P2
 - [ ]
 

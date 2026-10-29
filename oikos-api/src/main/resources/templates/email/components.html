@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!--
+  Éléments réutilisés par les emails, insérés par th:replace :
+    ~{email/components :: button(${link}, 'Libellé')}
+    ~{email/components :: fallback-link(${link})}
+  Mêmes contraintes que layout.html : tableaux et styles en ligne.
+-->
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<body>
+
+<table th:fragment="button(link, label)" role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">
+    <tr>
+        <td style="border-radius:8px;background-color:#465fff;">
+            <a th:href="${link}" th:text="${label}"
+               style="display:inline-block;padding:12px 24px;font-weight:bold;color:#ffffff;text-decoration:none;">Action</a>
+        </td>
+    </tr>
+</table>
+
+<p th:fragment="fallback-link(link)" style="margin:0 0 16px;font-size:13px;color:#667085;">
+    Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br/>
+    <a th:href="${link}" th:text="${link}" style="color:#465fff;word-break:break-all;">lien</a>
+</p>
+
+</body>
+</html>

@@ -40,6 +40,7 @@ import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.exception.ResourceNotFoundException;
+import com.architek.oikos.testsupport.TestEmailTemplates;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -66,7 +67,7 @@ class CreateInvitationServiceTest {
         return new CreateInvitationService(invitationRepository, propertyDirectoryPort, unitDirectoryPort,
                 partyDirectoryPort, new InvitationTokenGenerator(),
                 new InvitationLinkComposer("https://app.example.com/invitations"),
-                new OwnerInvitationEmailComposer(), emailSenderPort,
+                new OwnerInvitationEmailComposer(TestEmailTemplates.renderer()), emailSenderPort,
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 30L);
     }
 

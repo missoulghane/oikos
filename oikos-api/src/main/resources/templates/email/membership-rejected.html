@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr"
+      th:replace="~{email/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Demande d'adhésion</title>
+</head>
+<body>
+<section>
+    <p style="margin:0 0 16px;">Bonjour <span th:text="${fullName}">Prénom Nom</span>,</p>
+    <p style="margin:0 0 16px;">Votre demande d'adhésion pour le lot <strong th:text="${unitNumber}">A-12</strong> de <strong th:text="${propertyName}">Résidence</strong> n'a pas été retenue par le syndic.</p>
+    <!-- Motif facultatif côté syndic : sans lui, l'email n'invente rien. -->
+    <p style="margin:0 0 16px;" th:if="${reason}">Motif indiqué par le syndic : <span th:text="${reason}">motif</span></p>
+    <p style="margin:0;">Si vous pensez qu'il s'agit d'une erreur, rapprochez-vous du syndic de la copropriété.</p>
+</section>
+</body>
+</html>

@@ -74,8 +74,13 @@ public class RegistrationController {
         this.jwtTokenPort = jwtTokenPort;
     }
 
+    /**
+     * 202 and no body whether the address is new or not - see RegisterUserService.
+     * No Location either: a new account's id would be the one thing that differs.
+     */
+    @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping("/register-property-user")
-    public ResponseEntity<Void> registerPropertyUser(@Valid @RequestBody RegisterUserRequest request) {
+    public void registerPropertyUser(@Valid @RequestBody RegisterUserRequest request) {
         RegisterUserCommand command = new RegisterUserCommand(
                 request.fullName(),
                 EmailVO.of(request.email()),
@@ -85,8 +90,7 @@ public class RegistrationController {
                 request.returnTo(),
                 request.invitationToken(),
                 request.unitId() != null ? EntityId.of(request.unitId()) : null);
-        UserId userId = registerUserUseCase.register(command);
-        return ResponseEntity.created(URI.create("/api/v1/users/" + userId)).build();
+        registerUserUseCase.register(command);
     }
 
     /**
@@ -94,6 +98,10 @@ public class RegistrationController {
      * creates the account only (its property comes at step 2, see
      * BoardAdminOnboardingController). Answers with the onboarding token step 2
      * needs, since the account is not verified (hence cannot log in) yet.
+     *
+     * <p>Unlike the two other sign-ups, a known address is refused here
+     * (EmailAlreadyUsedException): the wizard hands out a token at once, and
+     * there is no token to give for an address that already has an account.
      */
     @PostMapping("/register-property-board-admin")
     public ResponseEntity<RegisteredBoardAdminResponse> registerPropertyBoardAdmin(
@@ -111,8 +119,9 @@ public class RegistrationController {
     }
 
     /** Professional property-management firm admin - uncapped, may create further properties. */
+    @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping("/register-property-manager-admin")
-    public ResponseEntity<Void> registerPropertyManagerAdmin(@Valid @RequestBody RegisterPropertyManagerAdminRequest request) {
+    public void registerPropertyManagerAdmin(@Valid @RequestBody RegisterPropertyManagerAdminRequest request) {
         RegisterPropertyManagerAdminCommand command = new RegisterPropertyManagerAdminCommand(
                 request.fullName(),
                 EmailVO.of(request.email()),
@@ -120,8 +129,7 @@ public class RegistrationController {
                 RawPassword.of(request.password()),
                 request.propertyName(),
                 request.propertyAddress(), request.propertyCity());
-        UserId userId = registerPropertyManagerAdminUseCase.register(command);
-        return ResponseEntity.created(URI.create("/api/v1/users/" + userId)).build();
+        registerPropertyManagerAdminUseCase.register(command);
     }
 
     @PostMapping("/verify")

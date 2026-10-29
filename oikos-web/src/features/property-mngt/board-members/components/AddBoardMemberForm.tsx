@@ -5,6 +5,7 @@ import { Input } from '@/shared/components/Input/Input';
 import { PhoneField } from '@/shared/components/PhoneField/PhoneField';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
+import { Loader } from '@/shared/components/Loader/Loader';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { useAddBoardMember } from '@/features/property-mngt/board-members/hooks/useAddBoardMember';
 import { useBoardMembers } from '@/features/property-mngt/board-members/hooks/useBoardMembers';
@@ -13,7 +14,7 @@ import {
   addBoardMemberSchema,
   type AddBoardMemberFormValues,
 } from '@/features/property-mngt/board-members/schemas/addBoardMemberSchema';
-import { BOARD_ROLES, BOARD_ROLE_LABELS } from '@/features/property-mngt/board-members/types/boardMember.types';
+import { useBoardRoleLabel, useBoardRoles } from '@/shared/hooks/useBoardRoles';
 import { RequiredFieldsHint } from '@/shared/components/RequiredFieldsHint/RequiredFieldsHint';
 
 interface AddBoardMemberFormProps {
@@ -67,6 +68,8 @@ export function AddBoardMemberForm({ propertyId, onSuccess, onCancel }: AddBoard
     defaultValues: { fullName: '', email: '', phone: '', boardRole: 'MEMBER' },
   });
   const { mutate, isPending, error } = useAddBoardMember(propertyId);
+  const boardRoles = useBoardRoles();
+  const boardRoleLabel = useBoardRoleLabel();
   // Le conseil déjà en place : même clé react-query que la section parente,
   // donc pas d'appel de plus. Sert à ne pas proposer un rattachement que le
   // serveur refusera.
@@ -113,7 +116,7 @@ export function AddBoardMemberForm({ propertyId, onSuccess, onCancel }: AddBoard
           laquelle. */}
       {alreadyHoldsThisRole ? (
         <Alert
-          message={`${alreadyHoldsThisRole.partyFullName} occupe déjà la fonction de ${BOARD_ROLE_LABELS[alreadyHoldsThisRole.boardRole]} au conseil. Choisissez-en une autre, ou rattachez un autre contact.`}
+          message={`${alreadyHoldsThisRole.partyFullName} occupe déjà la fonction de ${boardRoleLabel(alreadyHoldsThisRole.boardRole)} au conseil. Choisissez-en une autre, ou rattachez un autre contact.`}
         />
       ) : (
         existingContact && (
@@ -123,7 +126,7 @@ export function AddBoardMemberForm({ propertyId, onSuccess, onCancel }: AddBoard
               `${contactMatchLabel(existingContact)}. En confirmant, la fonction sera rattachée à ce contact — le nom et les coordonnées saisis ici sont ignorés.` +
               (otherSeats.length > 0
                 ? ` Il siège déjà au conseil comme ${otherSeats
-                    .map((member) => BOARD_ROLE_LABELS[member.boardRole])
+                    .map((member) => boardRoleLabel(member.boardRole))
                     .join(', ')}.`
                 : '')
             }
@@ -148,13 +151,19 @@ export function AddBoardMemberForm({ propertyId, onSuccess, onCancel }: AddBoard
           />
         )}
       />
-      <Select label="Rôle" required {...register('boardRole')} errorMessage={errors.boardRole?.message}>
-        {BOARD_ROLES.map((role) => (
-          <option key={role} value={role}>
-            {BOARD_ROLE_LABELS[role]}
-          </option>
-        ))}
-      </Select>
+      {/* Monté une fois le catalogue chargé : enregistré plus tôt, le select
+          afficherait sa première option sans que la valeur du formulaire suive. */}
+      {boardRoles.data ? (
+        <Select label="Rôle" required {...register('boardRole')} errorMessage={errors.boardRole?.message}>
+          {boardRoles.data.map((role) => (
+            <option key={role.code} value={role.code}>
+              {role.label}
+            </option>
+          ))}
+        </Select>
+      ) : (
+        <Loader label="Chargement des rôles…" />
+      )}
 
       <div className="flex gap-2">
         {/* Désactivé plutôt que refusé après coup : le message au-dessus dit

@@ -1,19 +1,26 @@
 package com.architek.oikos.user.application.usecase;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.architek.oikos.shared.application.port.out.EmailTemplateRendererPort;
+
 /**
- * Composes the subject/body of the owner-invitation email. Package-private:
+ * Composes the subject/body (template email/party-invitation.html) of the owner-invitation email. Package-private:
  * only used internally by InvitePartyService.
  */
 @Component
 class PartyInvitationEmailComposer {
 
     private final String partyInvitationBaseUrl;
+    private final EmailTemplateRendererPort templateRenderer;
 
-    PartyInvitationEmailComposer(@Value("${oikos.mail.party-invitation-base-url}") String partyInvitationBaseUrl) {
+    PartyInvitationEmailComposer(@Value("${oikos.mail.party-invitation-base-url}") String partyInvitationBaseUrl,
+            EmailTemplateRendererPort templateRenderer) {
         this.partyInvitationBaseUrl = partyInvitationBaseUrl;
+        this.templateRenderer = templateRenderer;
     }
 
     String subject() {
@@ -22,12 +29,6 @@ class PartyInvitationEmailComposer {
 
     String htmlBody(String fullName, String token) {
         String link = partyInvitationBaseUrl + "?token=" + token;
-        return """
-                <p>Bonjour %s,</p>
-                <p>Vous avez été rattaché(e) comme copropriétaire dans Daba Syndic.</p>
-                <p>Cliquez sur le lien ci-dessous pour accéder à votre espace :</p>
-                <p><a href="%s">Accéder à mon espace</a></p>
-                <p>Ce lien expire dans 7 jours. Si vous n'attendiez pas cet email, ignorez-le.</p>
-                """.formatted(fullName, link);
+        return templateRenderer.render("party-invitation", Map.of("fullName", fullName, "link", link));
     }
 }

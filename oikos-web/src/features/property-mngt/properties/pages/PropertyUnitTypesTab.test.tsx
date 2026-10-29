@@ -8,6 +8,11 @@ import { useAddUnitTypeDefinition } from '@/features/property-mngt/properties/ho
 import { useRemoveUnitTypeDefinition } from '@/features/property-mngt/properties/hooks/useRemoveUnitTypeDefinition';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
 
+// Rendu synchrone : le catalogue est servi tel quel plutôt que résolu par une requête.
+vi.mock('@/shared/hooks/useUnitTypeChoices', async () => {
+  const { UNIT_TYPE_CHOICES_FIXTURE } = await import('@/test/referenceCatalogs');
+  return { useUnitTypeChoices: () => ({ data: UNIT_TYPE_CHOICES_FIXTURE }) };
+});
 vi.mock('@/features/property-mngt/properties/hooks/useUnitTypeDefinitions', () => ({
   useUnitTypeDefinitions: vi.fn(),
 }));
@@ -71,8 +76,8 @@ describe('PropertyUnitTypesTab', () => {
   it('offre les mêmes types que le wizard, cochés selon ce que gère la copropriété', () => {
     setup([{ id: 'type-1', name: 'Appartement' }]);
 
-    // La liste vient d'UNIT_TYPE_CHOICES, le paramètre applicatif que le wizard
-    // d'inscription lit aussi.
+    // La liste vient du catalogue unit_type_choice, que le wizard d'inscription
+    // lit aussi.
     expect(screen.getByRole('checkbox', { name: 'Appartement' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Parking' })).not.toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Box' })).not.toBeChecked();

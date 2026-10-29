@@ -1,9 +1,13 @@
 package com.architek.oikos.user.application.port.in;
 
 import com.architek.oikos.user.application.command.RegisterPropertyManagerAdminCommand;
-import com.architek.oikos.user.domain.valueobject.UserId;
 
 public interface RegisterPropertyManagerAdminUseCase {
 
-    UserId register(RegisterPropertyManagerAdminCommand command);
+    /**
+     * Answers the same way whether the address is new or already has an
+     * account: an existing one only gets an email saying so (see
+     * RegisterPropertyBoardAdminService for why).
+     */
+    void register(RegisterPropertyManagerAdminCommand command);
 }

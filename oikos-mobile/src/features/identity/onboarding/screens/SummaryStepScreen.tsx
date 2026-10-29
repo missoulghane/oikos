@@ -1,4 +1,5 @@
 import type { PropsWithChildren, ReactNode } from 'react';
+import { useUnitTypeChoices } from '@/shared/hooks/useUnitTypeChoices';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthLayout } from '@/shared/layouts/AuthLayout';
@@ -22,6 +23,7 @@ type Props = NativeStackScreenProps<OnboardingStackParamList, 'Summary'>;
 
 export function SummaryStepScreen({ navigation }: Props) {
   const { draft } = useOnboarding();
+  const unitTypeChoices = useUnitTypeChoices();
   const configure = useConfigureProperty();
   const isFlatRate = draft.duesCalculationMode === 'FLAT_RATE';
 
@@ -128,7 +130,7 @@ export function SummaryStepScreen({ navigation }: Props) {
             {draft.buildings.map((building, index) => (
               <View key={index} style={styles.buildingRecap}>
                 <Text style={styles.recapText}>{building.name || `Bâtiment ${index + 1}`}</Text>
-                <Text style={styles.recapMuted}>{buildingSummary(building, draft.selectedUnitTypes) || 'Aucun lot'}</Text>
+                <Text style={styles.recapMuted}>{buildingSummary(building, draft.selectedUnitTypes, unitTypeChoices.data ?? []) || 'Aucun lot'}</Text>
               </View>
             ))}
           </RecapSection>

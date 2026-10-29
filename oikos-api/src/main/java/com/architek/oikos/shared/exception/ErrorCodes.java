@@ -23,6 +23,7 @@ public final class ErrorCodes {
      */
     public static final String INVALID_LINK = "INVALID_LINK";
 
+
     /** Ce contact est déjà propriétaire de ce lot. */
     public static final String PARTY_ALREADY_OWNS_UNIT = "PARTY_ALREADY_OWNS_UNIT";
 

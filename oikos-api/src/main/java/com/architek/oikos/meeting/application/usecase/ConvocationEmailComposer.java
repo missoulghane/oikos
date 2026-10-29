@@ -3,11 +3,14 @@ package com.architek.oikos.meeting.application.usecase;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
 import com.architek.oikos.meeting.application.port.out.UnitInfo;
+import com.architek.oikos.shared.application.port.out.EmailTemplateRendererPort;
 import com.architek.oikos.meeting.domain.model.GeneralMeeting;
 import com.architek.oikos.meeting.domain.valueobject.MeetingType;
 import com.architek.oikos.meeting.domain.valueobject.MeetingVenue;
@@ -29,6 +32,10 @@ import com.architek.oikos.meeting.domain.valueobject.MeetingVenue;
  * copropriétaire's own space instead, where the PDF is already downloadable -
  * GET /convocations/&#123;id&#125;/document is open to the lot's owner, not only to
  * the syndic.
+ *
+ * <p>The emails are rendered from templates/email/convocation.html, inside the
+ * common layout. The in-app body stays here: the messagerie shows a fragment,
+ * not a whole email page.
  */
 @Component
 class ConvocationEmailComposer {
@@ -37,6 +44,12 @@ class ConvocationEmailComposer {
     private static final ZoneId CASABLANCA = ZoneId.of("Africa/Casablanca");
     private static final DateTimeFormatter DATE_TIME =
             DateTimeFormatter.ofPattern("EEEE d MMMM yyyy 'à' HH'h'mm", FR).withZone(CASABLANCA);
+
+    private final EmailTemplateRendererPort templateRenderer;
+
+    ConvocationEmailComposer(EmailTemplateRendererPort templateRenderer) {
+        this.templateRenderer = templateRenderer;
+    }
 
     String subject(String propertyName, GeneralMeeting meeting) {
         return "Daba Syndic - Convocation : " + meeting.getTitle() + " (" + propertyName + ")";
@@ -47,8 +60,7 @@ class ConvocationEmailComposer {
     }
 
     String htmlBody(String propertyName, GeneralMeeting meeting, UnitInfo unit, String confirmationLink) {
-        return body(propertyName, meeting, unit, confirmationLink,
-                "<p>Vous êtes convoqué(e) à l'assemblée générale suivante :</p>");
+        return emailBody(propertyName, meeting, unit, confirmationLink, false);
     }
 
     /**
@@ -72,52 +84,32 @@ class ConvocationEmailComposer {
     }
 
     String reminderHtmlBody(String propertyName, GeneralMeeting meeting, UnitInfo unit, String confirmationLink) {
-        return body(propertyName, meeting, unit, confirmationLink,
-                "<p>Nous n'avons pas encore reçu votre réponse concernant l'assemblée générale suivante :</p>");
-    }
-
-    private String body(String propertyName, GeneralMeeting meeting, UnitInfo unit, String confirmationLink,
-                         String opening) {
-        return """
-                %s
-                <p><strong>%s</strong> — assemblée générale %s<br/>
-                Copropriété : %s<br/>
-                Lot concerné : %s<br/>
-                Date : %s<br/>
-                Lieu : %s</p>
-                <p>La convocation détaillée, avec l'ordre du jour, est jointe à cet email.</p>
-                %s
-                """.formatted(opening, escape(meeting.getTitle()), typeLabel(meeting.getMeetingType()),
-                escape(propertyName), escape(lotLabel(unit)), dateLabel(meeting.getScheduledAt()),
-                escape(venueLabel(meeting.getVenue())), confirmationBlock(confirmationLink));
+        return emailBody(propertyName, meeting, unit, confirmationLink, true);
     }
 
     /**
-     * The confirmation link, and the fallback for the copropriétaires who do
-     * have an account. Naming the link first is deliberate: the previous wording
-     * pointed everyone at "votre espace copropriétaire", which a large share of
-     * recipients do not have and cannot get - they simply had no way to answer.
+     * The template escapes every value itself - property names, lot numbers and
+     * addresses are free text entered by a syndic.
      *
-     * <p>It says the page will ask for the lot's code, and deliberately does not
-     * print it. An email carrying both the link and the code would answer its own
-     * question, which is the whole of what the code is there to prevent (ADR 0002
-     * §16). "Sur votre convocation" rather than "sur la convocation jointe": a
-     * reminder carries no PDF, and the recipient has the first email.
+     * <p>The confirmation link comes first, before the fallback to the
+     * copropriétaire's space: a large share of recipients have no account and
+     * cannot get one. The page asks for the lot's code, which the email never
+     * prints - link and code together would answer the question the code is
+     * there to ask (ADR 0002 §16).
      */
-    private static String confirmationBlock(String confirmationLink) {
-        if (confirmationLink == null || confirmationLink.isBlank()) {
-            return "<p>Merci d'indiquer votre présence ou votre absence depuis votre espace copropriétaire.</p>";
-        }
-        return """
-                <p>Merci d'indiquer votre présence ou votre absence en suivant ce lien personnel,
-                    sans avoir besoin de compte :<br/>
-                    <a href="%s">%s</a></p>
-                <p>La page vous demandera le <strong>code de votre lot</strong> : les six caractères imprimés
-                    sur votre convocation, à côté du QR code. Il atteste que la réponse vient bien de votre
-                    lot.</p>
-                <p style="color:#667085;font-size:12px;">Ce lien vaut pour le lot ci-dessus : ne le transmettez
-                    qu'aux personnes autorisées à répondre pour lui.</p>
-                """.formatted(escape(confirmationLink), escape(confirmationLink));
+    private String emailBody(String propertyName, GeneralMeeting meeting, UnitInfo unit, String confirmationLink,
+                             boolean reminder) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("reminder", reminder);
+        variables.put("meetingTitle", meeting.getTitle());
+        variables.put("meetingType", typeLabel(meeting.getMeetingType()));
+        variables.put("propertyName", propertyName);
+        variables.put("lotLabel", lotLabel(unit));
+        variables.put("dateLabel", dateLabel(meeting.getScheduledAt()));
+        variables.put("venueLabel", venueLabel(meeting.getVenue()));
+        // Map.of refuses nulls, and "no link" is a legitimate value here.
+        variables.put("confirmationLink", confirmationLink == null || confirmationLink.isBlank() ? null : confirmationLink);
+        return templateRenderer.render("convocation", variables);
     }
 
     private static String typeLabel(MeetingType type) {
@@ -148,8 +140,8 @@ class ConvocationEmailComposer {
     }
 
     /**
-     * Property names, lot numbers and addresses are free text entered by a
-     * syndic; interpolated raw into HTML, a stray &lt; would break the email
+     * For the in-app body only. Property names, lot numbers and addresses are
+     * free text entered by a syndic; interpolated raw into HTML, a stray &lt; would break the email
      * silently - and an injected tag would not be silent at all.
      */
     private static String escape(String value) {

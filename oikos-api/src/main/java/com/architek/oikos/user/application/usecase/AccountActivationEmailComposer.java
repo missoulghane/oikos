@@ -1,10 +1,14 @@
 package com.architek.oikos.user.application.usecase;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.architek.oikos.shared.application.port.out.EmailTemplateRendererPort;
+
 /**
- * Composes the subject/body of the account-activation email sent to users
+ * Composes the subject/body (template email/account-activation.html) of the account-activation email sent to users
  * created by an administrator. Package-private: only used internally by
  * CreateUserService and ResendAccountActivationService.
  */
@@ -12,9 +16,12 @@ import org.springframework.stereotype.Component;
 class AccountActivationEmailComposer {
 
     private final String accountActivationBaseUrl;
+    private final EmailTemplateRendererPort templateRenderer;
 
-    AccountActivationEmailComposer(@Value("${oikos.mail.account-activation-base-url}") String accountActivationBaseUrl) {
+    AccountActivationEmailComposer(@Value("${oikos.mail.account-activation-base-url}") String accountActivationBaseUrl,
+            EmailTemplateRendererPort templateRenderer) {
         this.accountActivationBaseUrl = accountActivationBaseUrl;
+        this.templateRenderer = templateRenderer;
     }
 
     String subject() {
@@ -23,12 +30,6 @@ class AccountActivationEmailComposer {
 
     String htmlBody(String token) {
         String link = accountActivationBaseUrl + "?token=" + token;
-        return """
-                <p>Bienvenue sur Daba Syndic,</p>
-                <p>Un compte administrateur a été créé pour vous. Cliquez sur le lien ci-dessous pour
-                l'activer et choisir votre mot de passe :</p>
-                <p><a href="%s">Activer mon compte</a></p>
-                <p>Ce lien expire dans 24 heures.</p>
-                """.formatted(link);
+        return templateRenderer.render("account-activation", Map.of("link", link));
     }
 }

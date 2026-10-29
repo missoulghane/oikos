@@ -1,19 +1,28 @@
 package com.architek.oikos.invitation.application.usecase;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.architek.oikos.shared.application.port.out.EmailTemplateRendererPort;
+
 /**
  * Compose l'email annonçant au demandeur l'issue de sa demande d'adhésion.
- * Package-private : n'est utilisé que par MembershipDecisionNotifier.
+ * Package-private : n'est utilisé que par MembershipDecisionNotifier. Texte et
+ * mise en forme : templates/email/membership-accepted.html et membership-rejected.html.
  */
 @Component
 class MembershipDecisionEmailComposer {
 
     private final String publicBaseUrl;
+    private final EmailTemplateRendererPort templateRenderer;
 
-    MembershipDecisionEmailComposer(@Value("${oikos.mail.public-base-url}") String publicBaseUrl) {
+    MembershipDecisionEmailComposer(@Value("${oikos.mail.public-base-url}") String publicBaseUrl,
+            EmailTemplateRendererPort templateRenderer) {
         this.publicBaseUrl = publicBaseUrl;
+        this.templateRenderer = templateRenderer;
     }
 
     String acceptedSubject(String propertyName) {
@@ -25,13 +34,8 @@ class MembershipDecisionEmailComposer {
     }
 
     String acceptedHtmlBody(String fullName, String propertyName, String unitNumber) {
-        return """
-                <p>Bonjour %s,</p>
-                <p>Votre demande d'adhésion pour le lot %s de %s vient d'être validée par le syndic.</p>
-                <p>La gestion de votre lot est entièrement à vous : appels de fonds, documents,
-                assemblées générales et messagerie de la copropriété.</p>
-                <p><a href="%s/dashboard">Accéder à mon espace</a></p>
-                """.formatted(fullName, unitNumber, propertyName, publicBaseUrl);
+        return templateRenderer.render("membership-accepted", Map.of("fullName", fullName, "unitNumber", unitNumber,
+                "propertyName", propertyName, "spaceLink", publicBaseUrl + "/dashboard"));
     }
 
     /**
@@ -40,13 +44,11 @@ class MembershipDecisionEmailComposer {
      * contente d'ouvrir la porte d'une reprise de contact.
      */
     String rejectedHtmlBody(String fullName, String propertyName, String unitNumber, String reason) {
-        String reasonBlock = reason == null || reason.isBlank() ? ""
-                : "<p>Motif indiqué par le syndic : %s</p>".formatted(reason);
-        return """
-                <p>Bonjour %s,</p>
-                <p>Votre demande d'adhésion pour le lot %s de %s n'a pas été retenue par le syndic.</p>
-                %s
-                <p>Si vous pensez qu'il s'agit d'une erreur, rapprochez-vous du syndic de la copropriété.</p>
-                """.formatted(fullName, unitNumber, propertyName, reasonBlock);
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("fullName", fullName);
+        variables.put("unitNumber", unitNumber);
+        variables.put("propertyName", propertyName);
+        variables.put("reason", reason == null || reason.isBlank() ? null : reason);
+        return templateRenderer.render("membership-rejected", variables);
     }
 }

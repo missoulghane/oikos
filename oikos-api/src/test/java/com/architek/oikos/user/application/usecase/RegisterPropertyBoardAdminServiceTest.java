@@ -29,6 +29,7 @@ import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.user.domain.repository.VerificationTokenRepository;
 import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
+import com.architek.oikos.testsupport.TestEmailTemplates;
 
 @ExtendWith(MockitoExtension.class)
 class RegisterPropertyBoardAdminServiceTest {
@@ -49,7 +50,7 @@ class RegisterPropertyBoardAdminServiceTest {
 
     private RegisterPropertyBoardAdminService newService() {
         return new RegisterPropertyBoardAdminService(userRepository, verificationTokenRepository, passwordEncoderPort,
-                asyncEmailSender, new VerificationTokenGenerator(), new VerificationEmailComposer("http://localhost/verify"),
+                asyncEmailSender, new VerificationTokenGenerator(), new VerificationEmailComposer("http://localhost/verify", TestEmailTemplates.renderer()),
                 Clock.fixed(NOW, ZoneOffset.UTC), 24L);
     }
 

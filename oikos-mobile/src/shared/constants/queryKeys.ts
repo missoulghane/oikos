@@ -3,6 +3,11 @@
 // far (identity phase). Add sibling top-level keys (properties, messaging,
 // notifications…) as their features are ported, following the same pattern.
 export const queryKeys = {
+  /** Catalogues du produit, globaux : ni copropriété ni utilisateur dans la clé. */
+  reference: {
+    boardRoles: () => ['reference', 'board-roles'] as const,
+    unitTypeChoices: () => ['reference', 'unit-type-choices'] as const,
+  },
   me: {
     detail: () => ['me', 'detail'] as const,
     avatar: (hasAvatar: boolean) => ['me', 'avatar', hasAvatar] as const,

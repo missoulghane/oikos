@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr"
+      th:replace="~{email/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Accédez à votre espace copropriétaire</title>
+</head>
+<body>
+<section>
+    <p style="margin:0 0 16px;">Bonjour <span th:text="${fullName}">Prénom Nom</span>,</p>
+    <p style="margin:0 0 16px;">Vous avez été rattaché(e) comme copropriétaire dans <span th:text="${brandName}">Daba Syndic</span>. Accédez à votre espace pour suivre votre lot.</p>
+    <table th:replace="~{email/components :: button(${link}, 'Accéder à mon espace')}"></table>
+    <p th:replace="~{email/components :: fallback-link(${link})}"></p>
+    <p style="margin:0;font-size:13px;color:#667085;">Ce lien expire dans 7 jours. Si vous n'attendiez pas cet email, ignorez-le.</p>
+</section>
+</body>
+</html>

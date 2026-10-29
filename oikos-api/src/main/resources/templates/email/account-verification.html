@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr"
+      th:replace="~{email/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Confirmez votre adresse email</title>
+</head>
+<body>
+<section>
+    <p style="margin:0 0 16px;">Bienvenue sur <span th:text="${brandName}">Daba Syndic</span>,</p>
+    <p style="margin:0 0 16px;">Merci de confirmer votre adresse email pour finaliser la création de votre compte.</p>
+    <table th:replace="~{email/components :: button(${link}, 'Confirmer mon adresse email')}"></table>
+    <p th:replace="~{email/components :: fallback-link(${link})}"></p>
+    <p style="margin:0;font-size:13px;color:#667085;">Ce lien expire dans 24 heures. Si vous n'êtes pas à l'origine de cette inscription, ignorez cet email.</p>
+</section>
+</body>
+</html>

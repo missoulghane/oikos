@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useUnitTypeChoices } from '@/shared/hooks/useUnitTypeChoices';
 import { Link, useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { Button } from '@/shared/components/Button/Button';
@@ -20,6 +21,7 @@ import type { ConfigurePropertyPayload } from '@/features/identity/onboarding/ty
 export function SummaryStepPage() {
   const navigate = useNavigate();
   const { draft } = useOnboarding();
+  const unitTypeChoices = useUnitTypeChoices();
   const configure = useConfigureProperty();
   const isFlatRate = draft.duesCalculationMode === 'FLAT_RATE';
 
@@ -152,7 +154,7 @@ export function SummaryStepPage() {
                 {building.name || `Bâtiment ${index + 1}`}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {buildingSummary(building, draft.selectedUnitTypes) || 'Aucun lot'}
+                {buildingSummary(building, draft.selectedUnitTypes, unitTypeChoices.data ?? []) || 'Aucun lot'}
               </p>
             </div>
           ))}

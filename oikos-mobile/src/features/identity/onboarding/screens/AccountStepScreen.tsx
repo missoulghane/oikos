@@ -11,7 +11,8 @@ import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingContext';
 import { useRegisterPropertyBoardAdmin } from '@/features/identity/register/hooks/useRegisterPropertyBoardAdmin';
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
-import { BOARD_SEATS, BOARD_SEAT_LABELS, type BoardSeat } from '@/features/identity/onboarding/constants/boardSeats';
+import type { BoardSeat } from '@/features/identity/onboarding/constants/boardSeats';
+import { useBoardRoles } from '@/shared/hooks/useBoardRoles';
 import { colors } from '@/shared/theme/colors';
 import { WEB_URL } from '@/config/env';
 import {
@@ -23,11 +24,16 @@ import type { OnboardingStackParamList } from '@/app/navigation/OnboardingNaviga
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Account'>;
 
-const BOARD_SEAT_OPTIONS = BOARD_SEATS.map((seat) => ({ value: seat, label: BOARD_SEAT_LABELS[seat] }));
 
 export function AccountStepScreen({ navigation }: Props) {
   const { draft, update, reset } = useOnboarding();
   const registerAccount = useRegisterPropertyBoardAdmin();
+  // Même catalogue que « Ajouter un membre » (table board_role), restreint aux
+  // sièges ouverts à l'inscription.
+  const boardRoles = useBoardRoles();
+  const boardSeatOptions = (boardRoles.data ?? [])
+    .filter((role) => role.availableAtSignup)
+    .map((role) => ({ value: role.code, label: role.label }));
 
   const {
     control,
@@ -118,7 +124,7 @@ export function AccountStepScreen({ navigation }: Props) {
                 label="Votre rôle dans le conseil syndical"
                 value={value}
                 onChange={(seat) => onChange(seat as BoardSeat)}
-                options={BOARD_SEAT_OPTIONS}
+                options={boardSeatOptions}
                 errorMessage={errors.boardRole?.message}
               />
             )}
@@ -227,8 +233,8 @@ const styles = StyleSheet.create({
   },
   termsLabel: {
     flex: 1,
-    fontSize: 16,
-    color: colors.gray[800],
+    fontSize: 14,
+    color: colors.gray[500],
   },
   termsLink: {
     color: colors.brand[500],

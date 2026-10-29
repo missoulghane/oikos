@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr"
+      th:replace="~{email/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Demande d'adhésion validée</title>
+</head>
+<body>
+<section>
+    <p style="margin:0 0 16px;">Bonjour <span th:text="${fullName}">Prénom Nom</span>,</p>
+    <p style="margin:0 0 16px;">Votre demande d'adhésion pour le lot <strong th:text="${unitNumber}">A-12</strong> de <strong th:text="${propertyName}">Résidence</strong> vient d'être validée par le syndic.</p>
+    <p style="margin:0 0 16px;">La gestion de votre lot est entièrement à vous : appels de fonds, documents, assemblées générales et messagerie de la copropriété.</p>
+    <table th:replace="~{email/components :: button(${spaceLink}, 'Accéder à mon espace')}"></table>
+</section>
+</body>
+</html>

@@ -9,9 +9,7 @@ import { DEFAULT_BOARD_SEAT, type BoardSeat } from '@/features/identity/onboardi
  * Configuration d'une copropriété offre exactement la même liste, et deux
  * copies auraient divergé au premier type ajouté d'un seul côté.
  */
-import { UNIT_TYPE_CHOICES } from '@/features/property-mngt/properties/constants/unitTypeChoices';
-
-export { UNIT_TYPE_CHOICES, type UnitTypeName } from '@/features/property-mngt/properties/constants/unitTypeChoices';
+import type { UnitTypeChoice } from '@/shared/types/referenceCatalogs.types';
 
 export interface OnboardingAccount {
   fullName: string;
@@ -129,12 +127,16 @@ export function unitCountOf(building: OnboardingBuilding, unitTypeName: string):
 }
 
 /** « 12 appartements · 8 box », pour l'en-tête d'un accordéon de bâtiment. */
-export function buildingSummary(building: OnboardingBuilding, selectedUnitTypes: string[]): string {
+export function buildingSummary(
+  building: OnboardingBuilding,
+  selectedUnitTypes: string[],
+  choices: UnitTypeChoice[],
+): string {
   return selectedUnitTypes
     .map((name) => ({ name, count: unitCountOf(building, name) }))
     .filter((entry) => entry.count > 0)
     .map((entry) => {
-      const choice = UNIT_TYPE_CHOICES.find((candidate) => candidate.name === entry.name);
+      const choice = choices.find((candidate) => candidate.name === entry.name);
       return `${entry.count} ${choice ? choice.plural : entry.name.toLowerCase()}`;
     })
     .join(' · ');

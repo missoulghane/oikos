@@ -5,28 +5,26 @@ import { useOnboarding } from '@/features/identity/onboarding/state/OnboardingCo
 import { WizardShell } from '@/features/identity/onboarding/components/WizardShell';
 import { SelectableCard } from '@/shared/components/SelectableCard/SelectableCard';
 import { nextStepPath, previousStepPath } from '@/features/identity/onboarding/constants/steps';
-import { UNIT_TYPE_CHOICES } from '@/features/identity/onboarding/state/onboardingDraft';
-
-const UNIT_TYPE_DESCRIPTIONS: Record<string, string> = {
-  Appartement: 'Logements de la copropriété.',
-  Box: 'Garages et emplacements de stationnement.',
-  Bureau: 'Locaux professionnels.',
-};
+import { Loader } from '@/shared/components/Loader/Loader';
+import { useUnitTypeChoices } from '@/shared/hooks/useUnitTypeChoices';
 
 /**
  * Le choix des types seul : leurs montants viennent deux étapes plus loin, une
- * fois le mode de gestion connu - en tantièmes, il n'y en a pas.
+ * fois le mode de gestion connu - en tantièmes, il n'y en a pas. Types et
+ * descriptions viennent du catalogue (table unit_type_choice).
  */
 export function UnitTypesStepPage() {
   const navigate = useNavigate();
   const { draft, update } = useOnboarding();
+  const unitTypeChoices = useUnitTypeChoices();
+  const choices = unitTypeChoices.data ?? [];
 
   function toggleType(name: string) {
     const selected = draft.selectedUnitTypes.includes(name)
       ? draft.selectedUnitTypes.filter((candidate) => candidate !== name)
       : // Conserve l'ordre d'affichage plutôt que l'ordre de clic, pour que les
         // montants et les bâtiments listent toujours les types dans le même ordre.
-        UNIT_TYPE_CHOICES.filter(
+        choices.filter(
           (choice) => choice.name === name || draft.selectedUnitTypes.includes(choice.name),
         ).map((choice) => choice.name);
     update({ selectedUnitTypes: selected });
@@ -40,7 +38,8 @@ export function UnitTypesStepPage() {
       backPath={previousStepPath('unit-types')}
     >
       <div className="flex flex-col gap-3">
-        {UNIT_TYPE_CHOICES.map((choice) => (
+        {unitTypeChoices.isLoading && <Loader label="Chargement des types de lots…" />}
+        {choices.map((choice) => (
           <SelectableCard
             key={choice.name}
             type="checkbox"
@@ -49,7 +48,7 @@ export function UnitTypesStepPage() {
             checked={draft.selectedUnitTypes.includes(choice.name)}
             onSelect={toggleType}
             title={choice.name}
-            description={UNIT_TYPE_DESCRIPTIONS[choice.name]}
+            description={choice.description}
           />
         ))}
 

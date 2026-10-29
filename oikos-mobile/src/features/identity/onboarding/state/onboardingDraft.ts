@@ -1,28 +1,11 @@
 import { DEFAULT_BOARD_SEAT, type BoardSeat } from '@/features/identity/onboarding/constants/boardSeats';
+import type { UnitTypeChoice } from '@/shared/types/referenceCatalogs.types';
 
 // Mirrors property-mngt/properties/types/property.types.ts's DuesCalculationMode
 // (oikos-web) - duplicated locally rather than importing from property-mngt,
 // which doesn't exist on mobile (out of scope, see PLAN.md).
 export const DUES_CALCULATION_MODES = ['FLAT_RATE', 'SHARES'] as const;
 export type DuesCalculationMode = (typeof DUES_CALCULATION_MODES)[number];
-
-/**
- * Types de lots proposés par le wizard. Le libellé sert tel quel de nom de type
- * côté API (find-or-create par nom), d'où le pluriel séparé pour les résumés.
- *
- * <p>Copie assumée de oikos-web (properties/constants/unitTypeChoices.ts), qui
- * fait référence : les deux apps sont des clones architecturaux, pas un paquet
- * partagé. Ajouter un type ici sans l'y ajouter ferait diverger les deux
- * parcours d'inscription pour la même copropriété.
- */
-export const UNIT_TYPE_CHOICES = [
-  { name: 'Appartement', plural: 'appartements' },
-  { name: 'Parking', plural: 'parkings' },
-  { name: 'Box', plural: 'box' },
-  { name: 'Bureau', plural: 'bureaux' },
-] as const;
-
-export type UnitTypeName = (typeof UNIT_TYPE_CHOICES)[number]['name'];
 
 export interface OnboardingAccount {
   fullName: string;
@@ -121,12 +104,16 @@ export function unitCountOf(building: OnboardingBuilding, unitTypeName: string):
 }
 
 /** « 12 appartements · 8 box », pour l'en-tête d'un accordéon de bâtiment. */
-export function buildingSummary(building: OnboardingBuilding, selectedUnitTypes: string[]): string {
+export function buildingSummary(
+  building: OnboardingBuilding,
+  selectedUnitTypes: string[],
+  choices: UnitTypeChoice[],
+): string {
   return selectedUnitTypes
     .map((name) => ({ name, count: unitCountOf(building, name) }))
     .filter((entry) => entry.count > 0)
     .map((entry) => {
-      const choice = UNIT_TYPE_CHOICES.find((candidate) => candidate.name === entry.name);
+      const choice = choices.find((candidate) => candidate.name === entry.name);
       return `${entry.count} ${choice ? choice.plural : entry.name.toLowerCase()}`;
     })
     .join(' · ');

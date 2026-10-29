@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUnitTypeChoices } from '@/shared/hooks/useUnitTypeChoices';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthLayout } from '@/shared/layouts/AuthLayout';
@@ -20,6 +21,7 @@ type Props = NativeStackScreenProps<OnboardingStackParamList, 'Buildings'>;
 
 export function BuildingsStepScreen({ navigation }: Props) {
   const { draft, update } = useOnboarding();
+  const unitTypeChoices = useUnitTypeChoices();
   const [openBuildingIndex, setOpenBuildingIndex] = useState(0);
   const hasSeveralBuildings = draft.buildings.length > 1;
 
@@ -69,7 +71,7 @@ export function BuildingsStepScreen({ navigation }: Props) {
             <View style={styles.accordion}>
               {draft.buildings.map((building, index) => {
                 const isOpen = openBuildingIndex === index;
-                const summary = buildingSummary(building, draft.selectedUnitTypes);
+                const summary = buildingSummary(building, draft.selectedUnitTypes, unitTypeChoices.data ?? []);
                 return (
                   <View key={index} style={styles.accordionItem}>
                     <Pressable

@@ -39,7 +39,7 @@ function FlatRatePricing() {
     <WizardShell
       step="pricing"
       title="Quel montant pour chaque type de lot ?"
-      subtitle="En forfait, chaque lot est appelé du montant fixé pour son type."
+      subtitle="Indiquez le montant à payer pour chaque type de lot."
       backPath={previousStepPath('pricing')}
     >
       <div className="flex flex-col gap-4">

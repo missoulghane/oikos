@@ -4,13 +4,15 @@ import { Select } from '@/shared/components/Select/Select';
 import { Input } from '@/shared/components/Input/Input';
 import { Button } from '@/shared/components/Button/Button';
 import { Alert } from '@/shared/components/Alert/Alert';
+import { Loader } from '@/shared/components/Loader/Loader';
 import { getErrorMessage } from '@/shared/utils/getErrorMessage';
 import { useCreateBoardInvitation } from '@/features/property-mngt/board-members/hooks/useCreateBoardInvitation';
 import {
   createBoardInvitationSchema,
   type CreateBoardInvitationFormValues,
 } from '@/features/property-mngt/board-members/schemas/createBoardInvitationSchema';
-import { BOARD_ROLES, BOARD_ROLE_LABELS, type BoardRole } from '@/features/property-mngt/board-members/types/boardMember.types';
+import type { BoardRole } from '@/features/property-mngt/board-members/types/boardMember.types';
+import { useBoardRoles } from '@/shared/hooks/useBoardRoles';
 
 interface CreateBoardInvitationFormProps {
   propertyId: string;
@@ -36,6 +38,7 @@ export function CreateBoardInvitationForm({
     defaultValues: { targetEmail: defaultTargetEmail ?? '', boardRole: defaultBoardRole ?? 'MEMBER' },
   });
   const { mutate, isPending, error } = useCreateBoardInvitation(propertyId);
+  const boardRoles = useBoardRoles();
 
   function onSubmit(values: CreateBoardInvitationFormValues) {
     mutate(
@@ -53,13 +56,19 @@ export function CreateBoardInvitationForm({
         {...register('targetEmail')}
         errorMessage={errors.targetEmail?.message}
       />
-      <Select label="Rôle proposé" {...register('boardRole')} errorMessage={errors.boardRole?.message}>
-        {BOARD_ROLES.map((role) => (
-          <option key={role} value={role}>
-            {BOARD_ROLE_LABELS[role]}
-          </option>
-        ))}
-      </Select>
+      {/* Monté une fois le catalogue chargé : enregistré plus tôt, le select
+          afficherait sa première option sans que la valeur du formulaire suive. */}
+      {boardRoles.data ? (
+        <Select label="Rôle proposé" {...register('boardRole')} errorMessage={errors.boardRole?.message}>
+          {boardRoles.data.map((role) => (
+            <option key={role.code} value={role.code}>
+              {role.label}
+            </option>
+          ))}
+        </Select>
+      ) : (
+        <Loader label="Chargement des rôles…" />
+      )}
 
       <div className="flex gap-2">
         <Button type="submit" isLoading={isPending}>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr"
+      th:replace="~{email/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Rejoignez votre copropriété</title>
+</head>
+<body>
+<section>
+    <p style="margin:0 0 16px;">Bonjour,</p>
+    <!-- Le lot est nommé ici, pas seulement derrière le lien : le destinataire reconnaît de quoi on lui parle avant de cliquer. -->
+    <p style="margin:0 0 16px;">Le syndic de <strong th:text="${propertyName}">Résidence</strong> vous invite à rejoindre votre espace copropriétaire pour le lot <strong th:text="${unitLabel}">A-12</strong>.</p>
+    <table th:replace="~{email/components :: button(${link}, 'Rejoindre ma copropriété')}"></table>
+    <p th:replace="~{email/components :: fallback-link(${link})}"></p>
+    <p style="margin:0 0 16px;">Vous confirmerez votre lot, puis créerez votre compte. Le syndic validera ensuite votre demande pour sécuriser l'accès.</p>
+    <p style="margin:0;font-size:13px;color:#667085;">Si ce lot n'est pas le vôtre, vous pourrez en choisir un autre depuis cette même page.</p>
+</section>
+</body>
+</html>

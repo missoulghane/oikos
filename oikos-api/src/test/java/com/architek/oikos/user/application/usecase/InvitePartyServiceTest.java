@@ -22,6 +22,7 @@ import com.architek.oikos.user.application.command.InvitePartyCommand;
 import com.architek.oikos.user.domain.repository.PartyInvitationTokenRepository;
 import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.user.domain.service.PartyInvitationTokenGenerator;
+import com.architek.oikos.testsupport.TestEmailTemplates;
 
 @ExtendWith(MockitoExtension.class)
 class InvitePartyServiceTest {
@@ -37,7 +38,7 @@ class InvitePartyServiceTest {
 
     private InvitePartyService newService() {
         return new InvitePartyService(userRepository, partyInvitationTokenRepository, emailSenderPort,
-                new PartyInvitationTokenGenerator(), new PartyInvitationEmailComposer("http://localhost/accept-invitation"),
+                new PartyInvitationTokenGenerator(), new PartyInvitationEmailComposer("http://localhost/accept-invitation", TestEmailTemplates.renderer()),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 168L);
     }
 

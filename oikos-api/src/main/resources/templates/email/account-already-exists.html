@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr"
+      th:replace="~{email/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Vous avez déjà un compte</title>
+</head>
+<body>
+<section>
+    <p style="margin:0 0 16px;">Bonjour,</p>
+    <p style="margin:0 0 16px;">Une inscription vient d'être demandée avec cette adresse email, mais un compte
+        <span th:text="${brandName}">Daba Syndic</span> existe déjà pour elle. Aucun nouveau compte n'a été créé.</p>
+    <p style="margin:0 0 16px;">Si c'est vous, connectez-vous avec votre compte existant :</p>
+    <table th:replace="~{email/components :: button(${loginLink}, 'Me connecter')}"></table>
+    <p style="margin:0 0 16px;">Mot de passe oublié ?
+        <a th:href="${passwordResetLink}" style="color:#465fff;">Réinitialisez-le ici</a>.</p>
+    <p style="margin:0;font-size:13px;color:#667085;">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email : votre compte reste inchangé.</p>
+</section>
+</body>
+</html>

@@ -149,8 +149,10 @@ export function AccountStepPage() {
           errorMessage={touchedFields.confirmPassword ? errors.confirmPassword?.message : undefined}
         />
         <Checkbox
+          // Mention légale en retrait, comme ailleurs : plus petite et grisée que
+          // les champs, pour ne pas peser autant qu'eux dans le formulaire.
           label={
-            <span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
               J'accepte les{' '}
               <TermsLink to={TERMS_OF_USE_PATH}>conditions générales d'utilisation</TermsLink> et les{' '}
               <TermsLink to={TERMS_OF_SALE_PATH}>conditions générales de vente</TermsLink>
@@ -179,7 +181,7 @@ export function AccountStepPage() {
  */
 function TermsLink({ to, children }: { to: string; children: string }) {
   return (
-    <a href={to} target="_blank" rel="noopener noreferrer" className="font-medium text-brand-500 underline dark:text-brand-400">
+    <a href={to} target="_blank" rel="noopener noreferrer" className="text-brand-500 underline dark:text-brand-400">
       {children}
     </a>
   );

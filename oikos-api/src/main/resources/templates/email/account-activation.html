@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr"
+      th:replace="~{email/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Activez votre compte</title>
+</head>
+<body>
+<section>
+    <p style="margin:0 0 16px;">Bienvenue sur <span th:text="${brandName}">Daba Syndic</span>,</p>
+    <p style="margin:0 0 16px;">Un compte administrateur a été créé pour vous. Activez-le et choisissez votre mot de passe.</p>
+    <table th:replace="~{email/components :: button(${link}, 'Activer mon compte')}"></table>
+    <p th:replace="~{email/components :: fallback-link(${link})}"></p>
+    <p style="margin:0;font-size:13px;color:#667085;">Ce lien expire dans 24 heures.</p>
+</section>
+</body>
+</html>

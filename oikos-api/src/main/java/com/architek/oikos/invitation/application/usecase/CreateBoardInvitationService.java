@@ -10,12 +10,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.architek.oikos.invitation.application.command.CreateBoardInvitationCommand;
 import com.architek.oikos.invitation.application.port.in.CreateBoardInvitationUseCase;
+import com.architek.oikos.invitation.application.port.out.BoardRoleLabelPort;
+import com.architek.oikos.invitation.application.port.out.PropertyBasicInfo;
 import com.architek.oikos.invitation.application.port.out.PropertyDirectoryPort;
 import com.architek.oikos.invitation.domain.model.Invitation;
 import com.architek.oikos.invitation.domain.model.InvitationType;
 import com.architek.oikos.invitation.domain.repository.InvitationRepository;
 import com.architek.oikos.invitation.domain.service.InvitationTokenGenerator;
 import com.architek.oikos.invitation.domain.valueobject.InvitationId;
+import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.exception.ResourceNotFoundException;
 
 /**
@@ -24,6 +27,10 @@ import com.architek.oikos.shared.exception.ResourceNotFoundException;
  * board seat is always offered to one specific person for one specific role,
  * so there is no "no target" variant to validate against here. Pas de lot non
  * plus (targetUnitId nul) : un siège au conseil n'en est pas un.
+ *
+ * <p>The invitation is mailed to its target, as an owner's is
+ * (CreateInvitationService): it used to be saved and nothing else, so the
+ * person never heard of it - the link reached no screen either.
  */
 @Component
 public class CreateBoardInvitationService implements CreateBoardInvitationUseCase {
@@ -33,15 +40,25 @@ public class CreateBoardInvitationService implements CreateBoardInvitationUseCas
     private final InvitationRepository invitationRepository;
     private final PropertyDirectoryPort propertyDirectoryPort;
     private final InvitationTokenGenerator tokenGenerator;
+    private final InvitationLinkComposer linkComposer;
+    private final BoardInvitationEmailComposer emailComposer;
+    private final BoardRoleLabelPort boardRoleLabelPort;
+    private final EmailSenderPort emailSenderPort;
     private final Clock clock;
     private final Duration invitationTokenTtl;
 
     public CreateBoardInvitationService(InvitationRepository invitationRepository, PropertyDirectoryPort propertyDirectoryPort,
-                                         InvitationTokenGenerator tokenGenerator, Clock clock,
+                                         InvitationTokenGenerator tokenGenerator, InvitationLinkComposer linkComposer,
+                                         BoardInvitationEmailComposer emailComposer, BoardRoleLabelPort boardRoleLabelPort,
+                                         EmailSenderPort emailSenderPort, Clock clock,
                                          @Value("${oikos.mail.invitation-token-ttl-days}") long invitationTokenTtlDays) {
         this.invitationRepository = invitationRepository;
         this.propertyDirectoryPort = propertyDirectoryPort;
         this.tokenGenerator = tokenGenerator;
+        this.linkComposer = linkComposer;
+        this.emailComposer = emailComposer;
+        this.boardRoleLabelPort = boardRoleLabelPort;
+        this.emailSenderPort = emailSenderPort;
         this.clock = clock;
         this.invitationTokenTtl = Duration.ofDays(invitationTokenTtlDays);
     }
@@ -49,7 +66,7 @@ public class CreateBoardInvitationService implements CreateBoardInvitationUseCas
     @Override
     @Transactional
     public InvitationId create(CreateBoardInvitationCommand command) {
-        propertyDirectoryPort.findBasicInfo(command.propertyId())
+        PropertyBasicInfo property = propertyDirectoryPort.findBasicInfo(command.propertyId())
                 .orElseThrow(() -> new ResourceNotFoundException("Property not found with id: " + command.propertyId()));
 
         String rawToken = tokenGenerator.generate();
@@ -58,6 +75,11 @@ public class CreateBoardInvitationService implements CreateBoardInvitationUseCas
                 TARGET_ROLE_BOARD_MEMBER, command.targetEmail(), rawToken, expiresAt, command.createdByUserId(),
                 command.boardRole(), null, null);
 
-        return invitationRepository.save(invitation).getId();
+        InvitationId id = invitationRepository.save(invitation).getId();
+
+        emailSenderPort.send(command.targetEmail(), emailComposer.subject(property.name()),
+                emailComposer.htmlBody(property.name(), boardRoleLabelPort.labelOf(command.boardRole()),
+                        linkComposer.link(rawToken), invitationTokenTtl.toDays()));
+        return id;
     }
 }

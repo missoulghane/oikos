@@ -38,6 +38,7 @@ import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.domain.valueobject.PhoneNumberVO;
 import com.architek.oikos.shared.exception.EmailDeliveryException;
+import com.architek.oikos.testsupport.TestEmailTemplates;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -75,7 +76,7 @@ class MembershipDecisionNotifierTest {
     private MembershipDecisionNotifier newNotifier() {
         return new MembershipDecisionNotifier(accountDirectoryPort, boardStaffDirectoryPort, propertyDirectoryPort,
                 unitDirectoryPort, notificationPort, messagingPort, emailSenderPort, whatsAppSenderPort,
-                new MembershipDecisionEmailComposer("https://app.example.com"));
+                new MembershipDecisionEmailComposer("https://app.example.com", TestEmailTemplates.renderer()));
     }
 
     private static MembershipRequestDecidedEvent decided(boolean accepted, String reason) {

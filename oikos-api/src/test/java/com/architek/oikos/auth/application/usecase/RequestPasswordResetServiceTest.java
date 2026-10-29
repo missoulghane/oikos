@@ -33,6 +33,7 @@ import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 import com.architek.oikos.shared.exception.TooManyRequestsException;
+import com.architek.oikos.testsupport.TestEmailTemplates;
 
 @ExtendWith(MockitoExtension.class)
 class RequestPasswordResetServiceTest {
@@ -53,7 +54,7 @@ class RequestPasswordResetServiceTest {
     private RequestPasswordResetService newService() {
         return new RequestPasswordResetService(userAccountPort, passwordResetTokenRepository, emailSenderPort,
                 emailSendQuotaPort, new PasswordResetTokenGenerator(),
-                new PasswordResetEmailComposer("http://localhost/reset-password"),
+                new PasswordResetEmailComposer("http://localhost/reset-password", TestEmailTemplates.renderer()),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 1L);
     }
 

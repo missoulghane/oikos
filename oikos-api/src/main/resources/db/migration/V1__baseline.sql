@@ -15,6 +15,9 @@
 -- empty application, not as an upgrade of an existing one.
 --
 -- WHAT WAS FOLDED IN (2026-10-29):
+--   * board_role and unit_type_choice: the board seats and the unit types
+--              offered on screen, as reference tables (labels, order,
+--              descriptions) instead of constants duplicated in each client;
 --   * V2     - accounting_exercise: up to two exercises open at once, never
 --              overlapping (exclusion constraint, hence btree_gist) instead of
 --              "a single OPEN exercise per property"; installment_call: a
@@ -213,6 +216,19 @@ CREATE TABLE public.board_member (
     version bigint DEFAULT 0 NOT NULL,
     status character varying(30) DEFAULT 'ACTIVE'::character varying NOT NULL,
     user_id uuid
+);
+
+
+--
+-- Name: board_role; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.board_role (
+    code character varying(30) NOT NULL,
+    label character varying(100) NOT NULL,
+    "position" integer DEFAULT 0 NOT NULL,
+    available_at_signup boolean DEFAULT false NOT NULL,
+    active boolean DEFAULT true NOT NULL
 );
 
 
@@ -931,6 +947,19 @@ CREATE TABLE public.unit_ownership (
 
 
 --
+-- Name: unit_type_choice; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.unit_type_choice (
+    name character varying(50) NOT NULL,
+    plural character varying(50) NOT NULL,
+    description character varying(255) NOT NULL,
+    "position" integer DEFAULT 0 NOT NULL,
+    active boolean DEFAULT true NOT NULL
+);
+
+
+--
 -- Name: unit_type_definition; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1328,6 +1357,23 @@ ALTER TABLE ONLY public.refresh_token_authority
 
 ALTER TABLE ONLY public.reply_medium
     ADD CONSTRAINT pk_reply_medium PRIMARY KEY (code);
+
+
+--
+-- Name: board_role pk_board_role; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.board_role
+    ADD CONSTRAINT pk_board_role PRIMARY KEY (code);
+
+
+--
+-- Name: unit_type_choice pk_unit_type_choice; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.unit_type_choice
+    ADD CONSTRAINT pk_unit_type_choice PRIMARY KEY (name);
+
 
 
 --
@@ -2213,6 +2259,23 @@ ALTER TABLE ONLY public.board_member
 
 
 --
+-- Name: board_member fk_board_member_board_role; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.board_member
+    ADD CONSTRAINT fk_board_member_board_role FOREIGN KEY (board_role) REFERENCES public.board_role(code);
+
+
+--
+-- Name: invitation fk_invitation_target_board_role; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation
+    ADD CONSTRAINT fk_invitation_target_board_role FOREIGN KEY (target_board_role) REFERENCES public.board_role(code);
+
+
+
+--
 -- Name: building fk_building_property; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2852,6 +2915,29 @@ INSERT INTO convocation_channel (code, label, automated, position, active) VALUE
     ('POSTAL_MAIL', 'Courrier', false, 3, true),
     ('REGISTERED_MAIL', 'Courrier recommandé avec AR', false, 4, true),
     ('MANUAL', 'Remise en main propre', false, 5, true);
+
+-- board_role: the seats on a property's board (see BoardRole.java), with the label
+-- every screen shows - the sign-up wizard and the board's "Ajouter un membre"
+-- alike. available_at_signup picks the seats a volunteer syndic may claim when
+-- registering (BoardSeat.java): PROPERTY_MANAGER is a professional firm's and
+-- never goes through that wizard. BoardRoleSeedTest keeps both enums covered.
+INSERT INTO board_role (code, label, position, available_at_signup, active) VALUES
+    ('VOLUNTEER_MANAGER', 'Syndic bénévole', 1, true, true),
+    ('PRESIDENT', 'Président', 2, true, true),
+    ('TREASURER', 'Trésorier', 3, true, true),
+    ('SECRETARY', 'Secrétaire', 4, true, true),
+    ('MEMBER', 'Membre du conseil syndical', 5, true, true),
+    ('PROPERTY_MANAGER', 'Gestionnaire', 6, false, true);
+
+-- unit_type_choice: the unit types offered wherever one is picked (sign-up wizard,
+-- property configuration). A closed list rather than free text, so that "Box" and
+-- "box" stay one type; a property already carrying a type off the list keeps it
+-- (unit_type_definition.name is deliberately not a foreign key to this table).
+INSERT INTO unit_type_choice (name, plural, description, position, active) VALUES
+    ('Appartement', 'appartements', 'Logements de la copropriété.', 1, true),
+    ('Parking', 'parkings', 'Places de stationnement, extérieures ou en sous-sol.', 2, true),
+    ('Box', 'box', 'Garages fermés.', 3, true),
+    ('Bureau', 'bureaux', 'Locaux professionnels.', 4, true);
 
 -- reply_medium: by what means an answer reaches the office (see ReplyMediumCode.java).
 -- No `automated` counterpart to the channels': nothing is ever emitted through a medium.

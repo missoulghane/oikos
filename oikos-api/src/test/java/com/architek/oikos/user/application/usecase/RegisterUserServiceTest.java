@@ -3,6 +3,8 @@ package com.architek.oikos.user.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.architek.oikos.shared.application.port.out.EmailSendQuotaPort;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
 import com.architek.oikos.shared.application.port.out.PasswordEncoderPort;
 import com.architek.oikos.shared.domain.valueobject.EmailVO;
@@ -23,19 +26,22 @@ import com.architek.oikos.shared.domain.valueobject.HashedPassword;
 import com.architek.oikos.shared.domain.valueobject.RawPassword;
 import com.architek.oikos.user.application.command.RegisterUserCommand;
 import com.architek.oikos.user.application.port.out.MembershipRequestSubmissionPort;
-import com.architek.oikos.user.domain.exception.EmailAlreadyUsedException;
 import com.architek.oikos.user.domain.exception.RoleNotAllowedException;
 import com.architek.oikos.user.domain.model.Role;
 import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.user.domain.repository.VerificationTokenRepository;
 import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
+import com.architek.oikos.testsupport.TestEmailTemplates;
 
 @ExtendWith(MockitoExtension.class)
 class RegisterUserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private EmailSendQuotaPort emailSendQuotaPort;
 
     @Mock
     private VerificationTokenRepository verificationTokenRepository;
@@ -50,8 +56,9 @@ class RegisterUserServiceTest {
     private MembershipRequestSubmissionPort membershipRequestSubmissionPort;
 
     private RegisterUserService newService() {
-        return new RegisterUserService(userRepository, verificationTokenRepository, passwordEncoderPort,
-                emailSenderPort, new VerificationTokenGenerator(), new VerificationEmailComposer("http://localhost/verify"),
+        return new RegisterUserService(userRepository, emailSendQuotaPort,
+                new AccountAlreadyExistsEmailComposer("http://localhost:5173", TestEmailTemplates.renderer()), verificationTokenRepository, passwordEncoderPort,
+                emailSenderPort, new VerificationTokenGenerator(), new VerificationEmailComposer("http://localhost/verify", TestEmailTemplates.renderer()),
                 membershipRequestSubmissionPort, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
     }
 
@@ -103,13 +110,17 @@ class RegisterUserServiceTest {
     }
 
     @Test
-    void registering_an_already_used_email_is_rejected() {
+    void registering_an_already_used_email_answers_like_a_new_one_and_only_mails_its_owner() {
         when(userRepository.existsByEmail("existing@oikos.com")).thenReturn(true);
 
         RegisterUserCommand command = new RegisterUserCommand(
                 "Jane Doe", EmailVO.of("existing@oikos.com"), "+212612345678", RawPassword.of("password123"), null, null, null, null);
 
-        assertThatThrownBy(() -> newService().register(command)).isInstanceOf(EmailAlreadyUsedException.class);
+        newService().register(command);
+
+        verify(userRepository, never()).save(any());
+        verify(emailSenderPort).send(eq(EmailVO.of("existing@oikos.com")), eq("Daba Syndic - Vous avez déjà un compte"),
+                any());
     }
 
     @Test

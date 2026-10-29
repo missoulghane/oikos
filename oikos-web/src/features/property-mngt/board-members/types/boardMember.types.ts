@@ -1,3 +1,7 @@
+/**
+ * Les codes des sièges - fixés par l'API (BoardRole.java), d'où l'enum de
+ * validation. Libellés et ordre d'affichage viennent du catalogue (useBoardRoles).
+ */
 export const BOARD_ROLES = [
   'PRESIDENT',
   'TREASURER',
@@ -8,14 +12,6 @@ export const BOARD_ROLES = [
 ] as const;
 export type BoardRole = (typeof BOARD_ROLES)[number];
 
-export const BOARD_ROLE_LABELS: Record<BoardRole, string> = {
-  PRESIDENT: 'Président',
-  TREASURER: 'Trésorier',
-  SECRETARY: 'Secrétaire',
-  MEMBER: 'Membre',
-  VOLUNTEER_MANAGER: 'Gestionnaire bénévole',
-  PROPERTY_MANAGER: 'Gestionnaire',
-};
 
 export const BOARD_MEMBER_STATUSES = ['PENDING_VALIDATION', 'ACTIVE'] as const;
 export type BoardMemberStatus = (typeof BOARD_MEMBER_STATUSES)[number];

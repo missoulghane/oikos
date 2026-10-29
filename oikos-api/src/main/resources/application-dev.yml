@@ -22,7 +22,7 @@ spring:
       # Every seed file must be listed here: one that ships in V1 but not in this
       # list is a 403 in dev only - the exact incident RolePermissionSeedTest was
       # written after.
-      data-locations: classpath:db/seed/seed_role_permission.sql,classpath:db/seed/seed_meeting_permission.sql,classpath:db/seed/seed_convocation_channel.sql,classpath:db/seed/seed_reply_medium.sql,classpath:db/seed/seed_ledger_account.sql
+      data-locations: classpath:db/seed/seed_role_permission.sql,classpath:db/seed/seed_meeting_permission.sql,classpath:db/seed/seed_convocation_channel.sql,classpath:db/seed/seed_reply_medium.sql,classpath:db/seed/seed_ledger_account.sql,classpath:db/seed/seed_board_role.sql,classpath:db/seed/seed_unit_type_choice.sql
   flyway:
     enabled: false
   h2:

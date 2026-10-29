@@ -25,6 +25,7 @@ import com.architek.oikos.user.domain.model.User;
 import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.user.domain.repository.VerificationTokenRepository;
 import com.architek.oikos.user.domain.service.VerificationTokenGenerator;
+import com.architek.oikos.testsupport.TestEmailTemplates;
 
 @ExtendWith(MockitoExtension.class)
 class CreateUserServiceTest {
@@ -44,7 +45,7 @@ class CreateUserServiceTest {
     private CreateUserService newService() {
         return new CreateUserService(userRepository, verificationTokenRepository, passwordEncoderPort,
                 emailSenderPort, new VerificationTokenGenerator(),
-                new AccountActivationEmailComposer("http://localhost/activate-account"),
+                new AccountActivationEmailComposer("http://localhost/activate-account", TestEmailTemplates.renderer()),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 24L);
     }
 

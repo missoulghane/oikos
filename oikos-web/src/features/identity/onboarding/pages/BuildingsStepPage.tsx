@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUnitTypeChoices } from '@/shared/hooks/useUnitTypeChoices';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/Button/Button';
 import { Input } from '@/shared/components/Input/Input';
@@ -17,6 +18,7 @@ import {
 export function BuildingsStepPage() {
   const navigate = useNavigate();
   const { draft, update } = useOnboarding();
+  const unitTypeChoices = useUnitTypeChoices();
   const [openBuildingIndex, setOpenBuildingIndex] = useState(0);
   const hasSeveralBuildings = draft.buildings.length > 1;
 
@@ -66,7 +68,7 @@ export function BuildingsStepPage() {
           <div className="flex flex-col gap-2">
             {draft.buildings.map((building, index) => {
               const isOpen = openBuildingIndex === index;
-              const summary = buildingSummary(building, draft.selectedUnitTypes);
+              const summary = buildingSummary(building, draft.selectedUnitTypes, unitTypeChoices.data ?? []);
               return (
                 <section key={index} className="rounded-2xl border border-gray-200 dark:border-gray-800">
                   <button

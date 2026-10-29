@@ -42,7 +42,7 @@ export function PricingStepScreen({ navigation }: Props) {
         title={isFlatRate ? 'Quel montant pour chaque type de lot ?' : 'Quel est votre budget prévisionnel ?'}
         subtitle={
           isFlatRate
-            ? 'En forfait, chaque lot est appelé du montant fixé pour son type.'
+            ? 'Indiquez le montant à payer pour chaque type de lot.'
             : 'En tantièmes, les charges se répartissent à partir de ce budget. Vous pourrez le renseigner plus tard, ainsi que les tantièmes de chaque lot.'
         }
         onBack={() => navigation.goBack()}

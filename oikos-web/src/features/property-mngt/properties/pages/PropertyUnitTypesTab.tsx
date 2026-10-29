@@ -8,11 +8,9 @@ import { Alert } from '@/shared/components/Alert/Alert';
 import { useUnitTypeDefinitions } from '@/features/property-mngt/properties/hooks/useUnitTypeDefinitions';
 import { useAddUnitTypeDefinition } from '@/features/property-mngt/properties/hooks/useAddUnitTypeDefinition';
 import { useRemoveUnitTypeDefinition } from '@/features/property-mngt/properties/hooks/useRemoveUnitTypeDefinition';
-import { UNIT_TYPE_CHOICES } from '@/features/property-mngt/properties/constants/unitTypeChoices';
+import { useUnitTypeChoices } from '@/shared/hooks/useUnitTypeChoices';
 import { getApiErrorCode, getErrorMessage } from '@/shared/utils/getErrorMessage';
 import type { Property } from '@/features/property-mngt/properties/types/property.types';
-
-const CHOICE_NAMES = new Set<string>(UNIT_TYPE_CHOICES.map((choice) => choice.name));
 
 /**
  * Le seul refus que le syndic peut lever lui-même : le message générique d'un
@@ -27,8 +25,8 @@ function removeUnitTypeErrorMessage(error: unknown): string {
 
 /**
  * Les types de lots gérés par la copropriété, cochés dans la même liste que
- * celle du wizard d'inscription - toutes deux lisent UNIT_TYPE_CHOICES, le seul
- * endroit où cette liste se paramètre.
+ * celle du wizard d'inscription - toutes deux lisent le catalogue unit_type_choice,
+ * le seul endroit où cette liste se paramètre.
  *
  * <p>Rien n'est écrit tant que « Enregistrer » n'est pas cliqué : cocher trois
  * types envoyait autant d'appels, dont le deuxième pouvait échouer en laissant
@@ -42,6 +40,7 @@ export function PropertyUnitTypesTab() {
   const { property } = useOutletContext<{ property: Property }>();
   const propertyId = property.id;
   const unitTypes = useUnitTypeDefinitions(propertyId);
+  const unitTypeChoices = useUnitTypeChoices();
   const addType = useAddUnitTypeDefinition(propertyId);
   const removeType = useRemoveUnitTypeDefinition(propertyId);
 
@@ -55,7 +54,9 @@ export function PropertyUnitTypesTab() {
 
   const defined = unitTypes.data;
 
-  if (unitTypes.isLoading || !defined) {
+  const choices = unitTypeChoices.data;
+
+  if (unitTypes.isLoading || !defined || !choices) {
     return <Loader label="Chargement des types de lots…" />;
   }
 
@@ -66,8 +67,9 @@ export function PropertyUnitTypesTab() {
   // Les types déjà enregistrés qui ne sont pas dans la liste paramétrée :
   // hérités d'une saisie libre antérieure. Ils restent affichés et décochables,
   // sans quoi ils deviendraient invisibles et indéboulonnables.
-  const extraNames = defined.map((unitType) => unitType.name).filter((name) => !CHOICE_NAMES.has(name));
-  const rows = [...UNIT_TYPE_CHOICES.map((choice) => choice.name), ...extraNames];
+  const choiceNames = new Set(choices.map((choice) => choice.name));
+  const extraNames = defined.map((unitType) => unitType.name).filter((name) => !choiceNames.has(name));
+  const rows = [...choices.map((choice) => choice.name), ...extraNames];
 
   const added = selected.filter((name) => !definedByName.has(name));
   const removed = defined.filter((unitType) => !selected.includes(unitType.name));

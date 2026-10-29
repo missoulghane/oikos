@@ -6,7 +6,8 @@ import {
   BoardMemberStatusBadge,
   statusOf,
 } from '@/features/property-mngt/board-members/components/BoardMemberStatusBadge';
-import { BOARD_ROLE_LABELS, type BoardMember } from '@/features/property-mngt/board-members/types/boardMember.types';
+import type { BoardMember } from '@/features/property-mngt/board-members/types/boardMember.types';
+import { useBoardRoleLabel } from '@/shared/hooks/useBoardRoles';
 
 interface BoardMemberRowProps {
   propertyId: string;
@@ -20,6 +21,7 @@ export function BoardMemberRow({ propertyId, member, hasPendingInvitation, onInv
   const removeBoardMember = useRemoveBoardMember(propertyId);
   const validateBoardMember = useValidateBoardMember(propertyId);
   const status = statusOf(member, hasPendingInvitation);
+  const boardRoleLabel = useBoardRoleLabel();
   const isPending = status === 'TO_VALIDATE';
 
   return (
@@ -27,7 +29,7 @@ export function BoardMemberRow({ propertyId, member, hasPendingInvitation, onInv
       <div className="min-w-0">
         <p className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white/90">
           {member.partyFullName}
-          <Badge color="primary">{BOARD_ROLE_LABELS[member.boardRole]}</Badge>
+          <Badge color="primary">{boardRoleLabel(member.boardRole)}</Badge>
           <BoardMemberStatusBadge kind={status} />
         </p>
         {/* Un membre peut n'avoir qu'un téléphone : la ligne ne montre alors

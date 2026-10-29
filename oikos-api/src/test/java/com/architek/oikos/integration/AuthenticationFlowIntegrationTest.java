@@ -28,6 +28,7 @@ import com.jayway.jsonpath.JsonPath;
 
 import com.architek.oikos.auth.infrastructure.security.JwtService;
 import com.architek.oikos.shared.application.port.out.EmailSenderPort;
+import com.architek.oikos.user.domain.repository.UserRepository;
 import com.architek.oikos.shared.domain.valueobject.EntityId;
 
 /**
@@ -49,6 +50,9 @@ class AuthenticationFlowIntegrationTest {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @MockitoBean
     private EmailSenderPort emailSenderPort;
 
@@ -66,7 +70,7 @@ class AuthenticationFlowIntegrationTest {
                         .content("""
                                 {"fullName":"Jane Doe","email":"%s","password":"%s"}
                                 """.formatted(email, password)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isAccepted());
 
         var bodyCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
         verify(emailSenderPort).send(any(), any(), bodyCaptor.capture());
@@ -138,7 +142,7 @@ class AuthenticationFlowIntegrationTest {
                         .content("""
                                 {"fullName":"Jane Doe","email":"%s","password":"%s"}
                                 """.formatted(email, password)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isAccepted());
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -251,7 +255,7 @@ class AuthenticationFlowIntegrationTest {
                         .content("""
                                 {"fullName":"Jane Doe","email":"%s","password":"%s"}
                                 """.formatted(email, password)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isAccepted());
 
         var bodyCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
         verify(emailSenderPort).send(any(), any(), bodyCaptor.capture());
@@ -281,7 +285,7 @@ class AuthenticationFlowIntegrationTest {
                         .content("""
                                 {"fullName":"Jane Doe","email":"%s","password":"%s"}
                                 """.formatted(email, oldPassword)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isAccepted());
 
         var verificationBodyCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
         verify(emailSenderPort).send(any(), any(), verificationBodyCaptor.capture());
@@ -352,7 +356,7 @@ class AuthenticationFlowIntegrationTest {
                         .content("""
                                 {"fullName":"Jane Doe","email":"%s","password":"%s"}
                                 """.formatted(email, password)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isAccepted());
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -372,9 +376,10 @@ class AuthenticationFlowIntegrationTest {
                         .content("""
                                 {"fullName":"Jane Doe","email":"%s","password":"%s"}
                                 """.formatted(email, password)))
-                .andExpect(status().isCreated())
+                .andExpect(status().isAccepted())
                 .andReturn();
-        String userId = registerResult.getResponse().getHeader("Location").replace("/api/v1/users/", "");
+        // No Location any more (it would tell a new address from a known one).
+        String userId = userRepository.findByEmail(email).orElseThrow().getId().toString();
 
         var bodyCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
         verify(emailSenderPort).send(any(), any(), bodyCaptor.capture());

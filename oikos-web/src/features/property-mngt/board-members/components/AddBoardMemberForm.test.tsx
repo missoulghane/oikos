@@ -7,6 +7,14 @@ import { useBoardMembers } from '@/features/property-mngt/board-members/hooks/us
 import { useContactMatch, type ContactMatch } from '@/features/property-mngt/parties/hooks/useContactMatch';
 import type { BoardMember, BoardRole } from '@/features/property-mngt/board-members/types/boardMember.types';
 
+// Rendu synchrone : le catalogue est servi tel quel plutôt que résolu par une requête.
+vi.mock('@/shared/hooks/useBoardRoles', async () => {
+  const { BOARD_ROLES_FIXTURE } = await import('@/test/referenceCatalogs');
+  return {
+    useBoardRoles: () => ({ data: BOARD_ROLES_FIXTURE }),
+    useBoardRoleLabel: () => (code: string) => BOARD_ROLES_FIXTURE.find((role) => role.code === code)?.label ?? code,
+  };
+});
 vi.mock('@/features/property-mngt/board-members/hooks/useAddBoardMember', () => ({ useAddBoardMember: vi.fn() }));
 vi.mock('@/features/property-mngt/board-members/hooks/useBoardMembers', () => ({ useBoardMembers: vi.fn() }));
 vi.mock('@/features/property-mngt/parties/hooks/useContactMatch', async () => {

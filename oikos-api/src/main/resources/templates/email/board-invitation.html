@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr"
+      th:replace="~{email/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Invitation au conseil syndical</title>
+</head>
+<body>
+<section>
+    <p style="margin:0 0 16px;">Bonjour,</p>
+    <p style="margin:0 0 16px;">Vous êtes invité(e) à rejoindre le conseil syndical de <strong th:text="${propertyName}">Résidence</strong> en tant que <strong th:text="${boardRoleLabel}">Trésorier</strong>.</p>
+    <table th:replace="~{email/components :: button(${link}, 'Rejoindre le conseil syndical')}"></table>
+    <p th:replace="~{email/components :: fallback-link(${link})}"></p>
+    <p style="margin:0 0 16px;">Vous créerez votre compte, ou vous connecterez si vous en avez déjà un, avec cette adresse email.</p>
+    <p style="margin:0;font-size:13px;color:#667085;">Ce lien expire dans <span th:text="${ttlDays}">30</span> jours. Si vous n'attendiez pas cette invitation, ignorez cet email.</p>
+</section>
+</body>
+</html>

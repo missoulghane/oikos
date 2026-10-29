@@ -5,7 +5,10 @@
  * syndical : PROPERTY_MANAGER (« Gestionnaire ») est le siège d'un cabinet
  * professionnel, qui ne passe jamais par ce wizard.
  *
- * <p>VOLUNTEER_MANAGER en tête et par défaut : c'est le « Syndic bénévole » de
+ * <p>Les codes seuls : libellés et ordre viennent du catalogue board_role
+ * (useBoardRoles), le même que « Ajouter un membre ».
+ *
+ * <p>VOLUNTEER_MANAGER par défaut : c'est le « Syndic bénévole » de
  * la nomenclature, le cas de loin le plus courant.
  */
 export const BOARD_SEATS = ['VOLUNTEER_MANAGER', 'PRESIDENT', 'TREASURER', 'SECRETARY', 'MEMBER'] as const;
@@ -13,11 +16,3 @@ export const BOARD_SEATS = ['VOLUNTEER_MANAGER', 'PRESIDENT', 'TREASURER', 'SECR
 export type BoardSeat = (typeof BOARD_SEATS)[number];
 
 export const DEFAULT_BOARD_SEAT: BoardSeat = 'VOLUNTEER_MANAGER';
-
-export const BOARD_SEAT_LABELS: Record<BoardSeat, string> = {
-  VOLUNTEER_MANAGER: 'Syndic',
-  PRESIDENT: 'Président',
-  TREASURER: 'Trésorier',
-  SECRETARY: 'Secrétaire',
-  MEMBER: 'Membre du conseil syndical',
-};
