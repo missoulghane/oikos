@@ -116,10 +116,7 @@ export function InstallmentDetailPage() {
         </dl>
       </Card>
 
-      <Card className="flex flex-col gap-2">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white/90">Paiements du lot</h2>
-        <UnitPaymentsSection propertyId={currentPropertyId} unitId={unitId} />
-      </Card>
+      <UnitPaymentsSection propertyId={currentPropertyId} unitId={unitId} title="Paiements du lot" />
     </div>
   );
 }

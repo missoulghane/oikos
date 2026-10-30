@@ -54,7 +54,11 @@ export function BuildingSection({ building, showShares }: BuildingSectionProps) 
           onCancel={() => setIsAddingUnit(false)}
         />
       )}
-      <UnitList buildingId={building.id} propertyId={building.propertyId} showShares={showShares} />
+      {/* Masquée pendant l'ajout : le formulaire est seul à l'écran, sans la
+          liste des lots qu'il ne consulte pas. */}
+      {!isAddingUnit && (
+        <UnitList buildingId={building.id} propertyId={building.propertyId} showShares={showShares} />
+      )}
     </Card>
   );
 }

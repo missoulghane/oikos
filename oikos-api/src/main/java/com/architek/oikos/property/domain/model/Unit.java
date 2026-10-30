@@ -63,8 +63,9 @@ public final class Unit {
         return new Unit(id, buildingId, propertyId, unitNumber, unitTypeId, shares, floor);
     }
 
-    public Unit withShares(Shares newShares) {
-        return new Unit(id, buildingId, propertyId, unitNumber, unitTypeId, newShares, floor);
+    /** The editable part of a lot - everything but its type, building and property. */
+    public Unit withDetails(String newUnitNumber, Integer newFloor, Shares newShares) {
+        return new Unit(id, buildingId, propertyId, newUnitNumber, unitTypeId, newShares, newFloor);
     }
 
     /**

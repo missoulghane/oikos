@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateBuilding } from '@/features/property-mngt/properties/api/updateBuilding';
 import type { UpdateBuildingPayload } from '@/features/property-mngt/properties/types/property.types';
+import { queryKeys } from '@/shared/constants/queryKeys';
 
 /**
  * L'invalidation porte sur la copropriété et non sur le seul bâtiment : la liste
@@ -15,6 +16,7 @@ export function useUpdateBuilding(propertyId: string, buildingId: string) {
     mutationFn: (payload: UpdateBuildingPayload) => updateBuilding({ buildingId, payload }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties', propertyId, 'buildings'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.buildings.detail(buildingId) });
     },
   });
 }

@@ -32,7 +32,7 @@ import com.architek.oikos.property.application.port.in.GetBuildingUseCase;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitsByBuildingUseCase;
 import com.architek.oikos.property.application.query.ListUnitsByBuildingQuery;
-import com.architek.oikos.property.application.port.in.UpdateUnitSharesUseCase;
+import com.architek.oikos.property.application.port.in.UpdateUnitUseCase;
 import com.architek.oikos.property.domain.valueobject.BuildingId;
 import com.architek.oikos.property.domain.valueobject.PropertyId;
 import com.architek.oikos.property.domain.valueobject.UnitId;
@@ -68,7 +68,7 @@ class UnitControllerWebMvcTest {
     private GetBuildingUseCase getBuildingUseCase;
 
     @MockitoBean
-    private UpdateUnitSharesUseCase updateUnitSharesUseCase;
+    private UpdateUnitUseCase updateUnitUseCase;
 
     private String bearerToken(String... authorities) {
         return "Bearer " + jwtService.generateAccessToken(EntityId.of(UUID.randomUUID()), Set.of(authorities));
@@ -116,19 +116,30 @@ class UnitControllerWebMvcTest {
     }
 
     @Test
-    void admin_can_update_a_unit_s_shares() throws Exception {
+    void admin_can_update_a_unit_s_number_floor_and_shares() throws Exception {
         UnitId id = UnitId.newId();
-        when(updateUnitSharesUseCase.updateShares(any())).thenReturn(
+        when(updateUnitUseCase.update(any())).thenReturn(
                 new UnitView(id, BuildingId.newId(), PropertyId.newId(), "A12", UnitTypeDefinitionId.newId(), "Appartement",
                         new BigDecimal("150"), OwnershipStatus.NOT_AFFECTED, List.of(), null));
 
-        mockMvc.perform(put("/api/v1/units/" + id + "/shares")
+        mockMvc.perform(put("/api/v1/units/" + id)
                         .header("Authorization", bearerToken("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"shares":150}
+                                {"unitNumber":"A12","floor":2,"shares":150}
                                 """))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void updating_a_unit_without_a_number_returns_400() throws Exception {
+        mockMvc.perform(put("/api/v1/units/" + UnitId.newId())
+                        .header("Authorization", bearerToken("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"unitNumber":" ","floor":null,"shares":150}
+                                """))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

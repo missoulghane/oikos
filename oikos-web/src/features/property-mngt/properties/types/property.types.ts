@@ -106,7 +106,11 @@ export interface AddUnitPayload {
   floor: number | null;
 }
 
-export interface UpdateUnitSharesPayload {
+export interface UpdateUnitPayload {
+  /** Préfixé, « N° 32 » - voir unitNumberFromDigits. */
+  unitNumber: string;
+  /** null vaut « étage non renseigné ». */
+  floor: number | null;
   shares: number;
 }
 

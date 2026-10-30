@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import com.architek.oikos.property.application.command.AddUnitCommand;
-import com.architek.oikos.property.application.command.UpdateUnitSharesCommand;
+import com.architek.oikos.property.application.command.UpdateUnitCommand;
 import com.architek.oikos.property.application.port.in.AddUnitUseCase;
 import com.architek.oikos.property.application.port.in.CountUnitsByPropertyUseCase;
 import com.architek.oikos.property.application.port.in.GetUnitUseCase;
 import com.architek.oikos.property.application.port.in.ListUnitsByBuildingUseCase;
-import com.architek.oikos.property.application.port.in.UpdateUnitSharesUseCase;
+import com.architek.oikos.property.application.port.in.UpdateUnitUseCase;
 import com.architek.oikos.property.application.query.GetUnitQuery;
 import com.architek.oikos.property.application.query.CountUnitsByPropertyQuery;
 import com.architek.oikos.property.application.query.ListUnitsByBuildingQuery;
@@ -29,7 +29,7 @@ import com.architek.oikos.property.domain.valueobject.UnitSortField;
 import com.architek.oikos.property.domain.valueobject.UnitId;
 import com.architek.oikos.property.domain.valueobject.UnitTypeDefinitionId;
 import com.architek.oikos.property.web.request.AddUnitRequest;
-import com.architek.oikos.property.web.request.UpdateUnitSharesRequest;
+import com.architek.oikos.property.web.request.UpdateUnitRequest;
 import com.architek.oikos.property.web.response.UnitResponse;
 import com.architek.oikos.property.web.response.PagedUnitResponse;
 import com.architek.oikos.property.web.response.UnitCountResponse;
@@ -44,18 +44,18 @@ public class UnitController {
     private final AddUnitUseCase addUnitUseCase;
     private final GetUnitUseCase getUnitUseCase;
     private final ListUnitsByBuildingUseCase listUnitsByBuildingUseCase;
-    private final UpdateUnitSharesUseCase updateUnitSharesUseCase;
+    private final UpdateUnitUseCase updateUnitUseCase;
     private final CountUnitsByPropertyUseCase countUnitsByPropertyUseCase;
 
     public UnitController(AddUnitUseCase addUnitUseCase,
                           GetUnitUseCase getUnitUseCase,
                           ListUnitsByBuildingUseCase listUnitsByBuildingUseCase,
-                          UpdateUnitSharesUseCase updateUnitSharesUseCase,
+                          UpdateUnitUseCase updateUnitUseCase,
                           CountUnitsByPropertyUseCase countUnitsByPropertyUseCase) {
         this.addUnitUseCase = addUnitUseCase;
         this.getUnitUseCase = getUnitUseCase;
         this.listUnitsByBuildingUseCase = listUnitsByBuildingUseCase;
-        this.updateUnitSharesUseCase = updateUnitSharesUseCase;
+        this.updateUnitUseCase = updateUnitUseCase;
         this.countUnitsByPropertyUseCase = countUnitsByPropertyUseCase;
     }
 
@@ -92,10 +92,10 @@ public class UnitController {
     }
 
     @PreAuthorize("@propertyAccess.managesUnit(authentication, #id)")
-    @PutMapping("/units/{id}/shares")
-    public UnitResponse updateShares(@PathVariable String id, @Valid @RequestBody UpdateUnitSharesRequest request) {
-        return UnitResponse.from(updateUnitSharesUseCase.updateShares(
-                new UpdateUnitSharesCommand(UnitId.of(id), request.shares())));
+    @PutMapping("/units/{id}")
+    public UnitResponse update(@PathVariable String id, @Valid @RequestBody UpdateUnitRequest request) {
+        return UnitResponse.from(updateUnitUseCase.update(
+                new UpdateUnitCommand(UnitId.of(id), request.unitNumber(), request.floor(), request.shares())));
     }
 
     @PreAuthorize("@propertyAccess.managesBuilding(authentication, #buildingId)")

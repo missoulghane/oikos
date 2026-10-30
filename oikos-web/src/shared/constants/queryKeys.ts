@@ -72,6 +72,7 @@ export const queryKeys = {
     detail: (id: string) => ['installment-calls', id, 'detail'] as const,
   },
   buildings: {
+    detail: (buildingId: string) => ['buildings', buildingId, 'detail'] as const,
     /** Filters passed whole, for the reason given on `properties.installments`. */
     units: (buildingId: string, page: number, size: number, filters: object) =>
       ['buildings', buildingId, 'units', page, size, filters] as const,
