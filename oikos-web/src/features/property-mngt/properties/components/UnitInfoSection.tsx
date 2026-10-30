@@ -5,11 +5,6 @@ import { EditUnitForm } from '@/features/property-mngt/properties/components/Edi
 import { floorLabel } from '@/features/property-mngt/properties/utils/floorLabel';
 import type { Building, Unit } from '@/features/property-mngt/properties/types/property.types';
 
-const OWNERSHIP_STATUS_LABELS = {
-  AFFECTED: 'Affecté',
-  NOT_AFFECTED: 'Non affecté',
-} as const;
-
 interface UnitInfoSectionProps {
   unit: Unit;
   /** Arrive après le lot : tant qu'il manque, l'immeuble s'affiche « … » et la modification attend. */
@@ -64,7 +59,6 @@ export function UnitInfoSection({ unit, building, showShares }: UnitInfoSectionP
           <InfoRow label="Immeuble" value={building ? building.name : '…'} />
           <InfoRow label="Étage" value={typeof unit.floor === 'number' ? floorLabel(unit.floor) : 'Non renseigné'} />
           {showShares && <InfoRow label="Tantièmes" value={`${unit.shares}`} />}
-          <InfoRow label="Affectation" value={OWNERSHIP_STATUS_LABELS[unit.ownershipStatus]} />
         </dl>
       )}
     </SectionBlock>

@@ -30,7 +30,8 @@ describe('UnitInfoSection', () => {
     expect(screen.getByText('Appartement')).toBeInTheDocument();
     expect(screen.getByText('Bâtiment A')).toBeInTheDocument();
     expect(screen.getByText('Non renseigné')).toBeInTheDocument();
-    expect(screen.getByText('Affecté')).toBeInTheDocument();
+    // L'affectation n'y figure pas : le bloc Propriétaires la dit déjà.
+    expect(screen.queryByText('Affectation')).not.toBeInTheDocument();
     // Pas de tantièmes hors du mode tantièmes.
     expect(screen.queryByText('Tantièmes')).not.toBeInTheDocument();
   });
